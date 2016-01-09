@@ -10,9 +10,6 @@
 [submodule "modules/waf"]
 	path = modules/waf
 	url = git://github.com/ArduPilot/waf.git
-[submodule "modules/gbenchmark"]
-	path = modules/gbenchmark
-	url = git://github.com/google/benchmark.git
 [submodule "modules/mavlink"]
 	path = modules/mavlink
 	url = git://github.com/ArduPilot/mavlink
