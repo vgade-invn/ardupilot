@@ -180,7 +180,6 @@ protected:
 
     // output - sends commands to the motors
     void        output_armed_stabilizing();
-    void        output_armed_not_stabilizing();
     void        output_armed_zero_throttle();
     void        output_disarmed();
 
