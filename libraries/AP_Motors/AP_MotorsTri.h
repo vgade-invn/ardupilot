@@ -52,7 +52,6 @@ public:
 protected:
     // output - sends commands to the motors
     void                output_armed_stabilizing();
-    void                output_armed_not_stabilizing();
     void                output_disarmed();
 
     // calc_yaw_radio_output - calculate final radio output for yaw channel
