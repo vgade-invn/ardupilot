@@ -491,8 +491,10 @@ void QuadPlane::hold_stabilize(float throttle_in)
                                                                          smoothing_gain);
 
     if (throttle_in <= 0) {
+        motors->set_desired_spool_state(AP_Motors::DESIRED_SPIN_WHEN_ARMED);
         attitude_control->set_throttle_out_unstabilized(0, true, 0);
     } else {
+        motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
         attitude_control->set_throttle_out(throttle_in, true, 0);
     }
 }
@@ -524,6 +526,9 @@ void QuadPlane::init_hover(void)
  */
 void QuadPlane::hold_hover(float target_climb_rate)
 {
+    // motors use full range
+    motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+
     // initialize vertical speeds and acceleration
     pos_control->set_speed_z(-pilot_velocity_z_max, pilot_velocity_z_max);
     pos_control->set_accel_z(pilot_accel_z);
@@ -546,6 +551,7 @@ void QuadPlane::hold_hover(float target_climb_rate)
 void QuadPlane::control_hover(void)
 {
     if (throttle_wait) {
+        motors->set_desired_spool_state(AP_Motors::DESIRED_SPIN_WHEN_ARMED);
         attitude_control->set_throttle_out_unstabilized(0, true, 0);
         pos_control->relax_alt_hold_controllers(0);
     } else {
@@ -604,6 +610,7 @@ bool QuadPlane::should_relax(void)
 void QuadPlane::control_loiter()
 {
     if (throttle_wait) {
+        motors->set_desired_spool_state(AP_Motors::DESIRED_SPIN_WHEN_ARMED);
         attitude_control->set_throttle_out_unstabilized(0, true, 0);
         pos_control->relax_alt_hold_controllers(0);
         wp_nav->init_loiter_target();
@@ -619,7 +626,10 @@ void QuadPlane::control_loiter()
         wp_nav->init_loiter_target();
     }
     last_loiter_ms = millis();
-    
+
+    // motors use full range
+    motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+
     // initialize vertical speed and acceleration
     pos_control->set_speed_z(-pilot_velocity_z_max, pilot_velocity_z_max);
     pos_control->set_accel_z(pilot_accel_z);
@@ -764,7 +774,8 @@ void QuadPlane::update_transition(void)
         plane.control_mode == ACRO ||
         plane.control_mode == TRAINING) {
         // in manual modes quad motors are always off
-        motors->output_min();
+        motors->set_desired_spool_state(AP_Motors::DESIRED_SHUT_DOWN);
+        motors->output();
         transition_state = TRANSITION_DONE;
         return;
     }
@@ -834,7 +845,7 @@ void QuadPlane::update_transition(void)
     }
 
     case TRANSITION_DONE:
-        motors->output_min();
+        motors->output();
         break;
     }
 }
@@ -1175,7 +1186,6 @@ bool QuadPlane::do_vtol_land(const AP_Mission::Mission_Command& cmd)
     if (!setup()) {
         return false;
     }
-    motors->slow_start(true);
     pid_rate_roll.reset_I();
     pid_rate_pitch.reset_I();
     pid_rate_yaw.reset_I();
