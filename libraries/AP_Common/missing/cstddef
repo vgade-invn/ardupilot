@@ -6,11 +6,13 @@
 namespace std {
     typedef decltype(nullptr) nullptr_t;
 
+#if defined(HAVE_STD_MOVE) && !HAVE_STD_MOVE
     template< class T > struct remove_reference      {typedef T type;};
     template< class T > struct remove_reference<T&>  {typedef T type;};
     template< class T > struct remove_reference<T&&> {typedef T type;};
 
     template< class T >
     typename std::remove_reference<T>::type&& move( T&& t );
+#endif
 }
 #endif
