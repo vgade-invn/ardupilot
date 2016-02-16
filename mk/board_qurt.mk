@@ -50,9 +50,9 @@ DSP_LINK_FLAGS = -mv5 -G0 -fpic -shared -Wl,-Bsymbolic -Wl,--wrap=malloc -Wl,--w
 
 # Add missing parts from libc and libstdc++
 MISSING_TOOLCHAIN_FLAGS += -DHAVE_NULLPTR_T=0
-MISSING_TOOLCHAING_FLAGS += -I$(SKETCHBOOK)libraries/AP_Common/missing
+MISSING_TOOLCHAIN_FLAGS += -I$(SKETCHBOOK)/libraries/AP_Common/missing
 
-CXXFLAGS       +=   -std=gnu++11 $(WARNFLAGS) $(WARNFLAGSCXX) $(DEPFLAGS) $(MISSING_TOOLCHAING_FLAGS) $(CXXOPTS) $(DEFINES) $(DSP_FLAGS)
+CXXFLAGS       +=   -std=gnu++11 $(WARNFLAGS) $(WARNFLAGSCXX) $(DEPFLAGS) $(MISSING_TOOLCHAIN_FLAGS) $(CXXOPTS) $(DEFINES) $(DSP_FLAGS)
 CFLAGS         +=   $(WARNFLAGS) $(DEPFLAGS) $(COPTS) $(DEFINES) $(DSP_FLAGS)
 
 ARM_INC=-I$(HEXAGON_SDK_ROOT)/lib/common/remote/ship/UbuntuARM_Debug -I$(SKETCHBOOK)/libraries/
