@@ -11,31 +11,31 @@
 
 // default rate controller PID gains
 #ifndef AC_ATC_MULTI_RATE_RP_P
-  # define AC_ATC_MULTI_RATE_RP_P           0.150f
+  # define AC_ATC_MULTI_RATE_RP_P           0.114f
 #endif
 #ifndef AC_ATC_MULTI_RATE_RP_I
   # define AC_ATC_MULTI_RATE_RP_I           0.100f
 #endif
 #ifndef AC_ATC_MULTI_RATE_RP_D
-  # define AC_ATC_MULTI_RATE_RP_D           0.004f
+  # define AC_ATC_MULTI_RATE_RP_D           0.003f
 #endif
 #ifndef AC_ATC_MULTI_RATE_RP_IMAX
- # define AC_ATC_MULTI_RATE_RP_IMAX         2000.0f
+ # define AC_ATC_MULTI_RATE_RP_IMAX         0.5f
 #endif
 #ifndef AC_ATC_MULTI_RATE_RP_FILT_HZ
  # define AC_ATC_MULTI_RATE_RP_FILT_HZ      20.0f
 #endif
 #ifndef AC_ATC_MULTI_RATE_YAW_P
- # define AC_ATC_MULTI_RATE_YAW_P           0.200f
+ # define AC_ATC_MULTI_RATE_YAW_P           0.150f
 #endif
 #ifndef AC_ATC_MULTI_RATE_YAW_I
- # define AC_ATC_MULTI_RATE_YAW_I           0.020f
+ # define AC_ATC_MULTI_RATE_YAW_I           0.015f
 #endif
 #ifndef AC_ATC_MULTI_RATE_YAW_D
  # define AC_ATC_MULTI_RATE_YAW_D           0.0f
 #endif
 #ifndef AC_ATC_MULTI_RATE_YAW_IMAX
- # define AC_ATC_MULTI_RATE_YAW_IMAX        1000.0f
+ # define AC_ATC_MULTI_RATE_YAW_IMAX        0.22f
 #endif
 #ifndef AC_ATC_MULTI_RATE_YAW_FILT_HZ
  # define AC_ATC_MULTI_RATE_YAW_FILT_HZ     5.0f
