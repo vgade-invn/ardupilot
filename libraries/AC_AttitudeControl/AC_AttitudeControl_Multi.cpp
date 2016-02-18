@@ -41,7 +41,7 @@ const AP_Param::GroupInfo AC_AttitudeControl_Multi::var_info[] = {
     // @Param: RAT_RLL_FILT
     // @DisplayName: Roll axis rate conroller input frequency in Hz
     // @Description: Roll axis rate conroller input frequency in Hz
-    // @Unit: Hz
+    // @Units: Hz
     AP_SUBGROUPINFO(_pid_rate_roll, "RAT_RLL_", 1, AC_AttitudeControl_Multi, AC_PID),
 
     // @Param: RAT_PIT_P
@@ -76,7 +76,7 @@ const AP_Param::GroupInfo AC_AttitudeControl_Multi::var_info[] = {
     // @Param: RAT_PIT_FILT
     // @DisplayName: Pitch axis rate conroller input frequency in Hz
     // @Description: Pitch axis rate conroller input frequency in Hz
-    // @Unit: Hz
+    // @Units: Hz
     AP_SUBGROUPINFO(_pid_rate_pitch, "RAT_PIT_", 2, AC_AttitudeControl_Multi, AC_PID),
 
     // @Param: RAT_YAW_P
@@ -111,7 +111,7 @@ const AP_Param::GroupInfo AC_AttitudeControl_Multi::var_info[] = {
     // @Param: RAT_YAW_FILT
     // @DisplayName: Yaw axis rate conroller input frequency in Hz
     // @Description: Yaw axis rate conroller input frequency in Hz
-    // @Unit: Hz
+    // @Units: Hz
     AP_SUBGROUPINFO(_pid_rate_yaw, "RAT_YAW_", 3, AC_AttitudeControl_Multi, AC_PID),
 
     AP_GROUPEND
