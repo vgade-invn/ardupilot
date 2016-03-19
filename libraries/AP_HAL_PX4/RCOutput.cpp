@@ -465,6 +465,13 @@ void PX4RCOutput::_send_outputs(void)
     }
     
     if (_need_update && _pwm_fd != -1) {
+        uint16_t _period2[PX4_NUM_OUTPUT_CHANNELS];
+        memcpy(_period2, _period, _max_channel*sizeof(uint16_t));
+
+        // channel swap for H6 helis
+        _period2[2] = _period[5];
+        _period2[5] = _period[2];
+
         _need_update = false;
         perf_begin(_perf_rcout);
         uint8_t to_send = _max_channel<_servo_count?_max_channel:_servo_count;
@@ -473,7 +480,7 @@ void PX4RCOutput::_send_outputs(void)
         }
         if (to_send > 0) {
             for (int i=to_send-1; i >= 0; i--) {
-                if (_period[i] == 0 || _period[i] == PWM_IGNORE_THIS_CHANNEL) {
+                if (_period2[i] == 0 || _period2[i] == PWM_IGNORE_THIS_CHANNEL) {
                     to_send = i;
                 } else {
                     break;
@@ -481,7 +488,7 @@ void PX4RCOutput::_send_outputs(void)
             }
         }
         if (to_send > 0) {
-            ::write(_pwm_fd, _period, to_send*sizeof(_period[0]));
+            ::write(_pwm_fd, _period2, to_send*sizeof(_period2[0]));
         }
         if (_max_channel > _servo_count) {
             // maybe send updates to alt_fd
@@ -491,7 +498,7 @@ void PX4RCOutput::_send_outputs(void)
                     n = _alt_servo_count;
                 }
                 if (n > 0) {
-                    ::write(_alt_fd, &_period[_servo_count], n*sizeof(_period[0]));
+                    ::write(_alt_fd, &_period2[_servo_count], n*sizeof(_period2[0]));
                 }
             }
         }
