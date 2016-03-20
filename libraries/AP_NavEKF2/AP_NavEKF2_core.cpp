@@ -249,6 +249,8 @@ void NavEKF2_core::InitialiseVariables()
     imuDataDownSampledNew.delVelDT = 0.0f;
     runUpdates = false;
     framesSincePredict = 0;
+    yawAtTakeoff = 0.0f;
+    posdAtLastYawReset = 0.0f;
 
     // zero data buffers
     storedIMU.reset();
