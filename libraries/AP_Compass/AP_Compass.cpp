@@ -705,14 +705,16 @@ bool Compass::configured(void)
 
 // Update raw magnetometer values from HIL data
 //
-void Compass::setHIL(uint8_t instance, float roll, float pitch, float yaw)
+void Compass::setHIL(uint8_t instance, float roll, float pitch, float yaw, const Vector3f *earth_field)
 {
     Matrix3f R;
 
     // create a rotation matrix for the given attitude
     R.from_euler(roll, pitch, yaw);
 
-    if (!is_equal(_hil.last_declination,get_declination())) {
+    if (earth_field != nullptr) {
+        _hil.Bearth = *earth_field;
+    } else if (!is_equal(_hil.last_declination,get_declination())) {
         _setup_earth_field();
         _hil.last_declination = get_declination();
     }

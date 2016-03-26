@@ -272,7 +272,7 @@ public:
     uint8_t get_primary(void) const { return _primary; }
 
     // HIL methods
-    void        setHIL(uint8_t instance, float roll, float pitch, float yaw);
+    void        setHIL(uint8_t instance, float roll, float pitch, float yaw, const Vector3f *earth_field=nullptr);
     void        setHIL(uint8_t instance, const Vector3f &mag);
     const Vector3f&   getHIL(uint8_t instance) const;
     void        _setup_earth_field();
