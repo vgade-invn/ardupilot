@@ -71,6 +71,8 @@ public:
     AP_Float aspd_fail;   // pitot tube failure
 
     AP_Float mag_noise;   // in mag units (earth field is 818)
+    AP_Vector3f mag_gnd;  // ground based magnetic field disturbance in mag units
+    AP_Float mag_gnd_hgt; // height at which mag_gnd has reduced to 25% strength
     AP_Float mag_error;   // in degrees
     AP_Vector3f mag_mot;  // in mag units per amp
     AP_Vector3f mag_ofs;  // in mag units

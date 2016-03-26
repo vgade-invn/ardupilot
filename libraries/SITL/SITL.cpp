@@ -76,6 +76,8 @@ const AP_Param::GroupInfo SITL::var_info[] = {
     AP_GROUPINFO("ACC2_RND",      42, SITL,  accel2_noise, 0),
     AP_GROUPINFO("ARSP_FAIL",     43, SITL,  aspd_fail, 0),
     AP_GROUPINFO("GYR_SCALE",     44, SITL,  gyro_scale, 0),
+    AP_GROUPINFO("MAG_GND",       45, SITL,  mag_gnd, 0),
+    AP_GROUPINFO("MAG_GND_HGT",   46, SITL,  mag_gnd_hgt, 1.0f),
     AP_GROUPEND
 };
 
