@@ -130,6 +130,8 @@ private:
     Vector3f _rand_vec3f(void);
     void _fdm_input_step(void);
 
+    void _update_Bfield(void);
+
     void wait_clock(uint64_t wait_time_usec);
 
     // internal state
@@ -153,6 +155,7 @@ private:
     uint16_t _rcout_port;
     uint16_t _simin_port;
     float _current;
+    Vector3f _Bearth; // NED earth magnetic field in magnetoemter measurement units
 
     bool _synthetic_clock_mode;
 

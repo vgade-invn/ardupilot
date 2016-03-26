@@ -41,8 +41,13 @@ void SITL_State::_update_compass(float rollDeg, float pitchDeg, float yawDeg)
     if (yawDeg < -180.0f) {
         yawDeg += 360.0f;
     }
-    _compass->setHIL(0, radians(rollDeg), radians(pitchDeg), radians(yawDeg));
-    _compass->setHIL(1, radians(rollDeg), radians(pitchDeg), radians(yawDeg));
+
+    // get earth field
+    _update_Bfield();
+
+    // rotate into body frame
+    _compass->setHIL(0, radians(rollDeg), radians(pitchDeg), radians(yawDeg), &_Bearth);
+    _compass->setHIL(1, radians(rollDeg), radians(pitchDeg), radians(yawDeg), &_Bearth);
     Vector3f noise = _rand_vec3f() * _sitl->mag_noise;
     Vector3f motor = _sitl->mag_mot.get() * _current;
     Vector3f new_mag_data = _compass->getHIL(0) + noise + motor;
@@ -88,6 +93,27 @@ void SITL_State::_update_compass(float rollDeg, float pitchDeg, float yawDeg)
 
     _compass->setHIL(0, new_mag_data);
     _compass->setHIL(1, new_mag_data);
+}
+
+// calculate the magnetic field environment at the vehicles location
+void SITL_State::_update_Bfield(void)
+{
+    // assume an earth field strength of 400
+    _Bearth.x = 400.0f;
+    _Bearth.y = 0.0f;
+    _Bearth.z = 0.0f;
+
+    // rotate _Bearth for inclination and declination. -66 degrees
+    // is the inclination in Canberra, Australia
+    Matrix3f R;
+    R.from_euler(0, ToRad(66), _compass->get_declination());
+    _Bearth = R * _Bearth;
+
+    // add local ground based magnetic anomally assuming 1/R^3 reduction with height
+    Vector3f mag_anomally = _sitl->mag_gnd;
+    float scaler = _sitl->mag_gnd_hgt / (MAX(height_agl(),0.0f) + _sitl->mag_gnd_hgt);
+    mag_anomally = mag_anomally * scaler * scaler * scaler;
+    _Bearth += mag_anomally;
 }
 
 #endif
