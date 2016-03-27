@@ -109,10 +109,11 @@ void SITL_State::_update_Bfield(void)
     R.from_euler(0, ToRad(66), _compass->get_declination());
     _Bearth = R * _Bearth;
 
-    // add local ground based magnetic distortion effect assuming 1/R^2 reduction with height
-    Vector3f ground_vec = _sitl->mag_gnd;
-    ground_vec = ground_vec * sq(_sitl->mag_gnd_hgt / (height_agl() + _sitl->mag_gnd_hgt));
-    _Bearth += ground_vec;
+    // add local ground based magnetic anomally assuming 1/R^3 reduction with height
+    Vector3f mag_anomally = _sitl->mag_gnd;
+    float scaler = _sitl->mag_gnd_hgt / (MAX(height_agl(),0.0f) + _sitl->mag_gnd_hgt);
+    mag_anomally = mag_anomally * scaler * scaler * scaler;
+    _Bearth += mag_anomally;
 }
 
 #endif
