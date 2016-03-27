@@ -211,7 +211,7 @@ void Plane::stabilize_stick_mixing_fbw()
  */
 void Plane::stabilize_yaw(float speed_scaler)
 {
-    if (control_mode == AUTO && flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
+    if (control_mode == AUTO && flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL && g.land_deepstall == 0.0f) {
         // in land final setup for ground steering
         steering_control.ground_steering = true;
     } else {
@@ -235,7 +235,7 @@ void Plane::stabilize_yaw(float speed_scaler)
       final stage of landing (when the wings are help level) or when
       in course hold in FBWA mode (when we are below GROUND_STEER_ALT)
      */
-    if ((control_mode == AUTO && flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) ||
+    if ((control_mode == AUTO && flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL && g.land_deepstall == 0.0f) ||
         (steer_state.hold_course_cd != -1 && steering_control.ground_steering)) {
         calc_nav_yaw_course();
     } else if (steering_control.ground_steering) {
@@ -896,7 +896,35 @@ void Plane::set_servos(void)
         // push out the PWM values
         if (g.mix_mode == 0) {
             channel_roll->calc_pwm();
-            channel_pitch->calc_pwm();
+            if (g.land_deepstall > 0 && control_mode == AUTO && flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
+                float slew_progress_unclamped = (AP_HAL::millis() - deepstall_control->deepstall_start_time) / g.deepstall_slew_speed;
+                float slew_progress_clamped = CLAMP(slew_progress_unclamped, 0.0f, 1.0f);
+                float l_airspeed;
+                ahrs.airspeed_estimate(&l_airspeed);
+                if (l_airspeed <= g.deepstall_accel) {
+                    channel_pitch->radio_out = g.deepstall_elev;
+                } else {
+                    channel_pitch->radio_out = channel_pitch->radio_trim * (1.0f - slew_progress_clamped) +  g.deepstall_elev * slew_progress_clamped;
+                }
+                Vector3f ned_3;
+                ahrs.get_velocity_NED(ned_3);
+                if (slew_progress_unclamped >= g.deepstall_settle ||
+                    (l_airspeed <= g.deepstall_accel) ||
+                    ((g.deepstall_descent != 0.0) && (ned_3[2] > g.deepstall_descent))) {
+                    deepstall_control->land(ahrs.yaw, ahrs.get_gyro().z, ((float) current_loc.lat)/1e7, ((float) current_loc.lng)/1e7, g.deepstall_l1);
+                    uint16_t rudderLimit;
+                    if (l_airspeed > 12.0f) {
+                        rudderLimit = 0.5f;
+                    } else if (l_airspeed <= 9.0f) {
+                        rudderLimit = 1.0f;
+                    } else {
+                        rudderLimit = (12.0f - l_airspeed) / 6.0f + 0.5f;
+                    }
+                    channel_rudder->servo_out = constrain_int16(deepstall_control->getRudderNorm()*4500, - (4500 * rudderLimit), (4500 * rudderLimit));
+                }
+            } else {
+                channel_pitch->calc_pwm();
+            }
         }
         channel_rudder->calc_pwm();
 
@@ -915,6 +943,9 @@ void Plane::set_servos(void)
         if (control_mode == AUTO) {
             if (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
                 min_throttle = 0;
+                if (g.land_deepstall > 0) {
+                    max_throttle = 0;
+                }
             }
 
             if (flight_stage == AP_SpdHgtControl::FLIGHT_TAKEOFF || flight_stage == AP_SpdHgtControl::FLIGHT_LAND_ABORT) {
