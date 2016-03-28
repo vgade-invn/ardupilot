@@ -5,25 +5,26 @@
 #include <stdint.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_Common/AP_Common.h>
+#include <AP_Navigation/AP_Navigation.h>
 
 enum STAGE {
-	FLY_TO_ARC = 0,
-	COURSE_INTERCEPT,
-	DEEPSTALL_ENTRY,
-	DEEPSTALL_LAND
+    DEEPSTALL_FLY_TO_LOITER = 0,
+    DEEPSTALL_LOITER,
+    DEEPSTALL_APPROACH,
+    DEEPSTALL_LAND,
 };
+
 
 class DeepStall
 {
 	public:
 		DeepStall();
-		void setTarget(float lat, float lon);
 		void setYRCParams(float _Kyr, float _yrLimit, float Kp, float Ki, float Kd, float ilim);
-		void land(float track, float yawrate, float lat, float lon, float deepstal_l1);
-		bool getApproachWaypoint(Location &target, Location &land_loc, Location &current, Vector3f _wind, float v_d, float deltah, float vspeed);
+		void land(float track, float yawrate, Location current_loc, float deepstal_l1, float yawlimit);
+		STAGE getApproachWaypoint(Location &target, Location &land_loc, Location &current_loc, Vector3f _wind, float v_d, float deltah, float vspeed, int32_t heading_cd, AP_Navigation *nav_controller, float loiter_radius);
 		float getRudderNorm();
 		
-		void computeApproachPath(Vector3f wind, float loiterRadius, float d_s, float v_d, float deltah, float vspeed, float lat, float lon);
+		void computeApproachPath(Vector3f wind, float loiterRadius, float d_s, float v_d, float deltah, float vspeed, Location &landing);
 		
 		void abort();
 		
@@ -31,38 +32,28 @@ class DeepStall
 		PIDController *YawRateController;
 		
 		float targetTrack;
-		int stage; // 1 - arc point, 2 - course intercept, 3 - deep stall entry point, 4 - stall
+		STAGE stage; // 1 - arc point, 2 - course intercept, 3 - deep stall entry point, 4 - stall
 		bool ready;
                 int32_t deepstall_start_time;
+                Location loiter;
 	
 	private:
-		float land_lat;
-		float land_lon;
+                bool verify_loiter_breakout(Location &current_loc, int32_t heading_cd);
+
+                Location extended_approach;
+                Location landing_point;
+
+                int32_t loiter_sum_cd;
+                int32_t old_target_bearing_cd;
+
 		float rCmd;
 		float targetHeading;
-		float lradius;
 		float ds;
-		float Kyr;
 		float yrLimit;
 		uint32_t _last_t;
 		
 		// Approach parameters
 		float d_predict;
-		// Deepstall entry point
-		float lat_e;
-		float lon_e;
-		// Course intercept point
-		float lat_i;
-		float lon_i;
-		// Pre-final loiter
-		float lat_l;
-		float lon_l;
-		// Projected entry point
-		float lat_p;
-		float lon_p;
-		
-                Location loc_entry;
-                Location _land_loc;
 };
 
 #endif

@@ -911,7 +911,7 @@ void Plane::set_servos(void)
                 if (slew_progress_unclamped >= g.deepstall_settle ||
                     (l_airspeed <= g.deepstall_accel) ||
                     ((g.deepstall_descent != 0.0) && (ned_3[2] > g.deepstall_descent))) {
-                    deepstall_control->land(ahrs.yaw, ahrs.get_gyro().z, ((float) current_loc.lat)/1e7, ((float) current_loc.lng)/1e7, g.deepstall_l1);
+                    deepstall_control->land(ahrs.yaw, ahrs.get_gyro().z, current_loc, g.deepstall_l1, g.deepstall_yaw_limit);
                     uint16_t rudderLimit;
                     if (l_airspeed > 12.0f) {
                         rudderLimit = 0.5f;

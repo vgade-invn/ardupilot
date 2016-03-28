@@ -160,6 +160,7 @@ public:
         k_param_fence_autoenable,
         k_param_fence_ret_rally,
         k_param_land_deepstall,
+        k_param_deepstall_yaw_limit,
 
         // 110: Telemetry control
         //
@@ -545,6 +546,7 @@ public:
     AP_Float deepstall_descent;
     AP_Float deepstall_accel;
     AP_Float deepstall_l1;
+    AP_Float deepstall_yaw_limit;
 
     // RC channels
     RC_Channel rc_1;

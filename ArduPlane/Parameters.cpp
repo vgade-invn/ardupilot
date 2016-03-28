@@ -1095,6 +1095,7 @@ const AP_Param::Info Plane::var_info[] = {
     GSCALAR(deepstall_descent, "DEEPSTALL_DESC", -1.0f),
     GSCALAR(deepstall_accel, "DEEPSTALL_ACCL", 9.0f),
     GSCALAR(deepstall_l1, "DEEPSTALL_L1", 5.0f),
+    GSCALAR(deepstall_yaw_limit, "DEEPSTALL_LIMY", 0.3f),
 
 #if RANGEFINDER_ENABLED == ENABLED
     // @Group: RNGFND
