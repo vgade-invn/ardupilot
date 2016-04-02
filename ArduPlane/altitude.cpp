@@ -34,8 +34,9 @@ void Plane::adjust_altitude_target()
         // in land final TECS uses TECS_LAND_SINK as a target sink
         // rate, and ignores the target altitude
         set_target_altitude_location(next_WP_loc);
-    } else if (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH ||
-            flight_stage == AP_SpdHgtControl::FLIGHT_LAND_PREFLARE) {
+    } else if (g.land_deepstall == 0 &&
+               (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH ||
+                flight_stage == AP_SpdHgtControl::FLIGHT_LAND_PREFLARE)) {
         setup_landing_glide_slope();
     } else if (nav_controller->reached_loiter_target()) {
         // once we reach a loiter target then lock to the final
@@ -358,9 +359,10 @@ void Plane::set_offset_altitude_location(const Location &loc)
     }
 #endif
 
-    if (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_PREFLARE &&
-        flight_stage != AP_SpdHgtControl::FLIGHT_LAND_APPROACH &&
-        flight_stage != AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
+    if (g.land_deepstall > 0 || // deepstall means always do the resets
+        (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_PREFLARE &&
+         flight_stage != AP_SpdHgtControl::FLIGHT_LAND_APPROACH &&
+         flight_stage != AP_SpdHgtControl::FLIGHT_LAND_FINAL)) {
         // if we are within GLIDE_SLOPE_MIN meters of the target altitude
         // then reset the offset to not use a glide slope. This allows for
         // more accurate flight of missions where the aircraft may lose or

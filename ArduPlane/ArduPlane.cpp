@@ -918,7 +918,7 @@ void Plane::update_flight_stage(void)
                         set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_FINAL);
                     } else if (auto_state.land_pre_flare == true) {
                         set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_PREFLARE);
-                    } else if (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_APPROACH) {
+                    } else if (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_APPROACH && g.land_deepstall == 0) {
                         float path_progress = location_path_proportion(current_loc, prev_WP_loc, next_WP_loc);
                         bool lined_up = abs(nav_controller->bearing_error_cd()) < 1000;
                         bool below_prev_WP = current_loc.alt < prev_WP_loc.alt;

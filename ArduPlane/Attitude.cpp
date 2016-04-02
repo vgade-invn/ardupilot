@@ -528,8 +528,10 @@ void Plane::throttle_slew_limit(int16_t last_throttle)
     if (control_mode==AUTO) {
         if (auto_state.takeoff_complete == false && g.takeoff_throttle_slewrate != 0) {
             slewrate = g.takeoff_throttle_slewrate;
-        } else if (g.land_throttle_slewrate != 0 &&
-                (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH || flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL || flight_stage == AP_SpdHgtControl::FLIGHT_LAND_PREFLARE)) {
+        } else if (g.land_throttle_slewrate != 0 && g.land_deepstall == 0 &&
+                (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH ||
+                 flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL ||
+                 flight_stage == AP_SpdHgtControl::FLIGHT_LAND_PREFLARE)) {
             slewrate = g.land_throttle_slewrate;
         }
     }
@@ -901,11 +903,9 @@ void Plane::set_servos(void)
                 float slew_progress_clamped = CLAMP(slew_progress_unclamped, 0.0f, 1.0f);
                 float l_airspeed;
                 ahrs.airspeed_estimate(&l_airspeed);
-                if (l_airspeed <= g.deepstall_accel) {
-                    channel_pitch->radio_out = g.deepstall_elev;
-                } else {
-                    channel_pitch->radio_out = channel_pitch->radio_trim * (1.0f - slew_progress_clamped) +  g.deepstall_elev * slew_progress_clamped;
-                }
+
+                channel_pitch->radio_out = channel_pitch->radio_trim * (1.0f - slew_progress_clamped) +  g.deepstall_elev * slew_progress_clamped;
+
                 Vector3f ned_3;
                 ahrs.get_velocity_NED(ned_3);
                 if (slew_progress_unclamped >= g.deepstall_settle ||

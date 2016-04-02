@@ -293,6 +293,8 @@ public:
         k_param_quadplane,
         k_param_rtl_radius,
         k_param_land_then_servos_neutral,
+        k_param_deepstall_approach_airspeed_cm,
+        k_param_deepstall_control,
 
         //
         // 210: flight modes
@@ -547,6 +549,7 @@ public:
     AP_Float deepstall_accel;
     AP_Float deepstall_l1;
     AP_Float deepstall_yaw_limit;
+    AP_Float deepstall_approach_airspeed_cm;
 
     // RC channels
     RC_Channel rc_1;

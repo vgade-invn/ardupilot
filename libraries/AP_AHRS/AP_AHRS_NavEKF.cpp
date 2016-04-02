@@ -366,24 +366,47 @@ float AP_AHRS_NavEKF::get_error_yaw(void) const
 Vector3f AP_AHRS_NavEKF::wind_estimate(void)
 {
     Vector3f wind;
-    switch (active_EKF_type()) {
-    case EKF_TYPE_NONE:
-        wind = AP_AHRS_DCM::wind_estimate();
-        break;
+    if(_wind_type == 0) {
+        switch (active_EKF_type()) {
+        case EKF_TYPE_NONE:
+            wind = AP_AHRS_DCM::wind_estimate();
+            break;
 
-    case EKF_TYPE1:
-        EKF1.getWind(wind);
-        break;
+        case EKF_TYPE1:
+            EKF1.getWind(wind);
+            break;
 
-    case EKF_TYPE2:
-        EKF2.getWind(-1,wind);
-        break;
+        case EKF_TYPE2:
+            EKF2.getWind(-1,wind);
+            break;
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    case EKF_TYPE_SITL:
-        wind.zero();
-        break;
+        case EKF_TYPE_SITL:
+            wind.zero();
+            break;
 #endif
+        }
+    } else {
+        switch (_wind_type - 1) {
+        case EKF_TYPE_NONE:
+            wind = AP_AHRS_DCM::wind_estimate();
+            break;
+
+        case EKF_TYPE1:
+            EKF1.getWind(wind);
+            break;
+
+        case EKF_TYPE2:
+            EKF2.getWind(-1,wind);
+            break;
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+        case EKF_TYPE_SITL:
+            wind.zero();
+            break;
+#endif
+        }
+
     }
     return wind;
 }

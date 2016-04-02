@@ -1053,6 +1053,8 @@ const AP_Param::Info Plane::var_info[] = {
     // @Path: ../libraries/AP_GPS/AP_GPS.cpp
     GOBJECT(gps, "GPS_", AP_GPS),
 
+    GOBJECT(deepstall_control, "DEEPSTALL_", DeepStall),
+
 #if CAMERA == ENABLED
     // @Group: CAM_
     // @Path: ../libraries/AP_Camera/AP_Camera.cpp
@@ -1096,6 +1098,7 @@ const AP_Param::Info Plane::var_info[] = {
     GSCALAR(deepstall_accel, "DEEPSTALL_ACCL", 9.0f),
     GSCALAR(deepstall_l1, "DEEPSTALL_L1", 5.0f),
     GSCALAR(deepstall_yaw_limit, "DEEPSTALL_LIMY", 0.3f),
+    GSCALAR(deepstall_approach_airspeed_cm, "DEEPSTALL_AIRS", 1400.0f),
 
 #if RANGEFINDER_ENABLED == ENABLED
     // @Group: RNGFND
