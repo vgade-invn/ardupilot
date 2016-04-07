@@ -335,7 +335,7 @@ public:
         k_param_TECS_controller,
         k_param_rally_total_old,  //unused
         k_param_steerController,
-        k_param_deepstall_slew_speed,
+        //k_param_deepstall_slew_speed,
 
         //
         // 240: PID Controllers

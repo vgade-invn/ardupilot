@@ -1092,7 +1092,7 @@ const AP_Param::Info Plane::var_info[] = {
     GSCALAR(deepstall_vd, "DEEPSTALL_VD", 8),
     GSCALAR(deepstall_ds, "DEEPSTALL_DS", 50),
     GSCALAR(deepstall_vspeed, "DEEPSTALL_VSPEED", -6),
-    GSCALAR(deepstall_slew_speed, "DEEPSTALL_SLEW", 0.5),
+    //GSCALAR(deepstall_slew_speed, "DEEPSTALL_SLEW", 0.5),
     GSCALAR(deepstall_settle, "DEEPSTALL_SETL", 2.0f),
     GSCALAR(deepstall_descent, "DEEPSTALL_DESC", -1.0f),
     GSCALAR(deepstall_accel, "DEEPSTALL_ACCL", 9.0f),
