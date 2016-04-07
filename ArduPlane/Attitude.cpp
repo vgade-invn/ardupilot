@@ -897,6 +897,7 @@ void Plane::set_servos(void)
 
         // push out the PWM values
         if (g.mix_mode == 0) {
+
             channel_roll->calc_pwm();
             if (g.land_deepstall > 0 && control_mode == AUTO && flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
                 float slew_progress_unclamped = (AP_HAL::millis() - deepstall_control->deepstall_start_time) / g.deepstall_slew_speed;

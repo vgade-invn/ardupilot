@@ -863,7 +863,7 @@ void Plane::update_alt()
 
     update_flight_stage();
 
-    bool is_doing_auto_land = (control_mode == AUTO) && (mission.get_current_nav_cmd().id == MAV_CMD_NAV_LAND);
+    bool is_doing_auto_land = (control_mode == AUTO) && (mission.get_current_nav_cmd().id == MAV_CMD_NAV_LAND) && g.land_deepstall == 0;
     float distance_beyond_land_wp = 0;
     if (is_doing_auto_land && location_passed_point(current_loc, prev_WP_loc, next_WP_loc)) {
         distance_beyond_land_wp = get_distance(current_loc, next_WP_loc);
@@ -878,7 +878,6 @@ void Plane::update_alt()
         if (control_mode != AUTO) {
             fs = AP_SpdHgtControl::FLIGHT_NORMAL;
         }
-
         SpdHgt_Controller->update_pitch_throttle(relative_target_altitude_cm(),
                                                  target_airspeed_cm,
                                                  fs,

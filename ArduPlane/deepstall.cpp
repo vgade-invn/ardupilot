@@ -44,6 +44,13 @@ const AP_Param::GroupInfo DeepStall::var_info[] = {
     // @RebootRequired: True
     AP_GROUPINFO("DS_B",   4, DeepStall, ds_b, 16.28549267),
 
+    // @Param: DS_B
+    // @DisplayName: 2nd GPS type
+    // @Description: GPS type of 2nd GPS
+    // @Values: 0:None,1:AUTO,2:uBlox,3:MTK,4:MTK19,5:NMEA,6:SiRF,7:HIL,8:SwiftNav,9:PX4-UAVCAN,10:SBF,11:GSOF
+    // @RebootRequired: True
+    AP_GROUPINFO("L1_I",   5, DeepStall, l1_i, 0.05),
+
     AP_GROUPEND
 };
 
@@ -62,11 +69,12 @@ DeepStall::DeepStall() {
 }
 
 void DeepStall::abort() {
-	YawRateController->resetIntegrator();
-	stage = DEEPSTALL_FLY_TO_LOITER; // Reset deepstall stage in case of abort
-	ready = false;
-	_last_t = 0;
-        loiter_sum_cd = 0;
+    YawRateController->resetIntegrator();
+    stage = DEEPSTALL_FLY_TO_LOITER; // Reset deepstall stage in case of abort
+    ready = false;
+    _last_t = 0;
+    loiter_sum_cd = 0;
+    l1_xtrack_i = 0.0f;
 }
 
 void DeepStall::setYRCParams(float _Kyr, float _yrLimit, float Kp, float Ki, float Kd, float ilim) {
@@ -75,14 +83,39 @@ void DeepStall::setYRCParams(float _Kyr, float _yrLimit, float Kp, float Ki, flo
     yrLimit = _yrLimit;
 }
 
-float DeepStall::predictDistanceTraveled(Vector3f wind, float altitude, float vspeed) {
-    float forward_distance = vf_a * wind.length() + vf_b;
-    float stall_distance = ds_a * wind.length() + ds_b;
-    float course = targetHeading * M_PI/180;
+float DeepStall::predictDistanceTraveled(Vector3f wind, float altitude, float forwardSpeed, float vspeed) {
+    float course = radians(targetHeading);
 
+/*    Vector3f course_comp(cos(course), sin(course), 0.0f);
+    float wind_comp = -1 * (course_comp * wind);
+
+    float forward_distance = vf_a * wind_comp + vf_b;
+    float stall_distance = ds_a * wind_comp + ds_b;
     Vector3f aligned_component(sin(course), cos(course), 0.0f);
     float v_e = forward_distance;// * (aligned_component * wind);
     return v_e * altitude / vspeed + stall_distance;
+*/
+// alternate comp version
+
+    GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO,
+                                    "fsp %f, w %f, l1_i %f\n", forwardSpeed, wind.length(), 1.0f * l1_i);
+    forwardSpeed = MAX(forwardSpeed, 0.5f);
+    Vector2f wind_vec(wind.x, wind.y);
+    Vector2f course_vec(cos(course), sin(course));
+
+    float stall_distance = ds_a * wind_vec.length() + ds_b;
+
+    float theta = acos((wind_vec * course_vec) / (MAX(wind_vec.length(), 0.05f) * course_vec.length()));
+    theta *= (course_vec % wind_vec) > 0 ? -1 : 1;
+//    float forward_component = cosf(theta) * wind_vec.length();
+    float cross_component = sinf(theta) * wind_vec.length();
+    float estimated_crab_angle = asinf(MIN(cross_component / forwardSpeed, 1.0f));
+    estimated_crab_angle *= (course_vec % wind_vec) > 0 ? -1 : 1;
+    float estimated_forward = cosf(estimated_crab_angle) * forwardSpeed + cosf(theta) * wind_vec.length();
+//    hal.console->printf("estimated %f %f %f %f\n", estimated_forward, cosf(estimated_crab_angle) * forwardSpeed + cosf(theta) * wind_vec.length(), degrees(estimated_crab_angle), degrees(theta));    
+// end alternate version
+
+    return estimated_forward * altitude / vspeed + stall_distance;
 }
 
 void DeepStall::computeApproachPath(Vector3f _wind, float loiterRadius, float d_s, float v_d, float deltah, float vspeed, Location &landing, float heading) {
@@ -108,9 +141,9 @@ void DeepStall::computeApproachPath(Vector3f _wind, float loiterRadius, float d_
 	
 	// Predict deepstall distance (can handle backward tracking! xD)
 	d_predict = v_e*deltah/vspeed;
-        d_predict = predictDistanceTraveled(_wind, deltah, v_d);
+        d_predict = predictDistanceTraveled(_wind, deltah, vspeed, v_d);
 	
-        location_update(loiter_exit, targetHeading + 180.0, d_predict + loiterRadius + d_s);
+        location_update(loiter_exit, targetHeading + 180.0, d_predict + d_s);
         memcpy(&loiter, &loiter_exit, sizeof(Location));
         location_update(loiter, targetHeading + 90.0, loiterRadius);
 
@@ -169,7 +202,7 @@ STAGE DeepStall::getApproachWaypoint(Location &target, Location &land_loc, Locat
 
         // Predict deepstall distance (can handle backward tracking! xD)
         d_predict = v_e*deltah/vspeed;
-        d_predict = predictDistanceTraveled(_wind, deltah, vspeed);
+        d_predict = predictDistanceTraveled(_wind, deltah, vspeed, v_d);
 	
         switch (stage) {
             case DEEPSTALL_FLY_TO_LOITER:
@@ -246,7 +279,7 @@ void DeepStall::land(float track, float yawrate, Location current_loc, float dee
 
 	// Target position controller
 	// Generate equation of the tracking line parameters
-	float course = targetHeading*M_PI/180;
+	float course = radians(targetHeading);
 	
         Vector2f ab = location_diff(loiter_exit, extended_approach);
         ab.normalize();
@@ -257,11 +290,27 @@ void DeepStall::land(float track, float yawrate, Location current_loc, float dee
         sine_nu1 = constrain_float(sine_nu1, -0.7071f, 0.7107f);
         float nu1 = asinf(sine_nu1);
 
+        if (l1_i > 0) {
+            l1_xtrack_i += nu1 * l1_i * (1.0 / dt);
+            l1_xtrack_i = constrain_float(l1_xtrack_i, -0.5f, 0.5f);
+            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO,
+                                             "applied %f to %f %f\n", degrees(l1_xtrack_i), degrees(nu1), 1 * l1_i);
+        }
+        nu1 += l1_xtrack_i;
+
 	targetTrack = course + nu1;
+
+        float desiredChange = atan2(sin(wrap_PI(targetTrack) - track), cos(wrap_PI(targetTrack) - track));
+        GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO,
+            "delta %f %f %f %f\n",
+            degrees(desiredChange),
+            degrees(targetTrack),
+            degrees(track));
+
         GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO,
                    "%f %f %f %f %f\n",
                     _crosstrack_error,
-                    CLAMP((targetTrack - track) *0.05/0.3f, -yawlimit, yawlimit), 
+                    CLAMP(desiredChange / tcon, -yawlimit, yawlimit), 
                     180 / M_PI * nu1,
                     yawrate * 180 / M_PI,
                     location_diff(current_loc, landing_point).length());
@@ -269,7 +318,7 @@ void DeepStall::land(float track, float yawrate, Location current_loc, float dee
 	rCmd = PIDController::saturate(
                  YawRateController->run(((float) dt)/1000.0,
                                         PIDController::saturate(
-                                          PIDController::wrap(CLAMP((targetTrack - track) / tcon, -yawlimit, yawlimit) - yawrate,  -M_PI, M_PI), -yrLimit, yrLimit)),
+                                          PIDController::wrap(CLAMP(desiredChange / tcon, -yawlimit, yawlimit) - yawrate,  -M_PI, M_PI), -yrLimit, yrLimit)),
                  -1, 1);
 }
 
@@ -279,8 +328,7 @@ float DeepStall::getRudderNorm() {
 
 void DeepStall::setTargetHeading(float hdg, bool constrain) {
         if (constrain) {
-            float delta = hdg - targetHeading;
-            delta += (delta > 180.0f) ? -360.0f : (delta < -180.0f) ? 360.0f : 0.0f;
+            float delta = atan2(sin(wrap_PI(radians(hdg)) - radians(targetHeading)), cos(wrap_PI(radians(hdg)) - radians(targetHeading)));
             targetHeading = PIDController::wrap(CLAMP(delta, -15.0f, 15.0f) + targetHeading, -180.0f, 180.0f);
         } else {
             targetHeading = hdg;

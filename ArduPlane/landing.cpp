@@ -70,7 +70,7 @@ bool Plane::verify_land()
 //        target.alt = next_WP_loc.alt;
          
         // Retrieve current approach path waypoint (or if false returned, land)
-        if (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
+//        if (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
             switch (deepstall_control->getApproachWaypoint(target, next_WP_loc, current_loc, ahrs.wind_estimate(), g.deepstall_vd, relative_altitude(), g.deepstall_vspeed, gps.ground_course_cd(), nav_controller, g.loiter_radius, cmd.p1)) {
                 case DEEPSTALL_FLY_TO_LOITER:
                     set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_APPROACH);
@@ -85,14 +85,15 @@ bool Plane::verify_land()
                     nav_controller->update_waypoint(deepstall_control->loiter_exit, target);
                     break;
                 case DEEPSTALL_LAND:
-                    nav_controller->update_waypoint(deepstall_control->loiter, target);
+                    nav_controller->update_waypoint(deepstall_control->loiter_exit, target);
                     if (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
                         deepstall_control->deepstall_start_time = AP_HAL::millis();
                         set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_FINAL);
                     }
                     break;
             }
-        }
+            set_target_altitude_location(target);
+//        }
     } else {
         float height = height_above_target();
 

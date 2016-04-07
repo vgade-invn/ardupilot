@@ -45,9 +45,10 @@ class DeepStall
                 AP_Float tcon;
                 AP_Float ds_a;
                 AP_Float ds_b;
+                AP_Float l1_i;
 
 	private:
-                float predictDistanceTraveled(Vector3f wind, float altitude, float vspeed);
+                float predictDistanceTraveled(Vector3f wind, float altitude, float forwardSpeed, float vspeed);
                 bool verify_loiter_breakout(Location &current_loc, int32_t heading_cd);
 
                 Location extended_approach;
@@ -64,6 +65,7 @@ class DeepStall
 		
 		// Approach parameters
 		float d_predict;
+                float l1_xtrack_i;
 };
 
 #endif
