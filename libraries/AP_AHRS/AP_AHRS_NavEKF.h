@@ -41,7 +41,7 @@
   we are too close to running out of flash on px4 with plane firmware, so disable it
  */
 #if APM_BUILD_TYPE(APM_BUILD_ArduPlane) && CONFIG_HAL_BOARD == HAL_BOARD_PX4
-#define AP_AHRS_WITH_EKF1 0
+#define AP_AHRS_WITH_EKF1 1
 #else
 #define AP_AHRS_WITH_EKF1 1
 #endif
