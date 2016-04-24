@@ -42,7 +42,6 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
     SCHED_TASK(stabilize,             400,    100),
     SCHED_TASK(set_servos,            400,    100),
     SCHED_TASK(read_control_switch,     7,    100),
-    SCHED_TASK(gcs_retry_deferred,     50,    500),
     SCHED_TASK(update_GPS_50Hz,        50,    300),
     SCHED_TASK(update_GPS_10Hz,        10,    400),
     SCHED_TASK(navigate,               10,    150),
@@ -84,6 +83,11 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
     SCHED_TASK(update_is_flying_5Hz,    5,    100),
     SCHED_TASK(dataflash_periodic,     50,    400),
     SCHED_TASK(adsb_update,             1,    400),
+    // we retry 3 times, not allowing any one to take more than
+    // 500usec. This gives an opportunity for high rate messaging
+    SCHED_TASK(gcs_retry_deferred,     50,    500),
+    SCHED_TASK(gcs_retry_deferred,     50,    500),
+    SCHED_TASK(gcs_retry_deferred,     50,    500),
 };
 
 void Plane::setup() 
