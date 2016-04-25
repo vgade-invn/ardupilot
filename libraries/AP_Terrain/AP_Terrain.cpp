@@ -158,6 +158,18 @@ bool AP_Terrain::height_amsl(const Location &loc, float &height, bool extrapolat
         height += (ahrs.get_home().alt * 0.01f) - home_height;
     }
 
+
+    static float biggest_error;
+    float h2;
+    if (height_amsl_extrapolate(loc, h2)) {
+        float diff = fabsf(height-h2);
+        if (diff > biggest_error) {
+            printf("h1 %.3f h2 %.3f  err %.3f at %ld %ld\n", height, h2, fabsf(height-h2),
+                   (long int)loc.lat, (long int)loc.lng);
+            biggest_error = diff;
+        }
+    }
+
     return true;
 }
 
