@@ -123,7 +123,7 @@ void Copter::read_radio()
         last_update_ms = tnow_ms;
 
         // check for transmitter tuning
-        tuning.check_input();
+        tuning.check_input(control_mode);
     }else{
         uint32_t elapsed = tnow_ms - last_update_ms;
         // turn on throttle failsafe if no update from the RC Radio for 500ms or 2000ms if we are using RC_OVERRIDE

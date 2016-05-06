@@ -65,6 +65,7 @@ private:
     AP_Float *get_param_pointer(uint8_t parm);
     void save_value(uint8_t parm);
     void set_value(uint8_t parm, float value);
+    void reload_value(uint8_t parm);
 
     // tuning set arrays
     static const uint8_t tuning_set_q_rate_roll_pitch[];
