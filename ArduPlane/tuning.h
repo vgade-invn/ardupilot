@@ -1,20 +1,24 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
+#include <AP_Tuning/AP_Tuning.h>
+
 /*
   Plane transmitter tuning
  */
-class Tuning
+class AP_Tuning_Plane : public AP_Tuning
 {
-public:
-    friend class Plane;
+private:
+    // table of tuning sets
+    static const tuning_set tuning_sets[];
 
-    Tuning(void);
+    // table of tuning parameter names for reporting
+    static const tuning_name tuning_names[];
     
-    // var_info for holding Parameter information
-    static const struct AP_Param::GroupInfo var_info[];
-
-    void check_input(void);
-
+public:
+    // constructor
+    AP_Tuning_Plane(void) : AP_Tuning(tuning_sets, tuning_names) {}
+    
+private:
     enum tuning_func {
         TUNING_NONE =                          0,
 
@@ -61,39 +65,6 @@ public:
         TUNING_PIT_FF =                       31,
     };
     
-private:
-    AP_Int8 channel;
-    AP_Int16 channel_min;
-    AP_Int16 channel_max;
-    AP_Int8 selector;
-    AP_Int8 parmset;
-    AP_Float range;
-
-    // when selector was triggered
-    uint32_t selector_start_ms;
-
-    // are we waiting for channel mid-point?
-    bool mid_point_wait;
-
-    // last input from tuning channel
-    float last_channel_value;
-    
-    // mid-value for current parameter
-    float center_value;
-
-    uint32_t last_check_ms;
-
-    struct PACKED log_ParameterTuning {
-        LOG_PACKET_HEADER;
-        uint64_t time_us;
-        uint8_t  set;           // parameter set we are tuning
-        uint8_t  parameter;     // parameter we are tuning
-        float    tuning_value;  // normalized value used inside tuning() function
-        float    center_value;
-    };
-
-    void Log_Write_Parameter_Tuning(float value);
-    
     enum tuning_sets {
         TUNING_SET_NONE =                      0,
 
@@ -102,39 +73,12 @@ private:
         TUNING_SET_Q_RATE_PITCH =              3,
     };
 
-    // the parameter we are tuning
-    enum tuning_func current_parm;
+    AP_Float *get_param_pointer(uint8_t parm);
+    void save_value(uint8_t parm);
+    void set_value(uint8_t parm, float value);
 
-    // current index into the parameter set
-    uint8_t current_parm_index;
-
-    // current parameter set
-    enum tuning_sets current_set;
-
-    // true if tune has changed
-    bool changed:1;
-
-    struct tuning_set {
-        enum tuning_sets set;
-        uint8_t num_parms;
-        const enum tuning_func *parms;
-    };
-
-    // table of tuning sets
-    static const tuning_set tuning_sets[];
-
-    // table of tuning parameter names for reporting
-    static const struct tuning_name {
-        enum tuning_func parm;
-        const char *name;
-    } tuning_names[];
-    
-    void check_selector_switch(void);
-    void re_center(void);
-    void next_parameter(void);
-    void save_parameters(void);
-    AP_Float *get_param_pointer(enum tuning_func parm);
-    const char *get_tuning_name(enum tuning_func parm);
-    void save_value(enum tuning_func parm);
-    void set_value(enum tuning_func parm, float value);
+    // tuning set arrays
+    static const uint8_t tuning_set_q_rate_roll_pitch[];
+    static const uint8_t tuning_set_q_rate_roll[];
+    static const uint8_t tuning_set_q_rate_pitch[];
 };
