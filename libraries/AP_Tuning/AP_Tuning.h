@@ -34,7 +34,7 @@ public:
     static const struct AP_Param::GroupInfo var_info[];
 
     // update function called on new radio frames
-    void check_input(void);
+    void check_input(uint8_t flightmode);
 
 private:
     AP_Int8 channel;
@@ -72,6 +72,12 @@ private:
     // true if tune has changed
     bool changed:1;
 
+    // mask of params in set that need reverting
+    uint32_t need_revert;
+    
+    // last flight mode we were tuning in
+    uint8_t last_flightmode;
+
     const tuning_set *tuning_sets;
     const tuning_name *tuning_names;
     
@@ -79,11 +85,13 @@ private:
     void re_center(void);
     void next_parameter(void);
     void save_parameters(void);
+    void revert_parameters(void);
     const char *get_tuning_name(uint8_t parm);
 
 protected:
     // virtual functions that must be implemented in vehicle subclass
     virtual AP_Float *get_param_pointer(uint8_t parm) = 0;
     virtual void save_value(uint8_t parm) = 0;
-    virtual void set_value(uint8_t, float value) = 0;
+    virtual void reload_value(uint8_t parm) = 0;
+    virtual void set_value(uint8_t parm, float value) = 0;
 };

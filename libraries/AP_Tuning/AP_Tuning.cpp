@@ -76,6 +76,7 @@ void AP_Tuning::check_selector_switch(void)
             GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tuning: Saved");
             AP_Notify::events.tune_save = 1;
             changed = false;
+            need_revert = 0;
         }
     } else if (selector_in <= 1300) {
         // low selector
@@ -109,13 +110,23 @@ void AP_Tuning::re_center(void)
 /*
   check for changed tuning input
  */
-void AP_Tuning::check_input(void)
+void AP_Tuning::check_input(uint8_t flightmode)
 {
     if (channel <= 0 || selector <= 0 || parmset <= 0) {
         // disabled
         return;
     }
 
+    // check for revert on changed flightmode
+    if (flightmode != last_flightmode) {
+        if (need_revert != 0) {
+            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tuning: reverted");
+            revert_parameters();
+            re_center();
+        }
+        last_flightmode = flightmode;
+    }
+    
     // only adjust values at 10Hz
     uint32_t now = AP_HAL::millis();
     uint32_t dt_ms = now - last_check_ms;
@@ -185,6 +196,7 @@ void AP_Tuning::check_input(void)
         new_value = linear_interpolate(center_value/range, center_value, chan_value, -1, 0);
     }
     changed = true;
+    need_revert |= (1U << current_parm_index);
     set_value(current_parm, new_value);
     Log_Write_Parameter_Tuning(new_value);
 }
@@ -214,6 +226,27 @@ void AP_Tuning::save_parameters(void)
             for (uint8_t p=0; p<tuning_sets[i].num_parms; p++) {
                 save_value(tuning_sets[i].parms[p]);
             }
+            break;
+        }
+    }
+}
+
+
+/*
+  save parameters in the set
+ */
+void AP_Tuning::revert_parameters(void)
+{
+    uint8_t set = (uint8_t)parmset.get();
+    for (uint8_t i=0; tuning_sets[i].num_parms != 0; i++) {
+        if (tuning_sets[i].set == set) {
+            for (uint8_t p=0; p<tuning_sets[i].num_parms; p++) {
+                if (p >= 32 || (need_revert & (1U<<p))) {
+                    reload_value(tuning_sets[i].parms[p]);
+                }
+            }
+            need_revert = 0;
+            break;
         }
     }
 }
