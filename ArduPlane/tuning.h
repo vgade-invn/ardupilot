@@ -63,6 +63,8 @@ public:
     
 private:
     AP_Int8 channel;
+    AP_Int16 channel_min;
+    AP_Int16 channel_max;
     AP_Int8 selector;
     AP_Int8 parmset;
     AP_Float range;
@@ -84,13 +86,13 @@ private:
     struct PACKED log_ParameterTuning {
         LOG_PACKET_HEADER;
         uint64_t time_us;
-        uint8_t  parameter;     // parameter we are tuning, e.g. 39 is CH6_CIRCLE_RATE
+        uint8_t  set;           // parameter set we are tuning
+        uint8_t  parameter;     // parameter we are tuning
         float    tuning_value;  // normalized value used inside tuning() function
-        float    tuning_low;    // tuning low end value
-        float    tuning_high;   // tuning high end value
+        float    center_value;
     };
 
-    void Log_Write_Parameter_Tuning(uint8_t param, float tuning_val, float tune_low, float tune_high);
+    void Log_Write_Parameter_Tuning(float value);
     
     enum tuning_sets {
         TUNING_SET_NONE =                      0,
@@ -103,14 +105,14 @@ private:
     // the parameter we are tuning
     enum tuning_func current_parm;
 
-    // pointer to current parameter
-    AP_Float *current_parm_ptr;
-
     // current index into the parameter set
     uint8_t current_parm_index;
 
     // current parameter set
     enum tuning_sets current_set;
+
+    // true if tune has changed
+    bool changed:1;
 
     struct tuning_set {
         enum tuning_sets set;
@@ -133,4 +135,6 @@ private:
     void save_parameters(void);
     AP_Float *get_param_pointer(enum tuning_func parm);
     const char *get_tuning_name(enum tuning_func parm);
+    void save_value(enum tuning_func parm);
+    void set_value(enum tuning_func parm, float value);
 };
