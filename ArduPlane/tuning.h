@@ -75,6 +75,7 @@ private:
 
     AP_Float *get_param_pointer(uint8_t parm);
     void save_value(uint8_t parm);
+    void reload_value(uint8_t parm);
     void set_value(uint8_t parm, float value);
 
     // tuning set arrays

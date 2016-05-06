@@ -197,3 +197,27 @@ void AP_Tuning_Plane::set_value(uint8_t parm, float value)
         break;
     }
 }
+
+/*
+  reload a parameter
+ */
+void AP_Tuning_Plane::reload_value(uint8_t parm)
+{
+    switch(parm) {
+    // special handling of dual-parameters
+    case TUNING_Q_RATE_ROLL_KPI:
+        reload_value(TUNING_Q_RATE_ROLL_KP);
+        reload_value(TUNING_Q_RATE_ROLL_KI);
+        break;
+    case TUNING_Q_RATE_PITCH_KPI:
+        reload_value(TUNING_Q_RATE_PITCH_KP);
+        reload_value(TUNING_Q_RATE_PITCH_KI);
+        break;
+    default:
+        AP_Float *f = get_param_pointer(parm);
+        if (f != nullptr) {
+            f->load();
+        }
+        break;
+    }
+}
