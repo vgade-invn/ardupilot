@@ -1,215 +1,165 @@
-/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
+// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include "Copter.h"
 
 /*
- * tuning.pde - function to update various parameters in flight using the ch6 tuning knob
- *      This should not be confused with the AutoTune feature which can bve found in control_autotune.pde
+  tables of tuning sets
  */
+const uint8_t AP_Tuning_Copter::tuning_set_q_rate_roll_pitch[] = { TUNING_RATE_ROLL_KPI, TUNING_RATE_ROLL_KD,
+                                                                  TUNING_RATE_PITCH_KPI, TUNING_RATE_PITCH_KD};
+const uint8_t AP_Tuning_Copter::tuning_set_q_rate_roll[] =       { TUNING_RATE_ROLL_KPI, TUNING_RATE_ROLL_KD };
+const uint8_t AP_Tuning_Copter::tuning_set_q_rate_pitch[] =      { TUNING_RATE_PITCH_KPI, TUNING_RATE_PITCH_KD };
 
-// tuning - updates parameters based on the ch6 tuning knob's position
-//  should be called at 3.3hz
-void Copter::tuning() {
+// macro to prevent getting the array length wrong
+#define TUNING_ARRAY(v) ARRAY_SIZE(v), v
 
-    // exit immediately if not using tuning function, or when radio failsafe is invoked, so tuning values are not set to zero
-    if ((g.radio_tuning <= 0) || failsafe.radio || failsafe.radio_counter != 0 || g.rc_6.radio_in == 0) {
-        return;
-    }
+// list of tuning sets
+const AP_Tuning_Copter::tuning_set AP_Tuning_Copter::tuning_sets[] = {
+    { TUNING_SET_RATE_ROLL_PITCH, TUNING_ARRAY(tuning_set_q_rate_roll_pitch) },
+    { TUNING_SET_RATE_ROLL,       TUNING_ARRAY(tuning_set_q_rate_roll) },
+    { TUNING_SET_RATE_PITCH,      TUNING_ARRAY(tuning_set_q_rate_pitch) },
+    { TUNING_SET_NONE, 0, nullptr }
+};
 
-    // set tuning range and then get new value
-    g.rc_6.set_range_in(g.radio_tuning_low,g.radio_tuning_high);
-    float tuning_value = (float)g.rc_6.control_in / 1000.0f;
-    // Tuning Value should never be outside the bounds of the specified low and high value
-    tuning_value = constrain_float(tuning_value, g.radio_tuning_low/1000.0f, g.radio_tuning_high/1000.0f);
+/*
+  table of tuning names
+ */
+const AP_Tuning_Copter::tuning_name AP_Tuning_Copter::tuning_names[] = {
+    { TUNING_RATE_ROLL_KPI, "RateRollPI" },
+    { TUNING_RATE_ROLL_KD,  "RateRollD" },
+    { TUNING_RATE_PITCH_KPI,"RatePitchPI" },
+    { TUNING_RATE_PITCH_KD, "RatePitchD" },
+    { TUNING_NONE, nullptr }
+};
 
-    Log_Write_Parameter_Tuning(g.radio_tuning, tuning_value, g.rc_6.control_in, g.radio_tuning_low, g.radio_tuning_high);
+/*
+  get a pointer to an AP_Float for a parameter, or NULL on fail
+ */
+AP_Float *AP_Tuning_Copter::get_param_pointer(uint8_t parm)
+{
+    switch(parm) {
 
-    switch(g.radio_tuning) {
-
-    // Roll, Pitch tuning
-    case TUNING_STABILIZE_ROLL_PITCH_KP:
-        attitude_control.get_angle_roll_p().kP(tuning_value);
-        attitude_control.get_angle_pitch_p().kP(tuning_value);
-        break;
-
-    case TUNING_RATE_ROLL_PITCH_KP:
-        attitude_control.get_rate_roll_pid().kP(tuning_value);
-        attitude_control.get_rate_pitch_pid().kP(tuning_value);
-        break;
-
-    case TUNING_RATE_ROLL_PITCH_KI:
-        attitude_control.get_rate_roll_pid().kI(tuning_value);
-        attitude_control.get_rate_pitch_pid().kI(tuning_value);
-        break;
-
-    case TUNING_RATE_ROLL_PITCH_KD:
-        attitude_control.get_rate_roll_pid().kD(tuning_value);
-        attitude_control.get_rate_pitch_pid().kD(tuning_value);
-        break;
-
-    // Yaw tuning
-    case TUNING_STABILIZE_YAW_KP:
-        attitude_control.get_angle_yaw_p().kP(tuning_value);
-        break;
-
-    case TUNING_YAW_RATE_KP:
-        attitude_control.get_rate_yaw_pid().kP(tuning_value);
-        break;
-
-    case TUNING_YAW_RATE_KD:
-        attitude_control.get_rate_yaw_pid().kD(tuning_value);
-        break;
-
-    // Altitude and throttle tuning
-    case TUNING_ALTITUDE_HOLD_KP:
-        g.p_alt_hold.kP(tuning_value);
-        break;
-
-    case TUNING_THROTTLE_RATE_KP:
-        g.p_vel_z.kP(tuning_value);
-        break;
-
-    case TUNING_ACCEL_Z_KP:
-        g.pid_accel_z.kP(tuning_value);
-        break;
-
-    case TUNING_ACCEL_Z_KI:
-        g.pid_accel_z.kI(tuning_value);
-        break;
-
-    case TUNING_ACCEL_Z_KD:
-        g.pid_accel_z.kD(tuning_value);
-        break;
-
-    // Loiter and navigation tuning
-    case TUNING_LOITER_POSITION_KP:
-        g.p_pos_xy.kP(tuning_value);
-        break;
-
-    case TUNING_VEL_XY_KP:
-        g.pi_vel_xy.kP(tuning_value);
-        break;
-
-    case TUNING_VEL_XY_KI:
-        g.pi_vel_xy.kI(tuning_value);
-        break;
-
-    case TUNING_WP_SPEED:
-        // set waypoint navigation horizontal speed to 0 ~ 1000 cm/s
-        wp_nav.set_speed_xy(g.rc_6.control_in);
-        break;
-
-    // Acro roll pitch gain
-    case TUNING_ACRO_RP_KP:
-        g.acro_rp_p = tuning_value;
-        break;
-
-    // Acro yaw gain
-    case TUNING_ACRO_YAW_KP:
-        g.acro_yaw_p = tuning_value;
-        break;
-
-#if FRAME_CONFIG == HELI_FRAME
-    case TUNING_HELI_EXTERNAL_GYRO:
-        motors.ext_gyro_gain((float)g.rc_6.control_in / 1000.0f);
-        break;
-
-    case TUNING_RATE_PITCH_FF:
-        attitude_control.get_heli_rate_pitch_pid().ff(tuning_value);
-        break;
-
-    case TUNING_RATE_ROLL_FF:
-        attitude_control.get_heli_rate_roll_pid().ff(tuning_value);
-        break;
-
-    case TUNING_RATE_YAW_FF:
-        attitude_control.get_heli_rate_yaw_pid().ff(tuning_value);
-        break;
-#endif
-
-    case TUNING_DECLINATION:
-        // set declination to +-20degrees
-        compass.set_declination(ToRad((2.0f * g.rc_6.control_in - g.radio_tuning_high)/100.0f), false);     // 2nd parameter is false because we do not want to save to eeprom because this would have a performance impact
-        break;
-
-    case TUNING_CIRCLE_RATE:
-        // set circle rate up to approximately 45 deg/sec in either direction
-        circle_nav.set_rate((float)g.rc_6.control_in/25.0f-20.0f);
-        break;
-
-    case TUNING_SONAR_GAIN:
-        // set sonar gain
-        g.sonar_gain.set(tuning_value);
-        break;
-
-#if 0
-        // disabled for now - we need accessor functions
-    case TUNING_EKF_VERTICAL_POS:
-        // Tune the EKF that is being used
-        // EKF's baro vs accel (higher rely on accels more, baro impact is reduced)
-        if (!ahrs.get_NavEKF2().enabled()) {
-            ahrs.get_NavEKF()._gpsVertPosNoise = tuning_value;
-        } else {
-            ahrs.get_NavEKF2()._gpsVertPosNoise = tuning_value;
-        }
-        break;
-
-    case TUNING_EKF_HORIZONTAL_POS:
-        // EKF's gps vs accel (higher rely on accels more, gps impact is reduced)
-        if (!ahrs.get_NavEKF2().enabled()) {
-            ahrs.get_NavEKF()._gpsHorizPosNoise = tuning_value;
-        } else {
-            ahrs.get_NavEKF2()._gpsHorizPosNoise = tuning_value;
-        }
-        break;
-
-    case TUNING_EKF_ACCEL_NOISE:
-        // EKF's accel noise (lower means trust accels more, gps & baro less)
-        if (!ahrs.get_NavEKF2().enabled()) {
-            ahrs.get_NavEKF()._accNoise = tuning_value;
-        } else {
-            ahrs.get_NavEKF2()._accNoise = tuning_value;
-        }
-        break;
-#endif
-
-    case TUNING_RC_FEEL_RP:
-        // roll-pitch input smoothing
-        g.rc_feel_rp = g.rc_6.control_in / 10;
-        break;
-
-    case TUNING_RATE_PITCH_KP:
-        attitude_control.get_rate_pitch_pid().kP(tuning_value);
-        break;
-
-    case TUNING_RATE_PITCH_KI:
-        attitude_control.get_rate_pitch_pid().kI(tuning_value);
-        break;
-
-    case TUNING_RATE_PITCH_KD:
-        attitude_control.get_rate_pitch_pid().kD(tuning_value);
-        break;
+    case TUNING_RATE_ROLL_KPI:
+        // use P for initial value when tuning PI
+        return &copter.attitude_control.get_rate_roll_pid().kP();
 
     case TUNING_RATE_ROLL_KP:
-        attitude_control.get_rate_roll_pid().kP(tuning_value);
-        break;
+        return &copter.attitude_control.get_rate_roll_pid().kP();
 
     case TUNING_RATE_ROLL_KI:
-        attitude_control.get_rate_roll_pid().kI(tuning_value);
-        break;
+        return &copter.attitude_control.get_rate_roll_pid().kI();
 
     case TUNING_RATE_ROLL_KD:
-        attitude_control.get_rate_roll_pid().kD(tuning_value);
-        break;
+        return &copter.attitude_control.get_rate_roll_pid().kD();
 
-#if FRAME_CONFIG != HELI_FRAME
-    case TUNING_RATE_MOT_YAW_HEADROOM:
-        motors.set_yaw_headroom(tuning_value*1000);
-        break;
-#endif
+    case TUNING_RATE_PITCH_KPI:
+        return &copter.attitude_control.get_rate_pitch_pid().kP();
 
-     case TUNING_RATE_YAW_FILT:
-         attitude_control.get_rate_yaw_pid().filt_hz(tuning_value);
-         break;
+    case TUNING_RATE_PITCH_KP:
+        return &copter.attitude_control.get_rate_pitch_pid().kP();
+
+    case TUNING_RATE_PITCH_KI:
+        return &copter.attitude_control.get_rate_pitch_pid().kI();
+
+    case TUNING_RATE_PITCH_KD:
+        return &copter.attitude_control.get_rate_pitch_pid().kD();
+
+    case TUNING_RATE_YAW_KPI:
+        return &copter.attitude_control.get_rate_yaw_pid().kP();
+
+    case TUNING_RATE_YAW_KP:
+        return &copter.attitude_control.get_rate_yaw_pid().kP();
+
+    case TUNING_RATE_YAW_KI:
+        return &copter.attitude_control.get_rate_yaw_pid().kI();
+
+    case TUNING_RATE_YAW_KD:
+        return &copter.attitude_control.get_rate_yaw_pid().kD();
+
+    case TUNING_ANG_ROLL_KP:
+        return &copter.attitude_control.get_angle_roll_p().kP();
+
+    case TUNING_ANG_PITCH_KP:
+        return &copter.attitude_control.get_angle_pitch_p().kP();
+
+    case TUNING_ANG_YAW_KP:
+        return &copter.attitude_control.get_angle_yaw_p().kP();
+
+    case TUNING_PXY_P:
+        return &copter.g.p_pos_xy.kP();
+
+    case TUNING_PZ_P:
+        return &copter.g.p_alt_hold.kP();
+
+    case TUNING_VXY_P:
+        return &copter.g.pi_vel_xy.kP();
+
+    case TUNING_VXY_I:
+        return &copter.g.pi_vel_xy.kI();
+
+    case TUNING_VZ_P:
+        return &copter.g.p_vel_z.kP();
+
+    case TUNING_AZ_P:
+        return &copter.g.pid_accel_z.kP();
+
+    case TUNING_AZ_I:
+        return &copter.g.pid_accel_z.kI();
+
+    case TUNING_AZ_D:
+        return &copter.g.pid_accel_z.kD();
+        
+    default:
+        break;
+    }
+    return nullptr;
+}
+
+
+/*
+  save a parameter
+ */
+void AP_Tuning_Copter::save_value(uint8_t parm)
+{
+    switch(parm) {
+    // special handling of dual-parameters
+    case TUNING_RATE_ROLL_KPI:
+        save_value(TUNING_RATE_ROLL_KP);
+        save_value(TUNING_RATE_ROLL_KI);
+        break;
+    case TUNING_RATE_PITCH_KPI:
+        save_value(TUNING_RATE_PITCH_KP);
+        save_value(TUNING_RATE_PITCH_KI);
+        break;
+    default:
+        AP_Float *f = get_param_pointer(parm);
+        if (f != nullptr) {
+            f->save();
+        }
+        break;
+    }
+}
+
+/*
+  set a parameter
+ */
+void AP_Tuning_Copter::set_value(uint8_t parm, float value)
+{
+    switch(parm) {
+    // special handling of dual-parameters
+    case TUNING_RATE_ROLL_KPI:
+        set_value(TUNING_RATE_ROLL_KP, value);
+        set_value(TUNING_RATE_ROLL_KI, value);
+        break;
+    case TUNING_RATE_PITCH_KPI:
+        set_value(TUNING_RATE_PITCH_KP, value);
+        set_value(TUNING_RATE_PITCH_KI, value);
+        break;
+    default:
+        AP_Float *f = get_param_pointer(parm);
+        if (f != nullptr) {
+            f->set_and_notify(value);
+        }
+        break;
     }
 }
