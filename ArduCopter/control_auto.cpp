@@ -138,6 +138,9 @@ void Copter::auto_takeoff_start(const Location& dest_loc)
 
     // clear i term when we're taking off
     set_throttle_takeoff();
+
+    // get initial alt for TKOFF_NAV_ALT
+    auto_takeoff_start_alt = inertial_nav.get_altitude() * 0.01f;
 }
 
 // auto_takeoff_run - takeoff in auto mode
@@ -178,8 +181,24 @@ void Copter::auto_takeoff_run()
     // call z-axis position controller (wpnav should have already updated it's alt target)
     pos_control.update_z_controller();
 
+    float nav_roll, nav_pitch;
+    
+    if (g2.takeoff_nav_alt > 0 && inertial_nav.get_altitude() * 0.01f - auto_takeoff_start_alt < g2.takeoff_nav_alt) {
+        nav_roll = 0;
+        nav_pitch = 0;
+#if FRAME_CONFIG == HELI_FRAME
+        // prevent hover roll starting till past specified altitude
+        hover_roll_trim_scalar_slew = 0;        
+#endif
+        // tell the position controller that we have limited roll/pitch demand to prevent integrator buildup
+        pos_control.set_limit_accel_xy();
+    } else {
+        nav_roll = wp_nav.get_roll();
+        nav_pitch = wp_nav.get_pitch();
+    }
+    
     // roll & pitch from waypoint controller, yaw rate from pilot
-    attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(wp_nav.get_roll(), wp_nav.get_pitch(), target_yaw_rate);
+    attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(nav_roll, nav_pitch, target_yaw_rate);
 }
 
 // auto_wp_start - initialises waypoint controller to implement flying to a particular destination

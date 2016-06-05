@@ -139,6 +139,7 @@ private:
 
     // Global parameters are all contained within the 'g' class.
     Parameters g;
+    ParametersG2 g2;
 
     // main loop scheduler
     AP_Scheduler scheduler;
@@ -268,6 +269,9 @@ private:
         uint32_t start_ms;
     } takeoff_state;
 
+    // starting altitude for auto takeoff
+    float auto_takeoff_start_alt;
+    
     RCMapper rcmap;
 
     // board specific config
@@ -565,6 +569,8 @@ private:
         uint8_t dynamic_flight          : 1;    // 0   // true if we are moving at a significant speed (used to turn on/off leaky I terms)
         uint8_t init_targets_on_arming  : 1;    // 1   // true if we have been disarmed, and need to reset rate controller targets when we arm
     } heli_flags;
+
+    int16_t hover_roll_trim_scalar_slew;
 #endif
 
 #if GNDEFFECT_COMPENSATION == ENABLED
