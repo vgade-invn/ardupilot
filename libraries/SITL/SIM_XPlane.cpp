@@ -42,7 +42,6 @@ XPlane::XPlane(const char *home_str, const char *frame_str) :
         xplane_ip = colon+1;
     }
     socket_in.bind("0.0.0.0", bind_port);
-    socket_out.connect(xplane_ip, xplane_port);
 }
 
 /*
@@ -76,7 +75,10 @@ bool XPlane::receive_data(void)
         case Times: {
             uint64_t tus = data[3] * 1.0e6f;
             if (tus + time_base_us <= time_now_us) {
-                printf("X-Plane time reset %lu\n", (unsigned long)(time_now_us - (tus + time_base_us)));
+                uint64_t tdiff = time_now_us - (tus + time_base_us);
+                if (tdiff > 1e6) {
+                    printf("X-Plane time reset %lu\n", (unsigned long)tdiff);
+                }
                 time_base_us = time_now_us - tus;
             }
             uint64_t tnew = time_base_us + tus;
@@ -226,6 +228,14 @@ failed:
 */
 void XPlane::send_data(const struct sitl_input &input)
 {
+    if (!connected) {
+        uint16_t port;
+        socket_in.last_recv_address(xplane_ip, port);
+        socket_out.connect(xplane_ip, xplane_port);
+        connected = true;
+        printf("Connected to %s:%u\n", xplane_ip, (unsigned)xplane_port);
+    }
+
     float aileron  = (input.servos[0]-1500)/500.0f;
     float elevator = (input.servos[1]-1500)/500.0f;
     float throttle = (input.servos[2]-1000)/1000.0;

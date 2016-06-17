@@ -56,6 +56,7 @@ private:
     Vector3f position_zero;
     Vector3f accel_earth;
     float throttle_sent = -1;
+    bool connected = false;
 
     const uint32_t throttle_magic = 123;
     
