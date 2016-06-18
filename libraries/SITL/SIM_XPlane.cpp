@@ -124,7 +124,7 @@ bool XPlane::receive_data(void)
             pos.z = data[2];
             pos.x = -data[3];
             velocity_ef.y = data[4];
-            velocity_ef.z = data[5];
+            velocity_ef.z = -data[5];
             velocity_ef.x = -data[6];
             break;
 
@@ -274,6 +274,7 @@ void XPlane::update(const struct sitl_input &input)
     if (receive_data()) {
         send_data(input);
     }
+    
 }
 
 } // namespace SITL
