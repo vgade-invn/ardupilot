@@ -1318,10 +1318,16 @@ void QuadPlane::vtol_position_controller(void)
             // transitioning from fixed wing flight
             float aspeed;
             if (ahrs.airspeed_estimate(&aspeed) && aspeed > 6) {
-                pid_accel_z.set_integrator((-motors->get_throttle_hover())*1000.0f);
+                poscontrol.force_integrator_start_ms = AP_HAL::millis();
+            } else {
+                poscontrol.force_integrator_start_ms = 0;
             }
         }
 
+        if (AP_HAL::millis() - poscontrol.force_integrator_start_ms < 1500) {
+                pid_accel_z.set_integrator((-motors->get_throttle_hover())*1000.0f);
+        }
+        
         // run fixed wing navigation
         plane.nav_controller->update_waypoint(plane.prev_WP_loc, loc);
 
@@ -1664,7 +1670,10 @@ bool QuadPlane::do_vtol_land(const AP_Mission::Mission_Command& cmd)
     target.x = diff2d.x * 100;
     target.y = diff2d.y * 100;
     target.z = plane.next_WP_loc.alt - origin.alt;
-    pos_control->set_alt_target(inertial_nav.get_altitude());
+
+    // project fwd the altitude so we don't suddenly demand climb or descent
+    float alt_offset_cm = constrain_float(inertial_nav.get_velocity_z() * 2, -200, 200);
+    pos_control->set_alt_target(inertial_nav.get_altitude() + alt_offset_cm);
     
     // also update nav_controller for status output
     plane.nav_controller->update_waypoint(plane.prev_WP_loc, plane.next_WP_loc);

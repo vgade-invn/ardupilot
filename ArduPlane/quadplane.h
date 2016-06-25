@@ -295,6 +295,7 @@ private:
         float max_speed;
         Vector3f target;
         bool slow_descent:1;
+        uint32_t force_integrator_start_ms;
     } poscontrol;
 
     enum frame_class {
