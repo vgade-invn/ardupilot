@@ -417,7 +417,7 @@ then
         echo "Found ICM-20608 internal"
     fi
 
-    if mpu9250 -R 2 start
+    if mpu9250 -R 2 -F start
     then
         echo "Found mpu9250 internal"
     fi
