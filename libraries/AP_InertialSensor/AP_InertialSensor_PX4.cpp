@@ -41,19 +41,21 @@ AP_InertialSensor_Backend *AP_InertialSensor_PX4::detect(AP_InertialSensor &_imu
 
 /*
   calculate the right queue depth for a device with the given sensor
-  sample rate
+  sample rate. This assumes _get_sample() is called at 1kHz
  */
 uint8_t AP_InertialSensor_PX4::_queue_depth(uint16_t sensor_sample_rate) const
 {
-    uint16_t requested_sample_rate = get_sample_rate_hz();
-    uint8_t min_depth = (sensor_sample_rate+requested_sample_rate-1)/requested_sample_rate;
-    // add 5ms more worth of queue to account for possible timing jitter
-    uint8_t ret = min_depth + (5 * sensor_sample_rate) / 1000;
-    return ret;
+    // allow for up to 2.5ms of scheduling lag
+    return 1 + (sensor_sample_rate / 400U);
 }
 
 bool AP_InertialSensor_PX4::_init_sensor(void) 
 {
+    _get_sample_semaphore = hal.util->new_semaphore();
+    if (!_get_sample_semaphore) {
+        return false;
+    }
+    
     // assumes max 3 instances
     _accel_fd[0] = open(ACCEL_BASE_DEVICE_PATH "0", O_RDONLY);
     _accel_fd[1] = open(ACCEL_BASE_DEVICE_PATH "1", O_RDONLY);
@@ -90,13 +92,20 @@ bool AP_InertialSensor_PX4::_init_sensor(void)
 
         switch(devid) {
             case DRV_GYR_DEVTYPE_MPU6000:
-            case DRV_GYR_DEVTYPE_MPU9250:
                 // hardware LPF off
                 ioctl(fd, GYROIOCSHWLOWPASS, 256);
                 // khz sampling
                 ioctl(fd, GYROIOCSSAMPLERATE, 1000);
                 // set queue depth
                 ioctl(fd, SENSORIOCSQUEUEDEPTH, _queue_depth(1000));
+                break;
+            case DRV_GYR_DEVTYPE_MPU9250:
+                // hardware LPF off
+                ioctl(fd, GYROIOCSHWLOWPASS, 256);
+                // 8khz sampling
+                ioctl(fd, GYROIOCSSAMPLERATE, 8000);
+                // set queue depth
+                ioctl(fd, SENSORIOCSQUEUEDEPTH, _queue_depth(8000));
                 break;
             case DRV_GYR_DEVTYPE_L3GD20:
                 // hardware LPF as high as possible
@@ -129,13 +138,20 @@ bool AP_InertialSensor_PX4::_init_sensor(void)
 
         switch(devid) {
             case DRV_ACC_DEVTYPE_MPU6000:
-            case DRV_ACC_DEVTYPE_MPU9250:
                 // hardware LPF off
                 ioctl(fd, ACCELIOCSHWLOWPASS, 256);
                 // khz sampling
                 ioctl(fd, ACCELIOCSSAMPLERATE, 1000);
                 // 10ms queue depth
                 ioctl(fd, SENSORIOCSQUEUEDEPTH, _queue_depth(1000));
+                break;
+            case DRV_ACC_DEVTYPE_MPU9250:
+                // hardware LPF off
+                ioctl(fd, ACCELIOCSHWLOWPASS, 256);
+                // khz sampling
+                ioctl(fd, ACCELIOCSSAMPLERATE, 8000);
+                // 10ms queue depth
+                ioctl(fd, SENSORIOCSQUEUEDEPTH, _queue_depth(8000));
                 break;
             case DRV_ACC_DEVTYPE_LSM303D:
                 // hardware LPF to ~1/10th sample rate for antialiasing
@@ -169,6 +185,10 @@ bool AP_InertialSensor_PX4::_init_sensor(void)
     _product_id = AP_PRODUCT_ID_PX4;
 #endif
 #endif
+
+    // call _get_sample() at 1kHz. This allows us to keep the queue size to the driver small
+    hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&AP_InertialSensor_PX4::_get_sample, void));
+
     return true;
 }
 
@@ -263,6 +283,9 @@ void AP_InertialSensor_PX4::_new_gyro_sample(uint8_t i, gyro_report &gyro_report
 
 void AP_InertialSensor_PX4::_get_sample()
 {
+    if (!_get_sample_semaphore->take_nonblocking()) {
+        return;
+    }
     for (uint8_t i=0; i<MAX(_num_accel_instances,_num_gyro_instances);i++) {
         struct accel_report accel_report;
         struct gyro_report gyro_report;
@@ -291,6 +314,7 @@ void AP_InertialSensor_PX4::_get_sample()
             }
         }
     }
+    _get_sample_semaphore->give();
 }
 
 bool AP_InertialSensor_PX4::_get_accel_sample(uint8_t i, struct accel_report &accel_report) 

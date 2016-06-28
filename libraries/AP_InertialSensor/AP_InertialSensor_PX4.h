@@ -58,6 +58,8 @@ private:
     uint8_t _accel_instance[INS_MAX_INSTANCES];
     uint8_t _gyro_instance[INS_MAX_INSTANCES];
 
+    AP_HAL::Semaphore *_get_sample_semaphore;
+    
 #ifdef AP_INERTIALSENSOR_PX4_DEBUG
     uint32_t _gyro_meas_count[INS_MAX_INSTANCES];
     uint32_t _accel_meas_count[INS_MAX_INSTANCES];
