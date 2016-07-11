@@ -65,6 +65,8 @@ LOCAL_CATEGORY_PATH := apm
 APM_PLANE_DISCO_SRC_LIBRARY_DIRS := \
 	AC_AttitudeControl \
 	AC_PID \
+	AC_Avoidance \
+	AC_Fence \
 	AC_WPNav \
 	AP_AccelCal \
 	AP_ADC \
@@ -117,6 +119,7 @@ APM_PLANE_DISCO_SRC_LIBRARY_DIRS := \
 	Filter \
 	GCS_MAVLink \
 	RC_Channel \
+	AP_Module \
 	StorageManager
 
 APM_PLANE_DISCO_SRC_DIRS := \
