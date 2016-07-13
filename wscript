@@ -90,6 +90,11 @@ revisions.
         default=False,
         help="Don't use libiio even if supported by board and dependencies available")
 
+    g.add_option('--static',
+        action='store_true',
+        default=False,
+        help='Force a static build')
+
 def _collect_autoconfig_files(cfg):
     for m in sys.modules.values():
         paths = []

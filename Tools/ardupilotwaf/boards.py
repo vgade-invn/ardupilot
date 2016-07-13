@@ -156,6 +156,9 @@ class Board:
             env.LINKFLAGS += [
                 '-Wl,--gc-sections',
             ]
+        if cfg.options.static:
+            # force static build
+            env.STATIC_LINKING = True
 
 
     def build(self, bld):
