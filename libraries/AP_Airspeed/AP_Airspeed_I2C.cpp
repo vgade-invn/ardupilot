@@ -68,7 +68,8 @@ bool AP_Airspeed_I2C::init()
 void AP_Airspeed_I2C::_measure()
 {
     _measurement_started_ms = 0;
-    if (_dev->smbus_quick(true)) {
+    uint8_t cmd = 0;
+    if (_dev->transfer(&cmd, 1, nullptr, 0)) {
         _measurement_started_ms = AP_HAL::millis();
     }
 }
