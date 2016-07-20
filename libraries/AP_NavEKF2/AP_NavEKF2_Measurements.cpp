@@ -73,7 +73,7 @@ void NavEKF2_core::readRangeFinder(void)
             rngValidMeaTime_ms = imuSampleTime_ms;
             // write data to buffer with time stamp to be fused when the fusion time horizon catches up with it
             storedRange.push(rangeDataNew);
-        } else if (!takeOffDetected) {
+        } else if (!takeOffDetected && frontend->_fusionModeGPS == 3) {
             // before takeoff we assume on-ground range value if there is no data
             rangeDataNew.time_ms = imuSampleTime_ms;
             rangeDataNew.rng = rngOnGnd;
