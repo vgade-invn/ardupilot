@@ -14,10 +14,11 @@
  */
 #include <AP_HAL/AP_HAL.h>
 
-#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO
 
 #include "CameraSensor_Mt9v117.h"
 #include "GPIO.h"
+#include <stdio.h>
 
 /* Cam sensor register definitions */
 #define CHIP_ID                 0x0
@@ -138,7 +139,7 @@ uint8_t CameraSensor_Mt9v117::_read_reg8(uint16_t reg)
     buf[1] = (uint8_t) (reg & 0xFF);
 
     if (!_i2c->do_transfer(_addr, buf, 2, buf, 1)) {
-        hal.console->printf("mt9v117: error reading 0x%2x\n", reg);
+        hal.console->printf("mt9v117: error reading 0x%02x\n", reg);
         return 0;
     }
 
@@ -153,7 +154,7 @@ void CameraSensor_Mt9v117::_write_reg8(uint16_t reg, uint8_t val)
     buf[2] = val;
 
     if (!_i2c->do_transfer(_addr, buf, 3, NULL, 0)) {
-        hal.console->printf("mt9v117: error writing 0x%2x\n", reg);
+        printf("mt9v117: error writing 0x%02x\n", reg);
     }
 }
 
@@ -164,7 +165,7 @@ uint16_t CameraSensor_Mt9v117::_read_reg16(uint16_t reg)
     buf[1] = (uint8_t) (reg & 0xFF);
 
     if (!_i2c->do_transfer(_addr, buf, 2, buf, 2)) {
-        hal.console->printf("mt9v117: error reading 0x%4x\n", reg);
+        printf("mt9v117: error reading 0x%4x\n", reg);
         return 0;
     }
 

@@ -5,7 +5,7 @@
 #include "GPIO_Disco.h"
 
 const unsigned Linux::GPIO_Sysfs::pin_table[] = {
-    [DISCO_GPIO_MPU6050_DRDY] = 91,
+    [BEBOP_GPIO_CAMV_NRST] = 129,
     [LINUX_GPIO_ULTRASOUND_VOLTAGE] = 200,
 };
 

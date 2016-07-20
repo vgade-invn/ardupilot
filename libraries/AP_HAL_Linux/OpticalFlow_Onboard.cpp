@@ -15,6 +15,7 @@
 
 #include <AP_HAL/AP_HAL.h>
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP ||\
+    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO ||\
     CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MINLURE ||\
     CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BBBMINI
 #include "OpticalFlow_Onboard.h"
@@ -33,6 +34,9 @@
 #include "PWM_Sysfs.h"
 
 #define OPTICAL_FLOW_ONBOARD_RTPRIO 11
+
+//#define OPTICALFLOW_ONBOARD_RECORD_VIDEO
+#define OPTICALFLOW_ONBOARD_VIDEO_FILE "/data/ftp/internal_000/APM/video.raw"
 
 extern const AP_HAL::HAL& hal;
 
@@ -74,7 +78,7 @@ void OpticalFlow_Onboard::init(AP_HAL::OpticalFlow::Gyro_Cb get_gyro)
                       "video device");
     }
 
-#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO
     _pwm = new PWM_Sysfs_Bebop(BEBOP_CAMV_PWM);
     _pwm->set_freq(BEBOP_CAMV_PWM_FREQ);
     _pwm->enable(true);
@@ -89,7 +93,8 @@ void OpticalFlow_Onboard::init(AP_HAL::OpticalFlow::Gyro_Cb get_gyro)
         AP_HAL::panic("OpticalFlow_Onboard: couldn't set subdev fmt\n");
     }
     _format = V4L2_PIX_FMT_NV12;
-#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MINLURE ||\
+    printf("Initialised camera\n");
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MINLURE ||    \
       CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BBBMINI
     std::vector<uint32_t> pixel_formats;
 
@@ -345,7 +350,7 @@ void OpticalFlow_Onboard::_run_optflow()
                 | O_APPEND, S_IRUSR | S_IWUSR | S_IRGRP |
                 S_IWGRP | S_IROTH | S_IWOTH);
 	    if (fd != -1) {
-	        write(fd, video_frame.data, _sizeimage);
+	        write(fd, video_frame.data, _width * _height);
 #ifdef OPTICALFLOW_ONBOARD_RECORD_METADATAS
             struct PACKED {
                 uint32_t timestamp;
