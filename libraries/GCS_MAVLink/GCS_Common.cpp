@@ -1481,7 +1481,7 @@ void GCS_MAVLINK::send_opticalflow(AP_AHRS_NavEKF &ahrs, const OpticalFlow &optf
     // populate and send message
     mavlink_msg_optical_flow_send(
         chan,
-        AP_HAL::millis(),
+        AP_HAL::micros64(),
         0, // sensor id is zero
         flowRate.x,
         flowRate.y,
