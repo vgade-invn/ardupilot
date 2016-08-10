@@ -239,6 +239,7 @@ bool Plane::setup_failsafe_mixing(void)
     int px4io_fd = -1;
     enum AP_HAL::Util::safety_state old_state = hal.util->safety_switch_state();
     struct pwm_output_values pwm_values = {.values = {0}, .channel_count = 8};
+    uint32_t num_loaded = 0;
 
     buf = (char *)malloc(buf_size);
     if (buf == NULL) {
@@ -291,6 +292,13 @@ bool Plane::setup_failsafe_mixing(void)
         goto failed;        
     }
 
+	/* pass the buffer to the device */
+    if (ioctl(px4io_fd, MIXERIOCGETCOUNT, (unsigned long)&num_loaded) != 0 ||
+        num_loaded != 8) {
+        hal.console->printf("Wrong loaded mixer count %u\n", num_loaded);
+        goto failed;        
+    }
+    
     // setup RC config for each channel based on user specified
     // mix/max/trim. We only do the first 8 channels due to 
     // a RC config limitation in px4io.c limiting to PX4IO_RC_MAPPED_CONTROL_CHANNELS
