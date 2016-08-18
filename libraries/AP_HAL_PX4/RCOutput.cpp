@@ -16,6 +16,8 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_sbus.h>
 
+#include <AP_Vehicle/AP_Vehicle.h>
+
 extern const AP_HAL::HAL& hal;
 
 using namespace PX4;
@@ -468,9 +470,11 @@ void PX4RCOutput::_send_outputs(void)
         uint16_t _period2[PX4_NUM_OUTPUT_CHANNELS];
         memcpy(_period2, _period, _max_channel*sizeof(uint16_t));
 
+#if APM_BUILD_TYPE(APM_BUILD_ArduCopter)
         // channel swap for H6 helis
         _period2[2] = _period[5];
         _period2[5] = _period[2];
+#endif
 
         _need_update = false;
         perf_begin(_perf_rcout);
