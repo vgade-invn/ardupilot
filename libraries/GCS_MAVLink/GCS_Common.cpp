@@ -235,7 +235,7 @@ void GCS_MAVLINK::send_power_status(void)
 // report AHRS2 state
 void GCS_MAVLINK::send_ahrs2(AP_AHRS &ahrs)
 {
-#if AP_AHRS_NAVEKF_AVAILABLE
+#if 0
     Vector3f euler;
     struct Location loc {};
     if (ahrs.get_secondary_attitude(euler)) {
@@ -1092,25 +1092,7 @@ void GCS_MAVLINK::send_radio_in(uint8_t receiver_rssi)
 {
     uint32_t now = AP_HAL::millis();
 
-    uint16_t values[8];
-    memset(values, 0, sizeof(values));
-    hal.rcin->read(values, 8);
-
-    mavlink_msg_rc_channels_raw_send(
-        chan,
-        now,
-        0, // port
-        values[0],
-        values[1],
-        values[2],
-        values[3],
-        values[4],
-        values[5],
-        values[6],
-        values[7],
-        receiver_rssi);
-
-    if (hal.rcin->num_channels() > 8 && HAVE_PAYLOAD_SPACE(chan, RC_CHANNELS)) {
+    if (HAVE_PAYLOAD_SPACE(chan, RC_CHANNELS)) {
         mavlink_msg_rc_channels_send(
             chan,
             now,
@@ -1254,6 +1236,7 @@ void GCS_MAVLINK::send_scaled_pressure(AP_Baro &barometer)
 
 void GCS_MAVLINK::send_sensor_offsets(const AP_InertialSensor &ins, const Compass &compass, AP_Baro &barometer)
 {
+#if 0
     // run this message at a much lower rate - otherwise it
     // pointlessly wastes quite a lot of bandwidth
     static uint8_t counter;
@@ -1279,10 +1262,12 @@ void GCS_MAVLINK::send_sensor_offsets(const AP_InertialSensor &ins, const Compas
                                     accel_offsets.x,
                                     accel_offsets.y,
                                     accel_offsets.z);
+#endif
 }
 
 void GCS_MAVLINK::send_ahrs(AP_AHRS &ahrs)
 {
+#if 0
     const Vector3f &omega_I = ahrs.get_gyro_drift();
     mavlink_msg_ahrs_send(
         chan,
@@ -1293,6 +1278,7 @@ void GCS_MAVLINK::send_ahrs(AP_AHRS &ahrs)
         0,
         ahrs.get_error_rp(),
         ahrs.get_error_yaw());
+#endif
 }
 
 /*
@@ -1566,6 +1552,7 @@ void GCS_MAVLINK::send_autopilot_version(uint8_t major_version, uint8_t minor_ve
  */
 void GCS_MAVLINK::send_local_position(const AP_AHRS &ahrs) const
 {
+#if 0
     Vector3f local_position, velocity;
     if (!ahrs.get_relative_position_NED(local_position) ||
         !ahrs.get_velocity_NED(velocity)) {
@@ -1582,6 +1569,7 @@ void GCS_MAVLINK::send_local_position(const AP_AHRS &ahrs) const
         velocity.x,
         velocity.y,
         velocity.z);
+#endif
 }
 
 /*
