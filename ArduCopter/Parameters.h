@@ -558,6 +558,9 @@ public:
     // ground effect compensation enable/disable
     AP_Int8 gndeffect_comp_enabled;
 
+    // whether to enforce acceptance of packets only from sysid_my_gcs
+    AP_Int8 sysid_enforce;
+    
 #if ADVANCED_FAILSAFE == ENABLED
     // advanced failsafe library
     AP_AdvancedFailsafe_Copter afs;
