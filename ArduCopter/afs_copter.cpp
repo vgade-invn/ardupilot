@@ -52,6 +52,10 @@ void AP_AdvancedFailsafe_Copter::setup_IO_failsafe(void)
     uint16_t mask = copter.motors.get_motor_mask();
     hal.rcout->set_failsafe_pwm(mask, copter.motors.get_pwm_output_min());
 #endif
+
+    // canberrauav specials
+    hal.rcout->set_failsafe_pwm(1U<<(3-1), 1770); // RSC throttle
+    hal.rcout->set_failsafe_pwm(1U<<(6-1), 1000); // collective
 }
 
 /*
