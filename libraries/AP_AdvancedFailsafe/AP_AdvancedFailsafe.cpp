@@ -191,6 +191,12 @@ AP_AdvancedFailsafe::check(uint32_t last_heartbeat_ms, bool geofence_breached, u
     bool gcs_link_ok = ((now - last_heartbeat_ms) < 10000);
     bool gps_lock_ok = ((now - gps.last_fix_time_ms()) < 3000);
 
+    if (!hal.util->get_soft_armed()) {
+        // if not armed then don't trigger GCS failure. No point in
+        // triggering a GCS failure on the ground
+        gcs_link_ok = true;
+    }
+    
     switch (_state) {
     case STATE_PREFLIGHT:
         // we startup in preflight mode. This mode ends when
@@ -201,9 +207,16 @@ AP_AdvancedFailsafe::check(uint32_t last_heartbeat_ms, bool geofence_breached, u
         }
         break;
 
-    case STATE_AUTO:
+    case STATE_AUTO: {
+        uint16_t cmdid = mission.get_current_nav_cmd().id;
+        // it makes no sense to change to link lost state during a
+        // land or takeoff. We should wait till it is complete
+        bool in_land_or_takeoff = (cmdid == MAV_CMD_NAV_LAND ||
+                                   cmdid == MAV_CMD_NAV_VTOL_LAND ||
+                                   cmdid == MAV_CMD_NAV_TAKEOFF ||
+                                   cmdid == MAV_CMD_NAV_VTOL_TAKEOFF);
         // this is the normal mode. 
-        if (!gcs_link_ok) {
+        if (!gcs_link_ok && !in_land_or_takeoff) {
             GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_ERROR, "State DATA_LINK_LOSS");
             _state = STATE_DATA_LINK_LOSS;
             if (_wp_comms_hold) {
@@ -232,6 +245,7 @@ AP_AdvancedFailsafe::check(uint32_t last_heartbeat_ms, bool geofence_breached, u
             break;
         }
         break;
+    }
 
     case STATE_DATA_LINK_LOSS:
         if (!gps_lock_ok) {
