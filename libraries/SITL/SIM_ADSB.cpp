@@ -104,6 +104,44 @@ void ADSB::update(void)
     send_report();
 }
 
+#include <termios.h>
+
+static void write_pixhawk(uint8_t *buf, uint16_t len)
+{
+    struct termios t {};
+    static int fd = -1;
+    const char *path = "/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTHHYR6G-if00-port0";
+    if (fd == -1) {
+        fd = ::open(path, O_RDWR | O_CLOEXEC);
+        if (fd == -1) {
+            return;
+        }
+        ::printf("Opened %s\n", path);
+
+        // set non-blocking
+        int flags = fcntl(fd, F_GETFL, 0);
+        flags = flags | O_NONBLOCK;
+        fcntl(fd, F_SETFL, flags);
+
+        // disable LF -> CR/LF
+        tcgetattr(fd, &t);
+        t.c_iflag &= ~(BRKINT | ICRNL | IMAXBEL | IXON | IXOFF);
+        t.c_oflag &= ~(OPOST | ONLCR);
+        t.c_lflag &= ~(ISIG | ICANON | IEXTEN | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE);
+        t.c_cc[VMIN] = 0;
+        tcsetattr(fd, TCSANOW, &t);
+
+        // set baudrate
+        tcgetattr(fd, &t);
+        cfsetspeed(&t, 57600);
+        tcsetattr(fd, TCSANOW, &t);
+    }
+
+    if (fd != -1) {
+        write(fd, buf, len);
+    }
+}
+    
 /*
   send a report to the vehicle control code over MAVLink
 */
@@ -182,7 +220,6 @@ void ADSB::send_report(void)
         last_heartbeat_ms = now;
     }
 
-
     /*
       send a ADSB_VEHICLE messages
      */
@@ -234,6 +271,7 @@ void ADSB::send_report(void)
             len = mavlink_msg_to_send_buffer(msgbuf, &msg);
             if (len > 0) {
                 mav_socket.send(msgbuf, len);
+                write_pixhawk(msgbuf, len);
             }
         }
     }
@@ -258,6 +296,7 @@ void ADSB::send_report(void)
         len = mavlink_msg_to_send_buffer(msgbuf, &msg);
         if (len > 0) {
             mav_socket.send(msgbuf, len);
+            write_pixhawk(msgbuf, len);
             ::printf("ADSBsim send tx health packet\n");
         }
     }

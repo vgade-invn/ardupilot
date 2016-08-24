@@ -567,9 +567,7 @@ void AP_ADSB::handle_transceiver_report(const mavlink_channel_t chan, const mavl
     mavlink_uavionix_adsb_transceiver_health_report_t packet {};
     mavlink_msg_uavionix_adsb_transceiver_health_report_decode(msg, &packet);
 
-    if (out_state.chan != chan) {
-        GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_DEBUG, "ADSB: Found transceiver on channel %d", chan);
-    }
+    GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_DEBUG, "ADSB: Found transceiver on channel %d", chan);
 
     out_state.chan_last_ms = AP_HAL::millis();
     out_state.chan = chan;
