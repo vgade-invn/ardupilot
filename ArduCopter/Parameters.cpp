@@ -1007,6 +1007,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Values: 0:NotEnforced,1:Enforced
     // @User: Advanced
     AP_GROUPINFO("SYSID_ENFORCE", 7, ParametersG2, sysid_enforce, 0),
+
+    // @Group: ICE_
+    // @Path: ../libraries/AP_ICEngine/AP_ICEngine.cpp
+    AP_SUBGROUPINFO(ice_control, "ICE_", 8, ParametersG2, AP_ICEngine),
     
     AP_GROUPEND
 };
@@ -1016,8 +1020,9 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
   constructor for g2 object
  */
 ParametersG2::ParametersG2(void)
+    : ice_control(copter.rpm_sensor, copter.ahrs)
 #if ADVANCED_FAILSAFE == ENABLE
-    : afs(copter.mission, copter.barometer, copter.gps, copter.rcmap)
+    ,afs(copter.mission, copter.barometer, copter.gps, copter.rcmap)
 #endif
 {
     AP_Param::setup_object_defaults(this, var_info);

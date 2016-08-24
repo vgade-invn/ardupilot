@@ -1661,6 +1661,14 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
             break;
         }
 
+        case MAV_CMD_DO_ENGINE_CONTROL:
+            if (!copter.g2.ice_control.engine_control(packet.param1, packet.param2, packet.param3)) {
+                result = MAV_RESULT_FAILED;
+            } else {
+                result = MAV_RESULT_ACCEPTED;
+            }
+            break;
+            
         default:
             result = MAV_RESULT_UNSUPPORTED;
             break;

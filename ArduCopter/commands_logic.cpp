@@ -146,6 +146,12 @@ bool Copter::start_command(const AP_Mission::Mission_Command& cmd)
         break;
 #endif
 
+    case MAV_CMD_DO_ENGINE_CONTROL:
+        copter.g2.ice_control.engine_control(cmd.content.do_engine_control.start_control,
+                                             cmd.content.do_engine_control.cold_start,
+                                             cmd.content.do_engine_control.height_delay_cm*0.01f);
+        break;
+
     default:
         // do nothing with unrecognized MAVLink messages
         break;

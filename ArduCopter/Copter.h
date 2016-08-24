@@ -89,6 +89,7 @@
 #include <AC_InputManager/AC_InputManager.h>        // Pilot input handling library
 #include <AC_InputManager/AC_InputManager_Heli.h>   // Heli specific pilot input handling library
 #include <AP_Button/AP_Button.h>
+#include <AP_ICEngine/AP_ICEngine.h>
 
 // Configuration
 #include "defines.h"
@@ -692,6 +693,7 @@ private:
     void send_rpm(mavlink_channel_t chan);
     void rpm_update();
     void button_update();
+    void ice_update(void);
     void send_pid_tuning(mavlink_channel_t chan);
     void gcs_send_message(enum ap_message id);
     void gcs_send_mission_item_reached_message(uint16_t mission_index);

@@ -565,6 +565,9 @@ public:
     // advanced failsafe library
     AP_AdvancedFailsafe_Copter afs;
 #endif
+
+    // internal combustion engine control
+    AP_ICEngine ice_control;
 };
 
 extern const AP_Param::Info        var_info[];
