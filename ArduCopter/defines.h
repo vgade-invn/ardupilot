@@ -127,6 +127,7 @@ enum mode_reason_t {
     MODE_REASON_AVOIDANCE,
     MODE_REASON_AVOIDANCE_RECOVERY,
     MODE_REASON_THROW_COMPLETE,
+    MODE_REASON_DO_LAND_START,
 };
 
 // Tuning enumeration
@@ -274,6 +275,12 @@ enum ThrowModeType {
 enum LandStateType {
     LandStateType_FlyToLocation = 0,
     LandStateType_Descending = 1
+};
+
+// values for RTL_TYPE
+enum RTLType {
+    RTLType_Normal = 0,
+    RTLType_MissionDoLandStart = 1
 };
 
 //  Logging parameters
