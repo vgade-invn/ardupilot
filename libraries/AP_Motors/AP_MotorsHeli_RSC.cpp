@@ -16,6 +16,7 @@
 
 #include <stdlib.h>
 #include <AP_HAL/AP_HAL.h>
+#include <AP_ICEngine/AP_ICEngine.h>
 
 #include "AP_MotorsHeli_RSC.h"
 
@@ -97,6 +98,12 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
         // implement slew rate for throttle
         float max_delta = dt * _power_slewrate * 0.01f;
         _control_output = constrain_float(_control_output, last_control_output-max_delta, last_control_output+max_delta);
+    }
+
+    uint8_t ice_override_pct;
+    if (AP_ICEngine::throttle_override(ice_override_pct)) {
+        // engine control is starting motor, override throttle
+        _control_output = ice_override_pct * 0.01f;
     }
     
     // output to rsc servo
