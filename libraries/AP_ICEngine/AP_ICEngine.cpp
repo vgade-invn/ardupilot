@@ -21,6 +21,9 @@
 
 extern const AP_HAL::HAL& hal;
 
+// static override percentage for throttle_override()
+int16_t AP_ICEngine::override_percent = -1;
+
 const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
 
     // @Param: ENABLE
@@ -121,6 +124,7 @@ AP_ICEngine::AP_ICEngine(const AP_RPM &_rpm, const AP_AHRS &_ahrs) :
 void AP_ICEngine::update(void)
 {
     if (!enable) {
+        override_percent = -1;
         return;
     }
 
@@ -241,6 +245,12 @@ void AP_ICEngine::update(void)
         starter_start_time_ms = 0;
         break;
     }
+
+    if (state == ICE_STARTING || state == ICE_START_DELAY) {
+        override_percent = (int16_t)start_percent.get();
+    } else {
+        override_percent = -1;
+    }
 }
 
 
@@ -250,14 +260,11 @@ void AP_ICEngine::update(void)
  */
 bool AP_ICEngine::throttle_override(uint8_t &percentage)
 {
-    if (!enable) {
+    if (override_percent == -1) {
         return false;
     }
-    if (state == ICE_STARTING || state == ICE_START_DELAY) {
-        percentage = (uint8_t)start_percent.get();
-        return true;
-    }
-    return false;
+    percentage = (uint8_t)override_percent;
+    return true;
 }
 
 

@@ -33,7 +33,7 @@ public:
     void update(void);
 
     // check for throttle override
-    bool throttle_override(uint8_t &percent);
+    static bool throttle_override(uint8_t &percent);
 
     enum ICE_State {
         ICE_OFF=0,
@@ -55,6 +55,8 @@ private:
 
     enum ICE_State state;
 
+    static int16_t override_percent;
+    
     // enable library
     AP_Int8 enable;
 
