@@ -48,6 +48,10 @@ Helicopter::Helicopter(const char *home_str, const char *frame_str) :
     }
     gas_heli = (strstr(frame_str, "-gas") != NULL);
 
+    if (strstr(frame_str, "-ice")) {
+        ice_engine = true;
+    }
+    
     ground_behavior = GROUND_BEHAVIOR_NO_MOVEMENT;
 }
 
@@ -77,6 +81,9 @@ void Helicopter::update(const struct sitl_input &input)
 
     if (!ignition_enabled) {
         rsc = 0;
+    }
+    if (ice_engine) {
+        rsc = icengine.update(input);
     }
     float rsc_scale = rsc/rsc_setpoint;
 

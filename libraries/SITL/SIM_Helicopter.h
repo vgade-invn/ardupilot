@@ -20,6 +20,7 @@
 #pragma once
 
 #include "SIM_Aircraft.h"
+#include "SIM_ICEngine.h"
 
 namespace SITL {
 
@@ -57,6 +58,9 @@ private:
         HELI_FRAME_COMPOUND
     } frame_type = HELI_FRAME_CONVENTIONAL;
     bool gas_heli = false;
+    bool ice_engine;
+
+    ICEngine icengine{7, 14, 12, 13, 100};
 };
 
 } // namespace SITL
