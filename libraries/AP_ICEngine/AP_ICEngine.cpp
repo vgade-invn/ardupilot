@@ -104,6 +104,13 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @User: Standard
     // @Range: 0 100
     AP_GROUPINFO("START_PCT", 10, AP_ICEngine, start_percent, 5),
+
+    // @Param: IGN_DELAY
+    // @DisplayName: Ignition delay on start
+    // @Description: This is the delay between starter motor run and ignition enable. It can be used for engines prone to backfiring to ensure the motor is moving forward sufficiently fast before ignition. In 1/10 of a second units.
+    // @User: Standard
+    // @Range: 0 20
+    AP_GROUPINFO("IGN_DELAY", 11, AP_ICEngine, ignition_delay, 0),
     
     AP_GROUPEND    
 };
@@ -226,15 +233,19 @@ void AP_ICEngine::update(void)
 
     case ICE_START_HEIGHT_DELAY:
     case ICE_START_DELAY:
-        RC_Channel_aux::set_radio(RC_Channel_aux::k_ignition, pwm_ignition_on);
+        RC_Channel_aux::set_radio(RC_Channel_aux::k_ignition, ignition_delay?pwm_ignition_off:pwm_ignition_on);
         RC_Channel_aux::set_radio(RC_Channel_aux::k_starter,  pwm_starter_off);
         break;
         
     case ICE_STARTING:
-        RC_Channel_aux::set_radio(RC_Channel_aux::k_ignition, pwm_ignition_on);
         RC_Channel_aux::set_radio(RC_Channel_aux::k_starter,  pwm_starter_on);
         if (starter_start_time_ms == 0) {
             starter_start_time_ms = now;
+        }
+        if (now - starter_start_time_ms >= 100U*(uint32_t)ignition_delay) {
+            RC_Channel_aux::set_radio(RC_Channel_aux::k_ignition, pwm_ignition_on);
+        } else {
+            RC_Channel_aux::set_radio(RC_Channel_aux::k_ignition, pwm_ignition_off);
         }
         starter_last_run_ms = now;
         break;

@@ -71,6 +71,9 @@ private:
 
     // delay between start attempts (seconds)
     AP_Float starter_delay;
+
+    // delay before ignition on start, 1/10 second units
+    AP_Int8 ignition_delay;
     
     // pwm values 
     AP_Int16 pwm_ignition_on;
