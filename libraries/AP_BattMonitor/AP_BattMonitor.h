@@ -6,7 +6,7 @@
 #include <AP_Math/AP_Math.h>
 
 // maximum number of battery monitors
-#define AP_BATT_MONITOR_MAX_INSTANCES       2
+#define AP_BATT_MONITOR_MAX_INSTANCES       3
 
 // first monitor is always the primary monitor
 #define AP_BATT_PRIMARY_INSTANCE            0
