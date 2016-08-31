@@ -1424,6 +1424,9 @@ void GCS_MAVLINK::send_battery2(const AP_BattMonitor &battery)
         }
         mavlink_msg_battery2_send(chan, battery.voltage(1)*1000, current);
     }
+    if (battery.num_instances() > 2 && HAVE_PAYLOAD_SPACE(chan, NAMED_VALUE_FLOAT)) {
+        mavlink_msg_named_value_float_send(chan, AP_HAL::millis(), "BAT3VOLT", battery.voltage(2));
+    }
 }
 
 /*
