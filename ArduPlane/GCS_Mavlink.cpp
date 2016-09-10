@@ -387,6 +387,7 @@ void Plane::send_nav_controller_output(mavlink_channel_t chan)
 
 void Plane::send_position_target_global_int(mavlink_channel_t chan)
 {
+#if 0
     mavlink_msg_position_target_global_int_send(
         chan,
         AP_HAL::millis(), // time_boot_ms
@@ -403,6 +404,7 @@ void Plane::send_position_target_global_int(mavlink_channel_t chan)
         0.0f, // afz
         0.0f, // yaw
         0.0f); // yaw_rate
+#endif
 }
 
 
