@@ -153,6 +153,10 @@ void AP_Airspeed::update_calibration(const Vector3f &vground, int16_t max_airspe
 // log airspeed calibration data to MAVLink
 void AP_Airspeed::log_mavlink_send(mavlink_channel_t chan, const Vector3f &vground)
 {
+    if (!_autocal) {
+        // auto-calibration not enabled
+        return;
+    }
     mavlink_msg_airspeed_autocal_send(chan,
                                       vground.x,
                                       vground.y,
