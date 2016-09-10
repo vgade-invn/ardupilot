@@ -398,6 +398,14 @@ void Copter::auto_land_run()
 // auto_rtl_start - initialises RTL in AUTO flight mode
 void Copter::auto_rtl_start()
 {
+    if (g2.rtl_type == RTLType_MissionDoLandStart) {
+        uint16_t land_start_idx = mission.get_landing_sequence_start();
+        if (land_start_idx != 0) {
+            mission.set_current_cmd(land_start_idx);
+            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO,"Starting RTL mission at %u", (unsigned)land_start_idx);
+            return;
+        }
+    }
     auto_mode = Auto_RTL;
 
     // call regular rtl flight mode initialisation and ask it to ignore checks
