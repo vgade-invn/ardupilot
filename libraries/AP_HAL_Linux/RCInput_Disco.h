@@ -16,32 +16,24 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
-#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO || \
-    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_AERO
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO
 
 #include "RCInput.h"
+#include "RCInput_115200.h"
+#include "RCInput_SBUS.h"
 
 namespace Linux {
 
-class RCInput_SBUS : public RCInput
+class RCInput_Disco : public RCInput
 {
 public:
-    friend class RCInput_Disco;
     void init() override;
     void _timer_tick(void) override;
-    void set_device_path(const char *path);
 
 private:
-#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_AERO
-    const char *device_path = "/dev/ttyS1";
-#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO
-    const char *device_path = "/dev/uart-sbus";
-#else
-    const char *device_path = nullptr;
-#endif
-    int32_t fd = -1;
+    RCInput_SBUS sbus;
+    RCInput_115200 sumd{"/dev/uart-sumd"};
 };
-
-}
+};
 
 #endif // CONFIG_HAL_BOARD_SUBTYPE

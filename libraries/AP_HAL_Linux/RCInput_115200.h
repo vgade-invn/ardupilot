@@ -25,6 +25,7 @@ namespace Linux {
 class RCInput_115200 : public RCInput
 {
 public:
+    friend class RCInput_Disco;
     RCInput_115200(const char *device) :
        device_path(device) {}
     void init() override;
