@@ -96,7 +96,7 @@ void CompassCalibrator::get_calibration(Vector3f &offsets, Vector3f &diagonals, 
         return;
     }
 
-    offsets = _params.offset;
+    offsets = _params.offset - _sample_offset;
     diagonals = _params.diag;
     offdiagonals = _params.offdiag;
 }
@@ -164,10 +164,15 @@ void CompassCalibrator::new_sample(const Vector3f& sample) {
     if(_status == COMPASS_CAL_WAITING_TO_START) {
         set_status(COMPASS_CAL_RUNNING_STEP_ONE);
     }
-
-    if(running() && _samples_collected < COMPASS_CAL_NUM_SAMPLES && accept_sample(sample)) {
-        update_completion_mask(sample);
-        _sample_buffer[_samples_collected].set(sample);
+    if (!running()) {
+        return;
+    }
+    
+    Vector3f sample_with_offset = sample - _sample_offset;
+    
+    if (_samples_collected < COMPASS_CAL_NUM_SAMPLES && accept_sample(sample_with_offset)) {
+        update_completion_mask(sample_with_offset);
+        _sample_buffer[_samples_collected].set(sample_with_offset);
         _samples_collected++;
     }
 }
@@ -239,7 +244,9 @@ void CompassCalibrator::reset_state() {
     _params.offset.zero();
     _params.diag = Vector3f(1.0f,1.0f,1.0f);
     _params.offdiag.zero();
-
+    _have_sample_offset = false;
+    _sample_offset.zero();
+    
     memset(_completion_mask, 0, sizeof(_completion_mask));
     initialize_fit();
 }
@@ -492,6 +499,22 @@ void CompassCalibrator::run_sphere_fit()
     memset(&JTJ,0,sizeof(JTJ));
     memset(&JTJ2,0,sizeof(JTJ2));
     memset(&JTFI,0,sizeof(JTFI));
+
+    if (_samples_collected > 0 && !_have_sample_offset) {
+        Vector3f sum;
+        // calculate average sample, to move the data to be centered
+        // on zero. This avoids a error in the maths below when
+        // dealing with a magnetometer that has large offsets
+        for(uint16_t k = 0; k<_samples_collected; k++) {
+            sum += _sample_buffer[k].get();
+        }
+        _sample_offset = sum / _samples_collected;
+        for(uint16_t k = 0; k<_samples_collected; k++) {
+            _sample_buffer[k].set(_sample_buffer[k].get() - _sample_offset);
+        }
+        _have_sample_offset = true;
+    }
+    
     // Gauss Newton Part common for all kind of extensions including LM
     for(uint16_t k = 0; k<_samples_collected; k++) {
         Vector3f sample = _sample_buffer[k].get();

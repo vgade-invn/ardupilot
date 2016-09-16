@@ -91,6 +91,8 @@ private:
     class param_t _params;
     uint16_t _fit_step;
     CompassSample *_sample_buffer;
+    Vector3f _sample_offset;
+    bool _have_sample_offset;
     float _fitness; // mean squared residuals
     float _initial_fitness;
     float _sphere_lambda;
