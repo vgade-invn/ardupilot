@@ -38,6 +38,8 @@ void AP_AdvancedFailsafe_Plane::terminate_vehicle(void)
     RC_Channel_aux::set_servo_limit(RC_Channel_aux::k_manual, RC_Channel::RC_CHANNEL_LIMIT_TRIM);
     RC_Channel_aux::set_servo_limit(RC_Channel_aux::k_none, RC_Channel::RC_CHANNEL_LIMIT_TRIM);
 
+    RC_Channel_aux::disable_passthrough(true);
+
     ch_roll->output();
     ch_pitch->output();
     ch_yaw->output();
