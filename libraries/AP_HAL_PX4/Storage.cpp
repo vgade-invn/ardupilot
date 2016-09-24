@@ -306,4 +306,32 @@ void PX4Storage::_timer_tick(void)
 	perf_end(_perf_storage);
 }
 
+/*
+  block until all data on stable storage
+ */
+bool PX4Storage::sync(void)
+{
+    while (_dirty_mask != 0) {
+        hal.scheduler->delay(10);
+    }
+    hal.scheduler->delay(100);
+    return true;
+}
+
+/*
+  re-open storage, discarding cache
+ */
+bool PX4Storage::reopen(void)
+{
+    sync();
+    if (_fd != -1) {
+        close(_fd);
+        _fd = -1;
+    }
+    _initialised = false;
+    memset(_buffer, 0, sizeof(_buffer));
+    _storage_open();
+    return _initialised;
+}
+
 #endif // CONFIG_HAL_BOARD

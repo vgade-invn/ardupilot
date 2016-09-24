@@ -14,9 +14,11 @@ class PX4::PX4Storage : public AP_HAL::Storage {
 public:
     PX4Storage();
 
-    void init() {}
-    void read_block(void *dst, uint16_t src, size_t n);
-    void write_block(uint16_t dst, const void* src, size_t n);
+    void init() override {}
+    void read_block(void *dst, uint16_t src, size_t n) override;
+    void write_block(uint16_t dst, const void* src, size_t n) override;
+    bool sync(void) override;
+    bool reopen(void) override;
 
     void _timer_tick(void);
 
