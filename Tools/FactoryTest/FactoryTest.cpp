@@ -36,7 +36,7 @@
 
 static AP_BoardConfig BoardConfig;
 static AP_GPS gps;
-static AP_Baro barometer;
+static AP_Baro baro;
 static Compass compass;
 static AP_InertialSensor ins;
 static AP_SerialManager serial_manager;
@@ -62,10 +62,10 @@ void setup()
     serial_manager.init_console();
     serial_manager.init();
     BoardConfig.init();
-    barometer.init();
+    baro.init();
     compass.init();
     ins.init(50);
-    barometer.calibrate(); 
+    baro.calibrate(); 
     printmsg("done setup\n");
 }
 
@@ -122,12 +122,68 @@ static bool test_gyro(void)
     return ret;
 }
 
+
+/*
+  test baros
+ */
+static bool test_baro(void)
+{
+    bool ret = true;
+
+    baro.update();
+    
+    for (uint8_t i=0; i<NUM_BARO; i++) {
+        if (!baro.healthy(i)) {
+            printmsg("baro %u not healthy\n", (unsigned)i);
+            ret = false;
+            continue;
+        }
+        if (baro.get_pressure() < 80000.0f || baro.get_pressure() > 180000.0f) {
+            printmsg("baro %u invalid pressure %.1f\n", (unsigned)i, baro.get_pressure());
+            ret = false;
+            continue;
+        }
+        if (baro.get_temperature() < 10 || baro.get_temperature() > 70) {
+            printmsg("baro %u invalid temperature %.1f\n", (unsigned)i, baro.get_temperature());
+            ret = false;
+            continue;            
+        }
+    }
+    return ret;
+}
+
+
+/*
+  test compasses
+ */
+static bool test_compass(void)
+{
+    bool ret = true;
+
+    for (uint8_t i=0; i<NUM_MAG; i++) {
+        if (!compass.read() || !compass.healthy(i)) {
+            printmsg("mag %u not healthy\n", (unsigned)i);
+            ret = false;
+            continue;
+        }
+        const Vector3f &field = compass.get_field(i);
+        if (field.length() < 100 || field.length() > 2000) {
+            printmsg("mag %u invalid field length %.1f\n", (unsigned)i, field.length());
+            ret = false;
+            continue;
+        }
+    }
+    return ret;
+}
+
 static struct {
     const char *name;
     bool (*test)(void);
 } tests[] = {
     { "Accel", test_accel },
     { "Gyro", test_gyro },
+    { "Baro", test_baro },
+    { "Compass", test_compass },
 };
 
 void loop()
