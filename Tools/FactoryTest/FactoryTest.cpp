@@ -28,10 +28,11 @@
 #include <GCS_MAVLink/GCS_MAVLink.h>
 #include <AP_BoardConfig/AP_BoardConfig.h>
 
+// this is setup for PH2.1 testing
 #define NUM_ACCEL 3
 #define NUM_GYRO 3
 #define NUM_BARO 1
-#define NUM_MAG 2
+#define NUM_MAG 3
 
 
 static AP_BoardConfig BoardConfig;
@@ -241,13 +242,14 @@ void loop()
 		printmsg(" \\ \\  __ \\  \\ \\ \\____  \\ \\ \\____     \\ \\ \\/\\ \\  \\ \\  _\"-.  \n");
 		printmsg("  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_____\\     \\ \\_____\\  \\ \\_\\ \\_\\ \n");
 		printmsg("   \\/_/\\/_/   \\/_____/   \\/_____/      \\/_____/   \\/_/\\/_/ \n");
+		printmsg("\nPASSED\n");
     } else {
 		printmsg("\n");
 		printmsg(" /\\  ___\\ /\\  __ \\   /\\ \\   /\\ \\    \n");
 		printmsg(" \\ \\  __\\ \\ \\  __ \\  \\ \\ \\  \\ \\ \\__\n");
 		printmsg("  \\ \\_\\    \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_____\\ \n");
 		printmsg("   \\/_/     \\/_/\\/_/   \\/_/   \\/_____/ \n");
-		printmsg("\n");
+		printmsg("\nFAILED\n");
     }
     while (true) {
         hal.scheduler->delay(1000);
