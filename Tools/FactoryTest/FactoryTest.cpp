@@ -56,6 +56,7 @@ static void printmsg(const char *fmt, ...)
 /*
   initialise sensors
  */
+void setup();
 void setup()
 {
     printmsg("Starting setup\n");
@@ -67,6 +68,43 @@ void setup()
     ins.init(50);
     baro.calibrate(); 
     printmsg("done setup\n");
+}
+
+/*
+  test FRAM
+ */
+static bool test_fram(void)
+{
+    // we skip writing offset 8188 as that is used on HAL_PX4 for the
+    // MTD signature
+    const uint32_t mtd_sig_ofs = 8192-4;
+    for (uint32_t ofs=0; ofs<HAL_STORAGE_SIZE; ofs += 4) {
+        if (ofs == mtd_sig_ofs) {
+            continue;
+        }
+        uint32_t v = ofs;
+        hal.storage->write_block(ofs, &v, 4);
+    }
+    if (!hal.storage->sync()) {
+        printmsg("FRAM sync failed\n");
+        return false;
+    }
+    if (!hal.storage->reopen()) {
+        printmsg("FRAM reopen failed\n");
+        return false;
+    }
+    for (uint32_t ofs=0; ofs<HAL_STORAGE_SIZE; ofs += 4) {
+        if (ofs == mtd_sig_ofs) {
+            continue;
+        }
+        uint32_t v = 0;
+        hal.storage->read_block(&v, ofs, 4);
+        if (v != ofs) {
+            printmsg("Bad FRAM data %u at offset %u\n", (unsigned)v, (unsigned)ofs);
+            return false;
+        }
+    }
+    return true;
 }
 
 /*
@@ -180,6 +218,7 @@ static struct {
     const char *name;
     bool (*test)(void);
 } tests[] = {
+    { "FRAM", test_fram },
     { "Accel", test_accel },
     { "Gyro", test_gyro },
     { "Baro", test_baro },
