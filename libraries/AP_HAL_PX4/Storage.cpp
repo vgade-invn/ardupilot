@@ -216,8 +216,8 @@ void PX4Storage::write_block(uint16_t loc, const void *src, size_t n)
 	if (loc >= sizeof(_buffer)-(n-1)) {
 		return;
 	}
+        _storage_open();
 	if (memcmp(src, &_buffer[loc], n) != 0) {
-		_storage_open();
 		memcpy(&_buffer[loc], src, n);
 		_mark_dirty(loc, n);
 	}
