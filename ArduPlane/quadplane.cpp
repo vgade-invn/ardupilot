@@ -1955,3 +1955,11 @@ void QuadPlane::guided_update(void)
     // run VTOL position controller
     vtol_position_controller();
 }
+
+void QuadPlane::afs_terminate(void)
+{
+    if (available()) {
+        motors->set_desired_spool_state(AP_Motors::DESIRED_SHUT_DOWN);
+        motors->output();
+    }
+}
