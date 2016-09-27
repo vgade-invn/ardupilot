@@ -130,6 +130,7 @@ void Plane::init_home()
 */
 void Plane::update_home()
 {
+#if 0
     if (fabsf(barometer.get_altitude()) > 2) {
         // don't auto-update if we have changed barometer altitude
         // significantly. This allows us to cope with slow baro drift
@@ -151,4 +152,5 @@ void Plane::update_home()
         GCS_MAVLINK::send_home_all(gps.location());
     }
     barometer.update_calibration();
+#endif
 }
