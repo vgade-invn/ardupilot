@@ -130,8 +130,8 @@ void Plane::init_home()
 */
 void Plane::update_home()
 {
-#if 0
-    if (fabsf(barometer.get_altitude()) > 2) {
+#if 1
+    if (fabsf(barometer.get_altitude()) > 0.2) {
         // don't auto-update if we have changed barometer altitude
         // significantly. This allows us to cope with slow baro drift
         // but not re-do home and the baro if we have changed height
