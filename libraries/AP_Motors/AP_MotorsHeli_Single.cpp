@@ -19,6 +19,7 @@
 #include <RC_Channel/RC_Channel.h>
 #include "AP_MotorsHeli_Single.h"
 #include <GCS_MAVLink/GCS.h>
+#include <DataFlash/DataFlash.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -152,6 +153,12 @@ const AP_Param::GroupInfo AP_MotorsHeli_Single::var_info[] = {
     // @Values: -1:Reversed,1:Normal
     // @User: Standard
     AP_GROUPINFO("RSC_PWM_REV", 18, AP_MotorsHeli_Single, _main_rotor._pwm_rev, 1),
+
+    AP_GROUPINFO("CHRP_CHAN", 19, AP_MotorsHeli_Single, _chirp_chan, 0),
+    AP_GROUPINFO("CHRP_AMP",  20, AP_MotorsHeli_Single, _chirp_amplitude, 0),
+    AP_GROUPINFO("CHRP_TIME", 21, AP_MotorsHeli_Single, _chirp_time, 0),
+    AP_GROUPINFO("CHRP_STARTF", 22, AP_MotorsHeli_Single, _chirp_start_freq, 0),
+    AP_GROUPINFO("CHRP_ENDF", 23, AP_MotorsHeli_Single, _chirp_end_freq, 0),
     
     // parameters up to and including 29 are reserved for tradheli
 
@@ -399,7 +406,7 @@ void AP_MotorsHeli_Single::move_actuators(float roll_out, float pitch_out, float
     }
 
     // constrain collective input
-    float collective_out = coll_in;
+    float collective_out = chirp_add(coll_in);
     if (collective_out <= 0.0f) {
         collective_out = 0.0f;
         limit.throttle_lower = true;
@@ -578,4 +585,43 @@ bool AP_MotorsHeli_Single::parameter_check(bool display_msg) const
 
     // check parent class parameters
     return AP_MotorsHeli::parameter_check(display_msg);
+}
+
+/*
+  add a chirp signal if enabled
+ */
+float AP_MotorsHeli_Single::chirp_add(float coll_in)
+{
+    if (_chirp_chan <= 0 || _chirp_time <= 0 || _chirp_start_freq <= 0 || _chirp_end_freq <= 0) {
+        _chirp_start_us = 0;
+        return coll_in;
+    }
+    bool doing_chirp = hal.rcin->read(_chirp_chan-1) > 1700;
+    if (!doing_chirp) {
+        _chirp_start_us = 0;
+        return coll_in;
+    }
+    if (_chirp_start_us == 0) {
+        _chirp_start_us = AP_HAL::micros64();
+    }
+    // see https://en.wikipedia.org/wiki/Chirp
+    float f0 = _chirp_start_freq;
+    float f1 = _chirp_end_freq;
+    float T = _chirp_time;
+    float t = (AP_HAL::micros64() - _chirp_start_us) * 1.0e-6f;
+
+    if (t > T) {
+        return coll_in;
+    }
+
+    float k = (f1 - f0) / T;
+    float phase = 2 * M_PI * (f0 * t + (k/2)*t*t);
+    float chirp = _chirp_amplitude * sinf(phase);
+
+    DataFlash_Class::instance()->Log_Write("CHRP", "TimeUS,t,Chirp", "Qff",
+                                           AP_HAL::micros64(),
+                                           t,
+                                           chirp);
+    
+    return coll_in + chirp;
 }

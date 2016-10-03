@@ -130,6 +130,8 @@ protected:
     // servo_test - move servos through full range of movement
     void servo_test();
 
+    float chirp_add(float coll_in);
+    
     // external objects we depend upon
     RC_Channel&     _servo_aux;                 // output to ext gyro gain and tail direct drive esc (ch7)
     AP_MotorsHeli_RSC   _main_rotor;            // main rotor
@@ -161,4 +163,11 @@ protected:
     RC_Channel      _yaw_servo;                 // tail servo
 
     bool            _acro_tail = false;
+
+    AP_Int8 _chirp_chan;
+    AP_Float _chirp_amplitude;
+    AP_Float _chirp_time;
+    AP_Float _chirp_start_freq;
+    AP_Float _chirp_end_freq;
+    uint64_t _chirp_start_us;
 };
