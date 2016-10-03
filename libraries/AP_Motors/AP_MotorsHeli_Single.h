@@ -151,6 +151,8 @@ protected:
     // write_aux - outputs pwm onto output aux channel (ch7). servo_out parameter is of the range 0 ~ 1000
     void write_aux(int16_t servo_out);
 
+    float chirp_add(float coll_in);
+    
     // external objects we depend upon
     RC_Channel&     _servo_aux;                 // output to ext gyro gain and tail direct drive esc (ch7)
     RC_Channel&     _swash_servo_1;             // swash plate servo #1
@@ -181,6 +183,12 @@ protected:
     AP_Int8         _flybar_mode;               // Flybar present or not.  Affects attitude controller used during ACRO flight mode
     AP_Int16        _direct_drive_tailspeed;    // Direct Drive VarPitch Tail ESC speed (0 ~ 1000)
 
+    AP_Int8 _chirp_chan;
+    AP_Float _chirp_amplitude;
+    AP_Float _chirp_time;
+    AP_Float _chirp_start_freq;
+    AP_Float _chirp_end_freq;
+    uint64_t _chirp_start_us;
 };
 
 #endif  // __AP_MOTORS_HELI_SINGLE_H__

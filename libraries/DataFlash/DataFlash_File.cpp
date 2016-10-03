@@ -73,7 +73,9 @@ DataFlash_File::DataFlash_File(DataFlash_Class &front, const char *log_directory
     _perf_errors(perf_alloc(PC_COUNT, "DF_errors")),
     _perf_overruns(perf_alloc(PC_COUNT, "DF_overruns"))
 #endif
-{}
+{
+    dataflash_global = &front;
+}
 
 
 // initialisation

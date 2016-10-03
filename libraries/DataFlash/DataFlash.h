@@ -28,6 +28,8 @@
 
 class DataFlash_Backend;
 
+extern DataFlash_Class *dataflash_global;
+
 class DataFlash_Class
 {
 public:
@@ -98,6 +100,7 @@ public:
                                const AP_Mission::Mission_Command &cmd);
     void Log_Write_Origin(uint8_t origin_type, const Location &loc);
     void Log_Write_RPM(const AP_RPM &rpm_sensor);
+    void Log_Write_Chirp(float t, float chirp);
 
     // This structure provides information on the internal member data of a PID for logging purposes
     struct PID_Info {
@@ -609,6 +612,13 @@ struct PACKED log_RPM {
     float rpm2;
 };
 
+struct PACKED log_CHIRP {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float t;
+    float chirp;
+};
+
 /*
 Format characters in the format string for binary log messages
   b   : int8_t
@@ -762,7 +772,9 @@ Format characters in the format string for binary log messages
     { LOG_ORGN_MSG, sizeof(log_ORGN), \
       "ORGN","QBLLe","TimeUS,Type,Lat,Lng,Alt" }, \
     { LOG_RPM_MSG, sizeof(log_RPM), \
-      "RPM",  "Qff", "TimeUS,rpm1,rpm2" }
+      "RPM",  "Qff", "TimeUS,rpm1,rpm2" }, \
+    { LOG_CHIRP_MSG, sizeof(log_CHIRP), \
+      "CHRP",  "Qff", "TimeUS,t,chirp" }
 
 #if HAL_CPU_CLASS >= HAL_CPU_CLASS_75
 #define LOG_COMMON_STRUCTURES LOG_BASE_STRUCTURES, LOG_EXTRA_STRUCTURES
@@ -837,7 +849,8 @@ enum LogMessages {
     LOG_IMUDT2_MSG,
     LOG_IMUDT3_MSG,
     LOG_ORGN_MSG,
-    LOG_RPM_MSG
+    LOG_RPM_MSG,
+    LOG_CHIRP_MSG
 };
 
 enum LogOriginType {

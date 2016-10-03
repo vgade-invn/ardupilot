@@ -1,5 +1,7 @@
 #include "DataFlash.h"
 
+DataFlash_Class *dataflash_global;
+
 // start functions pass straight through to backend:
 void DataFlash_Class::WriteBlock(const void *pBuffer, uint16_t size) {
     backend->WriteBlock(pBuffer, size);

@@ -18,6 +18,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <RC_Channel/RC_Channel.h>
 #include "AP_MotorsHeli_Single.h"
+#include <DataFlash/DataFlash.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -105,6 +106,14 @@ const AP_Param::GroupInfo AP_MotorsHeli_Single::var_info[] PROGMEM = {
     // @Increment: 1
     // @User: Standard
     AP_GROUPINFO("TAIL_SPEED", 10, AP_MotorsHeli_Single, _direct_drive_tailspeed, AP_MOTORS_HELI_SINGLE_DDVPT_SPEED_DEFAULT),
+
+    AP_GROUPINFO("CHRP_CHAN", 19, AP_MotorsHeli_Single, _chirp_chan, 0),
+    AP_GROUPINFO("CHRP_AMP",  20, AP_MotorsHeli_Single, _chirp_amplitude, 0),
+    AP_GROUPINFO("CHRP_TIME", 21, AP_MotorsHeli_Single, _chirp_time, 0),
+    AP_GROUPINFO("CHRP_STARTF", 22, AP_MotorsHeli_Single, _chirp_start_freq, 0),
+    AP_GROUPINFO("CHRP_ENDF", 23, AP_MotorsHeli_Single, _chirp_end_freq, 0),
+    
+    // parameters up to and including 29 are reserved for tradheli
 
     AP_GROUPEND
 };
@@ -377,7 +386,7 @@ void AP_MotorsHeli_Single::move_actuators(int16_t roll_out, int16_t pitch_out, i
     }
 
     // constrain collective input
-    _collective_out = coll_in;
+    _collective_out = chirp_add(coll_in);
     if (_collective_out <= 0) {
         _collective_out = 0;
         limit.throttle_lower = true;
@@ -534,4 +543,43 @@ bool AP_MotorsHeli_Single::parameter_check() const
 
     // check parent class parameters
     return AP_MotorsHeli::parameter_check();
+}
+
+/*
+  add a chirp signal if enabled
+ */
+float AP_MotorsHeli_Single::chirp_add(float coll_in)
+{
+    if (_chirp_chan <= 0 || _chirp_time <= 0 || _chirp_start_freq <= 0 || _chirp_end_freq <= 0) {
+        _chirp_start_us = 0;
+        return coll_in;
+    }
+    bool doing_chirp = hal.rcin->read(_chirp_chan-1) > 1700;
+    if (!doing_chirp) {
+        _chirp_start_us = 0;
+        return coll_in;
+    }
+    uint64_t now = hal.scheduler->micros64();
+    if (_chirp_start_us == 0) {
+        _chirp_start_us = now;
+    }
+    // see https://en.wikipedia.org/wiki/Chirp
+    float f0 = _chirp_start_freq;
+    float f1 = _chirp_end_freq;
+    float T = _chirp_time;
+    float t = (now - _chirp_start_us) * 1.0e-6f;
+
+    if (t > T) {
+        return coll_in;
+    }
+
+    float k = (f1 - f0) / T;
+    float phase = 2 * M_PI * (f0 * t + (k/2)*t*t);
+    float chirp = _chirp_amplitude * sinf(phase);
+
+    if (dataflash_global) {
+        dataflash_global->Log_Write_Chirp(t, chirp);
+    }
+    
+    return coll_in + chirp;
 }
