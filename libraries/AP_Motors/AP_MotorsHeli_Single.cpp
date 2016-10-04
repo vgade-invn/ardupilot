@@ -545,6 +545,10 @@ bool AP_MotorsHeli_Single::parameter_check() const
     return AP_MotorsHeli::parameter_check();
 }
 
+#include <SITL/SITL.h>
+
+extern struct sitl_fdm global_fdm;
+
 /*
   add a chirp signal if enabled
  */
@@ -578,7 +582,9 @@ float AP_MotorsHeli_Single::chirp_add(float coll_in)
     float chirp = _chirp_amplitude * sinf(phase);
 
     if (dataflash_global) {
-        dataflash_global->Log_Write_Chirp(t, chirp, coll_in+chirp);
+        dataflash_global->Log_Write_Chirp(t, chirp, coll_in+chirp,
+                                          global_fdm.zAccel,
+                                          global_fdm.altitude);
     }
     
     return coll_in + chirp;

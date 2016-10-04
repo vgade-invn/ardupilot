@@ -100,7 +100,7 @@ public:
                                const AP_Mission::Mission_Command &cmd);
     void Log_Write_Origin(uint8_t origin_type, const Location &loc);
     void Log_Write_RPM(const AP_RPM &rpm_sensor);
-    void Log_Write_Chirp(float t, float chirp, float collective);
+    void Log_Write_Chirp(float t, float chirp, float collective, float accelz, float height);
 
     // This structure provides information on the internal member data of a PID for logging purposes
     struct PID_Info {
@@ -618,6 +618,8 @@ struct PACKED log_CHIRP {
     float t;
     float chirp;
     float collective;
+    float accelz;
+    float height;
 };
 
 /*
@@ -775,7 +777,7 @@ Format characters in the format string for binary log messages
     { LOG_RPM_MSG, sizeof(log_RPM), \
       "RPM",  "Qff", "TimeUS,rpm1,rpm2" }, \
     { LOG_CHIRP_MSG, sizeof(log_CHIRP), \
-      "CHRP",  "Qfff", "TimeUS,t,chirp,col" }
+      "CHRP",  "Qfffff", "TimeUS,t,chirp,col,AccelZ,Height" }
 
 #if HAL_CPU_CLASS >= HAL_CPU_CLASS_75
 #define LOG_COMMON_STRUCTURES LOG_BASE_STRUCTURES, LOG_EXTRA_STRUCTURES

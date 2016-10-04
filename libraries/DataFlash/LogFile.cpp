@@ -1505,14 +1505,16 @@ void DataFlash_Class::Log_Write_RPM(const AP_RPM &rpm_sensor)
     WriteBlock(&pkt, sizeof(pkt));
 }
 
-void DataFlash_Class::Log_Write_Chirp(float t, float chirp, float collective)
+void DataFlash_Class::Log_Write_Chirp(float t, float chirp, float collective, float accelz, float height)
 {
     struct log_CHIRP pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CHIRP_MSG),
         time_us     : hal.scheduler->micros64(),
         t           : t,
         chirp       : chirp,
-        collective  : collective
+        collective  : collective,
+        accelz      : accelz,
+        height      : height
     };
     WriteBlock(&pkt, sizeof(pkt));
 }

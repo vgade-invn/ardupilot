@@ -34,6 +34,8 @@
   parent class for all simulator types
  */
 
+struct sitl_fdm global_fdm;
+
 /*
   constructor
  */
@@ -261,6 +263,8 @@ void Aircraft::fill_fdm(struct sitl_fdm &fdm) const
     fdm.yawDeg   = degrees(y);
     fdm.airspeed = airspeed;
     fdm.magic = 0x4c56414f;
+
+    global_fdm = fdm;
 }
 
 uint64_t Aircraft::get_wall_time_us() const
