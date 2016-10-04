@@ -578,7 +578,7 @@ float AP_MotorsHeli_Single::chirp_add(float coll_in)
     float chirp = _chirp_amplitude * sinf(phase);
 
     if (dataflash_global) {
-        dataflash_global->Log_Write_Chirp(t, chirp);
+        dataflash_global->Log_Write_Chirp(t, chirp, coll_in+chirp);
     }
     
     return coll_in + chirp;
