@@ -280,6 +280,10 @@ void AP_AHRS::update_trig(void)
     if (isinf(_sin_roll) || isnan(_sin_roll)) {
         _sin_roll = sinf(roll);
     }
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+    publish_ORB();
+#endif
 }
 
 /*
@@ -293,3 +297,50 @@ void AP_AHRS::update_cd_values(void)
     if (yaw_sensor < 0)
         yaw_sensor += 36000;
 }
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+/*
+  publish AHRS state to PX4 ORB
+ */
+void AP_AHRS::publish_ORB(void)
+{
+    _orb.vehicle_attitude.timestamp = AP_HAL::micros64();
+    _orb.vehicle_attitude.roll = roll;
+    _orb.vehicle_attitude.pitch = pitch;
+    _orb.vehicle_attitude.yaw = yaw;
+
+    const Vector3f &gyro = get_gyro();
+    _orb.vehicle_attitude.rollspeed = gyro.x;
+    _orb.vehicle_attitude.pitchspeed = gyro.y;
+    _orb.vehicle_attitude.yawspeed = gyro.z;
+
+    // not filling in roll acceleration as not an available data product yet
+    // not filling in vibration levels as no meaningful units defined. We could fill in if needed
+
+    const Vector3f &gyro_offsets = get_gyro_drift();
+    _orb.vehicle_attitude.rate_offsets[0] = gyro_offsets.x;
+    _orb.vehicle_attitude.rate_offsets[1] = gyro_offsets.y;
+    _orb.vehicle_attitude.rate_offsets[2] = gyro_offsets.z;
+
+    const Matrix3f &rotmat = get_rotation_body_to_ned();
+    memcpy(_orb.vehicle_attitude.R, &rotmat.a.x, sizeof(_orb.vehicle_attitude.R));
+
+    Quaternion q;
+    q.from_rotation_matrix(rotmat);
+    memcpy(_orb.vehicle_attitude.q, &q[0], sizeof(_orb.vehicle_attitude.q));
+
+    const Vector3f &accel_ef = get_accel_ef();
+    _orb.vehicle_attitude.g_comp[0] = accel_ef.x;
+    _orb.vehicle_attitude.g_comp[1] = accel_ef.y;
+    _orb.vehicle_attitude.g_comp[2] = accel_ef.z;
+
+    _orb.vehicle_attitude.R_valid = true;
+    _orb.vehicle_attitude.q_valid = true;
+    
+    if (_orb.vehicle_attitude_pub == nullptr) {
+        _orb.vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &_orb.vehicle_attitude);
+    } else {
+        orb_publish(ORB_ID(vehicle_attitude), _orb.vehicle_attitude_pub, &_orb.vehicle_attitude);
+    }
+}
+#endif // CONFIG_HAL_BOARD

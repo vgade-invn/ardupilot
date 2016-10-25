@@ -29,6 +29,10 @@
 #include <AP_Baro/AP_Baro.h>
 #include <AP_Param/AP_Param.h>
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#include <uORB/topics/vehicle_attitude.h>
+#endif
+
 class OpticalFlow;
 #define AP_AHRS_TRIM_LIMIT 10.0f        // maximum trim angle in degrees
 #define AP_AHRS_RP_P_MIN   0.05f        // minimum value for AHRS_RP_P parameter
@@ -498,6 +502,14 @@ protected:
     // update roll_sensor, pitch_sensor and yaw_sensor
     void update_cd_values(void);
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+    struct {
+        orb_advert_t vehicle_attitude_pub;
+        vehicle_attitude_s vehicle_attitude;
+    } _orb;
+    void publish_ORB(void);
+#endif
+    
     // pointer to compass object, if available
     Compass         * _compass;
 
