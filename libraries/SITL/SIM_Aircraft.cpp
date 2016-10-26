@@ -687,7 +687,14 @@ float Aircraft::filtered_idx(float v, uint8_t idx)
 float Aircraft::filtered_servo_angle(const struct sitl_input &input, uint8_t idx)
 {
     float v = (input.servos[idx]-1500)/500.0f;
-    return filtered_idx(v, idx);
+    float v2 = filtered_idx(v, idx);
+
+    if (idx == 0) {
+        DataFlash_Class::instance()->Log_Write("FIL0", "TimeUS,ServoDemand,Servo", "Qfffffffff",
+                                               AP_HAL::micros64(),
+                                               v, v2);
+    }
+    return v2;
 }
 
 /*
