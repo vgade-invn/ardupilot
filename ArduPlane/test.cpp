@@ -26,6 +26,7 @@ static const struct Menu::command test_menu_commands[] = {
     {"logging",             MENU_FUNC(test_logging)},
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     {"shell", 				MENU_FUNC(test_shell)},
+    {"orb", 				MENU_FUNC(test_orb)},
 #endif
 
 };
@@ -526,4 +527,37 @@ void Plane::print_enabled(bool b)
     cliSerial->printf("abled\n");
 }
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#include <uORB/topics/vehicle_attitude.h>
+
+/*
+ *  test ORB export from AHRS
+ */
+int8_t Plane::test_orb(uint8_t argc, const Menu::arg *argv)
+{
+    int sub = orb_subscribe(ORB_ID(vehicle_attitude));
+    vehicle_attitude_s vehicle_attitude;
+
+    print_hit_enter();
+
+    while (true) {
+        bool updated;
+        if (orb_check(sub, &updated) == 0 && updated) {
+            orb_copy(ORB_ID(vehicle_attitude), sub, &vehicle_attitude);
+            cliSerial->printf("RPY: (%.2f %.2f %.2f)\n",
+                              (double)degrees(vehicle_attitude.roll),
+                              (double)degrees(vehicle_attitude.pitch),
+                              (double)degrees(vehicle_attitude.yaw));
+        }
+        if(cliSerial->available() > 0) {
+            return (0);
+        }
+        hal.scheduler->delay(20);
+        ahrs.update();
+    }
+            
+    return 0;
+}
+#endif
+    
 #endif // CLI_ENABLED

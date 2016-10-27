@@ -1158,6 +1158,7 @@ public:
     int8_t test_airspeed(uint8_t argc, const Menu::arg *argv);
     int8_t test_pressure(uint8_t argc, const Menu::arg *argv);
     int8_t test_shell(uint8_t argc, const Menu::arg *argv);
+    int8_t test_orb(uint8_t argc, const Menu::arg *argv);
 };
 
 #define MENU_FUNC(func) FUNCTOR_BIND(&plane, &Plane::func, int8_t, uint8_t, const Menu::arg *)
