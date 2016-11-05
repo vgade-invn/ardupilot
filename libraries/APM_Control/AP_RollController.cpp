@@ -309,18 +309,18 @@ float AP_RollController::adaptive_control(float r)
      adap.u_lowpass = (1 - alpha_filt)*adap.u_lowpass+ alpha_filt*(adap.u);
 
 
-    DataFlash_Class::instance()->Log_Write("ADAP", "TimeUS,Dt,Atheta,Aomega,Asigma,Aeta,Axm,Ax,Ar,Axerr,Au_lowpass", "Qffffffffff",
+    DataFlash_Class::instance()->Log_Write("ADAR", "TimeUS,Dt,Atheta,Aomega,Asigma,Aeta,Axm,Ax,Ar,Axerr,Au_lowpass", "Qffffffffff",
                                            now,
                                            dt,
                                            adap.theta, 
-					   adap.omega,
-					   adap.sigma,
+                                           adap.omega,
+                                           adap.sigma,
                                            eta,
                                            degrees(adap.x_m),
-					   degrees(x),
-					   degrees(r),
+                                           degrees(x),
+                                           degrees(r),
                                            degrees(x_error),
-					   degrees(adap.u_lowpass));
+                                           degrees(adap.u_lowpass));
  
 
     _pid_info.P = adap.theta;
