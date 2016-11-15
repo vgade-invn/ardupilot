@@ -487,18 +487,18 @@ void AP_InertialSensor_MPU6000::_accumulate(uint8_t *samples, uint8_t n_samples)
         fsync_set = (int16_val(data, 2) & 1U) != 0;
 #endif
         
-        accel = Vector3f(int16_val(data, 1),
-                         int16_val(data, 0),
-                         -int16_val(data, 2));
+        accel = Vector3f(int16_val(data, 0),
+                         int16_val(data, 1),
+                         int16_val(data, 2));
         accel *= _accel_scale;
 
         float temp = int16_val(data, 3);
         temp = temp/340 + 36.53;
         _last_temp = temp;
         
-        gyro = Vector3f(int16_val(data, 5),
-                        int16_val(data, 4),
-                        -int16_val(data, 6));
+        gyro = Vector3f(int16_val(data, 4),
+                        int16_val(data, 5),
+                        int16_val(data, 6));
         gyro *= GYRO_SCALE;
 
         _rotate_and_correct_accel(_accel_instance, accel);
@@ -519,17 +519,17 @@ void AP_InertialSensor_MPU6000::_accumulate_fast_sampling(uint8_t *samples, uint
     
     for (uint8_t i = 0; i < n_samples; i++) {
         uint8_t *data = samples + MPU6000_SAMPLE_SIZE * i;
-        Vector3l a(int16_val(data, 1),
-                   int16_val(data, 0),
-                   -int16_val(data, 2));
+        Vector3l a(int16_val(data, 0),
+                   int16_val(data, 1),
+                   int16_val(data, 2));
         if (abs(a.x) > clip_limit ||
             abs(a.y) > clip_limit ||
             abs(a.z) > clip_limit) {
             clipped = true;
         }
-        Vector3l g(int16_val(data, 5),
-                   int16_val(data, 4),
-                   -int16_val(data, 6));
+        Vector3l g(int16_val(data, 4),
+                   int16_val(data, 5),
+                   int16_val(data, 6));
 
         _accum.accel += a;
         _accum.gyro += g;
