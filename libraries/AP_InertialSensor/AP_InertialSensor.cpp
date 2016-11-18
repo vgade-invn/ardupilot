@@ -712,8 +712,8 @@ AP_InertialSensor::detect_backends(void)
         }
 
     } else if (AP_BoardConfig::get_board_type() == AP_BoardConfig::PX4_BOARD_PIXRACER) {
-        _add_backend(AP_InertialSensor_MPU6000::probe(*this, hal.spi->get_device(HAL_INS_ICM20608_NAME), ROTATION_ROLL_180_YAW_90));
-        _add_backend(AP_InertialSensor_MPU9250::probe(*this, hal.spi->get_device(HAL_INS_MPU9250_NAME), ROTATION_ROLL_180_YAW_90));
+        _add_backend(AP_InertialSensor_MPU6000::probe(*this, hal.spi->get_device(HAL_INS_ICM20608_NAME), ROTATION_NONE));
+        _add_backend(AP_InertialSensor_MPU9250::probe(*this, hal.spi->get_device(HAL_INS_MPU9250_NAME), ROTATION_NONE));
 
     } else if (AP_BoardConfig::get_board_type() == AP_BoardConfig::PX4_BOARD_PHMINI) {
         // PHMINI uses ICM20608 on the ACCEL_MAG device and a MPU9250 on the old MPU6000 CS line
