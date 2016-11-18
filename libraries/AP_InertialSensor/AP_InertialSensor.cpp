@@ -704,8 +704,8 @@ AP_InertialSensor::detect_backends(void)
                                                       hal.spi->get_device(HAL_INS_LSM9DS0_EXT_G_NAME),
                                                       hal.spi->get_device(HAL_INS_LSM9DS0_EXT_A_NAME),
                                                       ROTATION_YAW_270, ROTATION_YAW_90));
-        if (!_add_backend(AP_InertialSensor_MPU9250::probe(*this, hal.spi->get_device(HAL_INS_MPU9250_NAME), ROTATION_YAW_270))) {
-            _add_backend(AP_InertialSensor_MPU6000::probe(*this, hal.spi->get_device(HAL_INS_MPU60x0_NAME), ROTATION_YAW_270));
+        if (!_add_backend(AP_InertialSensor_MPU9250::probe(*this, hal.spi->get_device(HAL_INS_MPU9250_NAME), ROTATION_ROLL_180))) {
+            _add_backend(AP_InertialSensor_MPU6000::probe(*this, hal.spi->get_device(HAL_INS_MPU60x0_NAME), ROTATION_ROLL_180));
         }
 
     } else if (AP_BoardConfig::get_board_type() == AP_BoardConfig::PX4_BOARD_PIXRACER) {
