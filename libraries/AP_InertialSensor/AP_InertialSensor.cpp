@@ -743,7 +743,7 @@ AP_InertialSensor::detect_backends(void)
     _add_backend(AP_InertialSensor_LSM9DS0::probe(*this,
                                                   hal.spi->get_device(HAL_INS_LSM9DS0_G_NAME),
                                                   hal.spi->get_device(HAL_INS_LSM9DS0_A_NAME),
-                                                  HAL_INS_DEFAULT_ROTATION, ROTATION_ROLL_180_YAW_90));
+                                                  ROTATION_ROLL_180, ROTATION_ROLL_180_YAW_90));
 #elif HAL_INS_DEFAULT == HAL_INS_MPU9250_I2C
     _add_backend(AP_InertialSensor_MPU9250::probe(*this, hal.i2c_mgr->get_device(HAL_INS_MPU9250_I2C_BUS, HAL_INS_MPU9250_I2C_ADDR)));
 #elif HAL_INS_DEFAULT == HAL_INS_QFLIGHT
