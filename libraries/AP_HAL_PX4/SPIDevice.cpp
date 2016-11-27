@@ -187,21 +187,21 @@ void SPIDevice::do_transfer(const uint8_t *send, uint8_t *recv, uint32_t len)
 bool SPIDevice::transfer(const uint8_t *send, uint32_t send_len,
                          uint8_t *recv, uint32_t recv_len)
 {
-    if (send_len == recv_len && send == recv) {
-        // simplest cases, needed for DMA
-        do_transfer(send, recv, recv_len);
+    if (send_len == 0 || recv_len == 0) {
+        // handle the simple one-way case first
+        do_transfer(send, recv, send_len+recv_len);
         return true;
     }
-    uint8_t buf[send_len+recv_len];
-    if (send_len > 0) {
-        memcpy(buf, send, send_len);
-    }
-    if (recv_len > 0) {
-        memset(&buf[send_len], 0, recv_len);
-    }
-    do_transfer(buf, buf, send_len+recv_len);
-    if (recv_len > 0) {
-        memcpy(recv, &buf[send_len], recv_len);
+    /*
+      for two-way transfers perform it as two transfers but with chip
+      selected over both
+     */
+    bool cs_forced_saved = cs_forced;
+    set_chip_select(true);
+    do_transfer(send, nullptr, send_len);
+    do_transfer(nullptr, recv, recv_len);
+    if (!cs_forced_saved) {
+        set_chip_select(false);
     }
     return true;
 }
