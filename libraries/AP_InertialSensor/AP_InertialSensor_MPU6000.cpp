@@ -551,7 +551,10 @@ bool AP_InertialSensor_MPU6000::_accumulate_fast_sampling(uint8_t *samples, uint
         }
         tsum += t2;
 
-        if ((_accum.count & 1) == 0) {
+        // MPU6000 accel data is at 1kHz, IMC-20608 is at 4kHz
+        uint8_t accel_decimation = _is_icm_device?2:8;
+        
+        if ((_accum.count & (accel_decimation-1)) == 0) {
             // accel data is at 4kHz
             Vector3f a(int16_val(data, 1),
                        int16_val(data, 0),
@@ -572,7 +575,7 @@ bool AP_InertialSensor_MPU6000::_accumulate_fast_sampling(uint8_t *samples, uint
         _accum.count++;
 
         if (_accum.count == MPU_FIFO_DOWNSAMPLE_COUNT) {
-            float ascale = _accel_scale / (MPU_FIFO_DOWNSAMPLE_COUNT/2);
+            float ascale = _accel_scale / (MPU_FIFO_DOWNSAMPLE_COUNT/accel_decimation);
             _accum.accel *= ascale;
 
             float gscale = GYRO_SCALE / MPU_FIFO_DOWNSAMPLE_COUNT;
@@ -733,7 +736,12 @@ void AP_InertialSensor_MPU6000::_set_filter_register(void)
 
 
     if (enable_fast_sampling(_accel_instance)) {
-        _fast_sampling = (_is_icm_device && _dev->bus_type() == AP_HAL::Device::BUS_TYPE_SPI);
+        _fast_sampling = (_dev->bus_type() == AP_HAL::Device::BUS_TYPE_SPI);
+        if (_is_icm_device) {
+            _accum.accel_filter.set_cutoff_frequency(4000, 188);
+        } else {
+            _accum.accel_filter.set_cutoff_frequency(1000, 188);
+        }
         if (_fast_sampling) {
             hal.console->printf("MPU6000: enabled fast sampling\n");
         }
