@@ -392,7 +392,7 @@ AP_InertialSensor_LSM9DS0::AP_InertialSensor_LSM9DS0(AP_InertialSensor &imu,
 AP_InertialSensor_LSM9DS0::~AP_InertialSensor_LSM9DS0()
 {
     if (_fifo_buffer != nullptr) {
-        delete[] _fifo_buffer;
+        hal.util->dma_free(_fifo_buffer, MAX_DATA_READ);
     }
 }
 
@@ -503,7 +503,7 @@ void AP_InertialSensor_LSM9DS0::start(void)
     _set_accel_max_abs_offset(_accel_instance, 5.0f);
 
     // allocate fifo buffer
-    _fifo_buffer = new uint8_t[MAX_DATA_READ];
+    _fifo_buffer = (uint8_t *)hal.util->dma_allocate(MAX_DATA_READ);
     if (_fifo_buffer == nullptr) {
         AP_HAL::panic("LSM9DS0: Unable to allocate FIFO buffer");
     }
@@ -601,7 +601,7 @@ void AP_InertialSensor_LSM9DS0::_gyro_init()
 
 void AP_InertialSensor_LSM9DS0::_accel_init()
 {
-    // _accel_disable_i2c();
+    _accel_disable_i2c();
     hal.scheduler->delay(1);
 
     _register_write_xm(FIFO_CTRL_REG, FIFO_CTRL_REG_FM_STREAM | 0x1F, true);
