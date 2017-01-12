@@ -544,6 +544,9 @@ public:
 
     // whether to enforce acceptance of packets only from sysid_my_gcs
     AP_Int8 sysid_enforce;
+
+    // PFC hook control channel
+    AP_Int8 pfc_chan;
 };
 
 extern const AP_Param::Info var_info[];

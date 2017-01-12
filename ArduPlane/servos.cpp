@@ -760,6 +760,9 @@ void Plane::servos_output(void)
     // run vtail and elevon mixers
     servo_output_mixers();
 
+    // run hook for PFC servos
+    PFC_servos_hook();
+    
     SRV_Channels::calc_pwm();
     
     SRV_Channels::output_ch_all();

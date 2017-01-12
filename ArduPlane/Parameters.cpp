@@ -1221,6 +1221,14 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Group: RC
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
     AP_SUBGROUPINFO(rc_channels, "RC", 7, ParametersG2, RC_Channels),
+
+
+
+    // @Group: PFC_ENABLE_CHAN
+    // @DisplayName: PFC enable channel
+    // @Description: This enables the PFC control hooks
+    // @User: Advanced
+    AP_GROUPINFO("PFC_ENABLE_CHAN", 63, ParametersG2, pfc_chan, 0),
     
     AP_GROUPEND
 };

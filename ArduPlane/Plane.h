@@ -1101,6 +1101,11 @@ private:
     bool avoid_adsb_init(bool ignore_checks);
     void avoid_adsb_run();
 
+
+    // PFC hook interfaces
+    void PFC_servos_hook();
+    
+    
 public:
     void mavlink_delay_cb();
     void failsafe_check(void);
