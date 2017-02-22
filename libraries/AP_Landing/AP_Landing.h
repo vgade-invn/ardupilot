@@ -21,12 +21,14 @@
 #include <AP_SpdHgtControl/AP_SpdHgtControl.h>
 #include <AP_Navigation/AP_Navigation.h>
 #include <PID/PID.h>
+#include "AP_Landing_Deepstall.h"
 
 /// @class  AP_Landing
 /// @brief  Class managing ArduPlane landing methods
 class AP_Landing
 {
 public:
+    friend class AP_Landing_Deepstall;
 
     FUNCTOR_TYPEDEF(set_target_altitude_proportion_fn_t, void, const Location&, float);
     FUNCTOR_TYPEDEF(constrain_target_altitude_location_fn_t, void, const Location&, const Location&);
@@ -37,28 +39,12 @@ public:
 
     // constructor
     AP_Landing(AP_Mission &_mission, AP_AHRS &_ahrs, AP_SpdHgtControl *_SpdHgt_Controller, AP_Navigation *_nav_controller, AP_Vehicle::FixedWing &_aparm,
-            set_target_altitude_proportion_fn_t _set_target_altitude_proportion_fn,
-            constrain_target_altitude_location_fn_t _constrain_target_altitude_location_fn,
-            adjusted_altitude_cm_fn_t _adjusted_altitude_cm_fn,
-            adjusted_relative_altitude_cm_fn_t _adjusted_relative_altitude_cm_fn,
-            disarm_if_autoland_complete_fn_t _disarm_if_autoland_complete_fn,
-            update_flight_stage_fn_t _update_flight_stage_fn):
-            mission(_mission)
-            ,ahrs(_ahrs)
-            ,SpdHgt_Controller(_SpdHgt_Controller)
-            ,nav_controller(_nav_controller)
-            ,aparm(_aparm)
-            ,set_target_altitude_proportion_fn(_set_target_altitude_proportion_fn)
-            ,constrain_target_altitude_location_fn(_constrain_target_altitude_location_fn)
-            ,adjusted_altitude_cm_fn(_adjusted_altitude_cm_fn)
-            ,adjusted_relative_altitude_cm_fn(_adjusted_relative_altitude_cm_fn)
-            ,disarm_if_autoland_complete_fn(_disarm_if_autoland_complete_fn)
-            ,update_flight_stage_fn(_update_flight_stage_fn)
-    {
-        AP_Param::setup_object_defaults(this, var_info);
-        AP_Param::setup_object_defaults(this, deepstall_var_info);
-    }
-
+               set_target_altitude_proportion_fn_t _set_target_altitude_proportion_fn,
+               constrain_target_altitude_location_fn_t _constrain_target_altitude_location_fn,
+               adjusted_altitude_cm_fn_t _adjusted_altitude_cm_fn,
+               adjusted_relative_altitude_cm_fn_t _adjusted_relative_altitude_cm_fn,
+               disarm_if_autoland_complete_fn_t _disarm_if_autoland_complete_fn,
+               update_flight_stage_fn_t _update_flight_stage_fn);
 
 
     // NOTE: make sure to update is_type_valid()
@@ -95,7 +81,6 @@ public:
 
     // accessor functions for the params and states
     static const struct AP_Param::GroupInfo var_info[];
-    static const struct AP_Param::GroupInfo deepstall_var_info[];
     
     int16_t get_pitch_cd(void) const { return pitch_cd; }
     float get_flare_sec(void) const { return flare_sec; }
@@ -135,6 +120,9 @@ private:
     AP_SpdHgtControl *SpdHgt_Controller;
     AP_Navigation *nav_controller;
 
+    // support for deepstall landings
+    AP_Landing_Deepstall deepstall;
+    
     AP_Vehicle::FixedWing &aparm;
 
     set_target_altitude_proportion_fn_t set_target_altitude_proportion_fn;
@@ -158,50 +146,6 @@ private:
     AP_Int8 flap_percent;
     AP_Int8 throttle_slewrate;
     AP_Int8 type;
-
-    // deepstall members
-    enum deepstall_stage {
-        DEEPSTALL_STAGE_FLY_TO_LANDING,    // fly to the deepstall landing point
-        DEEPSTALL_STAGE_ESTIMATE_WIND,     // loiter until we have a decent estimate of the wind for the target altitude
-        DEEPSTALL_STAGE_WAIT_FOR_BREAKOUT, // wait until the aircraft is aligned for the optimal breakout
-        DEEPSTALL_STAGE_FLY_TO_ARC,        // fly to the start of the arc
-        DEEPSTALL_STAGE_ARC,               // fly the arc
-        DEEPSTALL_STAGE_APPROACH,          // fly the approach in, and prepare to deepstall when close 
-        DEEPSTALL_STAGE_LAND,              // the aircraft will stall torwards the ground while targeting a given point
-    };
-
-    struct {
-        AP_Float forward_speed;
-        AP_Float slope_a;
-        AP_Float slope_b;
-        AP_Float approach_extension;
-        AP_Float down_speed;
-        AP_Float slew_speed;
-        AP_Int16 elevator_pwm;
-        AP_Float handoff_airspeed;
-        AP_Float handoff_lower_limit_airspeed;
-        AP_Float L1_period;
-        AP_Float L1_i;
-        AP_Float yaw_rate_limit;
-        AP_Float time_constant;
-        int32_t loiter_sum_cd;         // used for tracking the progress on loitering
-        deepstall_stage stage;
-        Location landing_point;
-        Location extended_approach;
-        Location breakout_location;
-        Location arc;
-        Location arc_entry;
-        Location arc_exit;
-        float target_heading_deg;      // target heading for the deepstall in degrees
-        uint32_t stall_entry_time;     // time when the aircrafted enter the stall (in millis)
-        uint16_t initial_elevator_pwm; // PWM to start slewing the elevator up from
-        uint32_t last_time;            // last time the controller ran
-        float L1_xtrack_i;             // L1 integrator for navigation
-        PID ds_PID;
-        int32_t last_target_bearing;   // used for tracking the progress on loitering
-    } deepstall;
-
-    static const DataFlash_Class::PID_Info empty_pid;
 
     // Land Type STANDARD GLIDE SLOPE
 
@@ -237,30 +181,4 @@ private:
     bool type_slope_is_on_approach(void) const;
     bool type_slope_is_expecting_impact(void) const;
     bool type_slope_is_throttle_suppressed(void) const;
-
-    // Landing type TYPE_DEEPSTALL
-
-    //public AP_Landing interface
-    void type_deepstall_do_land(const AP_Mission::Mission_Command& cmd, const float relative_altitude);
-    void type_deepstall_verify_abort_landing(const Location &prev_WP_loc, Location &next_WP_loc, bool &throttle_suppressed);
-    bool type_deepstall_verify_land(const Location &prev_WP_loc, Location &next_WP_loc, const Location &current_loc,
-            const float height, const float sink_rate, const float wp_proportion, const uint32_t last_flying_ms,
-            const bool is_armed, const bool is_flying, const bool rangefinder_state_in_range);
-    void type_deepstall_setup_landing_glide_slope(const Location &prev_WP_loc, const Location &next_WP_loc,
-            const Location &current_loc, int32_t &target_altitude_offset_cm);
-    bool type_deepstall_override_servos(void);
-    bool type_deepstall_request_go_around(void);
-    bool type_deepstall_get_target_altitude_location(Location &location);
-    int32_t type_deepstall_get_target_airspeed_cm(void) const;
-    bool type_deepstall_is_throttle_suppressed(void) const;
-
-    const DataFlash_Class::PID_Info& type_deepstall_get_pid_info(void) const;
-
-    //private helpers
-    void type_deepstall_build_approach_path();
-    float type_deepstall_predict_travel_distance(const Vector3f wind, const float height) const;
-    bool type_deepstall_verify_breakout(const Location &current_loc, const Location &target_loc, const float height_error) const;
-    float type_deepstall_update_steering(void);
-
-    #define DEEPSTALL_LOITER_ALT_TOLERANCE 5.0f
 };
