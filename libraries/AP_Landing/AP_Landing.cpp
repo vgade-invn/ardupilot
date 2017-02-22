@@ -138,111 +138,12 @@ const AP_Param::GroupInfo AP_Landing::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("TYPE",    14, AP_Landing, type, TYPE_STANDARD_GLIDE_SLOPE),
 
-    // @Param: DS_V_FWD
-    // @DisplayName: Deepstall forward velocity
-    // @Description: The forward velocity of the aircraft while stalled
-    // @Range: 0 20
-    // @Units: m/s
-    // @User: Advanced
-    AP_GROUPINFO("DS_V_FWD", 15, AP_Landing, type_deepstall_forward_speed, 1),
-
-    // @Param: DS_SLOPE_A
-    // @DisplayName: Deepstall slope a
-    // @Description: The a component of distance = a*wind + b
-    // @User: Advanced
-    AP_GROUPINFO("DS_SLOPE_A", 16, AP_Landing, type_deepstall_slope_a, 1),
-
-    // @Param: DS_SLOPE_B
-    // @DisplayName: Deepstall slope b
-    // @Description: The a component of distance = a*wind + b
-    // @User: Advanced
-    AP_GROUPINFO("DS_SLOPE_B", 17, AP_Landing, type_deepstall_slope_b, 1),
-
-    // @Param: DS_APP_EXT
-    // @DisplayName: Deepstall approach extension
-    // @Description: The forward velocity of the aircraft while stalled
-    // @Range: 10 200
-    // @Units: meters
-    // @User: Advanced
-    AP_GROUPINFO("DS_APP_EXT", 18, AP_Landing, type_deepstall_approach_extension, 50),
-
-    // @Param: DS_V_DWN
-    // @DisplayName: Deepstall veloicty down
-    // @Description: The downward velocity of the aircraft while stalled
-    // @Range: 0 20
-    // @Units: m/s
-    // @User: Advanced
-    AP_GROUPINFO("DS_V_DWN", 19, AP_Landing, type_deepstall_down_speed, 2),
-
-    // @Param: DS_SLEW_SPD
-    // @DisplayName: Deepstall slew speed
-    // @Description: The speed at which the elevator slews to deepstall
-    // @Range: 0 2
-    // @Units: seconds
-    // @User: Advanced
-    AP_GROUPINFO("DS_SLEW_SPD", 20, AP_Landing, type_deepstall_slew_speed, 0.5),
-
-    // @Param: DS_ELEV_PWM
-    // @DisplayName: Deepstall elevator PWM
-    // @Description: The PWM value for the elevator at full deflection in deepstall
-    // @Range: 900 2100
-    // @Units: PWM
-    // @User: Advanced
-    AP_GROUPINFO("DS_ELEV_PWM", 21, AP_Landing, type_deepstall_elevator_pwm, 1500),
-
-    // @Param: DS_ARSP_MAX
-    // @DisplayName: Deepstall enabled airspeed
-    // @Description: The maximum aispeed where the deepstall steering controller is allowed to have control
-    // @Range: 5 20
-    // @Units: m/s
-    // @User: Advanced
-    AP_GROUPINFO("DS_ARSP_MAX", 22, AP_Landing, type_deepstall_handoff_airspeed, 15.0),
-
-    // @Param: DS_ARSP_MIN
-    // @DisplayName: Deepstall minimum derating airspeed
-    // @Description: Deepstall lowest airspeed where the deepstall controller isn't allowed full control
-    // @Range: 5 20
-    // @Units: m/s
-    // @User: Advanced
-    AP_GROUPINFO("DS_ARSP_MIN", 23, AP_Landing, type_deepstall_handoff_lower_limit_airspeed, 10.0),
-
-    // @Param: DS_L1
-    // @DisplayName: Deepstall L1 period
-    // @Description: Deepstall L1 navigational controller period
-    // @Range: 5 50
-    // @Units: meters
-    // @User: Advanced
-    AP_GROUPINFO("DS_L1", 24, AP_Landing, type_deepstall_L1_period, 30.0),
-
-    // @Param: DS_L1_I
-    // @DisplayName: Deepstall L1 I gain
-    // @Description: Deepstall L1 integratior gain
-    // @Range: 0 1
-    // @User: Advanced
-    AP_GROUPINFO("DS_L1_I", 25, AP_Landing, type_deepstall_L1_i, 0),
-
-    // @Param: DS_YAW_LIM
-    // @DisplayName: Deepstall yaw rate limit
-    // @Description: The yaw rate limit while navigating in deepstall
-    // @Range: 0 90
-    // @Units degrees per second
-    // @User: Advanced
-    AP_GROUPINFO("DS_YAW_LIM", 26, AP_Landing, type_deepstall_yaw_rate_limit, 10),
-
-    // @Param: DS_L1_TCON
-    // @DisplayName: Deepstall L1 time constant
-    // @Description: Time constant for deepstall L1 control
-    // @Range: 0 1
-    // @Units seconds
-    // @User: Advanced
-    AP_GROUPINFO("DS_L1_TCON", 27, AP_Landing, type_deepstall_time_constant, 0.4),
-
     // @Group: DS_
-    // @Path: ../PID/PID.cpp
-    AP_SUBGROUPINFO(type_deepstall_PID, "DS_", 28, AP_Landing, PID),
-
+    { AP_PARAM_GROUP, 15, "DS_", 0, { group_info : AP_Landing::deepstall_var_info }, AP_PARAM_FLAG_NESTED_OFFSET },
+    
     AP_GROUPEND
 };
+
 
 void AP_Landing::do_land(const AP_Mission::Mission_Command& cmd, const float relative_altitude)
 {
@@ -281,7 +182,7 @@ bool AP_Landing::verify_land(const Location &prev_WP_loc, Location &next_WP_loc,
         break;
     case TYPE_DEEPSTALL:
         success = type_deepstall_verify_land(prev_WP_loc, next_WP_loc, current_loc,
-                      height, sink_rate, wp_proportion, last_flying_ms, is_armed, is_flying, rangefinder_state_in_range);
+                                             height, sink_rate, wp_proportion, last_flying_ms, is_armed, is_flying, rangefinder_state_in_range);
         break;
     default:
         // returning TRUE while executing verify_land() will increment the
