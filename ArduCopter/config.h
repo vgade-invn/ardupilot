@@ -672,3 +672,7 @@
 #ifndef SMARTRTL_ENABLED
 # define SMARTRTL_ENABLED ENABLED
 #endif
+
+#ifndef CH_MODE_DEFAULT
+#define CH_MODE_DEFAULT CH_5
+#endif
