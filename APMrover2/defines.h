@@ -111,3 +111,10 @@ enum fs_crash_action {
 };
 
 #define DISTANCE_HOME_MAX 0.5f  // Distance max to home location before changing it when disarm
+
+enum pwm_type {
+  PWM_TYPE_NORMAL = 0,
+  PWM_TYPE_ONESHOT = 1,
+  PWM_TYPE_ONESHOT125 = 2,
+  PWM_TYPE_BRUSHED16kHz = 3
+};

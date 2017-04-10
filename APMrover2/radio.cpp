@@ -45,6 +45,17 @@ void Rover::init_rc_out()
     // setup PWM values to send if the FMU firmware dies
     SRV_Channels::setup_failsafe_trim_all();
 
+    if (g2.pwm_type != PWM_TYPE_NORMAL) {
+        if ((g2.pwm_type == PWM_TYPE_ONESHOT || g2.pwm_type == PWM_TYPE_ONESHOT125)) {
+            // tell HAL to do immediate output
+            // hal.rcout->set_output_mode(AP_HAL::RCOutput::MODE_PWM_ONESHOT);
+        } else if (g2.pwm_type == PWM_TYPE_BRUSHED16kHz) {
+            hal.rcout->set_output_mode(AP_HAL::RCOutput::MODE_PWM_BRUSHED16KHZ);
+            hal.rcout->set_freq((1UL << 0), 2000);  // Steering group
+            hal.rcout->set_freq((1UL << 2), 2000);  // Throttle group
+        }
+    }
+
     // output throttle trim when safety off if arming
     // is setup for min on disarm.  MIN is from plane where MIN is effectively no throttle.
     // For Rover's no throttle means TRIM as rovers can go backwards i.e. MIN throttle is

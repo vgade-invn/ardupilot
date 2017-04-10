@@ -318,7 +318,11 @@ public:
     // advanced failsafe library
     AP_AdvancedFailsafe_Rover afs;
 #endif
+
     AP_Beacon beacon;
+
+    // PWM output type
+    AP_Int8 pwm_type;
 };
 
 extern const AP_Param::Info var_info[];

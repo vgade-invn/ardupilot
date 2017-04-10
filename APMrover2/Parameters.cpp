@@ -547,6 +547,13 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Path: ../libraries/AP_Beacon/AP_Beacon.cpp
     AP_SUBGROUPINFO(beacon, "BCN", 6, ParametersG2, AP_Beacon),
 
+    // @Param: PWM_TYPE
+    // @DisplayName: Output PWM type
+    // @Description: This selects the output PWM type, allowing for normal PWM continuous output, OneShot or brushed motor output
+    // @Values: 0:Normal,1:OneShot,2:OneShot125,3:Brushed16kHz
+    // @User: Advanced
+    AP_GROUPINFO("PWM_TYPE", 7, ParametersG2, pwm_type, PWM_TYPE_NORMAL),
+
     AP_GROUPEND
 };
 
