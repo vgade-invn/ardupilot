@@ -134,6 +134,11 @@
 #if SMARTRTL_ENABLED == ENABLED
 #include <AP_SmartRTL/AP_SmartRTL.h>
 #endif
+
+#if TOY_MODE_ENABLED == ENABLED
+#include "toy_mode.h"
+#endif
+
 // Local modules
 #include "Parameters.h"
 #include "avoidance_adsb.h"
@@ -155,6 +160,7 @@ public:
     friend class AP_AdvancedFailsafe_Copter;
 #endif
     friend class AP_Arming_Copter;
+    friend class ToyMode;
 
     Copter(void);
 
@@ -1015,6 +1021,7 @@ private:
     bool mode_requires_GPS(control_mode_t mode);
     bool mode_has_manual_throttle(control_mode_t mode);
     bool mode_allows_arming(control_mode_t mode, bool arming_from_gcs);
+    const char *flight_mode_string(control_mode_t mode);
     void notify_flight_mode(control_mode_t mode);
     void heli_init();
     void check_dynamic_flight(void);
@@ -1038,6 +1045,7 @@ private:
     MAV_RESULT mavlink_motor_test_start(mavlink_channel_t chan, uint8_t motor_seq, uint8_t throttle_type, uint16_t throttle_value, float timeout_sec, uint8_t motor_count);
     void motor_test_stop();
     void arm_motors_check();
+    void toy_mode_update(void);
     void auto_disarm_check();
     bool init_arm_motors(bool arming_from_gcs);
     void init_disarm_motors();
@@ -1083,6 +1091,7 @@ private:
     void terrain_update();
     void terrain_logging();
     bool terrain_use();
+    int16_t get_throttle_mid(void);
     void report_compass();
     void print_blanks(int16_t num);
     void print_divider(void);
