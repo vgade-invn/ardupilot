@@ -103,3 +103,9 @@ enum fs_crash_action {
   FS_CRASH_HOLD_AND_DISARM = 2
 };
 
+enum pwm_type {
+  PWM_TYPE_NORMAL = 0,
+  PWM_TYPE_ONESHOT = 1,
+  PWM_TYPE_ONESHOT125 = 2,
+  PWM_TYPE_BRUSHED16kHz = 3
+};
