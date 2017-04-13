@@ -98,6 +98,7 @@
 #include <AP_SmartRTL/AP_SmartRTL.h>
 #include <AP_WheelEncoder/AP_WheelEncoder.h>
 #include <AP_Winch/AP_Winch.h>
+#include <AP_TempCalibration/AP_TempCalibration.h>
 
 // Configuration
 #include "defines.h"
@@ -1171,6 +1172,7 @@ private:
     void accel_cal_update(void);
     
     uint16_t get_pilot_speed_dn();    
+    void temp_cal_update(void);
 
 public:
     void mavlink_delay_cb();
