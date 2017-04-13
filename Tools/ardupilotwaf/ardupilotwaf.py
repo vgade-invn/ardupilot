@@ -65,6 +65,7 @@ COMMON_VEHICLE_DEPENDENT_LIBRARIES = [
     'AP_Volz_Protocol',
     'AP_SBusOut',
     'AP_Radio',
+    'AP_TempCalibration',
 ]
 
 def get_legacy_defines(sketch_name):
