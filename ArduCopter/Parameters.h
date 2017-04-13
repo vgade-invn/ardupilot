@@ -576,6 +576,9 @@ public:
     // wheel encoder and winch
     AP_WheelEncoder wheel_encoder;
     AP_Winch winch;
+
+    // temperature calibration handling
+    AP_TempCalibration temp_calibration;
 };
 
 extern const AP_Param::Info        var_info[];
