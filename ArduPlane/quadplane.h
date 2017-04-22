@@ -157,6 +157,9 @@ private:
     // initialise throttle_wait when entering mode
     void init_throttle_wait();
 
+    // set AP_Motors desired state to unlimited throttle
+    void set_desired_throttle_unlimited(void);
+
     // use multicopter rate controller
     void multicopter_attitude_rate_update(float yaw_rate_cds, float smoothing_gain);
     

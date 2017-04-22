@@ -666,6 +666,22 @@ void QuadPlane::init_stabilize(void)
 
 
 /*
+  request VTOL motors go to unlimited motor state
+ */
+void QuadPlane::set_desired_throttle_unlimited(void)
+{
+    if (motors->get_desired_spool_state() < AP_Motors::DESIRED_THROTTLE_UNLIMITED) {
+        // we are spinning up the motors. Zero the I terms, and reset
+        // the yaw target to current heading */
+        attitude_control->reset_rate_controller_I_terms();
+        attitude_control->set_yaw_target_to_current_heading();
+
+        motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+    }
+}
+
+
+/*
   ask the multicopter attitude control to match the roll and pitch rates being demanded by the
   fixed wing controller if not in a pure VTOL mode
  */
@@ -700,7 +716,7 @@ void QuadPlane::hold_stabilize(float throttle_in)
             attitude_control->set_throttle_out_unstabilized(0, true, 0);
         }
     } else {
-        motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+        set_desired_throttle_unlimited();
         attitude_control->set_throttle_out(throttle_in, true, 0);
     }
 }
@@ -768,7 +784,7 @@ void QuadPlane::init_hover(void)
 void QuadPlane::hold_hover(float target_climb_rate)
 {
     // motors use full range
-    motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+    set_desired_throttle_unlimited();
 
     // initialize vertical speeds and acceleration
     pos_control->set_speed_z(-pilot_velocity_z_max, pilot_velocity_z_max);
@@ -791,6 +807,8 @@ void QuadPlane::control_hover(void)
         motors->set_desired_spool_state(AP_Motors::DESIRED_SPIN_WHEN_ARMED);
         attitude_control->set_throttle_out_unstabilized(0, true, 0);
         pos_control->relax_alt_hold_controllers(0);
+        attitude_control->reset_rate_controller_I_terms();
+        attitude_control->set_yaw_target_to_current_heading();
     } else {
         hold_hover(get_pilot_desired_climb_rate_cms());
     }
@@ -892,6 +910,8 @@ void QuadPlane::control_loiter()
         motors->set_desired_spool_state(AP_Motors::DESIRED_SPIN_WHEN_ARMED);
         attitude_control->set_throttle_out_unstabilized(0, true, 0);
         pos_control->relax_alt_hold_controllers(0);
+        attitude_control->reset_rate_controller_I_terms();
+        attitude_control->set_yaw_target_to_current_heading();
         wp_nav->init_loiter_target();
         return;
     }
@@ -907,7 +927,7 @@ void QuadPlane::control_loiter()
     last_loiter_ms = millis();
 
     // motors use full range
-    motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+    set_desired_throttle_unlimited();
 
     // initialize vertical speed and acceleration
     pos_control->set_speed_z(-pilot_velocity_z_max, pilot_velocity_z_max);
@@ -1203,7 +1223,8 @@ void QuadPlane::update_transition(void)
     
     switch (transition_state) {
     case TRANSITION_AIRSPEED_WAIT: {
-        motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+        set_desired_throttle_unlimited();
+
         // we hold in hover until the required airspeed is reached
         if (transition_start_ms == 0) {
             GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Transition airspeed wait");
@@ -1233,7 +1254,8 @@ void QuadPlane::update_transition(void)
     }
         
     case TRANSITION_TIMER: {
-        motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+        set_desired_throttle_unlimited();
+
         // after airspeed is reached we degrade throttle over the
         // transition time, but continue to stabilize
         if (millis() - transition_start_ms > (unsigned)transition_time_ms) {
@@ -1262,7 +1284,8 @@ void QuadPlane::update_transition(void)
     }
 
     case TRANSITION_ANGLE_WAIT: {
-        motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+        set_desired_throttle_unlimited();
+
         assisted_flight = true;
         attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(0, 
                                                                       -(tailsitter.transition_angle+15)*100,
@@ -1789,7 +1812,7 @@ void QuadPlane::setup_target_position(void)
     Location origin = inertial_nav.get_origin();
     Vector2f diff2d;
 
-    motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+    set_desired_throttle_unlimited();
     
     diff2d = location_diff(origin, loc);
     poscontrol.target.x = diff2d.x * 100;
@@ -1876,7 +1899,7 @@ void QuadPlane::control_auto(const Location &loc)
         return;
     }
 
-    motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+    set_desired_throttle_unlimited();
 
     switch (plane.mission.get_current_nav_cmd().id) {
     case MAV_CMD_NAV_VTOL_TAKEOFF:
