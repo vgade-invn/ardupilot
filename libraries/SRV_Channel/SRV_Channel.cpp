@@ -192,3 +192,6 @@ uint16_t SRV_Channel::get_limit_pwm(LimitValue limit) const
     }
 }
 
+void SRV_Channel::set_output_unlimited_once() {
+    limited_pwm_mask &= ~(1U << ch_num);
+}
