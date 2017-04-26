@@ -356,6 +356,9 @@ void QuadPlane::tiltrotor_vectored_yaw(void)
 
     // calculate the basic tilt amount from current_tilt
     float base_output = zero_out + (tilt.current_tilt * (1 - zero_out));
+
+    // add in forward throttle gain, if any
+    base_output += forward_throttle_pct() * 0.01 * (tilt.max_angle_deg / 90.0);
     
     float tilt_threshold = (tilt.max_angle_deg/90.0f);
     bool no_yaw = (tilt.current_tilt > tilt_threshold);
