@@ -1188,7 +1188,9 @@ void QuadPlane::update_transition(void)
          plane.is_flying())) {
         // the quad should provide some assistance to the plane
         if (transition_state != TRANSITION_AIRSPEED_WAIT) {
-            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Transition started airspeed %.1f", (double)aspeed);
+            if (hal.util->get_soft_armed()) {
+                GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Transition started airspeed %.1f", (double)aspeed);
+            }
         }
         transition_state = TRANSITION_AIRSPEED_WAIT;
         transition_start_ms = millis();
