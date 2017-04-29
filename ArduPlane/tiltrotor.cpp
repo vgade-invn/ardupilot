@@ -365,6 +365,8 @@ void QuadPlane::tiltrotor_vectored_yaw(void)
     if (no_yaw) {
         SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorLeft,  1000 * base_output);
         SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorRight, 1000 * base_output);
+        SRV_Channels::limit_slew_rate(SRV_Channel::k_tiltMotorLeft,  100, plane.G_Dt);
+        SRV_Channels::limit_slew_rate(SRV_Channel::k_tiltMotorRight, 100, plane.G_Dt);
     } else {
         float yaw_out = motors->get_yaw();
         float yaw_range = zero_out;
