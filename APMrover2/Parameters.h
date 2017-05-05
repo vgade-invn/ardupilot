@@ -323,6 +323,8 @@ public:
 
     // PWM output type
     AP_Int8 pwm_type;
+    // PWM output freq
+    AP_Int8 pwm_freq;
 };
 
 extern const AP_Param::Info var_info[];

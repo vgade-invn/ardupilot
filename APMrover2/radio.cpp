@@ -51,8 +51,8 @@ void Rover::init_rc_out()
             // hal.rcout->set_output_mode(AP_HAL::RCOutput::MODE_PWM_ONESHOT);
         } else if (g2.pwm_type == PWM_TYPE_BRUSHED16kHz) {
             hal.rcout->set_output_mode(AP_HAL::RCOutput::MODE_PWM_BRUSHED16KHZ);
-            hal.rcout->set_freq((1UL << 0), 2000);  // Steering group
-            hal.rcout->set_freq((1UL << 2), 2000);  // Throttle group
+            hal.rcout->set_freq((1UL << 0), static_cast<uint16_t>(2000.0f * 0.0625f * g2.pwm_freq));  // Steering group
+            hal.rcout->set_freq((1UL << 2), static_cast<uint16_t>(2000.0f * 0.0625f * g2.pwm_freq));  // Throttle group
         }
     }
 

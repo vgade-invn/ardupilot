@@ -550,9 +550,21 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Param: PWM_TYPE
     // @DisplayName: Output PWM type
     // @Description: This selects the output PWM type, allowing for normal PWM continuous output, OneShot or brushed motor output
+    // @RebootRequired: True
     // @Values: 0:Normal,1:OneShot,2:OneShot125,3:Brushed16kHz
     // @User: Advanced
     AP_GROUPINFO("PWM_TYPE", 7, ParametersG2, pwm_type, PWM_TYPE_NORMAL),
+
+    // @Param: PWM_FREQ
+    // @DisplayName: Output PWM freq
+    // @Description: This selects the output PWM freq
+    // @Values: 0:Normal,1:OneShot,2:OneShot125,3:Brushed16kHz
+    // @RebootRequired: True
+    // @Units: kHz
+    // @Range: 1 20
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("PWM_FREQ", 8, ParametersG2, pwm_freq, 16),
 
     AP_GROUPEND
 };
