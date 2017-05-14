@@ -7,7 +7,9 @@ void Rover::throttle_slew_limit(int16_t last_throttle) {
     // if slew limit rate is set to zero then do not slew limit
     if (g.throttle_slewrate && last_throttle != 0) {
         // limit throttle change by the given percentage per second
-        float temp = g.throttle_slewrate * G_Dt * 0.01f * fabsf(channel_throttle->get_radio_max() - channel_throttle->get_radio_min());
+        // Get the channel output limits
+        SRV_Channel *ch = SRV_Channels::srv_channel(SRV_Channel::k_throttle);
+        float temp = g.throttle_slewrate * G_Dt * 0.01f * fabsf(ch->get_output_max()- ch->get_output_min());
         // allow a minimum change of 1 PWM per cycle
         if (temp < 1) {
             temp = 1;
