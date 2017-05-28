@@ -653,6 +653,10 @@ void SITL_State::_update_gps_nmea(const struct gps_data *d, uint8_t instance)
                      speed_knots,
                      heading,
                      dstring);
+
+    if (_sitl->gps_hdt_enabled) {
+        _gps_nmea_printf(instance, "$GPHDT,%.2f,T", heading);
+    }
 }
 
 void SITL_State::_sbp_send_message(uint16_t msg_type, uint16_t sender_id, uint8_t len, uint8_t *payload, uint8_t instance)
