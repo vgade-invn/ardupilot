@@ -130,6 +130,7 @@ public:
         Location location;                  ///< last fix location
         float ground_speed;                 ///< ground speed in m/sec
         float ground_course;                ///< ground course in degrees
+        float gps_yaw;                      ///< GPS derived yaw information, if available
         uint16_t hdop;                      ///< horizontal dilution of precision in cm
         uint16_t vdop;                      ///< vertical dilution of precision in cm
         uint8_t num_sats;                   ///< Number of visible satellites
@@ -141,6 +142,7 @@ public:
         bool have_speed_accuracy:1;         ///< does GPS give speed accuracy? Set to true only once available.
         bool have_horizontal_accuracy:1;    ///< does GPS give horizontal position accuracy? Set to true only once available.
         bool have_vertical_accuracy:1;      ///< does GPS give vertical position accuracy? Set to true only once available.
+        bool have_gps_yaw:1;                ///< does GPS give yaw? Set to true only once available.
         uint32_t last_gps_time_ms;          ///< the system time we got the last GPS timestamp, milliseconds
     };
 
@@ -239,6 +241,14 @@ public:
         return ground_course_cd(primary_instance);
     }
 
+    // yaw in degrees, only valid if have_gps_yaw() return true
+    float gps_yaw(uint8_t instance) const {
+        return have_gps_yaw(instance)?state[instance].gps_yaw:0;
+    }
+    float gps_yaw() const {
+        return gps_yaw(primary_instance);
+    }
+    
     // number of locked satellites
     uint8_t num_sats(uint8_t instance) const {
         return state[instance].num_sats;
@@ -305,6 +315,14 @@ public:
         return have_vertical_velocity(primary_instance);
     }
 
+    // return true if the GPS supports yaw
+    bool have_gps_yaw(uint8_t instance) const {
+        return _hdt_enable && state[instance].have_gps_yaw;
+    }
+    bool have_gps_yaw(void) const {
+        return have_gps_yaw(primary_instance);
+    }
+    
     // the expected lag (in seconds) in the position and velocity readings from the gps
     float get_lag(uint8_t instance) const;
     float get_lag(void) const { return get_lag(primary_instance); }
@@ -390,6 +408,7 @@ protected:
     AP_Int16 _delay_ms[GPS_MAX_RECEIVERS];
     AP_Int8 _blend_mask;
     AP_Float _blend_tc;
+    AP_Int8 _hdt_enable;
 
 private:
     // return gps update rate in milliseconds

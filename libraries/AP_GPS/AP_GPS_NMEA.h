@@ -70,6 +70,7 @@ private:
         _GPS_SENTENCE_RMC = 32,
         _GPS_SENTENCE_GGA = 64,
         _GPS_SENTENCE_VTG = 96,
+        _GPS_SENTENCE_HDT = 128,
         _GPS_SENTENCE_OTHER = 0
     };
 
@@ -137,12 +138,14 @@ private:
     int32_t _new_altitude;                                      ///< altitude parsed from a term
     int32_t _new_speed;                                                 ///< speed parsed from a term
     int32_t _new_course;                                        ///< course parsed from a term
+    float   _new_gps_yaw;                                        ///< course parsed from a term
     uint16_t _new_hdop;                                                 ///< HDOP parsed from a term
     uint8_t _new_satellite_count;                       ///< satellite count parsed from a term
 
     uint32_t _last_RMC_ms = 0;
     uint32_t _last_GGA_ms = 0;
     uint32_t _last_VTG_ms = 0;
+    uint32_t _last_HDT_ms = 0;
 
     /// @name	Init strings
     ///			In ::init, an attempt is made to configure the GPS
@@ -152,6 +155,7 @@ private:
     static const char _SiRF_init_string[];         ///< init string for SiRF units
     static const char _MTK_init_string[];                  ///< init string for MediaTek units
     static const char _ublox_init_string[];        ///< init string for ublox units
+    static const char _hemisphere_init_string[];   ///< init string for hemisphere units
     //@}
 
     static const char _initialisation_blob[];
