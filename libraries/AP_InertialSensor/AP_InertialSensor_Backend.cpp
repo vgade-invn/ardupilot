@@ -432,18 +432,18 @@ void AP_InertialSensor_Backend::update_accel(uint8_t instance)
     _sem->give();
 }
 
-bool AP_InertialSensor_Backend::should_log_imu_raw() const
+DataFlash_Class *AP_InertialSensor_Backend::get_dataflash() const
 {
+    DataFlash_Class *instance = DataFlash_Class::instance();
+    if (instance == nullptr) {
+        return nullptr;
+    }
     if (_imu._log_raw_bit == (uint32_t)-1) {
         // tracker does not set a bit
-        return false;
-    }
-    const DataFlash_Class *instance = DataFlash_Class::instance();
-    if (instance == nullptr) {
-        return false;
+        return nullptr;
     }
     if (!instance->should_log(_imu._log_raw_bit)) {
-        return false;
+        return nullptr;
     }
-    return true;
+    return instance;
 }

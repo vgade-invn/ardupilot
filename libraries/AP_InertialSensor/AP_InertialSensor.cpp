@@ -456,7 +456,7 @@ AP_InertialSensor::AP_InertialSensor() :
     _primary_accel(0),
     _hil_mode(false),
     _calibrating(false),
-    _log_raw_data(false),
+    _log_raw_bit(-1),
     _backends_detected(false),
     _accel_cal_requires_reboot(false),
     _startup_error_counts_set(false),
