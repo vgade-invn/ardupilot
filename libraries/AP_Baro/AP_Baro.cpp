@@ -33,6 +33,7 @@
 #include "AP_Baro_BMP280.h"
 #include "AP_Baro_HIL.h"
 #include "AP_Baro_MS5611.h"
+#include "AP_Baro_FBM320.h"
 #include "AP_Baro_qflight.h"
 #include "AP_Baro_QURT.h"
 #if HAL_WITH_UAVCAN
@@ -471,6 +472,9 @@ void AP_Baro::init(void)
     ADD_BACKEND(AP_Baro_MS56XX::probe(*this,
                                       std::move(hal.i2c_mgr->get_device(HAL_BARO_MS5637_I2C_BUS, HAL_BARO_MS5637_I2C_ADDR)),
                                       AP_Baro_MS56XX::BARO_MS5637));
+#elif HAL_BARO_DEFAULT == HAL_BARO_FBM320_I2C
+    ADD_BACKEND(AP_Baro_FBM320::probe(*this,
+                                      std::move(hal.i2c_mgr->get_device(HAL_BARO_FBM320_I2C_BUS, HAL_BARO_FBM320_I2C_ADDR))));
 #elif HAL_BARO_DEFAULT == HAL_BARO_QFLIGHT
     drivers[0] = new AP_Baro_QFLIGHT(*this);
     _num_drivers = 1;
