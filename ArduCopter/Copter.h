@@ -92,6 +92,7 @@
 #include <AP_Button/AP_Button.h>
 #include <AP_Arming/AP_Arming.h>
 #include <AP_VisualOdom/AP_VisualOdom.h>
+#include <AP_Compass/Compass_learn.h>
 
 // Configuration
 #include "defines.h"
@@ -196,6 +197,7 @@ private:
 
     AP_Baro barometer;
     Compass compass;
+    CompassLearn compass_learn{ahrs, compass};
     AP_InertialSensor ins;
 
     RangeFinder rangefinder {serial_manager, ROTATION_PITCH_270};
