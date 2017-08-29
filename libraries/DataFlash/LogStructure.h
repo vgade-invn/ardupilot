@@ -883,6 +883,7 @@ struct PACKED log_Beacon {
 
 /*
 Format characters in the format string for binary log messages
+  a   : int16_t[32]
   b   : int8_t
   B   : uint8_t
   h   : int16_t
