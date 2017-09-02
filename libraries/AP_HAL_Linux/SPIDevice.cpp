@@ -127,7 +127,7 @@ SPIDesc SPIDeviceManager::_device[] = {
 };
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MR100
 SPIDesc SPIDeviceManager::_device[] = {
-    SPIDesc("mpu9250", 0, 1, SPI_MODE_0, 8, 36,  10*MHZ, 10*MHZ),
+    SPIDesc("mpu9250", 0, 1, SPI_MODE_0, 8, SPI_CS_KERNEL,  4*MHZ, 4*MHZ),
 };
 #else
 // empty device table
@@ -251,36 +251,24 @@ bool SPIDevice::set_speed(AP_HAL::Device::Speed speed)
 bool SPIDevice::transfer(const uint8_t *send, uint32_t send_len,
                          uint8_t *recv, uint32_t recv_len)
 {
-    struct spi_ioc_transfer msgs[2] = { };
-    unsigned nmsgs = 0;
+    struct spi_ioc_transfer msgs[1] = { };
+    uint8_t buf[send_len+recv_len];
 
     assert(_bus.fd >= 0);
 
-    if (send && send_len != 0) {
-        msgs[nmsgs].tx_buf = (uint64_t) send;
-        msgs[nmsgs].rx_buf = 0;
-        msgs[nmsgs].len = send_len;
-        msgs[nmsgs].speed_hz = _speed;
-        msgs[nmsgs].delay_usecs = 0;
-        msgs[nmsgs].bits_per_word = _desc.bits_per_word;
-        msgs[nmsgs].cs_change = 0;
-        nmsgs++;
+    memset(buf, 0, send_len+recv_len);
+    
+    if (send_len != 0) {
+        memcpy(buf, send, send_len);
     }
-
-    if (recv && recv_len != 0) {
-        msgs[nmsgs].tx_buf = 0;
-        msgs[nmsgs].rx_buf = (uint64_t) recv;
-        msgs[nmsgs].len = recv_len;
-        msgs[nmsgs].speed_hz = _speed;
-        msgs[nmsgs].delay_usecs = 0;
-        msgs[nmsgs].bits_per_word = _desc.bits_per_word;
-        msgs[nmsgs].cs_change = 0;
-        nmsgs++;
-    }
-
-    if (!nmsgs) {
-        return false;
-    }
+    
+    msgs[0].tx_buf = (uint64_t)buf;
+    msgs[0].rx_buf = (uint64_t)buf;
+    msgs[0].len = send_len + recv_len;
+    msgs[0].speed_hz = _speed;
+    msgs[0].delay_usecs = 0;
+    msgs[0].bits_per_word = _desc.bits_per_word;
+    msgs[0].cs_change = 0;
 
     int r;
     if (_bus.last_mode == _desc.mode) {
@@ -314,13 +302,17 @@ bool SPIDevice::transfer(const uint8_t *send, uint32_t send_len,
     }
 
     _cs_assert();
-    r = ioctl(_bus.fd, SPI_IOC_MESSAGE(nmsgs), &msgs);
+    r = ioctl(_bus.fd, SPI_IOC_MESSAGE(1), &msgs);
     _cs_release();
 
     if (r == -1) {
         hal.console->printf("SPIDevice: error transferring data fd=%d (%s)\n",
                             _bus.fd, strerror(errno));
         return false;
+    }
+
+    if (recv_len != 0) {
+        memcpy(recv, &buf[send_len], recv_len);
     }
 
     return true;
