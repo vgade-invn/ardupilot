@@ -20,6 +20,7 @@
 #define HAL_HAVE_IMU_HEATER         1 // for Pixhawk2
 #define HAL_IMU_TEMP_DEFAULT       -1 // disabled
 #define HAL_WITH_UAVCAN             1
+#pragma GCC optimize("O3")
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 #define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_PX4_V2
 #define HAL_STORAGE_SIZE            16384
@@ -31,14 +32,17 @@
 #define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_PX4_V4
 #define HAL_STORAGE_SIZE            16384
 #define HAL_WITH_UAVCAN				1
+#pragma GCC optimize("O3")
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V4PRO)
 #define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_PX4_V4PRO
 #define HAL_STORAGE_SIZE            16384
 #define HAL_WITH_UAVCAN				1
+#pragma GCC optimize("O3")
 #elif defined(CONFIG_ARCH_BOARD_AEROFC_V1)
 #define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_PX4_AEROFC_V1
 #define HAL_STORAGE_SIZE            16384
 #define USE_FLASH_STORAGE           1
+#pragma GCC optimize("O3")
 // we don't have any sdcard
 #undef HAL_BOARD_LOG_DIRECTORY
 #undef HAL_BOARD_TERRAIN_DIRECTORY
