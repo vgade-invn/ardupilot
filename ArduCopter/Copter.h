@@ -134,6 +134,7 @@
 #endif
 
 // Local modules
+#include "control_flowhold.h"
 #include "Parameters.h"
 #include "avoidance_adsb.h"
 
@@ -155,6 +156,7 @@ public:
 #endif
     friend class AP_Arming_Copter;
     friend class ToyMode;
+    friend class FlowHold;
 
     Copter(void);
 
@@ -666,7 +668,7 @@ private:
         uint32_t last_trigger_ms;
         uint32_t last_log;
     } crash;
-    
+
     // set when we are upgrading parameters from 3.4
     bool upgrading_frame_params;
     

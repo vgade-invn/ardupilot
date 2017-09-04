@@ -1032,6 +1032,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Path: ../libraries/AP_Winch/AP_Winch.cpp
     AP_SUBGROUPINFO(winch, "WINCH", 23, ParametersG2, AP_Winch),
 
+    // @Group: FHLD
+    // @Path: control_flowhold.cpp
+    AP_SUBGROUPINFO(flowhold, "FHLD", 24, ParametersG2, FlowHold),
+
     AP_GROUPEND
 };
 
