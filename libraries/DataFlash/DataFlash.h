@@ -298,7 +298,9 @@ private:
 
 #if AP_AHRS_NAVEKF_AVAILABLE
     void Log_Write_EKF2(AP_AHRS_NavEKF &ahrs);
+#ifdef HAL_USE_EKF3
     void Log_Write_EKF3(AP_AHRS_NavEKF &ahrs);
+#endif
 #endif
 
     void Log_Write_Baro_instance(AP_Baro &baro, uint64_t time_us, uint8_t baro_instance, enum LogMessages type);
