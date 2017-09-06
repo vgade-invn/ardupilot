@@ -130,7 +130,8 @@ private:
         msg4007 msg4007u;
         msg4001 msg4001u;
         msg4014 msg4014u;
-        uint8_t bytes[128];
+        msg5908 msg5908u;
+        uint8_t bytes[256];
     };
 
     struct sbf_msg_parser_t
