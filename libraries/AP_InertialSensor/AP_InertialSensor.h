@@ -268,7 +268,63 @@ public:
 
     // return time in microseconds of last update() call
     uint32_t get_last_update_usec(void) const { return _last_update_usec; }
-    
+
+    enum IMU_SENSOR_TYPE {
+        IMU_SENSOR_TYPE_ACCEL,
+        IMU_SENSOR_TYPE_GYRO,
+    };
+
+    class BatchSampler {
+    public:
+        BatchSampler(const AP_InertialSensor &imu) :
+            _imu(imu) {
+            AP_Param::setup_object_defaults(this, var_info);
+        };
+
+        void init();
+        void sample(uint8_t instance, IMU_SENSOR_TYPE _type, uint64_t sample_us, const Vector3f &sample);
+
+        // class level parameters
+        static const struct AP_Param::GroupInfo var_info[];
+
+        // Parameters
+        AP_Int16 _gyr_count;
+        AP_Int16 _acc_count;
+        // end Parameters
+
+    private:
+
+        bool should_log(uint8_t instance, IMU_SENSOR_TYPE type);
+        void push_data_to_log(uint64_t sample_us);
+        uint16_t required_sample_count() const;
+
+        bool initialised : 1;
+        bool isbh_sent : 1;
+        uint8_t instance : 3; // instance we are sending data for
+        AP_InertialSensor::IMU_SENSOR_TYPE type : 1;
+        uint16_t isb_seqnum;
+        int16_t *data_x;
+        int16_t *data_y;
+        int16_t *data_z;
+        uint16_t data_write_offset; // units: samples
+        uint16_t data_read_offset; // units: samples
+        uint32_t last_sent_ms;
+        uint16_t multiplier; // all samples are multiplied by this
+        // push blocks to DataFlash at regular intervals.  each
+        // message is ~ 108 bytes in size, so we use about 1kB/s of
+        // logging bandwidth with a 100ms interval.  If we are taking
+        // 1024 samples then we need to send 32 packets, so it will
+        // take ~3 seconds to push a complete batch to the log.  If
+        // you are running a on a PixRacer with three IMUs then you
+        // will loop back around to the first sensor after about
+        // twenty seconds.
+        const uint8_t push_interval_ms = 100;
+        const uint16_t samples_per_msg = 32;
+
+        const AP_InertialSensor &_imu;
+    };
+    BatchSampler batchsampler{*this};
+
 private:
 
     // load backend drivers

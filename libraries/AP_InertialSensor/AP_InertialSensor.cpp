@@ -429,7 +429,13 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
     // @Description: Gyro notch filter
     // @User: Advanced
     AP_SUBGROUPINFO(_notch_filter, "NOTCH_",  37, AP_InertialSensor, NotchFilterVector3fParam),
-    
+
+    // @Param: BS_
+    // @DisplayName: Batch Sampling
+    // @Description: Batch Sampling Settings
+    // @User: Advanced
+    AP_SUBGROUPINFO(batchsampler, "BS_",  38, AP_InertialSensor, AP_InertialSensor::BatchSampler),
+
     /*
       NOTE: parameter indexes have gaps above. When adding new
       parameters check for conflicts carefully
@@ -651,6 +657,9 @@ AP_InertialSensor::init(uint16_t sample_rate)
     _next_sample_usec = 0;
     _last_sample_usec = 0;
     _have_sample = false;
+
+    // initialise IMU batch logging
+    batchsampler.init();
 }
 
 bool AP_InertialSensor::_add_backend(AP_InertialSensor_Backend *backend)
