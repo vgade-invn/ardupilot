@@ -5,6 +5,7 @@
 #include <AP_InertialNav/AP_InertialNav.h>
 #include <GCS_MAVLink/GCS_MAVLink.h>
 #include <stdint.h>
+#include <queue>
 #include "PosVelEKF.h"
 #include <AP_Buffer/AP_Buffer.h>
 
@@ -138,7 +139,7 @@ private:
         bool inertialNavVelocityValid;
         float dt;
     };
-    AP_Buffer<inertial_data_frame_s,8>       _inertial_history;
+    std::queue<inertial_data_frame_s> _inertial_history;
 
     // backend state
     struct precland_state {
