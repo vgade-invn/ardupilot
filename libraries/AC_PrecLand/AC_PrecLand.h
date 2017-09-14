@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <queue>
 #include "PosVelEKF.h"
-#include <AP_Buffer/AP_Buffer.h>
+#include <AP_HAL/utility/RingBuffer.h>
 
 // declare backend classes
 class AC_PrecLand_Backend;
@@ -110,12 +110,14 @@ private:
     AP_Int8                     _type;              // precision landing sensor type
     AP_Int8                     _bus;               // which sensor bus
     AP_Int8                     _estimator_type;    // precision landing estimator type
+    AP_Int8                     _inertial_buffer_length; // inertial buffer length in ms
     AP_Float                    _yaw_align;         // Yaw angle from body x-axis to sensor x-axis.
     AP_Float                    _land_ofs_cm_x;     // Desired landing position of the camera forward of the target in vehicle body frame
     AP_Float                    _land_ofs_cm_y;     // Desired landing position of the camera right of the target in vehicle body frame
     AP_Float                    _accel_noise;       // accelometer process noise
     AP_Vector3f                 _cam_offset;        // Position of the camera relative to the CG
 
+    uint16_t                    _inertial_buffer_size;   // inertial buffer queue length, calculated from _inertial_buffer_length
     uint32_t                    _last_update_ms;    // system time in millisecond when update was last called
     bool                        _target_acquired;   // true if target has been seen recently
     uint32_t                    _last_backend_los_meas_ms;  // system time target was last seen
@@ -138,8 +140,10 @@ private:
         Vector3f inertialNavVelocity;
         bool inertialNavVelocityValid;
         float dt;
+        // uint64_t utc_usec;
     };
-    std::queue<inertial_data_frame_s> _inertial_history;
+   // ObjectBuffer<inertial_data_frame_s> _inertial_history;
+    ObjectArray<inertial_data_frame_s> *_inertial_history;
 
     // backend state
     struct precland_state {

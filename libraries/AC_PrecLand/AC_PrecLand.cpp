@@ -90,6 +90,15 @@ const AP_Param::GroupInfo AC_PrecLand::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("BUS",    8, AC_PrecLand, _bus, -1),
     
+    // @Param: INERTIAL_BUFFER
+    // @DisplayName: Inertial History Buffer
+    // @Description: Length of inertial history buffer in ms, to cope with variable landing_target latency
+    // @Range: 1 250
+    // @Increment: 1
+    // @User: Advanced
+    // @Units: ms
+    AP_GROUPINFO("INERTIAL_BUFFER", 9, AC_PrecLand, _inertial_buffer_length, 20), // 20ms is the old default buffer size (8 frames @ 400hz/2.5ms)
+
     AP_GROUPEND
 };
 
@@ -123,6 +132,14 @@ void AC_PrecLand::init()
     // default health to false
     _backend = nullptr;
     _backend_state.healthy = false;
+    
+    // calculate inertial buffer size from delay length
+    // loop runs at 400hz
+    _inertial_buffer_size = int((_inertial_buffer_length / (1000/400)) + 0.5);
+
+    // instantiate ring buffer to hold inertial history
+    // ObjectBuffer<inertial_data_frame_s> _inertial_history(_inertial_buffer_size);
+    _inertial_history = new ObjectArray<inertial_data_frame_s>(_inertial_buffer_size);
 
     // instantiate backend based on type parameter
     switch ((enum PrecLandType)(_type.get())) {
@@ -163,7 +180,7 @@ void AC_PrecLand::update(float rangefinder_alt_cm, bool rangefinder_alt_valid)
     inertial_data_newest.Tbn = _ahrs.get_rotation_body_to_ned();
     inertial_data_newest.inertialNavVelocity = _inav.get_velocity()*0.01f;
     inertial_data_newest.inertialNavVelocityValid = _inav.get_filter_status().flags.horiz_vel;
-    _inertial_history.push_back(inertial_data_newest);
+    _inertial_history->push(inertial_data_newest);
 
     // update estimator of target position
     if (_backend != nullptr && _enabled) {
@@ -221,13 +238,13 @@ void AC_PrecLand::handle_msg(mavlink_message_t* msg)
 
 void AC_PrecLand::run_estimator(float rangefinder_alt_m, bool rangefinder_alt_valid)
 {
-    const struct inertial_data_frame_s& inertial_data_delayed = _inertial_history.front();
+    const struct inertial_data_frame_s& inertial_data_delayed = _inertial_history[0];
 
     switch (_estimator_type) {
         case ESTIMATOR_TYPE_RAW_SENSOR: {
             // Return if there's any invalid velocity data
-            for (uint8_t i=0; i<_inertial_history.size(); i++) {
-                const struct inertial_data_frame_s& inertial_data = _inertial_history.peek(i);
+            for (uint8_t i=0; i<_inertial_history->size(); i++) {
+                const struct inertial_data_frame_s& inertial_data = _inertial_history->peek(i);
                 if (!inertial_data.inertialNavVelocityValid) {
                     _target_acquired = false;
                     return;
@@ -338,7 +355,7 @@ bool AC_PrecLand::construct_pos_meas_using_rangefinder(float rangefinder_alt_m, 
 {
     Vector3f target_vec_unit_body;
     if (retrieve_los_meas(target_vec_unit_body)) {
-        const struct inertial_data_frame_s& inertial_data_delayed = _inertial_history.front();
+        const struct inertial_data_frame_s& inertial_data_delayed = _inertial_history[0];
 
         Vector3f target_vec_unit_ned = inertial_data_delayed.Tbn * target_vec_unit_body;
         bool target_vec_valid = target_vec_unit_ned.z > 0.0f;
@@ -371,15 +388,15 @@ void AC_PrecLand::run_output_prediction()
     _target_vel_rel_out_NE = _target_vel_rel_est_NE;
 
     // Predict forward from delayed time horizon
-    for (uint8_t i=1; i<_inertial_history.size(); i++) {
-        const struct inertial_data_frame_s& inertial_data = _inertial_history.peek(i);
+    for (uint8_t i=1; i<_inertial_history->size(); i++) {
+        const struct inertial_data_frame_s& inertial_data = _inertial_history->peek(i);
         _target_vel_rel_out_NE.x -= inertial_data.correctedVehicleDeltaVelocityNED.x;
         _target_vel_rel_out_NE.y -= inertial_data.correctedVehicleDeltaVelocityNED.y;
         _target_pos_rel_out_NE.x += _target_vel_rel_out_NE.x * inertial_data.dt;
         _target_pos_rel_out_NE.y += _target_vel_rel_out_NE.y * inertial_data.dt;
     }
 
-    const Matrix3f& Tbn = _inertial_history.peek(_inertial_history.size()-1).Tbn;
+    const Matrix3f& Tbn = _inertial_history->peek(_inertial_history->size()-1).Tbn;
     Vector3f accel_body_offset = _ahrs.get_ins().get_imu_pos_offset(_ahrs.get_primary_accel_index());
 
     // Apply position correction for CG offset from IMU
