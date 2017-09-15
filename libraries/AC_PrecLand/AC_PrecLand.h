@@ -142,9 +142,9 @@ private:
         float dt;
         // uint64_t utc_usec;
     };
-   // ObjectBuffer<inertial_data_frame_s> _inertial_history;
-    ObjectArray<inertial_data_frame_s> *_inertial_history;
-
+    // ObjectBuffer<inertial_data_frame_s> _inertial_history;
+    static ObjectArray<inertial_data_frame_s> _inertial_history;
+    
     // backend state
     struct precland_state {
         bool    healthy;
