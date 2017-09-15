@@ -588,7 +588,7 @@ bool AP_Arming_Copter::arm_checks(bool display_failure, bool arming_from_gcs)
         if (display_failure) {
             gcs().send_text(MAV_SEVERITY_CRITICAL,"Arm: Compass not healthy");
         }
-        return false;
+        //return false;
     }
 
     if (_compass.is_calibrating()) {
