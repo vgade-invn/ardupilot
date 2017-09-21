@@ -121,14 +121,14 @@ void AP_InertialSensor::BatchSampler::push_data_to_log(uint64_t sample_us)
             if (instance >= _imu._accel_count) {
                 type = IMU_SENSOR_TYPE_GYRO;
                 instance = 0;
-                multiplier = 10000;
+                multiplier = INT16_MAX/radians(2000);
             }
             break;
         case IMU_SENSOR_TYPE_GYRO:
             if (instance >= _imu._gyro_count) {
                 type = IMU_SENSOR_TYPE_ACCEL;
                 instance = 0;
-                multiplier = 1000;
+                multiplier = INT16_MAX/(16*GRAVITY_MSS);
             }
             break;
         }
