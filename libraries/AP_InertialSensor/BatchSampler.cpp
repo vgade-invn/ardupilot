@@ -26,9 +26,6 @@ void AP_InertialSensor::BatchSampler::init()
     uint16_t max_samples = MAX((uint16_t)_acc_count, (uint16_t)_gyr_count);
     max_samples -= max_samples % 32; // round down to nearest multiple of 32
 
-    const uint32_t total_allocation = 3*max_samples*sizeof(uint16_t);
-    gcs().send_text(MAV_SEVERITY_WARNING, "INS: alloc %u bytes for ISB (free=%u)", total_allocation, hal.util->available_memory());
-
     data_x = (int16_t*)calloc(max_samples, sizeof(int16_t));
     data_y = (int16_t*)calloc(max_samples, sizeof(int16_t));
     data_z = (int16_t*)calloc(max_samples, sizeof(int16_t));
@@ -39,11 +36,11 @@ void AP_InertialSensor::BatchSampler::init()
         data_x = nullptr;
         data_y = nullptr;
         data_z = nullptr;
-        gcs().send_text(MAV_SEVERITY_WARNING, "Failed to allocate %u bytes for IMU batch sampling", total_allocation);
+        //gcs().send_text(MAV_SEVERITY_WARNING, "Failed to allocate %u bytes for IMU batch sampling", total_allocation);
         return;
     }
 
-    gcs().send_text(MAV_SEVERITY_WARNING, "INS: after allocation %u bytes free", hal.util->available_memory());
+    //gcs().send_text(MAV_SEVERITY_WARNING, "INS: after allocation %u bytes free", hal.util->available_memory());
     initialised = true;
 }
 

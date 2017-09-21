@@ -210,20 +210,7 @@ void AP_InertialSensor_Backend::log_gyro_raw(uint8_t instance, const uint64_t sa
         // should not have been called
         return;
     }
-    if (should_log_imu_raw()) {
-        uint64_t now = AP_HAL::micros64();
-        struct log_GYRO pkt = {
-            LOG_PACKET_HEADER_INIT((uint8_t)(LOG_GYR1_MSG+instance)),
-            time_us   : now,
-            sample_us : sample_us?sample_us:now,
-            GyrX      : gyro.x,
-            GyrY      : gyro.y,
-            GyrZ      : gyro.z
-        };
-        dataflash->WriteBlock(&pkt, sizeof(pkt));
-    } else {
-        _imu.batchsampler.sample(instance, AP_InertialSensor::IMU_SENSOR_TYPE_GYRO, sample_us, gyro);
-    }
+    _imu.batchsampler.sample(instance, AP_InertialSensor::IMU_SENSOR_TYPE_GYRO, sample_us, gyro);
 }
 
 /*
@@ -320,20 +307,7 @@ void AP_InertialSensor_Backend::log_accel_raw(uint8_t instance, const uint64_t s
         // should not have been called
         return;
     }
-    if (should_log_imu_raw()) {
-        uint64_t now = AP_HAL::micros64();
-        struct log_ACCEL pkt = {
-            LOG_PACKET_HEADER_INIT((uint8_t)(LOG_ACC1_MSG+instance)),
-            time_us   : now,
-            sample_us : sample_us?sample_us:now,
-            AccX      : accel.x,
-            AccY      : accel.y,
-            AccZ      : accel.z
-        };
-        dataflash->WriteBlock(&pkt, sizeof(pkt));
-    } else {
-        _imu.batchsampler.sample(instance, AP_InertialSensor::IMU_SENSOR_TYPE_ACCEL, sample_us, accel);
-    }
+    _imu.batchsampler.sample(instance, AP_InertialSensor::IMU_SENSOR_TYPE_ACCEL, sample_us, accel);
 }
 
 void AP_InertialSensor_Backend::_set_accel_max_abs_offset(uint8_t instance,
