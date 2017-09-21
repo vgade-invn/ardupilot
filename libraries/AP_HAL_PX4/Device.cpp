@@ -108,7 +108,7 @@ AP_HAL::Device::PeriodicHandle DeviceBus::register_periodic_callback(uint32_t pe
         struct sched_param param;
     
         pthread_attr_init(&thread_attr);
-        pthread_attr_setstacksize(&thread_attr, 1024);
+        pthread_attr_setstacksize(&thread_attr, 2048);
     
         param.sched_priority = thread_priority;
         (void)pthread_attr_setschedparam(&thread_attr, &param);
