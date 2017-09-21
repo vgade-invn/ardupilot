@@ -479,6 +479,12 @@ void AP_Baro::init(void)
 #elif HAL_BARO_DEFAULT == HAL_BARO_QURT
     drivers[0] = new AP_Baro_QURT(*this);
     _num_drivers = 1;
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_CHIBIOS_PIXHAWK_CUBE
+        ADD_BACKEND(AP_Baro_MS56XX::probe(*this,
+                                          std::move(hal.spi->get_device(HAL_BARO_MS5611_SPI_EXT_NAME))));
+        ADD_BACKEND(AP_Baro_MS56XX::probe(*this,
+                                          std::move(hal.spi->get_device(HAL_BARO_MS5611_NAME))));
+
 #endif
 
     // can optionally have baro on I2C too
