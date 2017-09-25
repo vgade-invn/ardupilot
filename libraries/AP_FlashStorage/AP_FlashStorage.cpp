@@ -19,7 +19,7 @@
 #include <AP_FlashStorage/AP_FlashStorage.h>
 #include <stdio.h>
 
-#define FLASHSTORAGE_DEBUG 0
+#define FLASHSTORAGE_DEBUG 1
 
 #if FLASHSTORAGE_DEBUG
 #define debug(fmt, args...)  do { printf(fmt, ##args); } while(0)
@@ -160,7 +160,7 @@ bool AP_FlashStorage::write(uint16_t offset, uint16_t length)
     if (write_error) {
         return false;
     }
-    //debug("write at %u for %u write_offset=%u\n", offset, length, write_offset);
+    debug("write at %u for %u write_offset=%u\n", offset, length, write_offset);
     
     while (length > 0) {
         uint8_t n = max_write;
