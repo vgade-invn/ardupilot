@@ -130,6 +130,9 @@
 #include "afs_copter.h"
 #endif
 
+#if SMARTRTL_ENABLED == ENABLED
+#include <AP_SmartRTL/AP_SmartRTL.h>
+#endif
 // Local modules
 #include "Parameters.h"
 #include "avoidance_adsb.h"
@@ -416,10 +419,10 @@ private:
         bool land;
         bool terrain_used;
     } rtl_path;
-
+#if SMARTRTL_ENABLED == ENABLED
     // SmartRTL
     SmartRTLState smart_rtl_state;  // records state of SmartRTL
-
+#endif
     // Circle
     bool circle_pilot_yaw_override; // true if pilot is overriding yaw
 
@@ -955,6 +958,7 @@ private:
     void rtl_land_run(bool disarm_on_land);
     void rtl_build_path(bool terrain_following_allowed);
     void rtl_compute_return_target(bool terrain_following_allowed);
+#if SMARTRTL_ENABLED == ENABLED
     bool smart_rtl_init(bool ignore_checks);
     void smart_rtl_exit();
     void smart_rtl_run();
@@ -963,6 +967,7 @@ private:
     void smart_rtl_pre_land_position_run();
     void smart_rtl_land();
     void smart_rtl_save_position();
+#endif
     bool sport_init(bool ignore_checks);
     void sport_run();
     bool stabilize_init(bool ignore_checks);

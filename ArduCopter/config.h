@@ -101,6 +101,7 @@
 # define AC_AVOID_ENABLED   			DISABLED
 # define CLI_ENABLED           		DISABLED
 # define FRSKY_TELEM_ENABLED 	        DISABLED
+# define SMARTRTL_ENABLED			DISABLED
 
 //////////////////////////////////////////////////////////////////////////////
 // Rangefinder
@@ -666,4 +667,8 @@
 
 #ifndef ADVANCED_FAILSAFE
 # define ADVANCED_FAILSAFE DISABLED
+#endif
+
+#ifndef SMARTRTL_ENABLED
+# define SMARTRTL_ENABLED ENABLED
 #endif
