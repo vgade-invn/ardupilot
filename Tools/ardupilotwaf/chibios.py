@@ -140,7 +140,7 @@ def build(bld):
     bld.env.LIB += ['ch']
     bld.env.LIBPATH += ['modules/ChibiOS/']
     bld.env.LINKFLAGS += ['--specs=nano.specs']
-    wraplist = ['malloc', 'calloc', 'free', 'memalign', 'realloc']
+    wraplist = ['malloc', 'calloc', 'free', 'memalign', 'realloc', 'asprintf', 'vasprintf', 'vsnprintf', 'strdup', 'strndup']
     for w in wraplist:
         bld.env.LINKFLAGS += ['-Wl,--wrap,%s' % w]
     
