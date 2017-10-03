@@ -1181,6 +1181,7 @@ private:
     void run_cli(AP_HAL::UARTDriver *port);
     void init_capabilities(void);
     void dataflash_periodic(void);
+    void ins_periodic();
     void accel_cal_update(void);
     void temp_cal_update(void);
 
