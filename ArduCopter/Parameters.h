@@ -585,9 +585,10 @@ public:
     AP_TempCalibration temp_calibration;
 
     ToyMode toy_mode;
-
+#if OPTFLOW == ENABLED
     // FLOWHOLD mode controller
     FlowHold flowhold;
+#endif
 };
 
 extern const AP_Param::Info        var_info[];

@@ -1044,9 +1044,11 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("PILOT_SPEED_DN", 24, ParametersG2, pilot_speed_dn, 0),
 
+#if OPTFLOW == ENABLED
     // @Group: FHLD
     // @Path: control_flowhold.cpp
     AP_SUBGROUPINFO(flowhold, "FHLD", 25, ParametersG2, FlowHold),
+#endif
 
     AP_GROUPEND
 };
