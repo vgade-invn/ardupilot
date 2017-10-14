@@ -13,7 +13,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /*
-  FCM320 barometer driver
+  FBM320 barometer driver
  */
 
 #include "AP_Baro_FBM320.h"
@@ -106,10 +106,11 @@ bool AP_Baro_FBM320::init()
 
     dev->set_speed(AP_HAL::Device::SPEED_HIGH);
 
-    uint8_t whoami;
+    uint8_t whoami=0;
     if (!dev->read_registers(FBM320_REG_ID, &whoami, 1) ||
         whoami != FBM320_WHOAMI) {
         // not a FBM320
+        printf("FBM320 whoami=0x%x\n", whoami);
         dev->get_semaphore()->give();
         return false;
     }
