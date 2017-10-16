@@ -4,6 +4,7 @@
 
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
+#include <stdio.h>
 
 void setup();
 void loop();
@@ -19,14 +20,16 @@ static void print_vector(Vector3f &v)
 }
 
 // test rotation method accuracy
-static void test_rotation_accuracy(void)
+static void test_rotation_accuracy(bool debug)
 {
     Matrix3f attitude;
     Vector3f small_rotation;
     float roll, pitch, yaw;
     float rot_angle;
 
-    hal.console->printf("\nRotation method accuracy:\n");
+    if (debug) {
+        hal.console->printf("\nRotation method accuracy:\n");
+    }
 
     // test roll
     for(int16_t i = 0; i < 90; i++ ) {
@@ -53,11 +56,13 @@ static void test_rotation_accuracy(void)
         float roll2, pitch2, yaw2;
         attitude.to_euler(&roll2, &pitch2, &yaw2);
         
-        // display results
-        hal.console->printf("actual angle: %d  angle1:%4.2f  angle2:%4.2f\n",
-                            (int)i,
-                            (double)ToDeg(roll),
-                            (double)ToDeg(roll2));
+        if (debug) {
+            // display results
+            hal.console->printf("actual angle: %d  angle1:%4.2f  angle2:%4.2f\n",
+                                (int)i,
+                                (double)ToDeg(roll),
+                                (double)ToDeg(roll2));
+        }
     }
 
     // test pitch
@@ -85,11 +90,13 @@ static void test_rotation_accuracy(void)
         float roll2, pitch2, yaw2;
         attitude.to_euler(&roll2, &pitch2, &yaw2);
         
-        // display results
-        hal.console->printf("actual angle: %d  angle1:%4.2f  angle2:%4.2f\n",
-                            (int)i,
-                            (double)ToDeg(pitch),
-                            (double)ToDeg(pitch2));
+        if (debug) {
+            // display results
+            hal.console->printf("actual angle: %d  angle1:%4.2f  angle2:%4.2f\n",
+                                (int)i,
+                                (double)ToDeg(pitch),
+                                (double)ToDeg(pitch2));
+        }
     }
     
 
@@ -118,11 +125,13 @@ static void test_rotation_accuracy(void)
         float roll2, pitch2, yaw2;
         attitude.to_euler(&roll2, &pitch2, &yaw2);
         
-        // display results
-        hal.console->printf("actual angle: %d  angle1:%4.2f  angle2:%4.2f\n",
-                            (int)i,
-                            (double)ToDeg(yaw),
-                            (double)ToDeg(yaw2));
+        if (debug) {
+            // display results
+            hal.console->printf("actual angle: %d  angle1:%4.2f  angle2:%4.2f\n",
+                                (int)i,
+                                (double)ToDeg(yaw),
+                                (double)ToDeg(yaw2));
+        }
     }
 }
 
@@ -259,13 +268,26 @@ static void missing_rotations(void)
 void setup(void)
 {
     hal.console->printf("rotation unit tests\n\n");
-    test_rotation_accuracy();
+    test_rotation_accuracy(true);
     test_eulers();
     missing_rotations();
     test_rotate_inverse();
+    hal.scheduler->delay(2000);
+    printf("Testing timing for rotations\n");
+    uint32_t start = AP_HAL::micros();
+    test_rotation_accuracy(false);
+    uint32_t end = AP_HAL::micros();
+    printf("Rotate test took %u usec\n", end - start);
     hal.console->printf("rotation unit tests done\n\n");
 }
 
-void loop(void) {}
+void loop(void) {
+    hal.scheduler->delay(1000);
+    printf("Testing timing for rotations\n");
+    uint32_t start = AP_HAL::micros();
+    test_rotation_accuracy(false);
+    uint32_t end = AP_HAL::micros();
+    printf("Rotate test took %u usec\n", end - start);
+}
 
 AP_HAL_MAIN();
