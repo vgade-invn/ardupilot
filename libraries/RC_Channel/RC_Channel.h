@@ -99,7 +99,7 @@ public:
     
     bool min_max_configured() const
     {
-        return radio_min.configured() && radio_max.configured();
+        return true;
     }
     
 private:
