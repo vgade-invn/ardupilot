@@ -15,8 +15,17 @@
 
 #include <AP_HAL/AP_HAL.h>
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP ||\
-    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MINLURE
+    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MINLURE || \
+    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MR100
 #include "OpticalFlow_Onboard.h"
+
+#if 0
+#define OPTICALFLOW_ONBOARD_RECORD_VIDEO
+#define OPTICALFLOW_ONBOARD_VIDEO_FILE "/mnt/APM/vid.dat"
+
+#define OPTICALFLOW_ONBOARD_RECORD_VIDEO_RAW
+#define OPTICALFLOW_ONBOARD_VIDEO_RAW_FILE "/mnt/APM/vidraw.dat"
+#endif
 
 #include <fcntl.h>
 #include <linux/v4l2-mediabus.h>
@@ -33,8 +42,8 @@
 #include "PWM_Sysfs.h"
 #include "AP_HAL/utility/RingBuffer.h"
 
-#define OPTICAL_FLOW_ONBOARD_RTPRIO 11
-static const unsigned int OPTICAL_FLOW_GYRO_BUFFER_LEN = 400;
+#define OPTICAL_FLOW_ONBOARD_RTPRIO 2
+static const unsigned int OPTICAL_FLOW_GYRO_BUFFER_LEN = 75;
 
 extern const AP_HAL::HAL& hal;
 
@@ -47,10 +56,6 @@ void OpticalFlow_Onboard::init()
     uint32_t memtype = V4L2_MEMORY_MMAP;
     unsigned int nbufs = 0;
     int ret;
-    pthread_attr_t attr;
-    struct sched_param param = {
-        .sched_priority = OPTICAL_FLOW_ONBOARD_RTPRIO
-    };
 
     if (_initialized) {
         return;
@@ -60,6 +65,7 @@ void OpticalFlow_Onboard::init()
     const char* device_path = HAL_OPTFLOW_ONBOARD_VDEV_PATH;
     memtype = V4L2_MEMORY_MMAP;
     nbufs = HAL_OPTFLOW_ONBOARD_NBUFS;
+    nbufs = 4;
     _width = HAL_OPTFLOW_ONBOARD_OUTPUT_WIDTH;
     _height = HAL_OPTFLOW_ONBOARD_OUTPUT_HEIGHT;
     crop_width = HAL_OPTFLOW_ONBOARD_CROP_WIDTH;
@@ -109,6 +115,11 @@ void OpticalFlow_Onboard::init()
             _format = px_fmt;
         }
     }
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MR100
+    // only one format supported
+    _width = HAL_OPTFLOW_ONBOARD_SENSOR_WIDTH;
+    _height = HAL_OPTFLOW_ONBOARD_SENSOR_HEIGHT;
+    _format = V4L2_PIX_FMT_YUV420;
 #endif
 
     if (!_videoin->set_format(&_width, &_height, &_format, &_bytesperline,
@@ -117,7 +128,9 @@ void OpticalFlow_Onboard::init()
     }
 
     if (_format != V4L2_PIX_FMT_NV12 && _format != V4L2_PIX_FMT_GREY &&
-        _format != V4L2_PIX_FMT_YUYV) {
+        _format != V4L2_PIX_FMT_YUYV && _format != V4L2_PIX_FMT_YUV420) {
+        printf("_format=0x%x V4L2_PIX_FMT_YUV420=0x%x\n", _format,
+               (unsigned)V4L2_PIX_FMT_YUV420);
         AP_HAL::panic("OpticalFlow_Onboard: format not supported\n");
     }
 
@@ -138,7 +151,7 @@ void OpticalFlow_Onboard::init()
         _bytesperline = HAL_OPTFLOW_ONBOARD_OUTPUT_WIDTH;
     }
 
-    if (_videoin->set_crop(left, top, crop_width, crop_height)) {
+    if (!_shrink_by_software && _videoin->set_crop(left, top, crop_width, crop_height)) {
         _crop_by_software = false;
     } else {
         _crop_by_software = true;
@@ -156,6 +169,9 @@ void OpticalFlow_Onboard::init()
             _bytesperline = HAL_OPTFLOW_ONBOARD_OUTPUT_WIDTH;
         }
     }
+
+    printf("_crop_by_software=%d _shrink_by_software=%d\n", _crop_by_software, _shrink_by_software);
+    printf("_camera_output=%ux%u\n", _camera_output_width, _camera_output_height);
 
     if (!_videoin->allocate_buffers(nbufs)) {
         AP_HAL::panic("OpticalFlow_Onboard: couldn't allocate video buffers");
@@ -176,19 +192,10 @@ void OpticalFlow_Onboard::init()
         AP_HAL::panic("OpticalFlow_Onboard: failed to init mutex");
     }
 
-    ret = pthread_attr_init(&attr);
-    if (ret != 0) {
-        AP_HAL::panic("OpticalFlow_Onboard: failed to init attr");
-    }
-    pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
-    pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-    pthread_attr_setschedparam(&attr, &param);
-    ret = pthread_create(&_thread, &attr, _read_thread, this);
-    if (ret != 0) {
-        AP_HAL::panic("OpticalFlow_Onboard: failed to create thread");
-    }
-
     _gyro_ring_buffer = new ObjectBuffer<GyroSample>(OPTICAL_FLOW_GYRO_BUFFER_LEN);
+
+    _thread.start("ap-flow", SCHED_OTHER, 0);
+    _thread.set_stack_size(32*1024);
 
     _initialized = true;
 }
@@ -223,17 +230,15 @@ end:
 void OpticalFlow_Onboard::push_gyro(float gyro_x, float gyro_y, float dt)
 {
     GyroSample sample;
-    struct timespec ts;
 
     if (!_gyro_ring_buffer) {
         return;
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &ts);
     _integrated_gyro.x += (gyro_x - _gyro_bias.x) * dt;
     _integrated_gyro.y += (gyro_y - _gyro_bias.y) * dt;
     sample.gyro = _integrated_gyro;
-    sample.time_us = 1.0e6 * (ts.tv_sec + (ts.tv_nsec*1.0e-9));
+    sample.time_us = AP_HAL::micros64();
 
     _gyro_ring_buffer->push(sample);
 }
@@ -254,14 +259,6 @@ void OpticalFlow_Onboard::push_gyro_bias(float gyro_bias_x, float gyro_bias_y)
 {
     _gyro_bias.x = gyro_bias_x;
     _gyro_bias.y = gyro_bias_y;
-}
-
-void *OpticalFlow_Onboard::_read_thread(void *arg)
-{
-    OpticalFlow_Onboard *optflow_onboard = (OpticalFlow_Onboard *) arg;
-
-    optflow_onboard->_run_optflow();
-    return nullptr;
 }
 
 void OpticalFlow_Onboard::_run_optflow()
@@ -288,6 +285,7 @@ void OpticalFlow_Onboard::_run_optflow()
             AP_HAL::panic("OpticalFlow_Onboard: couldn't allocate conversion buffer\n");
         }
     }
+    printf("convert_buffer_size=%u\n", convert_buffer_size);
 
     if (_shrink_by_software || _crop_by_software) {
         output_buffer_size = HAL_OPTFLOW_ONBOARD_OUTPUT_WIDTH *
@@ -317,6 +315,9 @@ void OpticalFlow_Onboard::_run_optflow()
 
         shrink_width_offset = (_camera_output_width - shrink_width) / 2;
         shrink_height_offset = (_camera_output_height - shrink_height) / 2;
+        printf("shrink to %ux%u shrink_scale=%u shrink_offset=%ux%u\n",
+               shrink_width, shrink_height,
+               shrink_scale, shrink_width_offset, shrink_height_offset);
     } else if (_crop_by_software) {
         crop_left = _camera_output_width / 2 -
            HAL_OPTFLOW_ONBOARD_OUTPUT_WIDTH / 2;
@@ -324,7 +325,17 @@ void OpticalFlow_Onboard::_run_optflow()
            HAL_OPTFLOW_ONBOARD_OUTPUT_HEIGHT / 2;
     }
 
+#ifdef OPTICALFLOW_ONBOARD_RECORD_VIDEO
+    int fd = open(OPTICALFLOW_ONBOARD_VIDEO_FILE, O_CLOEXEC | O_CREAT | O_WRONLY, 0644);
+#endif
+
+#ifdef OPTICALFLOW_ONBOARD_RECORD_VIDEO_RAW
+    int raw_fd = open(OPTICALFLOW_ONBOARD_VIDEO_RAW_FILE, O_CLOEXEC | O_CREAT | O_WRONLY, 0644);
+#endif
+
     while(true) {
+        uint32_t t0 = AP_HAL::micros();
+        
         /* wait for next frame to come */
         if (!_videoin->get_frame(video_frame)) {
             if (convert_buffer) {
@@ -338,34 +349,46 @@ void OpticalFlow_Onboard::_run_optflow()
             AP_HAL::panic("OpticalFlow_Onboard: couldn't get frame\n");
         }
 
+#ifdef OPTICALFLOW_ONBOARD_RECORD_VIDEO_RAW
+	    if (raw_fd != -1) {
+            printf("writing raw %u at %u\n", _sizeimage, AP_HAL::millis());
+            write(raw_fd, video_frame.data, _sizeimage);
+        }
+#endif
+        
+        uint32_t t1 = AP_HAL::micros();
+        
         if (_format == V4L2_PIX_FMT_YUYV) {
             VideoIn::yuyv_to_grey((uint8_t *)video_frame.data,
                 convert_buffer_size * 2, convert_buffer);
-
-            memset(video_frame.data, 0, convert_buffer_size * 2);
-            memcpy(video_frame.data, convert_buffer, convert_buffer_size);
+            video_frame.data = convert_buffer;
         }
 
+        if (_format == V4L2_PIX_FMT_YUV420) {
+            // nothing needed as the leading part of YUV420 is already
+            // the Y values in 8bpp format, which maps to grey-scale directly
+        }
+
+        uint32_t t2 = AP_HAL::micros();
+        
         if (_shrink_by_software) {
             /* shrink_8bpp() will shrink a selected area using the offsets,
              * therefore, we don't need the crop. */
-            VideoIn::shrink_8bpp((uint8_t *)video_frame.data, output_buffer,
+            VideoIn::shrink_8bpp((uint8_t *)video_frame.data, (uint8_t *)video_frame.data,
                                  _camera_output_width, _camera_output_height,
                                  shrink_width_offset, shrink_width,
                                  shrink_height_offset, shrink_height,
                                  shrink_scale, shrink_scale);
-            memset(video_frame.data, 0, _camera_output_width * _camera_output_height);
-            memcpy(video_frame.data, output_buffer, output_buffer_size);
         } else if (_crop_by_software) {
             VideoIn::crop_8bpp((uint8_t *)video_frame.data, output_buffer,
                                _camera_output_width,
                                crop_left, HAL_OPTFLOW_ONBOARD_OUTPUT_WIDTH,
                                crop_top, HAL_OPTFLOW_ONBOARD_OUTPUT_HEIGHT);
-
-            memset(video_frame.data, 0, _camera_output_width * _camera_output_height);
-            memcpy(video_frame.data, output_buffer, output_buffer_size);
+            video_frame.data = output_buffer;
         }
 
+        uint32_t t3 = AP_HAL::micros();
+        
         /* if it is at least the second frame we receive
          * since we have to compare 2 frames */
         if (_last_video_frame.data == nullptr) {
@@ -377,11 +400,9 @@ void OpticalFlow_Onboard::_run_optflow()
         _get_integrated_gyros(video_frame.timestamp, gyro_sample);
 
 #ifdef OPTICALFLOW_ONBOARD_RECORD_VIDEO
-        int fd = open(OPTICALFLOW_ONBOARD_VIDEO_FILE, O_CLOEXEC | O_CREAT | O_WRONLY
-                | O_APPEND, S_IRUSR | S_IWUSR | S_IRGRP |
-                S_IWGRP | S_IROTH | S_IWOTH);
 	    if (fd != -1) {
-	        write(fd, video_frame.data, _sizeimage);
+            printf("writing %u at %u\n", output_buffer_size, AP_HAL::millis());
+            write(fd, video_frame.data, output_buffer_size);
 #ifdef OPTICALFLOW_ONBOARD_RECORD_METADATAS
             struct PACKED {
                 uint32_t timestamp;
@@ -391,27 +412,29 @@ void OpticalFlow_Onboard::_run_optflow()
             } metas = { video_frame.timestamp, rate_x, rate_y, rate_z};
             write(fd, &metas, sizeof(metas));
 #endif
-	        close(fd);
         }
 #endif
 
         /* compute gyro data and video frames
          * get flow rate to send it to the opticalflow driver
          */
+        uint32_t flow_dt = video_frame.timestamp - _last_video_frame.timestamp;
         qual = _flow->compute_flow((uint8_t*)_last_video_frame.data,
                                    (uint8_t *)video_frame.data,
                                    video_frame.timestamp -
                                    _last_video_frame.timestamp,
                                    &flow_rate.x, &flow_rate.y);
 
+        uint32_t t4 = AP_HAL::micros();
+        
         /* fill data frame for upper layers */
         pthread_mutex_lock(&_mutex);
         _pixel_flow_x_integral += flow_rate.x /
-                                  HAL_FLOW_PX4_FOCAL_LENGTH_MILLIPX;
+                                HAL_FLOW_PX4_FOCAL_LENGTH_MILLIPX;
         _pixel_flow_y_integral += flow_rate.y /
                                   HAL_FLOW_PX4_FOCAL_LENGTH_MILLIPX;
         _integration_timespan += video_frame.timestamp -
-                                 _last_video_frame.timestamp;
+        _last_video_frame.timestamp;
         _gyro_x_integral       += (gyro_sample.gyro.x - _last_gyro_rate.x) *
                                   (video_frame.timestamp - _last_video_frame.timestamp) /
                                   (gyro_sample.time_us - _last_integration_time);
@@ -427,6 +450,12 @@ void OpticalFlow_Onboard::_run_optflow()
         _last_integration_time = gyro_sample.time_us;
         _last_video_frame = video_frame;
         _last_gyro_rate = gyro_sample.gyro;
+        uint32_t t5 = AP_HAL::micros();
+        static uint8_t counter;
+        if (counter++ % 50 == 0) {
+            printf("dt1=%u dt2=%u dt3=%u dt4=%u dt5=%u flow_dt=%u\n",
+                   t1-t0, t2-t1, t3-t2, t4-t3, t5-t4, flow_dt);
+        }
     }
 
     if (convert_buffer) {

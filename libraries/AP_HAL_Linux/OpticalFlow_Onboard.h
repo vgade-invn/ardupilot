@@ -24,6 +24,7 @@
 #include "Flow_PX4.h"
 #include "PWM_Sysfs.h"
 #include "VideoIn.h"
+#include "Thread.h"
 #include "AP_HAL/utility/RingBuffer.h"
 
 namespace Linux {
@@ -42,15 +43,14 @@ public:
     void push_gyro_bias(float gyro_bias_x, float gyro_bias_y);
 
 private:
-    void _run_optflow();
-    static void *_read_thread(void *arg);
+    void _run_optflow(void);
     void _get_integrated_gyros(uint64_t timestamp, GyroSample &gyro);
     VideoIn* _videoin;
     VideoIn::Frame _last_video_frame;
     PWM_Sysfs_Base* _pwm;
     CameraSensor* _camerasensor;
     Flow_PX4* _flow;
-    pthread_t _thread;
+    Thread _thread{FUNCTOR_BIND_MEMBER(&OpticalFlow_Onboard::_run_optflow, void)};
     pthread_mutex_t _mutex;
     bool _initialized;
     bool _data_available;

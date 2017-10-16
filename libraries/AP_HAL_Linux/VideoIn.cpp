@@ -19,7 +19,8 @@
 
 #include <AP_HAL/AP_HAL.h>
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP ||\
-    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MINLURE
+    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MINLURE || \
+    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MR100
 #include "VideoIn.h"
 
 #include <errno.h>
@@ -75,6 +76,7 @@ bool VideoIn::open_device(const char *device_path, uint32_t memtype)
                             strerror(errno), errno);
         return false;
     }
+    printf("Opened %s\n", device_path);
 
     memset(&cap, 0, sizeof cap);
     ret = ioctl(_fd, VIDIOC_QUERYCAP, &cap);
@@ -178,7 +180,17 @@ bool VideoIn::set_format(uint32_t *width, uint32_t *height, uint32_t *format,
                          uint32_t *bytesperline, uint32_t *sizeimage)
 {
     struct v4l2_format fmt;
+    struct v4l2_input input;
     int ret;
+
+    // set type camera. Only needed on some cameras, and harmless on others
+    memset(&input, 0, sizeof input);
+    input.index = 0;
+    input.type = V4L2_INPUT_TYPE_CAMERA;
+    ioctl(_fd, VIDIOC_S_INPUT, &input);
+
+    printf("format requested (%08x) %ux%u\n",
+           *format, *width, *height);
 
     memset(&fmt, 0, sizeof fmt);
     fmt.type = (v4l2_buf_type) V4L2_CAP_VIDEO_CAPTURE;
@@ -213,6 +225,15 @@ bool VideoIn::set_format(uint32_t *width, uint32_t *height, uint32_t *format,
     *bytesperline = fmt.fmt.pix.bytesperline;
     *sizeimage = fmt.fmt.pix.sizeimage;
 
+    if (*sizeimage == 0 && *format == V4L2_PIX_FMT_YUV420) {
+        // the MR100 camera doesn't return a size, so calculate it here
+        *sizeimage = (*width) * (*height) * 6 / 4;
+        *bytesperline = (*width) * 6 / 4;
+    }
+
+    printf("format set to (%08x) %ux%u size=%u\n",
+           *format, *width, *height, *sizeimage);
+    
     return true;
 }
 
@@ -255,37 +276,35 @@ void VideoIn::shrink_8bpp(uint8_t *buffer, uint8_t *new_buffer,
                           uint32_t selection_width, uint32_t top,
                           uint32_t selection_height, uint32_t fx, uint32_t fy)
 {
-    uint32_t i, j, k, kk, px, block_x, block_y, block_position;
-    uint32_t out_width = selection_width / fx;
-    uint32_t out_height = selection_height / fy;
-    uint32_t width_per_fy = width * fy;
-    uint32_t fx_fy = fx * fy;
-    uint32_t width_sum, out_width_sum = 0;
+    const uint32_t out_width = selection_width / fx;
+    const uint32_t out_height = selection_height / fy;
+    const uint32_t fx_fy = fx * fy;
 
-    /* selection offset */
-    block_y = top * width;
-    block_position = left + block_y;
+#if 0
+    printf("shrink %ux%u -> %ux%u %ux%u %ux%u\n",
+           width, height, left, top, selection_width, selection_height,
+           out_width, out_height);
+#endif
+    
+    for (uint16_t y = 0; y < out_height; y++) {
+        uint8_t *row = &new_buffer[y*out_width];
+        uint32_t block_position = left + width * (top+y*fy);
+        for (uint16_t x = 0; x < out_width; x++) {
+            uint32_t px = 0;
 
-    for (i = 0; i < out_height; i++) {
-        block_x = left;
-        for (j = 0; j < out_width; j++) {
-            px = 0;
-
-            width_sum = 0;
-            for(k = 0; k < fy; k++) {
-                for(kk = 0; kk < fx; kk++) {
-                    px += buffer[block_position + kk + width_sum];
+            uint32_t width_sum = 0;
+            for (uint16_t k = 0; k < fy; k++) {
+                for (uint16_t kk = 0; kk < fx; kk++) {
+                    const uint32_t ofs = block_position + kk + width_sum;
+                    px += buffer[ofs];
                 }
                 width_sum += width;
             }
 
-            new_buffer[j + out_width_sum] = px / (fx_fy);
+            row[x] = px / (fx_fy);
 
-            block_x += fx;
-            block_position = block_x + block_y;
+            block_position += fx;
         }
-        block_y += width_per_fy;
-        out_width_sum += out_width;
     }
 }
 
@@ -298,6 +317,8 @@ void VideoIn::crop_8bpp(uint8_t *buffer, uint8_t *new_buffer,
     uint32_t buffer_index = top * width;
     uint32_t new_buffer_index = 0;
 
+    printf("crop %ux? -> %ux%u %ux%u\n", width, left, top, crop_width, crop_height);
+    
     for (uint32_t j = top; j < crop_y; j++) {
         for (uint32_t i = left; i < crop_x; i++) {
             new_buffer[i - left + new_buffer_index] =  buffer[i + buffer_index];
@@ -316,6 +337,13 @@ void VideoIn::yuyv_to_grey(uint8_t *buffer, uint32_t buffer_size,
         new_buffer[new_buffer_position] = buffer[i];
         new_buffer_position++;
     }
+}
+
+void VideoIn::yuv420_to_grey(uint8_t *buffer, uint32_t buffer_size,
+                             uint8_t *new_buffer)
+{
+    // the Y values are in the first part of the buffer
+    memcpy(new_buffer, buffer, buffer_size*4/6);
 }
 
 uint32_t VideoIn::_timeval_to_us(struct timeval& tv)
@@ -361,6 +389,12 @@ bool VideoIn::_set_streaming(bool enable)
 
 bool VideoIn::_dequeue_frame(Frame &frame)
 {
+    uint32_t t0, t1;
+    static uint32_t t2;
+
+    t0 = AP_HAL::micros();
+    uint32_t dt0 = t0 - t2;
+    
     struct v4l2_buffer buf;
     int ret;
 
@@ -368,6 +402,22 @@ bool VideoIn::_dequeue_frame(Frame &frame)
     memset(&buf, 0, sizeof buf);
     buf.type = (v4l2_buf_type) V4L2_CAP_VIDEO_CAPTURE;
     buf.memory = (v4l2_memory) _memtype;
+
+    fd_set fds;
+    struct timeval tv;
+
+    FD_ZERO(&fds);
+    FD_SET(_fd, &fds);
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    ret = select(_fd+1, &fds, NULL, NULL, &tv);
+    if (ret != 1) {
+        hal.console->printf("_dequeue_frame select error\n");
+        return false;
+    }
+
+    uint64_t select_timestamp = AP_HAL::micros64();
+    
     ret = ioctl(_fd, VIDIOC_DQBUF, &buf);
     if (ret < 0) {
         if (errno != EIO) {
@@ -384,9 +434,15 @@ bool VideoIn::_dequeue_frame(Frame &frame)
 
     frame.data = _buffers[buf.index].mem;
     frame.buf_index = buf.index;
-    frame.timestamp = _timeval_to_us(buf.timestamp);
+    frame.timestamp = select_timestamp;
     frame.sequence = buf.sequence;
 
+    t1 = AP_HAL::micros();
+    uint32_t dt1 = t1 - t0;
+    if (false) printf("dt0=%u dt1=%u timestamp=%llu seq=%u ret=%d\n", dt0, dt1, frame.timestamp, frame.sequence, ret);
+
+    t2 = t1;
+    
     return true;
 }
 

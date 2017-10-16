@@ -33,7 +33,7 @@ public:
     class Frame {
     friend class VideoIn;
     public:
-        uint32_t timestamp;
+        uint64_t timestamp;
         uint32_t sequence;
         void *data;
     private:
@@ -66,6 +66,9 @@ public:
     static void yuyv_to_grey(uint8_t *buffer, uint32_t buffer_size,
                              uint8_t *new_buffer);
 
+    static void yuv420_to_grey(uint8_t *buffer, uint32_t buffer_size,
+                               uint8_t *new_buffer);
+    
 private:
     void _queue_buffer(int index);
     bool _set_streaming(bool enable);
