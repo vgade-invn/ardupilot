@@ -127,7 +127,7 @@ SPIDesc SPIDeviceManager::_device[] = {
 };
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MR100
 SPIDesc SPIDeviceManager::_device[] = {
-    SPIDesc("mpu9250", 0, 1, SPI_MODE_0, 8, SPI_CS_KERNEL,  4*MHZ, 4*MHZ),
+    SPIDesc("mpu9250", 0, 1, SPI_MODE_3, 8, SPI_CS_KERNEL,  1*MHZ, 11*MHZ),
 };
 #else
 // empty device table
@@ -395,7 +395,7 @@ AP_HAL::Device::PeriodicHandle SPIDevice::register_periodic_callback(
 
         _bus.thread.set_stack_size(AP_LINUX_SENSORS_STACK_SIZE);
         _bus.thread.start(name, AP_LINUX_SENSORS_SCHED_POLICY,
-                          AP_LINUX_SENSORS_SCHED_PRIO);
+                          AP_LINUX_SENSORS_SCHED_PRIO+1);
     }
 
     return static_cast<AP_HAL::Device::PeriodicHandle>(p);
