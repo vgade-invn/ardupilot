@@ -126,7 +126,7 @@ bool Aircraft::parse_home(const char *home_str, Location &loc, float &yaw_degree
 float Aircraft::ground_height_difference() const
 {
     float h1, h2;
-    if (sitl->terrain_enable && terrain &&
+    if (sitl && sitl->terrain_enable && terrain &&
         terrain->height_amsl(home, h1, false) &&
         terrain->height_amsl(location, h2, false)) {
         return h2 - h1;
@@ -192,17 +192,24 @@ void Aircraft::update_mag_field_bf()
 
     // calculate scaling factor that varies from 1 at ground level to 1/8 at sitl->mag_anomaly_hgt
     // Assume magnetic anomaly strength scales with 1/R**3
-    float anomaly_scaler = (sitl->mag_anomaly_hgt / (frame_height_agl + sitl->mag_anomaly_hgt));
+    float anomaly_scaler = 0;
+    if (sitl) {
+        anomaly_scaler = sitl->mag_anomaly_hgt / (frame_height_agl + sitl->mag_anomaly_hgt);
+    }
     anomaly_scaler = anomaly_scaler * anomaly_scaler * anomaly_scaler;
 
     // add scaled anomaly to earth field
-    mag_ef += sitl->mag_anomaly_ned.get() * anomaly_scaler;
+    if (sitl) {
+        mag_ef += sitl->mag_anomaly_ned.get() * anomaly_scaler;
+    }
 
     // Rotate into body frame
     mag_bf = dcm.transposed() * mag_ef;
 
     // add motor interference
-    mag_bf += sitl->mag_mot.get() * battery_current;
+    if (sitl) {
+        mag_bf += sitl->mag_mot.get() * battery_current;
+    }
 }
 
 /* advance time by deltat in seconds */
