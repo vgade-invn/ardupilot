@@ -321,6 +321,8 @@ class MR100(linux):
     def configure_env(self, cfg, env):
         super(MR100, self).configure_env(cfg, env)
 
+        env.CXXFLAGS += ['-march=armv7-a', '-mtune=cortex-a7', '-mfpu=neon-vfpv4', '-mfloat-abi=hard']
+
         env.DEFINES.update(
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_MR100',
         )
