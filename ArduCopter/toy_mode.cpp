@@ -1141,16 +1141,21 @@ void ToyMode::check_mag_field_takeoff(void)
  */
 void ToyMode::handle_takeoff_cmd(bool takeoff_btn,bool takeoff_cancel)
 {
-    /*
-      initiate takeoff cmd
-     */
+    const uint32_t takeoff_delay_ms = 3000;
+    
+    //initiate takeoff cmd
     if (takeoff_state == TAKEOFF_ON_GROUND && !copter.motors->armed() && takeoff_btn) {
         takeoff_state = TAKEOFF_INITIATE;
+        takeoff_last_press_ms = AP_HAL::millis();
     }
     
     switch (takeoff_state) {
     case TAKEOFF_INITIATE:
-        action_arm();
+        
+        if (!copter.motors->armed()) {
+            action_arm();
+        }
+        
         if (!copter.init_arm_motors(true) && (copter.control_mode == LOITER)) {
             /*
                 support auto-switching to ALT_HOLD
@@ -1162,14 +1167,17 @@ void ToyMode::handle_takeoff_cmd(bool takeoff_btn,bool takeoff_cancel)
         }
         
         if (copter.motors->armed()) {
-            takeoff_state =  TAKEOFF_ARMED;
+            //delay the take off to accomodate for the initial arming of the copter
+            if (!((AP_HAL::millis() - takeoff_last_press_ms) < takeoff_delay_ms)) {
+                takeoff_state = TAKEOFF_ARMED;
+            }
         }
         break;
     case TAKEOFF_ARMED:
-        if(copter.motors->armed() && !takeoff_cmd){
+        if (copter.motors->armed() && !takeoff_cmd) {
             takeoff_cmd = true;
             takeoff_arm_ms = AP_HAL::millis();
-            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tmode: take off init:%d",takeoff_cmd); 
+            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tmode: take off init"); 
         }
         break;
     case TAKEOFF_IN_AIR:
@@ -1177,18 +1185,17 @@ void ToyMode::handle_takeoff_cmd(bool takeoff_btn,bool takeoff_cancel)
         break;
     }
     
-    /*
-      ability to cancel takeoff cmd during take off
-     */
+    //ability to cancel takeoff cmd during take off
     if ((takeoff_cmd && takeoff_cancel)) {
         
         if(takeoff_cmd){
             GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tmode: take off cancelled"); 
             takeoff_cmd = false;
+            takeoff_state = TAKEOFF_IN_AIR;
         }
     }
     
-    //assume that when copter is disarmed it means it on the ground
+    //assume that when copter is disarmed it means it is on the ground
     if (!copter.motors->armed()) {
         takeoff_state = TAKEOFF_ON_GROUND;
     }
