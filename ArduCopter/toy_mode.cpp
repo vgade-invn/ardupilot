@@ -408,6 +408,9 @@ void ToyMode::update()
     } else {
         throttle_low_counter = 0;
     }
+    
+    bool takeoff_cancelled = throttle_at_min || throttle_near_max;
+    handle_takeoff_cmd(right_action_button,takeoff_cancelled);
 
     /*
       arm if throttle is high for 1 second when landed
@@ -821,6 +824,19 @@ void ToyMode::throttle_adjust(float &throttle_control)
         float p = (now - throttle_arm_ms) / float(soft_start_ms);
         throttle_control = MIN(throttle_control, throttle_start + p * (1000 - throttle_start));
     }
+    
+    //takeoff script to handle the throttle_control. takeoff_cmd is handled by handle_takeoff_cmd()
+    const float takeoff_throttle_cmd = 700.0f;
+    const uint32_t takeoff_time_ms = 1500;
+    if (takeoff_cmd) {
+        if (copter.motors->armed()) {
+            if(now - takeoff_arm_ms < takeoff_time_ms){
+                throttle_control = takeoff_throttle_cmd;
+            } else {
+                takeoff_state = TAKEOFF_IN_AIR;
+            }
+        }
+    }
 
     // limit descent rate close to the ground
     float height_above_arming = copter.inertial_nav.get_altitude() * 0.01 - copter.arming_altitude_m;
@@ -1118,6 +1134,64 @@ void ToyMode::check_mag_field_takeoff(void)
     }
     GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tmode: mag field OK");
     copter.compass.set_learn_type(Compass::LEARN_EKF, false);    
+}
+
+/*
+  handle take off cmd
+ */
+void ToyMode::handle_takeoff_cmd(bool takeoff_btn,bool takeoff_cancel)
+{
+    /*
+      initiate takeoff cmd
+     */
+    if (takeoff_state == TAKEOFF_ON_GROUND && !copter.motors->armed() && takeoff_btn) {
+        takeoff_state = TAKEOFF_INITIATE;
+    }
+    
+    switch (takeoff_state) {
+    case TAKEOFF_INITIATE:
+        action_arm();
+        if (!copter.init_arm_motors(true) && (copter.control_mode == LOITER)) {
+            /*
+                support auto-switching to ALT_HOLD
+            */
+            if (set_and_remember_mode(get_non_gps_mode(), MODE_REASON_TMODE)) {
+                action_arm();
+                GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tmode: indoor update arm");
+            }
+        }
+        
+        if (copter.motors->armed()) {
+            takeoff_state =  TAKEOFF_ARMED;
+        }
+        break;
+    case TAKEOFF_ARMED:
+        if(copter.motors->armed() && !takeoff_cmd){
+            takeoff_cmd = true;
+            takeoff_arm_ms = AP_HAL::millis();
+            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tmode: take off init:%d",takeoff_cmd); 
+        }
+        break;
+    case TAKEOFF_IN_AIR:
+        takeoff_cmd = false;
+        break;
+    }
+    
+    /*
+      ability to cancel takeoff cmd during take off
+     */
+    if ((takeoff_cmd && takeoff_cancel)) {
+        
+        if(takeoff_cmd){
+            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tmode: take off cancelled"); 
+            takeoff_cmd = false;
+        }
+    }
+    
+    //assume that when copter is disarmed it means it on the ground
+    if (!copter.motors->armed()) {
+        takeoff_state = TAKEOFF_ON_GROUND;
+    }
 }
 
 #endif // TOY_MODE_ENABLED
