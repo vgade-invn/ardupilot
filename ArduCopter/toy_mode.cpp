@@ -623,6 +623,7 @@ void ToyMode::update()
             if (copter.motors->armed()) {
                 throttle_arm_ms = AP_HAL::millis();
                 takeoff_started_ms = now;
+                copter.set_auto_armed(true);
                 GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tmode: takeoff started");
             }
         } else if (old_mode == RTL) {
