@@ -36,6 +36,7 @@ private:
 
     void trim_update(void);
     void action_arm(void);
+    void arm_with_fallback(void);
     void blink_update(void);
     void send_named_int(const char *name, int32_t value);
     bool set_and_remember_mode(control_mode_t mode, mode_reason_t reason);
@@ -44,8 +45,6 @@ private:
     void arm_check_compass(void);
     control_mode_t get_non_gps_mode();
     void check_mag_field_takeoff(void);
-    
-    void handle_takeoff_cmd(bool takeoff_btn,bool takeoff_cancel);
     
     enum toy_action {
         ACTION_NONE         = 0,
@@ -73,6 +72,7 @@ private:
         ACTION_TOGGLE_SSIMPLE = 22,
         ACTION_LOAD_TEST = 23,
         ACTION_MODE_FLOW = 24,
+        ACTION_TAKEOFF_LAND_RTL = 25,
     };
 
     enum toy_action last_action;
@@ -101,13 +101,6 @@ private:
         BLINK_MED_1  = 0xF0F0,
     };
     
-    enum takeoff_states {
-        TAKEOFF_ON_GROUND   = 0,
-        TAKEOFF_INITIATE    = 1,
-        TAKEOFF_ARMED       = 2,
-        TAKEOFF_IN_AIR      = 3,
-    };
-
     bool done_first_update;
     AP_Int8 enable;
     AP_Int8 primary_mode[2];
@@ -135,10 +128,7 @@ private:
     uint32_t reset_turtle_start_ms;
     
     //used for takeoff cmd
-    uint8_t takeoff_cmd;
-    uint8_t takeoff_state;
-    int32_t takeoff_arm_ms;
-    int32_t takeoff_last_press_ms;
+    int32_t takeoff_started_ms;
     
     // time when we were last told we are recording video
     uint32_t last_video_ms;
