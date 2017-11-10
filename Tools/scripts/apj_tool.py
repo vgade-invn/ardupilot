@@ -107,14 +107,13 @@ class embedded_defaults(object):
     
     def contents(self):
         '''return current contents'''
-        return self.firmware[self.offset+20:self.offset+20+self.length]
+        contents = self.firmware[self.offset+20:self.offset+20+self.length]
+        # remove carriage returns
+        contents = contents.replace('\r','')
+        return contents
 
-    def set_file(self, filename):
-        '''set defaults to contents of a file'''
-        print("Setting defaults from %s" % filename)
-        f = open(filename, 'r')
-        contents = f.read()
-        f.close()
+    def set_contents(self, contents):
+        '''set new defaults as a string'''
         length = len(contents)
         if length > self.max_len:
             print("Error: Length %u larger than maximum %u" % (length, self.max_len))
@@ -124,6 +123,50 @@ class embedded_defaults(object):
         new_fw += contents
         new_fw += self.firmware[self.offset+20+length:]
         self.firmware = new_fw
+        self.length = len(contents)
+
+    def set_file(self, filename):
+        '''set defaults to contents of a file'''
+        print("Setting defaults from %s" % filename)
+        f = open(filename, 'r')
+        contents = f.read()
+        f.close()
+        # remove carriage returns from the file
+        contents = contents.replace('\r','')
+        self.set_contents(contents)
+
+    def split_multi(self, str, separators):
+        '''split a string, handling multiple separators'''
+        for sep in separators:
+            str = str.replace(sep, ' ')
+        return str.split()
+
+    def set_one(self, set):
+        '''set a single parameter'''
+        v = set.split('=')
+        if len(v) != 2:
+            print("Error: set takes form NAME=VALUE")
+            sys.exit(1)
+        param_name = v[0].upper()
+        param_value = v[1]
+        
+        contents = self.contents()
+        lines = contents.split('\n')
+        changed = False
+        for i in range(len(lines)):
+            a = self.split_multi(lines[i], ", =\t")
+            if len(a) != 2:
+                continue
+            if a[0].upper() == param_name:
+                separator=lines[i][len(param_name)]
+                print("Changing %s from %s to %s" % (param_name, a[1], param_value))
+                lines[i] = '%s%s%s' % (param_name, separator, param_value)
+                changed = True
+        if not changed:
+            print("Adding %s=%s" % (param_name, param_value))
+            lines.append('%s=%s' % (param_name, param_value))
+        contents = '\n'.join(lines)
+        self.set_contents(contents)
 
     def save(self):
         '''save new firmware'''
@@ -138,15 +181,16 @@ def defaults_contents(firmware, ofs, length):
     '''return current defaults contents'''
     return firmware
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description='manipulate parameter defaults in an ArduPilot firmware')
 
-parser.add_argument('input_file')
-parser.add_argument('--set-file', type=str, default=None)
-parser.add_argument('--show', action='store_true', default=False)
+parser.add_argument('firmware_file')
+parser.add_argument('--set-file', type=str, default=None, help='replace parameter defaults from a file')
+parser.add_argument('--set', type=str, default=None, help='replace one parameter default, in form NAME=VALUE')
+parser.add_argument('--show', action='store_true', default=False, help='show current parameter defaults')
 
 args = parser.parse_args()
 
-defaults = embedded_defaults(args.input_file)
+defaults = embedded_defaults(args.firmware_file)
 
 if not defaults.find():
     print("Error: Param defaults support not found in firmware")
@@ -154,9 +198,16 @@ if not defaults.find():
     
 print("Found param defaults max_length=%u length=%u" % (defaults.max_len, defaults.length))
 
-if args.show:
-    print(defaults.contents())
-
 if args.set_file:
+    # load new defaults from a file
     defaults.set_file(args.set_file)
     defaults.save()
+
+if args.set:
+    # set a single parameter
+    defaults.set_one(args.set)
+    defaults.save()
+
+if args.show:
+    # show all defaults
+    print(defaults.contents())
