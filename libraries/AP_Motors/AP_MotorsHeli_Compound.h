@@ -103,7 +103,7 @@ public:
     bool parameter_check(bool display_msg) const override;
     
     // set_boost - engage the booster
-    void set_boost(float boost_in);
+    void set_boost(float boost_in) override { _boost_in = boost_in;}
     
     // var_info
     static const struct AP_Param::GroupInfo var_info[];

@@ -496,12 +496,6 @@ void AP_MotorsHeli_Compound::move_actuators(float roll_out, float pitch_out, flo
     move_yaw(yaw_out + yaw_offset);
 }
 
-// set_boost
-void AP_MotorsHeli_Compound::set_boost(float boost_in)
-{
-   _boost_in = boost_in;    
-}
-
 // move_yaw
 void AP_MotorsHeli_Compound::move_yaw(float yaw_out)
 {

@@ -203,13 +203,13 @@ void AP_MotorsHeli::init(motor_frame_class frame_class, motor_frame_type frame_t
     calculate_scalars();
 
     // record successful initialisation if what we setup was the desired frame_class
-    _flags.initialised_ok = (frame_class == MOTOR_FRAME_HELI);
+    _flags.initialised_ok = (frame_class == MOTOR_FRAME_HELI_COMPOUND);
 }
 
 // set frame class (i.e. quad, hexa, heli) and type (i.e. x, plus)
 void AP_MotorsHeli::set_frame_class_and_type(motor_frame_class frame_class, motor_frame_type frame_type)
 {
-    _flags.initialised_ok = (frame_class == MOTOR_FRAME_HELI);
+    _flags.initialised_ok = (frame_class == MOTOR_FRAME_HELI_COMPOUND);
 }
 
 // output_min - sets servos to neutral point with motors stopped
