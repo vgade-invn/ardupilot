@@ -172,12 +172,22 @@ bool MAVLink_routing::check_and_forward(mavlink_channel_t in_channel, const mavl
   send a MAVLink message to all components with this vehicle's system id
 
   This is a no-op if no routes to components have been learned
+
+  NOTE: this function can't correctly handle sending to a MAVLink1
+  link if the message has MAVLink2 extensions and COMM_0 is using
+  MAVLink2. The problem is that _mav_finalize_message_chan_send
+  doesn't have a way to get the correct min_length for the message
 */
 void MAVLink_routing::send_to_components(const mavlink_message_t* msg)
 {
     bool sent_to_chan[MAVLINK_COMM_NUM_BUFFERS];
     memset(sent_to_chan, 0, sizeof(sent_to_chan));
 
+    const mavlink_msg_entry_t *info = mavlink_get_msg_entry(msg->msgid);
+    if (!info) {
+        return;
+    }
+    
     // check learned routes
     for (uint8_t i=0; i<num_routes; i++) {
         if ((routes[i].sysid == mavlink_system.sysid) && !sent_to_chan[routes[i].channel]) {
@@ -190,7 +200,8 @@ void MAVLink_routing::send_to_components(const mavlink_message_t* msg)
                          (unsigned)routes[i].sysid,
                          (unsigned)routes[i].compid);
 #endif
-                _mavlink_resend_uart(routes[i].channel, msg);
+                _mav_finalize_message_chan_send(routes[i].channel, msg->msgid, (const char *)msg,
+                                                info->msg_len, info->msg_len, info->crc_extra);
                 sent_to_chan[routes[i].channel] = true;
             }
         }
