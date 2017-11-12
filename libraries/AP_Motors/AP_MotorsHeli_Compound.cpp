@@ -499,7 +499,7 @@ void AP_MotorsHeli_Compound::move_actuators(float roll_out, float pitch_out, flo
 // move_yaw
 void AP_MotorsHeli_Compound::move_yaw(float yaw_out)
 {
-	int16_t boost_out;
+    float boost_out;
 	  
     // sanity check yaw_out
     if (yaw_out < -1.0f) {
@@ -511,10 +511,14 @@ void AP_MotorsHeli_Compound::move_yaw(float yaw_out)
         limit.yaw = true;
     }
 
-	boost_out = (2.0 - (float)_boost_flat_pitch) * _boost_in;
-    float yaw_servo_1 = boost_out - 1.0 + _boost_flat_pitch + _yaw_offset + yaw_out;
-    float yaw_servo_2 = boost_out - 1.0 + _boost_flat_pitch - _yaw_offset - yaw_out;
-    
+    boost_out = (2.0f - _boost_flat_pitch) * constrain_float(_boost_in, 0.0f, 1.0f);
+
+    float yaw_servo_1 = boost_out - 1.0f + _boost_flat_pitch + _yaw_offset + yaw_out;
+    float yaw_servo_2 = boost_out - 1.0f + _boost_flat_pitch - _yaw_offset - yaw_out;
+
+    yaw_servo_1 = constrain_float(yaw_servo_1, -1.0f, 1.0f);
+    yaw_servo_2 = constrain_float(yaw_servo_2, -1.0f, 1.0f);
+
     rc_write(AP_MOTORS_MOT_4, calc_pwm_output_1to1(yaw_servo_1, _yaw_servo_1));
     rc_write(AP_MOTORS_MOT_5, calc_pwm_output_1to1(yaw_servo_2, _yaw_servo_2));
 
