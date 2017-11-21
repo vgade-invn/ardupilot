@@ -430,3 +430,5 @@
 #ifndef HAL_BOARD_STORAGE_DIRECTORY
 #define HAL_BOARD_STORAGE_DIRECTORY "/var/lib/ardupilot"
 #endif
+
+#define HAL_USE_EKF3
