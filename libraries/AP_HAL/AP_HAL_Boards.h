@@ -62,6 +62,7 @@
 #define HAL_BOARD_SUBTYPE_CHIBIOS_SKYVIPER_F412	5000
 #define HAL_BOARD_SUBTYPE_CHIBIOS_PIXHAWK_CUBE 	5001
 #define HAL_BOARD_SUBTYPE_CHIBIOS_SKYVIPER_V2450 5002
+#define HAL_BOARD_SUBTYPE_CHIBIOS_PIXHAWK1  	5003
 /* InertialSensor driver types */
 #define HAL_INS_MPU60XX_SPI  2
 #define HAL_INS_MPU60XX_I2C  3
@@ -82,6 +83,7 @@
 #define HAL_INS_EDGE        20
 #define HAL_INS_RST         21
 #define HAL_INS_PIXHAWK_CUBE 22
+#define HAL_INS_PIXHAWK1    23
 
 /* Barometer driver types */
 #define HAL_BARO_BMP085      1
