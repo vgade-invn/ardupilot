@@ -150,9 +150,6 @@ public:
     // Return true if magnetometer offsets are valid
     bool getMagOffsets(uint8_t mag_idx, Vector3f &magOffsets) const;
 
-    // Return mag state variances
-    bool getMagStateVariances(uint8_t mag_idx, Vector3f &magVariances) const;
-    
     // Return the last calculated latitude, longitude and height in WGS-84
     // If a calculated location isn't available, return a raw GPS measurement
     // The status will return true if a calculation or raw measurement is available
@@ -595,8 +592,6 @@ private:
 
     // zero stored variables
     void InitialiseVariables();
-
-    void InitialiseVariablesMag();
 
     // reset the horizontal position states uing the last GPS measurement
     void ResetPosition(void);
@@ -1136,5 +1131,3 @@ private:
     // vehicle specific initial gyro bias uncertainty
     float InitialGyroBiasUncertainty(void) const;
 };
-
-

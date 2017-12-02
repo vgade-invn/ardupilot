@@ -200,11 +200,6 @@ void NavEKF2_core::readMagData()
         return;
     }
 
-    if (_ahrs->get_compass()->learn_offsets_enabled()) {
-        // while learning offsets keep all mag states reset
-        InitialiseVariablesMag();
-    }
-    
     // do not accept new compass data faster than 14Hz (nominal rate is 10Hz) to prevent high processor loading
     // because magnetometer fusion is an expensive step and we could overflow the FIFO buffer
     if (use_compass() && _ahrs->get_compass()->last_update_usec() - lastMagUpdate_us > 70000) {
@@ -247,10 +242,9 @@ void NavEKF2_core::readMagData()
         Vector3f nowMagOffsets = _ahrs->get_compass()->get_offsets(magSelectIndex);
         bool changeDetected = lastMagOffsetsValid && (nowMagOffsets != lastMagOffsets);
         if (changeDetected) {
-            // Adjust the magnetometer bias states so there is no step change in magnetometer innovations
-            // Note: ekf bias states have opposite sign to compass offsets where offsets are added and biases are subtracted to correct the mag data.
-            stateStruct.body_magfield += (nowMagOffsets - lastMagOffsets) * 0.001f;
-            // clear the measurement buffer to prevent use of any data corrected using the old offsets
+            // zero the learned magnetometer bias states
+            stateStruct.body_magfield.zero();
+            // clear the measurement buffer
             storedMag.reset();
         }
         lastMagOffsets = nowMagOffsets;
@@ -481,10 +475,8 @@ void NavEKF2_core::readGpsData()
                 gpsNoiseScaler = 2.0f;
             }
 
-            // Check if GPS can output vertical velocity and set GPS fusion mode accordingly
-            if (_ahrs->get_gps().have_vertical_velocity() &&
-                frontend->_fusionModeGPS == 0 &&
-                !_ahrs->get_indoor_mode()) {
+            // Check if GPS can output vertical velocity, if it is allowed to be used, and set GPS fusion mode accordingly
+            if (_ahrs->get_gps().have_vertical_velocity() && frontend->_fusionModeGPS == 0 && !frontend->inhibitGpsVertVelUse) {
                 useGpsVertVel = true;
             } else {
                 useGpsVertVel = false;
@@ -808,4 +800,3 @@ void NavEKF2_core::getTimingStatistics(struct ekf_timing &_timing)
 }
 
 #endif // HAL_CPU_CLASS
-

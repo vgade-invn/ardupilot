@@ -116,8 +116,10 @@ void NavEKF2_core::InitialiseVariables()
 
     // initialise time stamps
     imuSampleTime_ms = frontend->imuSampleTime_us / 1000;
+    lastHealthyMagTime_ms = imuSampleTime_ms;
     prevTasStep_ms = imuSampleTime_ms;
     prevBetaStep_ms = imuSampleTime_ms;
+    lastMagUpdate_us = 0;
     lastBaroReceived_ms = imuSampleTime_ms;
     lastVelPassTime_ms = 0;
     lastPosPassTime_ms = 0;
@@ -137,6 +139,7 @@ void NavEKF2_core::InitialiseVariables()
     lastGpsVelFail_ms = 0;
     lastGpsAidBadTime_ms = 0;
     timeTasReceived_ms = 0;
+    magYawResetTimer_ms = imuSampleTime_ms;
     lastPreAlignGpsCheckTime_ms = imuSampleTime_ms;
     lastPosReset_ms = 0;
     lastVelReset_ms = 0;
@@ -147,8 +150,13 @@ void NavEKF2_core::InitialiseVariables()
     // initialise other variables
     gpsNoiseScaler = 1.0f;
     hgtTimeout = true;
+    magTimeout = false;
+    allMagSensorsFailed = false;
     tasTimeout = true;
+    badMagYaw = false;
     badIMUdata = false;
+    finalInflightYawInit = false;
+    finalInflightMagInit = false;
     dtIMUavg = 0.0025f;
     dtEkfAvg = EKF_TARGET_DT;
     dt = 0;
@@ -183,6 +191,7 @@ void NavEKF2_core::InitialiseVariables()
     prevInFlight = false;
     manoeuvring = false;
     inhibitWindStates = true;
+    inhibitMagStates = true;
     gndOffsetValid =  false;
     validOrigin = false;
     takeoffExpectedSet_ms = 0;
@@ -197,6 +206,7 @@ void NavEKF2_core::InitialiseVariables()
     lastYawReset_ms = 0;
     tiltErrFilt = 1.0f;
     tiltAlignComplete = false;
+    yawAlignComplete = false;
     stateIndexLim = 23;
     baroStoreIndex = 0;
     rangeStoreIndex = 0;
@@ -237,15 +247,24 @@ void NavEKF2_core::InitialiseVariables()
     velResetNE.zero();
     posResetD = 0.0f;
     hgtInnovFiltState = 0.0f;
-
+    if (_ahrs->get_compass()) {
+        magSelectIndex = _ahrs->get_compass()->get_primary();
+    }
     imuDataDownSampledNew.delAng.zero();
     imuDataDownSampledNew.delVel.zero();
     imuDataDownSampledNew.delAngDT = 0.0f;
     imuDataDownSampledNew.delVelDT = 0.0f;
     runUpdates = false;
     framesSincePredict = 0;
+    lastMagOffsetsValid = false;
+    magStateResetRequest = false;
+    magStateInitComplete = false;
+    magYawResetRequest = false;
     gpsYawResetRequest = false;
+    posDownAtLastMagReset = stateStruct.position.z;
+    yawInnovAtLastMagReset = 0.0f;
     quatAtLastMagReset = stateStruct.quat;
+    magFieldLearned = false;
     delAngBiasLearned = false;
     memset(&filterStatus, 0, sizeof(filterStatus));
     gpsInhibit = false;
@@ -255,6 +274,7 @@ void NavEKF2_core::InitialiseVariables()
     memset(&storedRngMeas, 0, sizeof(storedRngMeas));
     terrainHgtStable = true;
     ekfOriginHgtVar = 0.0f;
+    ekfGpsRefHgt = 0.0;
     velOffsetNED.zero();
     posOffsetNED.zero();
 
@@ -300,48 +320,12 @@ void NavEKF2_core::InitialiseVariables()
     // zero data buffers
     storedIMU.reset();
     storedGPS.reset();
+    storedMag.reset();
     storedBaro.reset();
     storedTAS.reset();
     storedRange.reset();
     storedOutput.reset();
     storedRangeBeacon.reset();
-
-    // now init mag variables
-    InitialiseVariablesMag();
-}
-
-
-/*
-  separate out the mag reset so it can be used when compass learning completes
- */
-void NavEKF2_core::InitialiseVariablesMag()
-{
-    lastHealthyMagTime_ms = imuSampleTime_ms;
-    lastMagUpdate_us = 0;
-    magYawResetTimer_ms = imuSampleTime_ms;
-    magTimeout = false;
-    allMagSensorsFailed = false;
-    badMagYaw = false;
-    finalInflightYawInit = false;
-    finalInflightMagInit = false;
-
-    inhibitMagStates = true;
-
-    yawAlignComplete = false;
-
-    if (_ahrs->get_compass()) {
-        magSelectIndex = _ahrs->get_compass()->get_primary();
-    }
-    lastMagOffsetsValid = false;
-    magStateResetRequest = false;
-    magStateInitComplete = false;
-    magYawResetRequest = false;
-
-    posDownAtLastMagReset = stateStruct.position.z;
-    yawInnovAtLastMagReset = 0.0f;
-    magFieldLearned = false;
-
-    storedMag.reset();
 }
 
 // Initialise the states from accelerometer and magnetometer data (if present)

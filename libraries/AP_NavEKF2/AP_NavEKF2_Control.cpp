@@ -349,8 +349,7 @@ void NavEKF2_core::checkAttitudeAlignmentStatus()
             gpsYawResetRequest = false;
         } else {
             magYawResetRequest = false;
-            // disabled for compass learn functionality
-            gpsYawResetRequest = false;
+            gpsYawResetRequest = true;
         }
     }
 }
@@ -505,4 +504,3 @@ void  NavEKF2_core::updateFilterStatus(void)
 }
 
 #endif // HAL_CPU_CLASS
-

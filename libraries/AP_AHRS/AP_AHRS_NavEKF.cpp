@@ -1679,6 +1679,7 @@ bool AP_AHRS_NavEKF::save_learnt_compass_offsets(float learn_proportion)
         if (!_compass) {
             return false;
         }
+#if 0
         uint8_t primary = _compass->get_primary();
         Vector3f learned_bias, mag_state_variances;
         const Vector3f &saved_bias = _compass->get_offsets(primary);
@@ -1698,6 +1699,7 @@ bool AP_AHRS_NavEKF::save_learnt_compass_offsets(float learn_proportion)
             _compass->set_and_save_offsets(primary, new_bias);
             return true;
         }
+#endif
         break;
     }
 #ifdef HAL_USE_EKF3
