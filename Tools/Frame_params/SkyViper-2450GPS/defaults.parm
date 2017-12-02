@@ -191,7 +191,8 @@ MOT_HOVER_LEARN       1
 # control inputs
 PILOT_THR_BHV          3
 PILOT_ACCEL_Z        400
-PILOT_VELZ_MAX       500
+PILOT_SPEED_UP       500
+PILOT_SPEED_DN       400
 RC_FEEL_RP            50
 RC1_MIN             1000
 RC1_MAX             2000
