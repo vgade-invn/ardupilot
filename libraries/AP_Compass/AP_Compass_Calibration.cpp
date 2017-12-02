@@ -350,7 +350,7 @@ MAV_RESULT Compass::handle_mag_cal_command(const mavlink_command_long_t &packet)
   This is an alternative magnetometer calibration method that involves
   placing the vehicle at a known yaw, with a known earths field
 */
-uint8_t Compass::fixed_mag_cal_field(const Vector3f &mag_bf)
+MAV_RESULT Compass::fixed_mag_cal_field(const Vector3f &mag_bf)
 {
     if (hal.util->get_soft_armed()) {
         // refuse while armed
@@ -409,7 +409,7 @@ uint8_t Compass::fixed_mag_cal_field(const Vector3f &mag_bf)
   placing the vehicle at a known yaw, with a known earths declination,
   inclination and field intensity.
 */
-uint8_t Compass::fixed_mag_cal(const AP_AHRS &ahrs, float declination_deg, float inclination_deg, float intensity_mgauss, float yaw_deg)
+MAV_RESULT Compass::fixed_mag_cal(const AP_AHRS &ahrs, float declination_deg, float inclination_deg, float intensity_mgauss, float yaw_deg)
 {
     // create earth field
     Vector3f mag_ef(intensity_mgauss, 0.0, 0.0);
