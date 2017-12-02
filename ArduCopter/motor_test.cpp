@@ -143,7 +143,7 @@ MAV_RESULT Copter::mavlink_motor_test_start(mavlink_channel_t chan, uint8_t moto
         */
         if (!mavlink_motor_test_check(chan, throttle_type != 1)) {
             mavlink_msg_command_ack_send(chan, MAV_CMD_DO_MOTOR_TEST, MAV_RESULT_FAILED);
-            return;
+            return MAV_RESULT_FAILED;
         } else {
             // start test
             ap.motor_test = true;
@@ -179,7 +179,8 @@ MAV_RESULT Copter::mavlink_motor_test_start(mavlink_channel_t chan, uint8_t moto
 
     if (motor_test_throttle_type == MOTOR_TEST_COMPASS_CAL) {
         compass.per_motor_calibration_start();
-    }            
+    }
+    return MAV_RESULT_ACCEPTED;
 }
 
 // motor_test_stop - stops the motor test
