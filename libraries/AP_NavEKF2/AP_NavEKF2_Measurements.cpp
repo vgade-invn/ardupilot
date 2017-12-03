@@ -291,6 +291,17 @@ void NavEKF2_core::readIMUData()
     // the imu sample time is used as a common time reference throughout the filter
     imuSampleTime_ms = AP_HAL::millis();
 
+    const Vector3f &gyro = ins.get_gyro();
+    const Vector3f &accel = ins.get_accel();
+    if (gyro.length() > 0.1 ||
+        fabsf(accel.x) > 0.2 ||
+        fabsf(accel.y) > 0.2 ||
+        fabsf(accel.z+9.8) > 0.2) {
+        gcs().send_text(MAV_SEVERITY_WARNING, "EK2 a(%.2f,%.2f,%.2f) g(%.2f,%.2f,%.2f)\n",
+                        accel.x, accel.y, accel.z,
+                        gyro.x, gyro.y, gyro.z);
+    }
+    
     // use the nominated imu or primary if not available
     if (ins.use_accel(imu_index)) {
         readDeltaVelocity(imu_index, imuDataNew.delVel, imuDataNew.delVelDT);

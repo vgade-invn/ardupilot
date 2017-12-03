@@ -22,6 +22,7 @@
  */
 #include "AP_AHRS.h"
 #include <AP_HAL/AP_HAL.h>
+#include <GCS_MAVLink/GCS.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -157,13 +158,15 @@ AP_AHRS_DCM::reset(bool recover_eulers)
         // Get body frame accel vector
         Vector3f initAccVec;
         uint8_t counter = 0;
-        initAccVec = _ins.get_accel();
+        initAccVec.zero();
 
         // the first vector may be invalid as the filter starts up
         while (initAccVec.length() <= 5.0f && counter++ < 10) {
             _ins.wait_for_sample();
             _ins.update();
             initAccVec = _ins.get_accel();
+            gcs().send_text(MAV_SEVERITY_WARNING, "DCM a(%.2f,%.2f,%.2f)\n",
+                            initAccVec.x, initAccVec.y, initAccVec.z);
         }
 
         // normalise the acceleration vector

@@ -650,34 +650,11 @@ bool NavEKF2::InitialiseFilter(void)
         _imuMask.set(_imuMask.get() & mask);
         
         // count IMUs from mask
-        num_cores = 0;
-        for (uint8_t i=0; i<7; i++) {
-            if (_imuMask & (1U<<i)) {
-                num_cores++;
-            }
-        }
-
-        if (hal.util->available_memory() < sizeof(NavEKF2_core)*num_cores + 4096) {
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "NavEKF2: not enough memory");
-            _enable.set(0);
-            return false;
-        }
-        
+        num_cores = 2;
         core = new NavEKF2_core[num_cores];
-        if (core == nullptr) {
-            _enable.set(0);
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "NavEKF2: allocation failed");
-            return false;
-        }
-
-        // set the IMU index for the cores
-        num_cores = 0;
-        for (uint8_t i=0; i<7; i++) {
-            if (_imuMask & (1U<<i)) {
-                if(!core[num_cores].setup_core(this, i, num_cores)) {
-                    return false;
-                }
-                num_cores++;
+        for (uint8_t i=0; i<num_cores; i++) {
+            if(!core[i].setup_core(this, 0, i)) {
+                return false;
             }
         }
 

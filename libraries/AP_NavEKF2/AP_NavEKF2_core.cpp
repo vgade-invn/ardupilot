@@ -6,6 +6,7 @@
 #include "AP_NavEKF2_core.h"
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_Vehicle/AP_Vehicle.h>
+#include <GCS_MAVLink/GCS.h>
 
 #include <stdio.h>
 
@@ -355,6 +356,11 @@ bool NavEKF2_core::InitialiseFilterBootstrap(void)
 
     // TODO we should average accel readings over several cycles
     initAccVec = _ahrs->get_ins().get_accel(imu_index);
+
+    gcs().send_text(MAV_SEVERITY_WARNING, "EK2 init %.3f,%.3f,%.3f",
+                    initAccVec.x,
+                    initAccVec.y,
+                    initAccVec.z);
 
     // read the magnetometer data
     readMagData();
