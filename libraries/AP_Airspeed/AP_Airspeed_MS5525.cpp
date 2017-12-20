@@ -26,6 +26,7 @@
 #include <AP_HAL/I2CDevice.h>
 #include <AP_HAL/utility/sparse-endian.h>
 #include <AP_Math/AP_Math.h>
+#include <DataFlash/DataFlash.h>
 
 extern const AP_HAL::HAL &hal;
 
@@ -212,6 +213,20 @@ void AP_Airspeed_MS5525::calculate(void)
         counter=0;
     }
 #endif
+
+    static uint8_t cal_count;
+    if (cal_count++ == 0) {
+        DataFlash_Class::instance()->Log_Write("APRM", "TimeUS,P1,P2,P3,P4,P5,P6,P7,P8", "QHHHHHHHH",
+                                               AP_HAL::micros64(),
+                                               prom[0], prom[1], prom[2], prom[3], 
+                                               prom[4], prom[5], prom[6], prom[7]);
+    }
+    
+    // log raw data
+    DataFlash_Class::instance()->Log_Write("ARAW", "TimeUS,D1,D2,P,T", "QIIff",
+                                           AP_HAL::micros64(),
+                                           D1, D2,
+                                           P_Pa, Temp_C);
     
     if (sem->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
         pressure_sum += P_Pa;
