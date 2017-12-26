@@ -31,6 +31,9 @@ static ChibiUARTDriver::SerialDef _serial_tab[] = {
     USART6_CONFIG, // Serial 1, GPS
     USART3_CONFIG, // Serial 2, sonix
 #endif
+#if HAL_WITH_IO_MCU
+    USART6_CONFIG, // IO MCU
+#endif
 };
 
 ChibiUARTDriver::ChibiUARTDriver(uint8_t serial_num) :

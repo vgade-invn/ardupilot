@@ -4,6 +4,11 @@ using namespace ChibiOS;
 
 extern const AP_HAL::HAL& hal;
 
+#if HAL_WITH_IO_MCU
+#include <AP_IOMCU/AP_IOMCU.h>
+extern AP_IOMCU iomcu;
+#endif
+
 #define PWM_CLK_FREQ        8000000
 #define PWM_US_WIDTH_FROM_CLK(x) ((PWM_CLK_FREQ/1000000)*x)
 const struct ChibiRCOutput::pwm_group ChibiRCOutput::pwm_group_list[] = 
@@ -135,6 +140,9 @@ void ChibiRCOutput::write(uint8_t chan, uint16_t period_us)
             }
         }
     }
+#if HAL_WITH_IO_MCU
+    iomcu.write_channel(chan, period_us);
+#endif
 }
 
 uint16_t ChibiRCOutput::read(uint8_t chan)

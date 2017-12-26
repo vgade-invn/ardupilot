@@ -21,6 +21,10 @@ THD_WORKING_AREA(_io_thread_wa, 2048);
 THD_WORKING_AREA(_storage_thread_wa, 2048);
 THD_WORKING_AREA(_uart_thread_wa, 2048);
 
+#if HAL_WITH_IO_MCU
+extern ChibiOS::ChibiUARTDriver uart_io;
+#endif
+
 ChibiScheduler::ChibiScheduler()
 {}
 
@@ -276,6 +280,9 @@ void ChibiScheduler::_uart_thread(void* arg)
         /*((ChibiUARTDriver *)hal.uartD)->_timer_tick();
         ((ChibiUARTDriver *)hal.uartE)->_timer_tick();
         ((ChibiUARTDriver *)hal.uartF)->_timer_tick();*/
+#if HAL_WITH_IO_MCU
+        uart_io._timer_tick();
+#endif
     }
 }
 
