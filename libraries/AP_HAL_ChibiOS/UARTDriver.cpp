@@ -514,6 +514,13 @@ void ChibiUARTDriver::_timer_tick(void)
                 dmaStreamSetMode(txdma, dmamode | STM32_DMA_CR_DIR_M2P |
                                  STM32_DMA_CR_MINC | STM32_DMA_CR_TCIE);
                 dmaStreamEnable(txdma);
+            } else if (_dma_tx && txdma) {
+                if (!(txdma->stream->CR & STM32_DMA_CR_EN)) {
+                    if (txdma->stream->NDTR == 0) {
+                        tx_bounce_buf_ready = true;
+                        dma_handle->unlock();
+                    }
+                }
             }
         }
     }
