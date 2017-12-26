@@ -9,7 +9,6 @@
 #include <AP_HAL_ChibiOS/AP_HAL_ChibiOS_Private.h>
 #include "shared_dma.h"
 
-
 static ChibiOS::ChibiUARTDriver uartADriver(0);
 static ChibiOS::ChibiUARTDriver uartBDriver(1);
 static ChibiOS::ChibiUARTDriver uartCDriver(2);
@@ -33,6 +32,13 @@ static Empty::OpticalFlow opticalFlowDriver;
 #ifdef USE_POSIX
 static FATFS SDC_FS; // FATFS object
 #endif
+
+#if HAL_WITH_IO_MCU
+#include <AP_IOMCU/AP_IOMCU.h>
+ChibiOS::ChibiUARTDriver uart_io(5);
+AP_IOMCU iomcu(uart_io);
+#endif
+
 HAL_ChibiOS::HAL_ChibiOS() :
     AP_HAL::HAL(
         &uartADriver,
