@@ -64,6 +64,7 @@ COMMON_VEHICLE_DEPENDENT_LIBRARIES = [
     'AP_ServoRelayEvents',
     'AP_Radio',
     'AP_TempCalibration',
+    'AP_IOMCU',
 ]
 
 def get_legacy_defines(sketch_name):
