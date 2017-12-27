@@ -36,6 +36,9 @@ static ChibiUARTDriver::SerialDef _serial_tab[] = {
 #endif
 };
 
+// event used to wake up waiting thread
+#define EVT_DATA EVENT_MASK(0)
+
 ChibiUARTDriver::ChibiUARTDriver(uint8_t serial_num) :
 tx_bounce_buf_ready(true),
 _serial_num(serial_num),
@@ -251,6 +254,11 @@ void ChibiUARTDriver::rxbuff_full_irq(void* self, uint32_t flags)
     dmaStreamSetMemory0(uart_drv->rxdma, uart_drv->rx_bounce_buf);
     dmaStreamSetTransactionSize(uart_drv->rxdma, RX_BOUNCE_BUFSIZE);
     dmaStreamEnable(uart_drv->rxdma);
+    if (uart_drv->_wait.thread_ctx && uart_drv->_readbuf.available() >= uart_drv->_wait.n) {
+        chSysLockFromISR();
+        chEvtSignalI(uart_drv->_wait.thread_ctx, EVT_DATA);                    
+        chSysUnlockFromISR();
+    }
 }
 
 void ChibiUARTDriver::begin(uint32_t b)
@@ -392,6 +400,21 @@ size_t ChibiUARTDriver::write(const uint8_t *buffer, size_t size)
     return ret;
 }
 
+/*
+  wait for data to arrive, or a timeout. Return true if data has
+  arrived, false on timeout
+ */
+bool ChibiUARTDriver::wait_timeout(uint16_t n, uint32_t timeout_ms)
+{
+    chEvtGetAndClearEvents(EVT_DATA);
+    if (available() >= n) {
+        return true;
+    }
+    _wait.n = n;
+    _wait.thread_ctx = chThdGetSelfX();
+    eventmask_t mask = chEvtWaitAnyTimeout(EVT_DATA, MS2ST(timeout_ms));
+    return (mask & EVT_DATA) != 0;
+}
 
 /*
   push any pending bytes to/from the serial port. This is called at
@@ -414,6 +437,9 @@ void ChibiUARTDriver::_timer_tick(void)
             uint8_t len = RX_BOUNCE_BUFSIZE - rxdma->stream->NDTR;
             if (len != 0) {
                 _readbuf.write(rx_bounce_buf, len);
+                if (_wait.thread_ctx && _readbuf.available() >= _wait.n) {
+                    chEvtSignal(_wait.thread_ctx, EVT_DATA);                    
+                }
             }
             //DMA disabled by idle interrupt never got a chance to be handled
             //we will enable it here

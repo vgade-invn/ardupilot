@@ -39,6 +39,9 @@ public:
         uint8_t dma_tx_stream_id;
         uint32_t dma_tx_channel_id; 
     };
+
+    bool wait_timeout(uint16_t n, uint32_t timeout_ms) override;
+
 private:
     bool _dma_rx;
     bool _dma_tx;
@@ -50,6 +53,14 @@ private:
     SerialConfig sercfg;
     bool _is_usb;
     const thread_t* _uart_owner_thd;
+
+    struct {
+        // thread waiting for data
+        thread_t *thread_ctx;
+        // number of bytes needed
+        uint16_t n;
+    } _wait;
+
     // we use in-task ring buffers to reduce the system call cost
     // of ::read() and ::write() in the main loop
     uint8_t rx_bounce_buf[RX_BOUNCE_BUFSIZE];
