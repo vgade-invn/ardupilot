@@ -94,5 +94,5 @@
 #define HAL_STORAGE_SIZE_AVAILABLE  HAL_STORAGE_SIZE
 
 #ifndef HAL_WITH_IO_MCU
-#definne HAL_WITH_IO_MCU 0
+#define HAL_WITH_IO_MCU 0
 #endif
