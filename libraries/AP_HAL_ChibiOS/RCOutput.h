@@ -23,21 +23,44 @@ public:
     }
     void set_output_mode(enum output_mode mode) override;
 
-    void     cork(void) override {}
-    void     push(void) override {}
+    void     cork(void) override;
+    void     push(void) override;
+
+    /*
+      force the safety switch on, disabling PWM output from the IO board
+     */
+    bool force_safety_on(void) override;
+
+    /*
+      force the safety switch off, enabling PWM output from the IO board
+     */
+    void force_safety_off(void) override;
+    
 private:
     struct pwm_group {
-        uint32_t ch_mask[4];
+        uint8_t chan[4]; // chan number, zero based
         PWMConfig pwm_cfg;
         PWMDriver* pwm_drv;
     };
     enum output_mode _output_mode = MODE_PWM_NORMAL;
 
-    uint32_t en_mask;
     static const pwm_group pwm_group_list[];
     uint16_t _esc_pwm_min;
     uint16_t _esc_pwm_max;
     uint8_t _num_groups;
-    uint16_t period[16] = {900};
-    uint16_t _last_sent[16] = {900};
+
+    // offset of first local channel
+    uint8_t chan_offset;
+
+    // last sent values are for all channels
+    uint16_t last_sent[16];
+    
+    // these values are for the local channels. Non-local channels are handled by IOMCU
+    uint32_t en_mask;
+    uint16_t period[16];
+    uint8_t num_channels;
+    bool corked;
+
+    // push out values to local PWM
+    void push_local(void);
 };

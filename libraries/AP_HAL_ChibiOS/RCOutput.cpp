@@ -1,5 +1,7 @@
 
 #include "RCOutput.h"
+#include <AP_Math/AP_Math.h>
+
 using namespace ChibiOS;
 
 extern const AP_HAL::HAL& hal;
@@ -48,6 +50,12 @@ void ChibiRCOutput::init()
         //Start Pwm groups
         pwmStart(pwm_group_list[i].pwm_drv, &pwm_group_list[i].pwm_cfg);
     }
+#if HAL_WITH_IO_MCU
+    iomcu.init();
+
+    // with IOMCU the local channels start at 8
+    chan_offset = 8;
+#endif
 }
 
 void ChibiRCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
@@ -60,11 +68,18 @@ void ChibiRCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
     if (freq_hz > 400 && _output_mode != MODE_PWM_BRUSHED) {
         freq_hz = 400;
     }
+
+#if HAL_WITH_IO_MCU
+    iomcu.set_freq(chmask, freq_hz);
+#endif
+
+    chmask >>= chan_offset;
+    if (chmask == 0) {
+        return;
+    }
+    
     for (uint8_t i = 0; i < _num_groups; i++ ) {
-        grp_ch_mask = pwm_group_list[i].ch_mask[0] | \
-                      pwm_group_list[i].ch_mask[1] | \
-                      pwm_group_list[i].ch_mask[2] | \
-                      pwm_group_list[i].ch_mask[3];
+        grp_ch_mask = PWM_CHAN_MAP(0) | PWM_CHAN_MAP(1) | PWM_CHAN_MAP(2) | PWM_CHAN_MAP(3);
         if ((grp_ch_mask & chmask) == grp_ch_mask) {
             update_mask |= grp_ch_mask;
             pwmChangePeriod(pwm_group_list[i].pwm_drv, 
@@ -78,21 +93,34 @@ void ChibiRCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
 
 uint16_t ChibiRCOutput::get_freq(uint8_t chan)
 {
+#if HAL_WITH_IO_MCU
+    if (chan < chan_offset) {
+        return iomcu.get_freq(chan);
+    }
+#endif
+    chan -= chan_offset;
+    
     for (uint8_t i = 0; i < _num_groups; i++ ) {
         for (uint8_t j = 0; j < 4; j++) {
-            if (pwm_group_list[i].ch_mask[j] & 1<<chan) {
+            if (pwm_group_list[i].chan[j] == chan) {
                 return pwm_group_list[i].pwm_drv->config->frequency / pwm_group_list[i].pwm_drv->period;
             }
         }
     }
+    // assume 50Hz default
     return 50;
 }
 
 void ChibiRCOutput::enable_ch(uint8_t chan)
 {
+    if (chan < chan_offset) {
+        return;
+    }
+    chan -= chan_offset;
+
     for (uint8_t i = 0; i < _num_groups; i++ ) {
         for (uint8_t j = 0; j < 4; j++) {
-            if ((pwm_group_list[i].ch_mask[j] & 1<<chan) && !(en_mask & 1<<chan)) {
+            if ((pwm_group_list[i].chan[j] == chan) && !(en_mask & 1<<chan)) {
                 pwmEnableChannel(pwm_group_list[i].pwm_drv, j, PWM_US_WIDTH_FROM_CLK(900));
                 en_mask |= 1<<chan;
                 if(_output_mode == MODE_PWM_BRUSHED) {
@@ -107,9 +135,14 @@ void ChibiRCOutput::enable_ch(uint8_t chan)
 
 void ChibiRCOutput::disable_ch(uint8_t chan)
 {
+    if (chan < chan_offset) {
+        return;
+    }
+    chan -= chan_offset;
+
     for (uint8_t i = 0; i < _num_groups; i++ ) {
         for (uint8_t j = 0; j < 4; j++) {
-            if (pwm_group_list[i].ch_mask[j] & 1<<chan) {
+            if (pwm_group_list[i].chan[j] == chan) {
                 pwmDisableChannel(pwm_group_list[i].pwm_drv, j);
                 en_mask &= ~(1<<chan);
             }
@@ -119,10 +152,38 @@ void ChibiRCOutput::disable_ch(uint8_t chan)
 
 void ChibiRCOutput::write(uint8_t chan, uint16_t period_us)
 {
+    last_sent[chan] = period_us;
+    
+#if HAL_WITH_IO_MCU
+    // handle IO MCU channels
+    iomcu.write_channel(chan, period_us);
+#endif
+    if (chan < chan_offset) {
+        return;
+    }
+    chan -= chan_offset;
+    
+    period[chan] = period_us;
+    num_channels = MAX(chan+1, num_channels);
+    if (!corked) {
+        push_local();
+    }
+}
+
+/*
+  push values to local channels from period[] array
+ */
+void ChibiRCOutput::push_local(void)
+{
+    if (num_channels == 0) {
+        return;
+    }
+    uint16_t outmask = (1U<<(num_channels-1));
     for (uint8_t i = 0; i < _num_groups; i++ ) {
         for (uint8_t j = 0; j < 4; j++) {
-            if (pwm_group_list[i].ch_mask[j] & 1<<chan) {
-                _last_sent[chan] = period_us;
+            uint8_t chan = pwm_group_list[i].chan[j];
+            if (outmask & (1UL<<chan)) {
+                uint32_t period_us = period[chan];
                 if(_output_mode == MODE_PWM_BRUSHED) {
                     if (period_us <= _esc_pwm_min) {
                         period_us = 0;
@@ -136,28 +197,41 @@ void ChibiRCOutput::write(uint8_t chan, uint16_t period_us)
                 } else {
                     pwmEnableChannel(pwm_group_list[i].pwm_drv, j, PWM_US_WIDTH_FROM_CLK(period_us));
                 }
-                period[chan] = period_us;
             }
         }
     }
-#if HAL_WITH_IO_MCU
-    iomcu.write_channel(chan, period_us);
-#endif
 }
 
 uint16_t ChibiRCOutput::read(uint8_t chan)
 {
+#if HAL_WITH_IO_MCU
+    if (chan < chan_offset) {
+        return iomcu.read_channel(chan);
+    }
+#endif
+    chan -= chan_offset;
     return period[chan];
 }
 
 void ChibiRCOutput::read(uint16_t* period_us, uint8_t len)
 {
+#if HAL_WITH_IO_MCU
+    for (uint8_t i=0; i<MIN(len, chan_offset); i++) {
+        period_us[i] = iomcu.read_channel(i);
+    }
+#endif
+    if (len <= chan_offset) {
+        return;
+    }
+    len -= chan_offset;
+    period_us += chan_offset;
+    
     memcpy(period_us, period, len*sizeof(uint16_t));
 }
 
 uint16_t ChibiRCOutput::read_last_sent(uint8_t chan)
 {
-    return _last_sent[chan];
+    return last_sent[chan];
 }
 
 void ChibiRCOutput::read_last_sent(uint16_t* period_us, uint8_t len)
@@ -174,8 +248,53 @@ void ChibiRCOutput::set_output_mode(enum output_mode mode)
     _output_mode = mode;
     if (_output_mode == MODE_PWM_BRUSHED) {
         // force zero output initially
-        for (uint8_t i=0; i<16; i++) {
+        for (uint8_t i=chan_offset; i<chan_offset+num_channels; i++) {
             write(i, 0);
         }
     }
+}
+
+/*
+  force the safety switch on, disabling PWM output from the IO board
+*/
+bool ChibiRCOutput::force_safety_on(void)
+{
+#if HAL_WITH_IO_MCU
+    return iomcu.force_safety_on();
+#else
+    return false;
+#endif
+}
+
+/*
+  force the safety switch off, enabling PWM output from the IO board
+*/
+void ChibiRCOutput::force_safety_off(void)
+{
+#if HAL_WITH_IO_MCU
+    iomcu.force_safety_off();
+#endif
+}
+
+/*
+  start corking output
+ */
+void ChibiRCOutput::cork(void)
+{
+    corked = true;
+#if HAL_WITH_IO_MCU
+    iomcu.cork();
+#endif
+}
+
+/*
+  stop corking output
+ */
+void ChibiRCOutput::push(void)
+{
+    corked = false;
+    push_local();
+#if HAL_WITH_IO_MCU
+    iomcu.push();
+#endif
 }
