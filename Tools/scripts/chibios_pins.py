@@ -3,14 +3,13 @@
 setup board.h for chibios
 '''
 
-import optparse, sys, fnmatch
+import argparse, sys, fnmatch, os
 
-parser = optparse.OptionParser("chibios_pins.py")
+parser = argparse.ArgumentParser("chibios_pins.py")
+parser.add_argument('-D', '--outdir', type=str, default=None, help='Output directory')
+parser.add_argument('hwdef', type=str, default=None, help='hardware definition file')
 
-opts, args = parser.parse_args()
-
-if len(args) == 0:
-        print("Usage: chibios_pins.py HWDEF")
+args = parser.parse_args()
 
 # output variables for each pin
 vtypes = ['MODER', 'OTYPER', 'OSPEEDR', 'PUPDR', 'ODR', 'AFRL', 'AFRH']
@@ -23,9 +22,13 @@ ports = pincount.keys()
 portmap = {}
 
 # dictionary of all config lines, indexed by first word
-lines = {}
+config = {}
+
+# list of all pins in config file order
+allpins = []
 
 class generic_pin(object):
+        '''class to hold pin definition'''
         def __init__(self, port, pin, label, type, extra):
                 self.port = port
                 self.pin = pin
@@ -48,7 +51,7 @@ class generic_pin(object):
                         v = "ALTERNATE"
                 elif self.type == 'OUTPUT':
                         v = "OUTPUT"
-                elif self.type == 'ANALOG':
+                elif self.type.startswith('ADC'):
                         v = "ANALOG"
                 elif self.has_extra("CS"):
                         v = "OUTPUT"
@@ -122,7 +125,8 @@ for port in ports:
 def process_line(line):
         '''process one line of pin definition file'''
         a = line.split()
-        lines[a[0]] = a[1:]
+        # keep all config lines for later use
+        config[a[0]] = a[1:]
         if a[0].startswith('P') and a[0][1] in ports:
                 # it is a port/pin definition
                 port = a[0][1]
@@ -131,18 +135,15 @@ def process_line(line):
                 type = a[2]
                 extra = a[3:]
                 portmap[port][pin] = generic_pin(port, pin, label, type, extra)
+                allpins.append(portmap[port][pin])
         
-
-f = open(args[0],"r")
-for line in f.readlines():
-        line = line.strip()
-        if len(line) == 0 or line[0] == '#':
-                continue
-        process_line(line)
-
-print('''
+def write_pins_header(outfilename):
+        '''write pins header file'''
+        print("Writing %s" % outfilename)
+        f = open(outfilename, 'w')
+        f.write('''
 /*
- pin default setup - generated file, do not edit
+ pin setup - generated file, do not edit
 */
 
 /*
@@ -169,36 +170,74 @@ print('''
 
 ''')
 
-for port in sorted(ports):
-        print("/* PORT%s:" % port)
-        for pin in range(pincount[port]):
-                p = portmap[port][pin]
-                if p.label is not None:
-                        print(" %s" % p)
-        print("*/\n")
-
-        if pincount[port] == 0:
-                '''blank ports'''
-                for vtype in vtypes:
-                        print("#define VAL_GPIO%s_%-7s             0x0" % (port, vtype))
-                print("\n\n")
-                continue
-
-        for vtype in vtypes:
-                if getattr(portmap[port][0], "get_" + vtype, None) is None:
-                        continue
-                sys.stdout.write("#define VAL_GPIO%s_%-7s (" % (p.port, vtype))
-                first = True
+        for port in sorted(ports):
+                f.write("/* PORT%s:\n" % port)
                 for pin in range(pincount[port]):
                         p = portmap[port][pin]
-                        modefunc = getattr(p, "get_" + vtype)
-                        v = modefunc()
-                        if v is None:
-                                continue
-                        if not first:
-                                sys.stdout.write(" | \\\n                           ")
-                        sys.stdout.write(v)
-                        first = False
-                if first:
-                        sys.stdout.write("0")
-                print(")\n")
+                        if p.label is not None:
+                                f.write(" %s\n" % p)
+                f.write("*/\n\n")
+
+                if pincount[port] == 0:
+                        # handle blank ports
+                        for vtype in vtypes:
+                                f.write("#define VAL_GPIO%s_%-7s             0x0\n" % (port, vtype))
+                        f.write("\n\n\n")
+                        continue
+
+                for vtype in vtypes:
+                        f.write("#define VAL_GPIO%s_%-7s (" % (p.port, vtype))
+                        first = True
+                        for pin in range(pincount[port]):
+                                p = portmap[port][pin]
+                                modefunc = getattr(p, "get_" + vtype)
+                                v = modefunc()
+                                if v is None:
+                                        continue
+                                if not first:
+                                        f.write(" | \\\n                           ")
+                                f.write(v)
+                                first = False
+                        if first:
+                                # there were no pin definitions, use 0
+                                f.write("0")
+                        f.write(")\n\n")
+
+def build_peripheral_list():
+        '''build a list of peripherals for DMA resolver to work on'''
+        peripherals = []
+        done = set()
+        prefixes = ['SPI', 'USART', 'UART', 'I2C']
+        for p in allpins:
+                type = p.type
+                if type in done:
+                        continue
+                for prefix in prefixes:
+                        if type.startswith(prefix):
+                                peripherals.append(type + "_TX")
+                                peripherals.append(type + "_RX")
+                if type.startswith('ADC'):
+                        peripherals.append(type)                        
+                done.add(type)
+        return peripherals
+
+# process input file
+hwdef_file = args.hwdef
+
+f = open(hwdef_file,"r")
+for line in f.readlines():
+        line = line.strip()
+        if len(line) == 0 or line[0] == '#':
+                continue
+        process_line(line)
+
+outdir = args.outdir
+if outdir is None:
+        outdir = os.path.dirname(hwdef_file)
+
+# write out pins.h
+write_pins_header(os.path.join(outdir, "pins.h"))
+
+# build a list for peripherals for DMA resolver
+periph_list = build_peripheral_list()
+print(periph_list)

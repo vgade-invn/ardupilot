@@ -1,17 +1,6 @@
 #!/usr/bin/env python
 
-import optparse, sys, fnmatch
-
-boards = ['F412', 'FMUv3']
-
-parser = optparse.OptionParser("dma_resolver.py")
-parser.add_option("-B", "--board", type='choice', default=None, choices=boards, help='board type')
-
-opts, args = parser.parse_args()
-
-if opts.board is None:
-        print("Please choose a board from: %s" % boards)
-        sys.exit(1)
+import sys, fnmatch
 
 STM32F427_DMA_Map = {
 	# format is [DMA_TABLE, StreamNum]
@@ -185,28 +174,7 @@ STM32F412_DMA_Map = {
 # peripheral types that can be shared, wildcard patterns
 SHARED_MAP = [ "I2C*", "USART*_TX", "UART*_TX", "SPI*" ]
 
-if opts.board == 'FMUv3':
-        dma_map = STM32F427_DMA_Map
-        PERIPHONDMA_LIST = ["SDIO"]
-        PERIPHONDMA_LIST += ["ADC1"]
-        PERIPHONDMA_LIST += ["SPI1_RX","SPI1_TX","SPI2_RX","SPI2_TX","SPI4_RX","SPI4_TX"]
-        PERIPHONDMA_LIST += ["I2C1_RX","I2C1_TX","I2C2_RX","I2C2_TX"]
-        PERIPHONDMA_LIST += ["USART6_TX","USART6_RX"] # px4io
-        PERIPHONDMA_LIST += ["USART2_TX","USART2_RX"] # telem1
-        PERIPHONDMA_LIST += ["USART3_TX","USART3_RX"] # telem2
-        PERIPHONDMA_LIST += ["UART4_TX","UART4_RX"]   # GPS
-        PERIPHONDMA_LIST += ["UART8_TX","UART8_RX"]   # GPS2
-        PERIPHONDMA_LIST += ["UART7_TX","UART7_RX"]   # console
-        PERIPHONDMA_LIST += ["USART1_TX","USART1_RX"] # not used
-elif opts.board == 'F412':
-        dma_map = STM32F412_DMA_Map
-        PERIPHONDMA_LIST = ["ADC1"]
-        PERIPHONDMA_LIST += ["SPI1_RX","SPI1_TX","SPI2_RX","SPI2_TX","SPI5_RX","SPI5_TX"]
-        PERIPHONDMA_LIST += ["I2C1_RX","I2C1_TX","I2C2_RX", "I2C2_TX"]
-        PERIPHONDMA_LIST += ["USART3_TX","USART3_RX"]
-        PERIPHONDMA_LIST += ["USART6_TX","USART6_RX"]
-        PERIPHONDMA_LIST += ["USART2_TX","USART2_RX"]
-
+ignore_list = []
 
 def check_possibility(periph, dma_stream, curr_dict, dma_map, check_list):
 	for other_periph in curr_dict:
@@ -224,7 +192,8 @@ def check_possibility(periph, dma_stream, curr_dict, dma_map, check_list):
 				if check_str in check_list:
 					return False
 				check_list.append(check_str)
-				print("Trying to Resolve Conflict: ", check_str)
+                                if opts.debug:
+                                        print("Trying to Resolve Conflict: ", check_str)
 				#check if we can resolve by swapping with other periphs
 				for stream in dma_map[other_periph]:
 					if stream != curr_dict[other_periph] and \
@@ -239,47 +208,9 @@ def can_share(periph):
         for f in SHARED_MAP:
                 if fnmatch.fnmatch(periph, f):
                         return True
-        print("%s can't share" % periph)
+        if opts.debug:
+                print("%s can't share" % periph)
         return False
-        
-
-unassigned = []
-curr_dict = {}
-
-for periph in PERIPHONDMA_LIST:
-	assigned = False
-	ignore_list = []
-	check_list = []
-	for stream in dma_map[periph]:
-		if check_possibility(periph, stream, curr_dict, dma_map, check_list):
-			curr_dict[periph] = stream
-			assigned = True
-			break
-	if assigned == False:
-		unassigned.append(periph)
-
-# now look for shared DMA possibilities
-stream_assign = {}
-for k in curr_dict.iterkeys():
-        stream_assign[curr_dict[k]] = [k]
-
-print("Unassigned before sharing: %s" % unassigned)
-unassigned_new = unassigned[:]
-for periph in unassigned:
-        print("Checking sharing for %s" % periph)
-	for stream in dma_map[periph]:
-                share_ok = True
-                for periph2 in stream_assign[stream]:
-                        if not can_share(periph) or not can_share(periph2):
-                                share_ok = False
-                if share_ok:
-                        print("Sharing %s on %s with %s" % (periph, stream, stream_assign[stream]))
-                        curr_dict[periph] = stream
-                        stream_assign[stream].append(periph)
-                        unassigned_new.remove(periph)
-                        break
-unassigned = unassigned_new
-
 
 def chibios_dma_define_name(key):
         '''return define name needed for board.h for ChibiOS'''
@@ -298,43 +229,121 @@ def chibios_dma_define_name(key):
         else:
                 print("Error: Unknown key type %s" % key)
                 sys.exit(1)
-                
 
-print("\n\nMOST VIABLE DMA CONFIG:\n")
-print("// auto-generated DMA mapping from dma_resolver.py")
-for key in sorted(curr_dict.iterkeys()):
-        stream = curr_dict[key]
-        shared = ''
-        if len(stream_assign[stream]) > 1:
-                shared = ' // shared %s' % ','.join(stream_assign[stream])
-        print("#define %-30s STM32_DMA_STREAM_ID(%u, %u)%s" % (chibios_dma_define_name(key),
-                                                               curr_dict[key][0],
-                                                               curr_dict[key][1],
-                                                               shared))
+def write_dma_header(outfilename, peripheral_list):
+        '''write out a DMA resolver header file'''
+        print("Writing DMA map to %s" % outfilename)
+        f = open(outfilename, 'w')
+        unassigned = []
+        curr_dict = {}
 
-if unassigned:
-        print("\n// The following Peripherals can't be resolved: %s" % unassigned)
+	for periph in peripheral_list:
+		assigned = False
+		check_list = []
+		for stream in dma_map[periph]:
+			if check_possibility(periph, stream, curr_dict, dma_map, check_list):
+				curr_dict[periph] = stream
+				assigned = True
+				break
+		if assigned == False:
+			unassigned.append(periph)
 
-# now generate UARTDriver.cpp config lines
-print("\n\n// generated UART configuration lines")
-for u in range(1,9):
-        key = None
-        if 'USART%u_TX' % u in PERIPHONDMA_LIST:
-                key = 'USART%u' % u
-        if 'UART%u_TX' % u in PERIPHONDMA_LIST:
-                key = 'UART%u' % u
-        if 'USART%u_RX' % u in PERIPHONDMA_LIST:
-                key = 'USART%u' % u
-        if 'UART%u_RX' % u in PERIPHONDMA_LIST:
-                key = 'UART%u' % u
-        if key is None:
-                continue
-        sys.stdout.write("#define %s_CONFIG { (BaseSequentialStream*) &SD%u, false, " % (key, u))
-        if key + "_RX" in curr_dict:
-                sys.stdout.write("true, STM32_UART_%s_RX_DMA_STREAM, STM32_%s_RX_DMA_CHN, " % (key, key))
-        else:
-                sys.stdout.write("false, 0, 0, ")
-        if key + "_TX" in curr_dict:
-                sys.stdout.write("true, STM32_UART_%s_TX_DMA_STREAM, STM32_%s_TX_DMA_CHN}\n" % (key, key))
-        else:
-                sys.stdout.write("false, 0, 0}\n")
+	# now look for shared DMA possibilities
+	stream_assign = {}
+	for k in curr_dict.iterkeys():
+	        stream_assign[curr_dict[k]] = [k]
+
+	unassigned_new = unassigned[:]
+	for periph in unassigned:
+		for stream in dma_map[periph]:
+	                share_ok = True
+	                for periph2 in stream_assign[stream]:
+	                        if not can_share(periph) or not can_share(periph2):
+	                                share_ok = False
+	                if share_ok:
+                                if opts.debug:
+                                        print("Sharing %s on %s with %s" % (periph, stream, stream_assign[stream]))
+	                        curr_dict[periph] = stream
+	                        stream_assign[stream].append(periph)
+	                        unassigned_new.remove(periph)
+	                        break
+	unassigned = unassigned_new
+
+
+	f.write("// auto-generated DMA mapping from dma_resolver.py\n")
+	for key in sorted(curr_dict.iterkeys()):
+	        stream = curr_dict[key]
+	        shared = ''
+	        if len(stream_assign[stream]) > 1:
+	                shared = ' // shared %s' % ','.join(stream_assign[stream])
+	        f.write("#define %-30s STM32_DMA_STREAM_ID(%u, %u)%s\n" % (chibios_dma_define_name(key),
+                                                                           curr_dict[key][0],
+                                                                           curr_dict[key][1],
+                                                                           shared))
+
+	if unassigned:
+	        f.write("\n// The following Peripherals can't be resolved: %s\n" % unassigned)
+
+	# now generate UARTDriver.cpp config lines
+	f.write("\n\n// generated UART configuration lines\n")
+	for u in range(1,9):
+	        key = None
+	        if 'USART%u_TX' % u in peripheral_list:
+	                key = 'USART%u' % u
+	        if 'UART%u_TX' % u in peripheral_list:
+	                key = 'UART%u' % u
+	        if 'USART%u_RX' % u in peripheral_list:
+	                key = 'USART%u' % u
+	        if 'UART%u_RX' % u in peripheral_list:
+	                key = 'UART%u' % u
+	        if key is None:
+	                continue
+	        f.write("#define %s_CONFIG { (BaseSequentialStream*) &SD%u, false, " % (key, u))
+	        if key + "_RX" in curr_dict:
+	                f.write("true, STM32_UART_%s_RX_DMA_STREAM, STM32_%s_RX_DMA_CHN, " % (key, key))
+	        else:
+	                f.write("false, 0, 0, ")
+	        if key + "_TX" in curr_dict:
+	                f.write("true, STM32_UART_%s_TX_DMA_STREAM, STM32_%s_TX_DMA_CHN}\n" % (key, key))
+	        else:
+	                f.write("false, 0, 0}\n")
+
+
+if __name__ == '__main__':
+	import optparse
+
+	boards = ['F412', 'FMUv3']
+
+	parser = optparse.OptionParser("dma_resolver.py")
+	parser.add_option("-B", "--board", type='choice', default=None, choices=boards, help='board type')
+	parser.add_option("-D", "--debug", action='store_true', help='enable debug')
+
+	opts, args = parser.parse_args()
+
+	if opts.board == 'FMUv3':
+	        dma_map = STM32F427_DMA_Map
+	        PERIPHONDMA_LIST = ["SDIO"]
+	        PERIPHONDMA_LIST += ["ADC1"]
+	        PERIPHONDMA_LIST += ["SPI1_RX","SPI1_TX","SPI2_RX","SPI2_TX","SPI4_RX","SPI4_TX"]
+	        PERIPHONDMA_LIST += ["I2C1_RX","I2C1_TX","I2C2_RX","I2C2_TX"]
+	        PERIPHONDMA_LIST += ["USART6_TX","USART6_RX"] # px4io
+	        PERIPHONDMA_LIST += ["USART2_TX","USART2_RX"] # telem1
+	        PERIPHONDMA_LIST += ["USART3_TX","USART3_RX"] # telem2
+	        PERIPHONDMA_LIST += ["UART4_TX","UART4_RX"]   # GPS
+	        PERIPHONDMA_LIST += ["UART8_TX","UART8_RX"]   # GPS2
+	        PERIPHONDMA_LIST += ["UART7_TX","UART7_RX"]   # console
+	        PERIPHONDMA_LIST += ["USART1_TX","USART1_RX"] # not used
+	elif opts.board == 'F412':
+	        dma_map = STM32F412_DMA_Map
+	        PERIPHONDMA_LIST = ["ADC1"]
+	        PERIPHONDMA_LIST += ["SPI1_RX","SPI1_TX","SPI2_RX","SPI2_TX"]
+	        PERIPHONDMA_LIST += ["I2C1_RX","I2C1_TX","I2C2_RX", "I2C2_TX"]
+	        PERIPHONDMA_LIST += ["USART2_TX","USART2_RX"]
+	        PERIPHONDMA_LIST += ["USART6_TX","USART6_RX"]
+	        PERIPHONDMA_LIST += ["USART1_TX","USART1_RX"]
+
+	if opts.board is None:
+	        print("Please choose a board from: %s" % boards)
+	        sys.exit(1)
+
+        write_dma_header("dma.h", PERIPHONDMA_LIST)
