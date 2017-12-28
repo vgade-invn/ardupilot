@@ -27,9 +27,9 @@ static ChibiUARTDriver::SerialDef _serial_tab[] = {
     UART8_CONFIG, // Serial 4, GPS2
     //UART7_CONFIG, // Serial 5, debug console
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_CHIBIOS_SKYVIPER_F412
-    USART2_CONFIG, // Serial 0, debug console
+    USART1_CONFIG, // Serial 0, debug console
     USART6_CONFIG, // Serial 1, GPS
-    USART3_CONFIG, // Serial 2, sonix
+    USART2_CONFIG, // Serial 2, sonix
 #endif
 #if HAL_WITH_IO_MCU
     USART6_CONFIG, // IO MCU
