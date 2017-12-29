@@ -218,6 +218,8 @@ def build_peripheral_list():
                                 peripherals.append(type + "_RX")
                 if type.startswith('ADC'):
                         peripherals.append(type)                        
+                if type.startswith('SDIO'):
+                        peripherals.append(type)                        
                 done.add(type)
         return peripherals
 

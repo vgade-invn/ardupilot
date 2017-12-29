@@ -284,6 +284,10 @@ def write_dma_header(outfilename, peripheral_list, mcu_type):
 
 
 	f.write("// auto-generated DMA mapping from dma_resolver.py\n")
+
+	if unassigned:
+	        f.write("\n// Note: The following peripherals can't be resolved for DMA: %s\n\n" % unassigned)
+
 	for key in sorted(curr_dict.iterkeys()):
 	        stream = curr_dict[key]
 	        shared = ''
@@ -293,9 +297,6 @@ def write_dma_header(outfilename, peripheral_list, mcu_type):
                                                                            curr_dict[key][0],
                                                                            curr_dict[key][1],
                                                                            shared))
-
-	if unassigned:
-	        f.write("\n// The following Peripherals can't be resolved: %s\n" % unassigned)
 
 	# now generate UARTDriver.cpp config lines
 	f.write("\n\n// generated UART configuration lines\n")
