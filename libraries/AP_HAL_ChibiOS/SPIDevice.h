@@ -20,7 +20,6 @@
 #include "Semaphores.h"
 #include "Scheduler.h"
 #include "Device.h"
-#include "shared_dma.h"
 
 #define SPIDEV_BMP280           0
 #define SPIDEV_LSM303D          1
@@ -50,7 +49,6 @@ public:
     struct spi_dev_s *dev;
     uint8_t bus;
     SPIConfig spicfg;
-    Shared_DMA *dma_handle;
     void dma_allocate(void);
     void dma_deallocate(void);    
 };
