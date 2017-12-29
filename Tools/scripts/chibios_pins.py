@@ -61,13 +61,23 @@ class generic_pin(object):
 
         def get_OTYPER(self):
                 '''return one of PUSHPULL, OPENDRAIN'''
-                return "PIN_OTYPE_PUSHPULL(%uU)" % self.pin
+                v = 'PUSHPULL'
+                if self.type.startswith('I2C'):
+                        # default I2C to OPENDRAIN
+                        v = 'OPENDRAIN'
+                values = ['PUSHPULL', 'OPENDRAIN']
+                for e in self.extra:
+                        if e in values:
+                                v = e
+                return "PIN_OTYPE_%s(%uU)" % (v, self.pin)
 
         def get_OSPEEDR(self):
                 '''return one of SPEED_VERYLOW, SPEED_LOW, SPEED_MEDIUM, SPEED_HIGH'''
                 values = ['SPEED_VERYLOW', 'SPEED_LOW', 'SPEED_MEDIUM', 'SPEED_HIGH']
                 v = 'SPEED_HIGH'
                 if self.has_extra("CS"):
+                        v = "SPEED_MEDIUM"
+                if self.type.startswith("I2C"):
                         v = "SPEED_MEDIUM"
                 for e in self.extra:
                         if e in values:
