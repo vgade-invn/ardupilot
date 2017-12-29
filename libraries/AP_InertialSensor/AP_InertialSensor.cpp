@@ -873,7 +873,7 @@ AP_InertialSensor::detect_backends(void)
 #endif
 
     if (_backend_count == 0) {
-        AP_HAL::panic("No INS backends available");
+        AP_BoardConfig::sensor_config_error("No INS backends available");
     }
 }
 
