@@ -37,7 +37,6 @@
  PA9 DBG_TX USART1
  PA10 DBG_RX USART1
  PA11 GPS_TX USART6
- PA12 MPU_INT INPUT
  PA13 SWDIO SWD
  PA14 SWCLK SWD
 */
@@ -182,14 +181,14 @@
 #define VAL_GPIOB_OTYPER  (PIN_OTYPE_PUSHPULL(0U) | \
                            PIN_OTYPE_PUSHPULL(1U) | \
                            PIN_OTYPE_PUSHPULL(2U) | \
-                           PIN_OTYPE_PUSHPULL(3U) | \
+                           PIN_OTYPE_OPENDRAIN(3U) | \
                            PIN_OTYPE_PUSHPULL(4U) | \
                            PIN_OTYPE_PUSHPULL(5U) | \
                            PIN_OTYPE_PUSHPULL(6U) | \
                            PIN_OTYPE_PUSHPULL(7U) | \
-                           PIN_OTYPE_PUSHPULL(8U) | \
-                           PIN_OTYPE_PUSHPULL(9U) | \
-                           PIN_OTYPE_PUSHPULL(10U) | \
+                           PIN_OTYPE_OPENDRAIN(8U) | \
+                           PIN_OTYPE_OPENDRAIN(9U) | \
+                           PIN_OTYPE_OPENDRAIN(10U) | \
                            PIN_OTYPE_PUSHPULL(11U) | \
                            PIN_OTYPE_PUSHPULL(12U) | \
                            PIN_OTYPE_PUSHPULL(13U) | \
@@ -199,14 +198,14 @@
 #define VAL_GPIOB_OSPEEDR (PIN_OSPEED_HIGH(0U) | \
                            PIN_OSPEED_HIGH(1U) | \
                            PIN_OSPEED_HIGH(2U) | \
-                           PIN_OSPEED_HIGH(3U) | \
+                           PIN_OSPEED_MEDIUM(3U) | \
                            PIN_OSPEED_HIGH(4U) | \
                            PIN_OSPEED_HIGH(5U) | \
                            PIN_OSPEED_HIGH(6U) | \
                            PIN_OSPEED_HIGH(7U) | \
-                           PIN_OSPEED_HIGH(8U) | \
-                           PIN_OSPEED_HIGH(9U) | \
-                           PIN_OSPEED_HIGH(10U) | \
+                           PIN_OSPEED_MEDIUM(8U) | \
+                           PIN_OSPEED_MEDIUM(9U) | \
+                           PIN_OSPEED_MEDIUM(10U) | \
                            PIN_OSPEED_HIGH(11U) | \
                            PIN_OSPEED_MEDIUM(12U) | \
                            PIN_OSPEED_HIGH(13U) | \
@@ -276,7 +275,6 @@
  PC7 GPS_RX USART6
  PC8 PWM3 TIM3_CH3
  PC9 PWM4 TIM3_CH4
- PC14 MPU_FSYNC INPUT
 */
 
 #define VAL_GPIOC_MODER   (PIN_MODE_INPUT(0U) | \
