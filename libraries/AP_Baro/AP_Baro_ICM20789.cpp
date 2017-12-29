@@ -152,35 +152,26 @@ bool AP_Baro_ICM20789::init()
       assume the sensor is connected for both IMU and baro on I2C. We need to setup INT_PIN_CFG BYPASS_EN to 1
      */
     uint8_t old_address = dev->get_bus_address();
+    dev->set_retries(4);
+    
     dev->set_address(0x68);
 
-    uint8_t whoami;
-    dev_icm->read_registers(0x75, &whoami, 1);
-    debug("ICM20789: whoami 0x%02x\n", whoami);
-    
-    dev->write_register(0x6B, 0x01);
-    
-    hal.scheduler->delay(1);
-    dev->write_register(0x6A, 0x10);
-    dev->write_register(0x6B, 0x41);
-    
-    hal.scheduler->delay(1);
-    dev->write_register(0x6B, 0x01);
-    
-    hal.scheduler->delay(1);
+    uint8_t whoami=0;
+    dev->read_registers(0x75, &whoami, 1);
+    debug("ICM20789: whoami 0x%02x old_address=%02x\n", whoami, old_address);
+
     dev->write_register(0x23, 0x00);
-    dev->write_register(0x6B, 0x41);
+    dev->write_register(0x6B, 0x01);
     
     // wait for sensor to settle
-    hal.scheduler->delay(100);
-    
+    hal.scheduler->delay(10);
+
     dev->write_register(0x37, 0x02);
-    dev->write_register(0x6A, 0x10);
 
     dev->set_address(old_address);
 #endif // HAL_INS_MPU60x0_NAME
 
-    hal.scheduler->delay(10);
+    hal.scheduler->delay(100);
     
     if (!send_cmd16(CMD_SOFT_RESET)) {
         debug("ICM20789: reset failed\n");
