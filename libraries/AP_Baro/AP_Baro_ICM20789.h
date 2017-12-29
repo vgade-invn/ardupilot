@@ -17,10 +17,10 @@ class AP_Baro_ICM20789 : public AP_Baro_Backend
 public:
     void update();
 
-    static AP_Baro_Backend *probe(AP_Baro &baro, AP_HAL::OwnPtr<AP_HAL::Device> dev);
+    static AP_Baro_Backend *probe(AP_Baro &baro, AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev);
     
 private:
-    AP_Baro_ICM20789(AP_Baro &baro, AP_HAL::OwnPtr<AP_HAL::Device> dev);
+    AP_Baro_ICM20789(AP_Baro &baro, AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev);
     virtual ~AP_Baro_ICM20789(void) {};
     
     bool init();
@@ -42,7 +42,7 @@ private:
     int16_t sensor_constants[4];
 
     uint8_t instance;
-    AP_HAL::OwnPtr<AP_HAL::Device> dev;
+    AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev;
     AP_HAL::OwnPtr<AP_HAL::Device> dev_icm;
 
     // time last read command was sent
