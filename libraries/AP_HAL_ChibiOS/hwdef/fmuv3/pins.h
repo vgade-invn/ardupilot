@@ -68,7 +68,7 @@
                            PIN_OTYPE_PUSHPULL(6U) | \
                            PIN_OTYPE_PUSHPULL(7U) | \
                            PIN_OTYPE_PUSHPULL(8U) | \
-                           PIN_OTYPE_PUSHPULL(9U) | \
+                           PIN_OTYPE_OPENDRAIN(9U) | \
                            PIN_OTYPE_PUSHPULL(10U) | \
                            PIN_OTYPE_PUSHPULL(11U) | \
                            PIN_OTYPE_PUSHPULL(12U) | \
@@ -152,8 +152,8 @@
  PB3 FMU_SW0 INPUT
  PB8 I2C1_SCL I2C1
  PB9 I2C1_SDA I2C1
- PB10 I2C2_SCL I2C1
- PB11 I2C2_SCL I2C1
+ PB10 I2C2_SCL I2C2
+ PB11 I2C2_SDA I2C2
  PB13 SPI2_SCK SPI2
  PB14 SPI2_MISO SPI2
  PB15 SPI2_MOSI SPI2
@@ -184,10 +184,10 @@
                            PIN_OTYPE_PUSHPULL(5U) | \
                            PIN_OTYPE_PUSHPULL(6U) | \
                            PIN_OTYPE_PUSHPULL(7U) | \
-                           PIN_OTYPE_PUSHPULL(8U) | \
-                           PIN_OTYPE_PUSHPULL(9U) | \
-                           PIN_OTYPE_PUSHPULL(10U) | \
-                           PIN_OTYPE_PUSHPULL(11U) | \
+                           PIN_OTYPE_OPENDRAIN(8U) | \
+                           PIN_OTYPE_OPENDRAIN(9U) | \
+                           PIN_OTYPE_OPENDRAIN(10U) | \
+                           PIN_OTYPE_OPENDRAIN(11U) | \
                            PIN_OTYPE_PUSHPULL(12U) | \
                            PIN_OTYPE_PUSHPULL(13U) | \
                            PIN_OTYPE_PUSHPULL(14U) | \
@@ -201,10 +201,10 @@
                            PIN_OSPEED_HIGH(5U) | \
                            PIN_OSPEED_HIGH(6U) | \
                            PIN_OSPEED_HIGH(7U) | \
-                           PIN_OSPEED_HIGH(8U) | \
-                           PIN_OSPEED_HIGH(9U) | \
-                           PIN_OSPEED_HIGH(10U) | \
-                           PIN_OSPEED_HIGH(11U) | \
+                           PIN_OSPEED_MEDIUM(8U) | \
+                           PIN_OSPEED_MEDIUM(9U) | \
+                           PIN_OSPEED_MEDIUM(10U) | \
+                           PIN_OSPEED_MEDIUM(11U) | \
                            PIN_OSPEED_HIGH(12U) | \
                            PIN_OSPEED_HIGH(13U) | \
                            PIN_OSPEED_HIGH(14U) | \
