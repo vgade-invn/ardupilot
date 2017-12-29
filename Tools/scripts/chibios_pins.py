@@ -3,7 +3,7 @@
 setup board.h for chibios
 '''
 
-import argparse, sys, fnmatch, os
+import argparse, sys, fnmatch, os, dma_resolver
 
 parser = argparse.ArgumentParser("chibios_pins.py")
 parser.add_argument('-D', '--outdir', type=str, default=None, help='Output directory')
@@ -139,7 +139,7 @@ def process_line(line):
         
 def write_pins_header(outfilename):
         '''write pins header file'''
-        print("Writing %s" % outfilename)
+        print("Writing pin setup in %s" % outfilename)
         f = open(outfilename, 'w')
         f.write('''
 /*
@@ -235,9 +235,17 @@ outdir = args.outdir
 if outdir is None:
         outdir = os.path.dirname(hwdef_file)
 
+if not "MCU" in config:
+        print("Missing MCU type in config")
+        sys.exit(1)
+
+mcu_type = config['MCU'][0]
+print("Setup for MCU %s" % mcu_type)
+
 # write out pins.h
 write_pins_header(os.path.join(outdir, "pins.h"))
 
 # build a list for peripherals for DMA resolver
 periph_list = build_peripheral_list()
-print(periph_list)
+
+dma_resolver.write_dma_header(os.path.join(outdir, "dma.h"), periph_list, mcu_type)

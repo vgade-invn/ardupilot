@@ -171,10 +171,16 @@ STM32F412_DMA_Map = {
 	"USART6_TX"	:	[(2,6),(2,7)],
 }
 
+dma_maps = { "STM32F412" : STM32F412_DMA_Map,
+             "STM32F427" : STM32F427_DMA_Map }
+
 # peripheral types that can be shared, wildcard patterns
 SHARED_MAP = [ "I2C*", "USART*_TX", "UART*_TX", "SPI*" ]
 
 ignore_list = []
+dma_map = None
+
+debug = False
 
 def check_possibility(periph, dma_stream, curr_dict, dma_map, check_list):
 	for other_periph in curr_dict:
@@ -192,7 +198,7 @@ def check_possibility(periph, dma_stream, curr_dict, dma_map, check_list):
 				if check_str in check_list:
 					return False
 				check_list.append(check_str)
-                                if opts.debug:
+                                if debug:
                                         print("Trying to Resolve Conflict: ", check_str)
 				#check if we can resolve by swapping with other periphs
 				for stream in dma_map[other_periph]:
@@ -208,7 +214,7 @@ def can_share(periph):
         for f in SHARED_MAP:
                 if fnmatch.fnmatch(periph, f):
                         return True
-        if opts.debug:
+        if debug:
                 print("%s can't share" % periph)
         return False
 
@@ -230,12 +236,19 @@ def chibios_dma_define_name(key):
                 print("Error: Unknown key type %s" % key)
                 sys.exit(1)
 
-def write_dma_header(outfilename, peripheral_list):
+def write_dma_header(outfilename, peripheral_list, mcu_type):
         '''write out a DMA resolver header file'''
         print("Writing DMA map to %s" % outfilename)
         f = open(outfilename, 'w')
         unassigned = []
         curr_dict = {}
+
+        if not mcu_type in dma_maps:
+                print("No DMA map for MCU %s" % mcu_type)
+                sys.exit(1)
+
+        global dma_map
+        dma_map = dma_maps[mcu_type]
 
 	for periph in peripheral_list:
 		assigned = False
@@ -261,7 +274,7 @@ def write_dma_header(outfilename, peripheral_list):
 	                        if not can_share(periph) or not can_share(periph2):
 	                                share_ok = False
 	                if share_ok:
-                                if opts.debug:
+                                if debug:
                                         print("Sharing %s on %s with %s" % (periph, stream, stream_assign[stream]))
 	                        curr_dict[periph] = stream
 	                        stream_assign[stream].append(periph)
@@ -321,7 +334,7 @@ if __name__ == '__main__':
 	opts, args = parser.parse_args()
 
 	if opts.board == 'FMUv3':
-	        dma_map = STM32F427_DMA_Map
+                mcu_type = "STM32F427"
 	        PERIPHONDMA_LIST = ["SDIO"]
 	        PERIPHONDMA_LIST += ["ADC1"]
 	        PERIPHONDMA_LIST += ["SPI1_RX","SPI1_TX","SPI2_RX","SPI2_TX","SPI4_RX","SPI4_TX"]
@@ -334,7 +347,7 @@ if __name__ == '__main__':
 	        PERIPHONDMA_LIST += ["UART7_TX","UART7_RX"]   # console
 	        PERIPHONDMA_LIST += ["USART1_TX","USART1_RX"] # not used
 	elif opts.board == 'F412':
-	        dma_map = STM32F412_DMA_Map
+                mcu_type = "STM32F412"
 	        PERIPHONDMA_LIST = ["ADC1"]
 	        PERIPHONDMA_LIST += ["SPI1_RX","SPI1_TX","SPI2_RX","SPI2_TX"]
 	        PERIPHONDMA_LIST += ["I2C1_RX","I2C1_TX","I2C2_RX", "I2C2_TX"]
@@ -346,4 +359,6 @@ if __name__ == '__main__':
 	        print("Please choose a board from: %s" % boards)
 	        sys.exit(1)
 
-        write_dma_header("dma.h", PERIPHONDMA_LIST)
+        debug = opts.debug
+
+        write_dma_header("dma.h", PERIPHONDMA_LIST, mcu_type)
