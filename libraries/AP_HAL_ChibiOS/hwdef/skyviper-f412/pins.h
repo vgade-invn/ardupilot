@@ -383,7 +383,7 @@
                            PIN_AFIO_AF(15U, 0U))
 
 /* PORTD:
- PD2 RADIO_IRQ INPUT
+ PD2 OF_MOTION INPUT
 */
 
 #define VAL_GPIOD_MODER   (PIN_MODE_INPUT(0U) | \
