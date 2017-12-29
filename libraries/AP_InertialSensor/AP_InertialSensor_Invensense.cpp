@@ -494,8 +494,13 @@ void AP_InertialSensor_Invensense::start()
     // clear interrupt on any read, and hold the data ready pin high
     // until we clear the interrupt
     uint8_t v = _register_read(MPUREG_INT_PIN_CFG) | BIT_INT_RD_CLEAR | BIT_LATCH_INT_EN;
-    if (_mpu_type == Invensense_ICM20789) {    
-        v &= BIT_BYPASS_EN;
+    if (_mpu_type == Invensense_ICM20789) {
+        // on 20789 we need to setup for I2C access appropriate for the bus type of the IMU
+        if (_dev->bus_type() == AP_HAL::Device::BUS_TYPE_I2C) {
+            v |= BIT_BYPASS_EN;
+        } else {
+            v &= ~BIT_BYPASS_EN;
+        }
     }
     _register_write(MPUREG_INT_PIN_CFG, v);
 
