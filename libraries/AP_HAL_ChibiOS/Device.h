@@ -18,6 +18,7 @@
 #include <AP_HAL/HAL.h>
 #include "Semaphores.h"
 #include "Scheduler.h"
+#include "shared_dma.h"
 
 namespace ChibiOS {
 
@@ -28,6 +29,7 @@ public:
 
     struct DeviceBus *next;
     Semaphore semaphore;
+    Shared_DMA *dma_handle;
 
     AP_HAL::Device::PeriodicHandle register_periodic_callback(uint32_t period_usec, AP_HAL::Device::PeriodicCb, AP_HAL::Device *hal_device);
     bool adjust_timer(AP_HAL::Device::PeriodicHandle h, uint32_t period_usec);

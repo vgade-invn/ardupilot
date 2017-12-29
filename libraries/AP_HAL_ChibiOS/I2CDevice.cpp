@@ -49,9 +49,11 @@ I2CDevice::I2CDevice(uint8_t bus, uint8_t address) :
     set_device_address(address);
     asprintf(&pname, "I2C:%u:%02x",
              (unsigned)bus, (unsigned)address);
-    dma_handle = new Shared_DMA(tx_dma_stream[_busnum], rx_dma_stream[_busnum],
-                                FUNCTOR_BIND_MEMBER(&I2CDevice::dma_allocate, void),
-                                FUNCTOR_BIND_MEMBER(&I2CDevice::dma_deallocate, void));
+    if (businfo[_busnum].dma_handle == nullptr) {
+        businfo[_busnum].dma_handle = new Shared_DMA(tx_dma_stream[_busnum], rx_dma_stream[_busnum],
+                                                     FUNCTOR_BIND_MEMBER(&I2CDevice::dma_allocate, void),
+                                                     FUNCTOR_BIND_MEMBER(&I2CDevice::dma_deallocate, void));
+    }
 }
 
 I2CDevice::~I2CDevice()
@@ -80,6 +82,8 @@ void I2CDevice::dma_deallocate(void)
 bool I2CDevice::transfer(const uint8_t *send, uint32_t send_len,
                          uint8_t *recv, uint32_t recv_len)
 {
+    struct DeviceBus &binfo = businfo[_busnum];
+
     if (!init_done) {
         i2ccfg.op_mode = OPMODE_I2C;
         i2ccfg.clock_speed = 400000;
@@ -87,7 +91,7 @@ bool I2CDevice::transfer(const uint8_t *send, uint32_t send_len,
         init_done = true;
     }
 
-    dma_handle->lock();
+    binfo.dma_handle->lock();
 
     if (_split_transfers) {
         /*
@@ -97,25 +101,25 @@ bool I2CDevice::transfer(const uint8_t *send, uint32_t send_len,
         */
         if (send && send_len) {
             if (!_transfer(send, send_len, nullptr, 0)) {
-                dma_handle->unlock();
+                binfo.dma_handle->unlock();
                 return false;
             }
         }
         if (recv && recv_len) {
             if (!_transfer(nullptr, 0, recv, recv_len)) {
-                dma_handle->unlock();
+                binfo.dma_handle->unlock();
                 return false;
             }
         }
     } else {
         // combined transfer
         if (!_transfer(send, send_len, recv, recv_len)) {
-            dma_handle->unlock();
+            binfo.dma_handle->unlock();
             return false;
         }
     }
 
-    dma_handle->unlock();
+    binfo.dma_handle->unlock();
     return true;
 }
 
