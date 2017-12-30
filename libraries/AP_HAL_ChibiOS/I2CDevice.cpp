@@ -15,6 +15,7 @@
 #include "I2CDevice.h"
 
 #include <AP_HAL/AP_HAL.h>
+#include <AP_Math/AP_Math.h>
 #include "Util.h"
 #include "Scheduler.h"
 
@@ -129,11 +130,14 @@ bool I2CDevice::_transfer(const uint8_t *send, uint32_t send_len,
     int ret;
     for(uint8_t i=0 ; i <= _retries; i++) {
         i2cAcquireBus(I2CD[_busnum]);
+        // calculate a timeout as twice the expected transfer time, and set as min of 4ms
+        uint32_t timeout_ms = 1+2*(((8*1000000UL/i2ccfg.clock_speed)*MAX(send_len, recv_len))/1000);
+        timeout_ms = MAX(timeout_ms, 4);
         if(send_len == 0) {
-            ret = i2cMasterReceiveTimeout(I2CD[_busnum], _address,recv, recv_len, MS2ST(4));
+            ret = i2cMasterReceiveTimeout(I2CD[_busnum], _address,recv, recv_len, MS2ST(timeout_ms));
         } else {
             ret = i2cMasterTransmitTimeout(I2CD[_busnum], _address, send, send_len,
-                                     recv, recv_len, MS2ST(4));
+                                           recv, recv_len, MS2ST(timeout_ms));
         }
         i2cReleaseBus(I2CD[_busnum]);
         if (ret != MSG_OK){
