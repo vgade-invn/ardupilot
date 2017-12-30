@@ -1738,7 +1738,7 @@ dirent_t * readdir(DIR *dirp)
 
     _de.d_name[0] = 0;
     res = f_readdir ( dirp, &fno );
-    if(res != FR_OK)
+    if(res != FR_OK || fno.fname[0] == 0)
     {
         errno = fatfs_to_errno(res);
         return(NULL);
