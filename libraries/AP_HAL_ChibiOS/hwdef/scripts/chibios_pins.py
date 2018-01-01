@@ -3,7 +3,7 @@
 setup board.h for chibios
 '''
 
-import argparse, sys, fnmatch, os, dma_resolver
+import argparse, sys, fnmatch, os, dma_resolver, alt_function
 
 parser = argparse.ArgumentParser("chibios_pins.py")
 parser.add_argument('-D', '--outdir', type=str, default=None, help='Output directory')
@@ -30,6 +30,8 @@ allpins = []
 # list of configs by type
 bytype = {}
 
+mcu_type = None
+
 class generic_pin(object):
         '''class to hold pin definition'''
         def __init__(self, port, pin, label, type, extra):
@@ -38,19 +40,14 @@ class generic_pin(object):
                 self.label = label
                 self.type = type
                 self.extra = extra
-
-        def get_AF(self):
-                '''get alternate function number or None'''
-                if len(self.extra) == 0 or not self.extra[0].startswith("AF"):
-                        return None
-                return int(self.extra[0][2:])
+                self.af = None
 
         def has_extra(self, v):
                 return v in self.extra
 
         def get_MODER(self):
                 '''return one of ALTERNATE, OUTPUT, ANALOG, INPUT'''
-                if self.get_AF() is not None:
+                if self.af is not None:
                         v = "ALTERNATE"
                 elif self.type == 'OUTPUT':
                         v = "OUTPUT"
@@ -109,7 +106,7 @@ class generic_pin(object):
 
         def get_AFIO(self):
                 '''return AFIO'''
-                af = self.get_AF()
+                af = self.af
                 if af is None:
                         af = 0
                 return "PIN_AFIO_AF(%uU, %uU)" % (self.pin, af)
@@ -127,7 +124,10 @@ class generic_pin(object):
                 return self.get_AFIO()
 
         def __str__(self):
-                return "P%s%u %s %s" % (self.port, self.pin, self.label, self.type)
+                afstr = ''
+                if self.af is not None:
+                        afstr = " AF%u" % self.af
+                return "P%s%u %s %s%s" % (self.port, self.pin, self.label, self.type, afstr)
 
 # setup default as input pins
 for port in ports:
@@ -140,18 +140,31 @@ def process_line(line):
         a = line.split()
         # keep all config lines for later use
         config[a[0]] = a[1:]
+        if a[0] == 'MCU':
+                global mcu_type
+                mcu_type = a[2]
         if a[0].startswith('P') and a[0][1] in ports:
                 # it is a port/pin definition
-                port = a[0][1]
-                pin = int(a[0][2:])
-                label = a[1]
-                type = a[2]
-                extra = a[3:]
-                portmap[port][pin] = generic_pin(port, pin, label, type, extra)
-                allpins.append(portmap[port][pin])
+                try:
+                        port = a[0][1]
+                        pin = int(a[0][2:])
+                        label = a[1]
+                        type = a[2]
+                        extra = a[3:]
+                except Exception:
+                        print("Bad pin line: %s" % a)
+                        return
+
+                p = generic_pin(port, pin, label, type, extra)
+                portmap[port][pin] = p
+                allpins.append(p)
                 if not type in bytype:
                         bytype[type] = []
-                bytype[type].append(portmap[port][pin])
+                bytype[type].append(p)
+                af = alt_function.get_alt_function(mcu_type, a[0], label)
+                if af is not None:
+                        p.af = af
+                
 
 def write_mcu_config(f):
         '''write MCU config defines'''
