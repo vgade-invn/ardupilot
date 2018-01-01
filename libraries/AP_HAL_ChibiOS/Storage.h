@@ -5,6 +5,7 @@
 #include <AP_Common/Bitmask.h>
 #include <AP_FlashStorage/AP_FlashStorage.h>
 #include "hwdef/common/flash.h"
+#include <AP_RAMTRON/AP_RAMTRON.h>
 
 #define CH_STORAGE_SIZE HAL_STORAGE_SIZE
 
@@ -31,6 +32,7 @@ private:
     uint8_t _buffer[CH_STORAGE_SIZE] __attribute__((aligned(4)));
     Bitmask _dirty_mask{CH_STORAGE_NUM_LINES};
 
+#if !HAL_WITH_RAMTRON
     bool _flash_write_data(uint8_t sector, uint32_t offset, const uint8_t *data, uint16_t length);
     bool _flash_read_data(uint8_t sector, uint32_t offset, uint8_t *data, uint16_t length);
     bool _flash_erase_sector(uint8_t sector);
@@ -48,4 +50,7 @@ private:
     
     void _flash_load(void);
     void _flash_write(uint16_t line);
+#else
+    AP_RAMTRON fram;
+#endif
 };
