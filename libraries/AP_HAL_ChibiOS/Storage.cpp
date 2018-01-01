@@ -19,8 +19,17 @@ void ChibiStorage::_storage_open(void)
 
     _dirty_mask.clearall();
 
+#if HAL_WITH_RAMTRON
+    if (!fram.init()) {
+        return;
+    }
+    if (!fram.read(0, _buffer, CH_STORAGE_SIZE)) {
+        return;
+    }
+#else
     // load from storage backend
     _flash_load();
+#endif
     _initialised = true;
 }
 
@@ -82,11 +91,17 @@ void ChibiStorage::_timer_tick(void)
         return;
     }
 
+#if HAL_WITH_RAMTRON
+    if (fram.write(CH_STORAGE_LINE_SIZE*i, &_buffer[CH_STORAGE_LINE_SIZE*i], CH_STORAGE_LINE_SIZE)) {
+        _dirty_mask.clear(i);
+    }
+#else
     // save to storage backend
     _flash_write(i);
+#endif // HAL_WITH_RAMTRON
 }
 
-
+#if !HAL_WITH_RAMTRON
 /*
   load all data from flash
  */
@@ -160,4 +175,7 @@ bool ChibiStorage::_flash_erase_ok(void)
     // only allow erase while disarmed
     return !hal.util->get_soft_armed();
 }
+#endif // HAL_WITH_RAMTRON
+
+
 #endif // CONFIG_HAL_BOARD
