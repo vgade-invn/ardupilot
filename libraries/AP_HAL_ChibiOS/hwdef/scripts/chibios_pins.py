@@ -3,7 +3,7 @@
 setup board.h for chibios
 '''
 
-import argparse, sys, fnmatch, os, dma_resolver, alt_function
+import argparse, sys, fnmatch, os, dma_resolver
 
 parser = argparse.ArgumentParser("chibios_pins.py")
 parser.add_argument('-D', '--outdir', type=str, default=None, help='Output directory')
@@ -32,6 +32,26 @@ bytype = {}
 
 mcu_type = None
 
+def get_alt_function(mcu, pin, function):
+    '''return alternative function number for a pin'''
+    import importlib
+    try:
+            lib = importlib.import_module(mcu)
+            alt_map = lib.AltFunction_map
+    except ImportError:
+            print("Unable to find module for MCU %s" % mcu)
+            sys.exit(1)
+    
+    af_labels = ['USART', 'UART', 'SPI', 'I2C', 'SDIO', 'OTG', 'JT', 'TIM']
+    for l in af_labels:
+        if function.startswith(l):
+            s = pin+":"+function
+            if not s in alt_map:
+                print("Unknown pin function %s for MCU %s" % (s, mcu))
+                sys.exit(1)
+            return alt_map[s]
+    return None
+        
 class generic_pin(object):
         '''class to hold pin definition'''
         def __init__(self, port, pin, label, type, extra):
@@ -161,7 +181,7 @@ def process_line(line):
                 if not type in bytype:
                         bytype[type] = []
                 bytype[type].append(p)
-                af = alt_function.get_alt_function(mcu_type, a[0], label)
+                af = get_alt_function(mcu_type, a[0], label)
                 if af is not None:
                         p.af = af
                 
