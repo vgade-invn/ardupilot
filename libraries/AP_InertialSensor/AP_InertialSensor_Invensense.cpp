@@ -221,6 +221,7 @@ extern const AP_HAL::HAL& hal;
 #define MPU_WHOAMI_MPU9250      0x71
 #define MPU_WHOAMI_MPU9255      0x73
 #define MPU_WHOAMI_ICM20789     0x03
+#define MPU_WHOAMI_ICM20789_PRE 0x02
 
 #define BIT_READ_FLAG                           0x80
 #define BIT_I2C_SLVX_EN                         0x80
@@ -895,6 +896,7 @@ bool AP_InertialSensor_Invensense::_check_whoami(void)
         _mpu_type = Invensense_ICM20602;
         return true;
     case MPU_WHOAMI_ICM20789:
+    case MPU_WHOAMI_ICM20789_PRE:
         _mpu_type = Invensense_ICM20789;
         return true;
     }
