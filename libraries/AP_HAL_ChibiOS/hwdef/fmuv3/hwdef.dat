@@ -1,7 +1,19 @@
 # hw definition file for processing by chibios_pins.py
 # for FMUv3 hardware
 
-MCU STM32F427
+# MCU class and specific type
+MCU STM32F4xx STM32F427xx
+
+# crystal frequency
+OSCILLATOR_HZ 24000000
+
+# board voltage
+STM32_VDD 330U
+
+# serial port for stdout
+STDOUT_SERIAL SD7
+STDOUT_BAUDRATE 115200
+
 
 # UART4 serial GPS
 PA0 UART4_TX UART4 AF8
@@ -16,8 +28,8 @@ PA7 SPI_INT_MOSI SPI1 AF5
 PA8 VDD_5V_PERIPH_EN OUTPUT LOW
 PA9 VBUS INPUT OPENDRAIN
 # PA10 IO-debug-console
-PA11 OTG_FS_N USB AF10
-PA12 OTG_FS_P USB AF10
+PA11 OTG_FS_N OTG1 AF10
+PA12 OTG_FS_P OTG1 AF10
 PA13 SWDIO SWD AF0
 PA14 SWCLK SWD AF0
 # PA15 ALARM

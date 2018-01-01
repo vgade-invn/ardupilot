@@ -1,7 +1,41 @@
-
 /*
  pin setup - generated file, do not edit
 */
+
+#pragma once
+
+// MCU type (ChibiOS define)
+#define STM32F4xx_MCUCONF
+#define STM32F427xx
+
+// Board voltage. Required for performance limits calculation
+#define STM32_VDD 330U
+
+// crystal frequency
+#define STM32_HSECLK 24000000U
+
+// UART used for stdout (printf)
+#define HAL_STDOUT_SERIAL SD7
+
+// baudrate used for stdout (printf)
+#define HAL_STDOUT_BAUDRATE 115200
+
+// SDIO available, enable POSIX filesystem support
+#define USE_POSIX
+
+// peripherals enabled
+#define STM32_I2C_USE_I2C1                  TRUE
+#define STM32_I2C_USE_I2C2                  TRUE
+#define STM32_USB_USE_OTG1                  TRUE
+#define STM32_SPI_USE_SPI1                  TRUE
+#define STM32_SPI_USE_SPI2                  TRUE
+#define STM32_SPI_USE_SPI4                  TRUE
+#define STM32_SERIAL_USE_UART4              TRUE
+#define STM32_SERIAL_USE_UART7              TRUE
+#define STM32_SERIAL_USE_UART8              TRUE
+#define STM32_SERIAL_USE_USART2             TRUE
+#define STM32_SERIAL_USE_USART3             TRUE
+#define STM32_SERIAL_USE_USART6             TRUE
 
 /*
  * I/O ports initial setup, this configuration is established soon after reset
@@ -36,8 +70,8 @@
  PA7 SPI_INT_MOSI SPI1
  PA8 VDD_5V_PERIPH_EN OUTPUT
  PA9 VBUS INPUT
- PA11 OTG_FS_N USB
- PA12 OTG_FS_P USB
+ PA11 OTG_FS_N OTG1
+ PA12 OTG_FS_P OTG1
  PA13 SWDIO SWD
  PA14 SWCLK SWD
 */
