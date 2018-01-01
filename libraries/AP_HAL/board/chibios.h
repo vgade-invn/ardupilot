@@ -51,6 +51,9 @@
 // enable access to IO microcontroller
 #define HAL_WITH_IO_MCU         1
 
+// enable RAMTROM parameter storage
+#define HAL_WITH_RAMTRON 1
+
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_CHIBIOS_SKYVIPER_V2450
 #define HAL_INS_DEFAULT HAL_INS_MPU60XX_SPI
 #define HAL_INS_DEFAULT_ROTATION ROTATION_ROLL_180
@@ -89,10 +92,17 @@
 // enable access to IO microcontroller
 #define HAL_WITH_IO_MCU         1
 
+// enable RAMTROM parameter storage
+#define HAL_WITH_RAMTRON 1
+
 #endif
 
 #define HAL_STORAGE_SIZE_AVAILABLE  HAL_STORAGE_SIZE
 
 #ifndef HAL_WITH_IO_MCU
 #define HAL_WITH_IO_MCU 0
+#endif
+
+#ifndef HAL_WITH_RAMTRON
+#define HAL_WITH_RAMTRON 0
 #endif
