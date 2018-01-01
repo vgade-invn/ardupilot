@@ -1,5 +1,8 @@
 // auto-generated DMA mapping from dma_resolver.py
 
+#pragma once
+
+
 // Note: The following peripherals can't be resolved for DMA: ['UART8_RX', 'UART7_TX', 'UART7_RX']
 
 #define STM32_ADC_ADC1_DMA_STREAM      STM32_DMA_STREAM_ID(2, 4)

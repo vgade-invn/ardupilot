@@ -29,8 +29,6 @@
  * 0...3        Lowest...Highest.
  */
 
-#define STM32F4xx_MCUCONF
-
 /*
  * HAL driver system settings.
  */
@@ -145,9 +143,6 @@
 /*
  * I2C driver system settings.
  */
-#define STM32_I2C_USE_I2C1                  TRUE
-#define STM32_I2C_USE_I2C2                  TRUE
-#define STM32_I2C_USE_I2C3                  FALSE
 #define STM32_I2C_BUSY_TIMEOUT              50
 #define STM32_I2C_I2C1_IRQ_PRIORITY         5
 #define STM32_I2C_I2C2_IRQ_PRIORITY         5
@@ -160,8 +155,6 @@
 /*
  * I2S driver system settings.
  */
-#define STM32_I2S_USE_SPI2                  FALSE
-#define STM32_I2S_USE_SPI3                  FALSE
 #define STM32_I2S_SPI2_IRQ_PRIORITY         10
 #define STM32_I2S_SPI3_IRQ_PRIORITY         10
 #define STM32_I2S_SPI2_DMA_PRIORITY         1
@@ -229,14 +222,6 @@
 /*
  * SERIAL driver system settings.
  */
-#define STM32_SERIAL_USE_USART1             TRUE
-#define STM32_SERIAL_USE_USART2             TRUE
-#define STM32_SERIAL_USE_USART3             TRUE
-#define STM32_SERIAL_USE_UART4              TRUE
-#define STM32_SERIAL_USE_UART5              FALSE
-#define STM32_SERIAL_USE_USART6             TRUE
-#define STM32_SERIAL_USE_UART7              TRUE
-#define STM32_SERIAL_USE_UART8              TRUE
 #define STM32_SERIAL_USART1_PRIORITY        11
 #define STM32_SERIAL_USART2_PRIORITY        11
 #define STM32_SERIAL_USART3_PRIORITY        11
@@ -249,10 +234,6 @@
 /*
  * SPI driver system settings.
  */
-#define STM32_SPI_USE_SPI1                  TRUE
-#define STM32_SPI_USE_SPI2                  TRUE
-#define STM32_SPI_USE_SPI3                  FALSE
-#define STM32_SPI_USE_SPI4                  TRUE
 #define STM32_SPI_SPI1_DMA_PRIORITY         1
 #define STM32_SPI_SPI2_DMA_PRIORITY         1
 #define STM32_SPI_SPI3_DMA_PRIORITY         1
@@ -272,12 +253,6 @@
 /*
  * UART driver system settings.
  */
-#define STM32_UART_USE_USART1               FALSE
-#define STM32_UART_USE_USART2               FALSE
-#define STM32_UART_USE_USART3               FALSE
-#define STM32_UART_USE_UART4                FALSE
-#define STM32_UART_USE_UART5                FALSE
-#define STM32_UART_USE_USART6               FALSE
 #define STM32_UART_USART1_IRQ_PRIORITY      12
 #define STM32_UART_USART2_IRQ_PRIORITY      12
 #define STM32_UART_USART3_IRQ_PRIORITY      12
@@ -310,4 +285,7 @@
  */
 #define STM32_WDG_USE_IWDG                  FALSE
 
+// include generated config
+#include "pins.h"
 #include "dma.h"
+

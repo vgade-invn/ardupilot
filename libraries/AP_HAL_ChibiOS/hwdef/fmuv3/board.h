@@ -16,30 +16,6 @@
 
 #pragma once
 
-#define USE_POSIX
-/*
- * Board oscillators-related settings.
- * NOTE: LSE not fitted.
- */
-#if !defined(STM32_LSECLK)
-#define STM32_LSECLK                0U
-#endif
-
-#if !defined(STM32_HSECLK)
-#define STM32_HSECLK                24000000U
-#endif
-
-/*
- * Board voltages.
- * Required for performance limits calculation.
- */
-#define STM32_VDD                   330U
-
-/*
- * MCU type as defined in the ST header.
- */
-#define STM32F427xx
-
 /*
  * APM HW Defines
  */
@@ -48,9 +24,6 @@
 
 #define HRT_TIMER GPTD5
 #define LINE_LED1 PAL_LINE(GPIOE,12)
-
-#define HAL_STDOUT_SERIAL SD7
-#define HAL_STDOUT_BAUDRATE 115200
 
 #include "pins.h"
 
