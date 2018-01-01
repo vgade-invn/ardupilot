@@ -171,8 +171,9 @@ STM32F412_DMA_Map = {
 	"USART6_TX"	:	[(2,6),(2,7)],
 }
 
-dma_maps = { "STM32F412" : STM32F412_DMA_Map,
-             "STM32F427" : STM32F427_DMA_Map }
+# map above dma maps to MCU types. The MCU type strings must match those used in ChibiOS
+dma_maps = { "STM32F412Rx" : STM32F412_DMA_Map,
+             "STM32F427xx" : STM32F427_DMA_Map }
 
 # peripheral types that can be shared, wildcard patterns
 SHARED_MAP = [ "I2C*", "USART*_TX", "UART*_TX", "SPI*" ]
@@ -284,6 +285,8 @@ def write_dma_header(outfilename, peripheral_list, mcu_type):
 
 
 	f.write("// auto-generated DMA mapping from dma_resolver.py\n")
+        f.write('\n#pragma once\n\n')
+
 
 	if unassigned:
 	        f.write("\n// Note: The following peripherals can't be resolved for DMA: %s\n\n" % unassigned)
