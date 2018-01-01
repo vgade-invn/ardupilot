@@ -3,6 +3,11 @@
 #include "hwdef/common/ppm.h"
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
 
+#if HAL_WITH_IO_MCU
+#include <AP_IOMCU/AP_IOMCU.h>
+extern AP_IOMCU iomcu;
+#endif
+
 
 using namespace ChibiOS;
 extern const AP_HAL::HAL& hal;
@@ -161,6 +166,16 @@ void ChibiRCInput::_timer_tick(void)
         chMtxUnlock(&rcin_mutex);
     }
 #endif
+
+#if HAL_WITH_IO_MCU
+    chMtxLock(&rcin_mutex);
+    if (iomcu.check_rcinput(last_iomcu_us, _num_channels, _rc_values, RC_INPUT_MAX_CHANNELS)) {
+        _rcin_timestamp_last_signal = last_iomcu_us;
+    }
+    chMtxUnlock(&rcin_mutex);
+#endif
+    
+
     // note, we rely on the vehicle code checking new_input()
     // and a timeout for the last valid input to handle failsafe
 }
