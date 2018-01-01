@@ -27,6 +27,9 @@ config = {}
 # list of all pins in config file order
 allpins = []
 
+# list of configs by type
+bytype = {}
+
 class generic_pin(object):
         '''class to hold pin definition'''
         def __init__(self, port, pin, label, type, extra):
@@ -146,16 +149,65 @@ def process_line(line):
                 extra = a[3:]
                 portmap[port][pin] = generic_pin(port, pin, label, type, extra)
                 allpins.append(portmap[port][pin])
+                if not type in bytype:
+                        bytype[type] = []
+                bytype[type].append(portmap[port][pin])
+
+def write_mcu_config(f):
+        '''write MCU config defines'''
+        if 'MCU' in config:
+                f.write('// MCU type (ChibiOS define)\n')
+                f.write('#define %s_MCUCONF\n' % config['MCU'][0])
+                f.write('#define %s\n\n' % config['MCU'][1])
+        if 'STM32_VDD' in config:
+                f.write('// Board voltage. Required for performance limits calculation\n')
+                f.write('#define STM32_VDD %s\n\n' % config['STM32_VDD'][0])
+        if 'OSCILLATOR_HZ' in config:
+                f.write('// crystal frequency\n')
+                f.write('#define STM32_HSECLK %sU\n\n' % config['OSCILLATOR_HZ'][0])
+
+        if 'STDOUT_SERIAL' in config:
+                f.write('// UART used for stdout (printf)\n')
+                f.write('#define HAL_STDOUT_SERIAL %s\n\n' % config['STDOUT_SERIAL'][0])
+        if 'STDOUT_BAUDRATE' in config:
+                f.write('// baudrate used for stdout (printf)\n')
+                f.write('#define HAL_STDOUT_BAUDRATE %s\n\n' % config['STDOUT_BAUDRATE'][0])
+        if 'SDIO' in bytype:
+                f.write('// SDIO available, enable POSIX filesystem support\n')
+                f.write('#define USE_POSIX\n\n')
+
+                
+
+def write_peripheral_enable(f):
+        '''write peripheral enable lines'''
+        f.write('// peripherals enabled\n')
+        for type in sorted(bytype.keys()):
+                if type.startswith('USART') or type.startswith('UART'):
+                        f.write('#define STM32_SERIAL_USE_%-6s             TRUE\n' % type)
+                if type.startswith('SPI'):
+                        f.write('#define STM32_SPI_USE_%s                  TRUE\n' % type)
+                if type.startswith('OTG'):
+                        f.write('#define STM32_USB_USE_%s                  TRUE\n' % type)
+                if type.startswith('I2C'):
+                        f.write('#define STM32_I2C_USE_%s                  TRUE\n' % type)
         
 def write_pins_header(outfilename):
         '''write pins header file'''
         print("Writing pin setup in %s" % outfilename)
         f = open(outfilename, 'w')
-        f.write('''
-/*
+
+        f.write('''/*
  pin setup - generated file, do not edit
 */
 
+#pragma once
+
+''');
+
+        write_mcu_config(f)
+        write_peripheral_enable(f)
+
+        f.write('''
 /*
  * I/O ports initial setup, this configuration is established soon after reset
  * in the initialization code.
@@ -251,13 +303,14 @@ if not "MCU" in config:
         print("Missing MCU type in config")
         sys.exit(1)
 
-mcu_type = config['MCU'][0]
+mcu_type = config['MCU'][1]
 print("Setup for MCU %s" % mcu_type)
-
-# write out pins.h
-write_pins_header(os.path.join(outdir, "pins.h"))
 
 # build a list for peripherals for DMA resolver
 periph_list = build_peripheral_list()
 
+# write out pins.h
+write_pins_header(os.path.join(outdir, "pins.h"))
+
 dma_resolver.write_dma_header(os.path.join(outdir, "dma.h"), periph_list, mcu_type)
+
