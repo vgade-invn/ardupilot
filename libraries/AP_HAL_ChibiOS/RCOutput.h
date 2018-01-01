@@ -35,6 +35,8 @@ public:
       force the safety switch off, enabling PWM output from the IO board
      */
     void force_safety_off(void) override;
+
+    bool enable_sbus_out(uint16_t rate_hz) override;
     
 private:
     struct pwm_group {

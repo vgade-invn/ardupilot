@@ -45,4 +45,7 @@ private:
     AP_Radio *radio;
     uint32_t last_radio_us;
 #endif
+#if HAL_WITH_IO_MCU
+    uint32_t last_iomcu_us;
+#endif
 };

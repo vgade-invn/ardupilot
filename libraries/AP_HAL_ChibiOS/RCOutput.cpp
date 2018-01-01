@@ -298,3 +298,15 @@ void ChibiRCOutput::push(void)
     iomcu.push();
 #endif
 }
+
+/*
+  enable sbus output
+ */
+bool ChibiRCOutput::enable_sbus_out(uint16_t rate_hz)
+{
+#if HAL_WITH_IO_MCU
+    return iomcu.enable_sbus_out(rate_hz);
+#else
+    return false;
+#endif
+}
