@@ -2,6 +2,11 @@
 
 #include "AnalogIn.h"
 
+#if HAL_WITH_IO_MCU
+#include <AP_IOMCU/AP_IOMCU.h>
+extern AP_IOMCU iomcu;
+#endif
+
 #define ANLOGIN_DEBUGGING 0
 
 // base voltage scaling for 12 bit 3.3V ADC
@@ -19,6 +24,10 @@ extern const AP_HAL::HAL& hal;
 #define ADC_GRP1_BUF_DEPTH      8
 static adcsample_t samples[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH] = {0};
 static float avg_samples[ADC_GRP1_NUM_CHANNELS];
+
+// special pin numbers
+#define ANALOG_VCC_5V_PIN                4
+
 /*
   scaling table between ADC count and actual input voltage, to account
   for voltage dividers on the board. 
@@ -28,9 +37,9 @@ static const struct {
     float scaling;
 } pin_scaling[] = {
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_CHIBIOS_SKYVIPER_F412
-    { 4,   0.007734  },    // VCC 5V rail sense
+    { ANALOG_VCC_5V_PIN,   0.007734  },    // VCC 5V rail sense
 #else
-    { 4,   6.6f/4096  },    // VCC 5V rail sense
+    { ANALOG_VCC_5V_PIN,   6.6f/4096  },    // VCC 5V rail sense
 #endif
     { 2,   3.3f/4096  },    // 3DR Brick voltage, usually 10.1:1
                             // scaled from battery voltage
@@ -225,7 +234,7 @@ void ChibiAnalogIn::_timer_tick(void)
     read_adc(buf_adc);
     // match the incoming channels to the currently active pins
     for (uint8_t i=0; i < ADC_GRP1_NUM_CHANNELS; i++) {
-        if (pin_scaling[i].channel == 4) {
+        if (pin_scaling[i].channel == ANALOG_VCC_5V_PIN) {
             // record the Vcc value for later use in
             // voltage_average_ratiometric()
             _board_voltage = buf_adc[i] * pin_scaling[i].scaling;
@@ -242,7 +251,12 @@ void ChibiAnalogIn::_timer_tick(void)
                 c->_add_value(buf_adc[i], _board_voltage);
             }
         }
-        }
+    }
+
+#if HAL_WITH_IO_MCU
+    // now handle special inputs from IOMCU
+    _servorail_voltage = iomcu.get_vservo();
+#endif
 }
 
 AP_HAL::AnalogSource* ChibiAnalogIn::channel(int16_t pin) 
