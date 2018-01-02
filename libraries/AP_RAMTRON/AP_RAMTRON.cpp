@@ -72,10 +72,10 @@ bool AP_RAMTRON::init(void)
 void AP_RAMTRON::send_offset(uint8_t cmd, uint32_t offset)
 {
     if (ramtron_ids[id].addrlen == 3) {
-        uint8_t b[4] = { cmd, (offset>>16)&0xFF, (offset>>8)&0xFF, offset&0xFF };
+        uint8_t b[4] = { cmd, uint8_t((offset>>16)&0xFF), uint8_t((offset>>8)&0xFF), uint8_t(offset&0xFF) };
         dev->transfer(b, sizeof(b), nullptr, 0);
     } else /* len 2 */ {
-        uint8_t b[3] = { cmd, (offset>>8)&0xFF, offset&0xFF };
+        uint8_t b[3] = { cmd, uint8_t((offset>>8)&0xFF), uint8_t(offset&0xFF) };
         dev->transfer(b, sizeof(b), nullptr, 0);
     }
 }
