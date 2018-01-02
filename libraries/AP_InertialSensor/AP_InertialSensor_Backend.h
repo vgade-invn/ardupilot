@@ -175,11 +175,6 @@ protected:
     // return the requested sample rate in Hz
     uint16_t get_sample_rate_hz(void) const;
 
-    // access to frontend dataflash
-    DataFlash_Class *get_dataflash(void) const {
-        return _imu._log_raw_data? _imu._dataflash : nullptr;
-    }
-
     // common gyro update function for all backends
     void update_gyro(uint8_t instance);
 
@@ -221,7 +216,6 @@ protected:
 
 private:
 
-    bool should_log_imu_raw() const;
     void log_accel_raw(uint8_t instance, const uint64_t sample_us, const Vector3f &accel);
     void log_gyro_raw(uint8_t instance, const uint64_t sample_us, const Vector3f &gryo);
 

@@ -34,9 +34,6 @@ void AP_InertialSensor::BatchSampler::init()
 
     _required_count -= _required_count % 32; // round down to nearest multiple of 32
 
-    const uint32_t total_allocation = 3*_required_count*sizeof(uint16_t);
-    gcs().send_text(MAV_SEVERITY_DEBUG, "INS: alloc %u bytes for ISB (free=%u)", total_allocation, hal.util->available_memory());
-
     data_x = (int16_t*)calloc(_required_count, sizeof(int16_t));
     data_y = (int16_t*)calloc(_required_count, sizeof(int16_t));
     data_z = (int16_t*)calloc(_required_count, sizeof(int16_t));
@@ -47,7 +44,6 @@ void AP_InertialSensor::BatchSampler::init()
         data_x = nullptr;
         data_y = nullptr;
         data_z = nullptr;
-        gcs().send_text(MAV_SEVERITY_WARNING, "Failed to allocate %u bytes for IMU batch sampling", total_allocation);
         return;
     }
 
@@ -192,8 +188,7 @@ bool AP_InertialSensor::BatchSampler::should_log(uint8_t _instance, IMU_SENSOR_T
         return false;
     }
     DataFlash_Class *dataflash = DataFlash_Class::instance();
-#define MASK_LOG_ANY                    0xFFFF
-    if (!dataflash->should_log(MASK_LOG_ANY)) {
+    if (!dataflash->should_log()) {
         return false;
     }
     return true;

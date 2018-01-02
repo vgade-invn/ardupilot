@@ -208,9 +208,6 @@ public:
     // get the accel filter rate in Hz
     uint8_t get_accel_filter_hz(void) const { return _accel_filter_cutoff; }
 
-    // pass in a pointer to DataFlash for raw data logging
-    void set_dataflash(DataFlash_Class *dataflash) { _dataflash = dataflash; }
-
     // enable/disable raw gyro/accel logging
     void set_raw_logging(bool enable) { _log_raw_data = enable; }
 
