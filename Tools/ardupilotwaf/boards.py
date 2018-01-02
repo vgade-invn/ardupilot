@@ -288,7 +288,6 @@ class chibios(Board):
             '-Werror=array-bounds',
             '-Wfatal-errors',
             '-Werror=unused-variable',
-            '-Werror=reorder',
             '-Werror=uninitialized',
             '-Werror=init-self',
             '-Wframe-larger-than=1024',
