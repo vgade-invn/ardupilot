@@ -36,7 +36,7 @@ public:
      */
     void force_safety_off(void) override;
 
-    bool enable_sbus_out(uint16_t rate_hz) override;
+    bool enable_px4io_sbus_out(uint16_t rate_hz) override;
     
 private:
     struct pwm_group {

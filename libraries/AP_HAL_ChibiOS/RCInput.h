@@ -1,8 +1,9 @@
 #pragma once
 
 #include "AP_HAL_ChibiOS.h"
+#ifdef HAL_RCINPUT_WITH_AP_RADIO
 #include <AP_Radio/AP_Radio.h>
-
+#endif
 
 #ifndef RC_INPUT_MAX_CHANNELS
 #define RC_INPUT_MAX_CHANNELS 18
