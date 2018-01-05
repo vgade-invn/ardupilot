@@ -65,6 +65,10 @@
 # define BOARD_TYPE_DEFAULT PX4_BOARD_AUTO
 #endif
 
+#ifndef HAL_IMU_TEMP_DEFAULT
+#define HAL_IMU_TEMP_DEFAULT       -1 // disabled
+#endif
+
 extern const AP_HAL::HAL& hal;
 
 // table of user settable parameters

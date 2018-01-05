@@ -3,9 +3,6 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Common/AP_Common.h>
 #include <AP_Param/AP_Param.h>
-<<<<<<< HEAD
-#include <sys/ioctl.h>
-=======
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
 #define AP_FEATURE_BOARD_DETECT 1
@@ -22,7 +19,6 @@
 #define AP_FEATURE_RTSCTS 0
 #define AP_FEATURE_SBUS_OUT 0
 #endif
->>>>>>> 26d4d03... AP_BoardConfig: convert to work on ChibiOS as well as NuttX
 
 extern "C" typedef int (*main_fn_t)(int argc, char **);
 
@@ -69,6 +65,7 @@ public:
         PX4_BOARD_AEROFC   = 13,
         PX4_BOARD_PIXHAWK_PRO = 14,
         PX4_BOARD_AUAV21   = 20,
+        PX4_BOARD_PCNC1    = 21,
         PX4_BOARD_OLDDRIVERS = 100,
 #endif
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN

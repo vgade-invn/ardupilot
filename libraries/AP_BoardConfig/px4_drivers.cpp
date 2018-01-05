@@ -162,59 +162,6 @@ bool AP_BoardConfig::px4_start_driver(main_fn_t main_function, const char *name,
     return (status >> 8) == 0;
 }
 
-<<<<<<< HEAD
-void AP_BoardConfig::px4_setup_drivers(void)
-{
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
-    /*
-      this works around an issue with some FMUv4 hardware (eg. copies
-      of the Pixracer) which have incorrect components leading to
-      sensor brownout on boot
-     */
-    if (px4_start_driver(fmu_main, "fmu", "sensor_reset 20")) {
-        printf("FMUv4 sensor reset complete\n");
-    }
-#endif
-
-    if (px4.board_type == PX4_BOARD_OLDDRIVERS) {
-        printf("Old drivers no longer supported\n");
-        px4.board_type = PX4_BOARD_AUTO;
-    }
-
-    // run board auto-detection
-    px4_autodetect();
-
-    if (px4.board_type == PX4_BOARD_PH2SLIM ||
-        px4.board_type == PX4_BOARD_PIXHAWK2) {
-        _imu_target_temperature.set_default(45);
-        if (_imu_target_temperature.get() < 0) {
-            // don't allow a value of -1 on the cube, or it could cook
-            // the IMU
-            _imu_target_temperature.set(45);
-        }
-    }
-
-    px4_configured_board = (enum px4_board_type)px4.board_type.get();
-
-    switch (px4_configured_board) {
-    case PX4_BOARD_PX4V1:
-    case PX4_BOARD_PIXHAWK:
-    case PX4_BOARD_PIXHAWK2:
-    case PX4_BOARD_PIXRACER:
-    case PX4_BOARD_PHMINI:
-    case PX4_BOARD_AUAV21:
-    case PX4_BOARD_PH2SLIM:
-    case PX4_BOARD_AEROFC:
-    case PX4_BOARD_PIXHAWK_PRO:
-        break;
-    default:
-        sensor_config_error("Unknown board type");
-        break;
-    }
-}
-
-=======
->>>>>>> 26d4d03... AP_BoardConfig: convert to work on ChibiOS as well as NuttX
 /*
   play a tune
  */
