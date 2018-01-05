@@ -63,6 +63,11 @@
 #define STORAGE_FLASH_PAGE		22
 #define HAL_STORAGE_SIZE        16384
 
+// enable AP_Radio support
+#define HAL_RCINPUT_WITH_AP_RADIO 1
+#define HAL_GPIO_RADIO_RESET      1
+#define HAL_GPIO_RADIO_IRQ       15
+
 // enable RAMTROM parameter storage
 #define HAL_WITH_RAMTRON 1
 
