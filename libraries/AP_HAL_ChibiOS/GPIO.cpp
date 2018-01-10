@@ -27,8 +27,8 @@ static struct gpio_entry {
     ioline_t pal_line;
 } _gpio_tab[]  = {
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_CHIBIOS_SKYVIPER_F412
-    {0, PAL_LINE(GPIOB, 7U)},
-    {1, PAL_LINE(GPIOB, 6U)},
+    {0, true, PAL_LINE(GPIOB, 7U)}, // front LED green
+    {1, true, PAL_LINE(GPIOB, 6U)}, // rear LED red
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_CHIBIOS_FMUV3
     // pin numbers chosen to match px4 build
     {0,  true,  PAL_LINE(GPIOE, 12U)}, // LED
