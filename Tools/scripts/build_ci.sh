@@ -87,6 +87,7 @@ for t in $CI_BUILD_TARGET; do
     if [[ -n ${waf_supported_boards[$t]} && -z ${CI_CRON_JOB+1} ]]; then
         echo "Starting waf build for board ${t}..."
         $waf configure --board $t --enable-benchmarks --check-c-compiler="$c_compiler" --check-cxx-compiler="$cxx_compiler"
+        cat build/config.log
         $waf clean
         $waf all
         ccache -s && ccache -z
