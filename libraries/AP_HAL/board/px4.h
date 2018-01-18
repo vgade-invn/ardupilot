@@ -20,6 +20,7 @@
 #define HAL_HAVE_IMU_HEATER         1 // for Pixhawk2
 #define HAL_IMU_TEMP_DEFAULT       -1 // disabled
 #define HAL_WITH_UAVCAN             1
+#define HAL_RCINPUT_WITH_AP_RADIO 1
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 #define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_PX4_V2
 #define HAL_STORAGE_SIZE            16384
@@ -110,10 +111,10 @@
 
 #ifdef HAL_RCINPUT_WITH_AP_RADIO
 // this is the external SPI bus on a PixHawk1:
-# define CYRF_SPI_PX4_SPI_BUS        PX4_SPI_BUS_EXT
+# define CYRF_SPI_PX4_SPI_BUS        2
 # define CYRF_SPI_PX4_SPIDEV_EXT     (spi_dev_e)PX4_SPIDEV_EXT0
 // this is AUX5 on a PixHawk1:
-# define CYRF_IRQ_INPUT (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN13)
+# define CYRF_IRQ_INPUT (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN15)
 #endif // HAL_RCINPUT_WITH_AP_RADIO
 
 /* default values */

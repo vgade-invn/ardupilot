@@ -42,3 +42,8 @@
 //#define USERHOOK_MEDIUMLOOP userhook_MediumLoop();        // for code to be run at 10hz
 //#define USERHOOK_SLOWLOOP userhook_SlowLoop();            // for code to be run at 3.3hz
 //#define USERHOOK_SUPERSLOWLOOP userhook_SuperSlowLoop();  // for code to be run at 1hz
+
+#define TOY_MODE_ENABLED ENABLED
+#define ARMING_DELAY_SEC 0
+#define LAND_START_ALT 700
+#define LAND_DETECTOR_ACCEL_MAX 2.0f

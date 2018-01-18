@@ -21,6 +21,9 @@
  */
 
 #include "AP_Radio_backend.h"
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
+    
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
 #include <nuttx/arch.h>
 #include <systemlib/systemlib.h>
@@ -181,3 +184,4 @@ private:
 };
 
 
+#endif
