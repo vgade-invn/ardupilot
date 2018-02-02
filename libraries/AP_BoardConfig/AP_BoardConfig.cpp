@@ -180,6 +180,12 @@ const AP_Param::GroupInfo AP_BoardConfig::var_info[] = {
 #endif
 
     // ID number 11 reserved for AP_Radio (pending PR)
+
+#if defined(HAL_NEEDS_PARAM_HELPER)
+    // @Group: ""
+    // @Path: ../libraries/AP_Param_Helper/AP_Param_Helper.cpp
+    AP_SUBGROUPINFO(param_helper, "", 12, AP_BoardConfig, AP_Param_Helper),
+#endif
     
     AP_GROUPEND
 };
