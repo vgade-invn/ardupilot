@@ -102,6 +102,7 @@
 #define HAL_BARO_BMP280_I2C 11
 #define HAL_BARO_BMP280_SPI 12
 #define HAL_BARO_LPS25H     13
+#define HAL_BARO_LPS22H_SPI	14
 
 /* Compass driver types */
 #define HAL_COMPASS_HMC5843             1
@@ -122,6 +123,7 @@
 #define HAL_COMPASS_OCPOC_ZYNQ         17
 #define HAL_COMPASS_EDGE               18
 #define HAL_COMPASS_LIS3MDL            19
+#define HAL_COMPASS_QMC5883L           20
 
 /* Heat Types */
 #define HAL_LINUX_HEAT_PWM 1
