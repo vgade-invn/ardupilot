@@ -27,7 +27,7 @@
 #endif
 
 
-#if USE_WAYBACK == ENABLED
+#ifdef USE_WAYBACK_ENABLE
 #include "AP_WayBack/AP_WayBack.h"
 #endif
 
