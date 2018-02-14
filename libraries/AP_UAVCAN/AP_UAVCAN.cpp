@@ -351,6 +351,20 @@ AP_UAVCAN::~AP_UAVCAN()
 {
 }
 
+class AP_UAVCAN_RxListener : public uavcan::IRxFrameListener
+{
+public:
+    void handleRxFrame(const uavcan::CanRxFrame& frame, uavcan::CanIOFlags flags) override {
+        if (!frame.isExtended()) {
+            hal.console->printf("got frame %p flags 0x%x len %u: ", frame, flags, frame.dlc);
+            for (uint8_t i=0; i<frame.dlc; i++) {
+                hal.console->printf("%02x ", frame.data[i]);
+            }
+            hal.console->printf("\n");
+        }
+    }
+};
+
 bool AP_UAVCAN::try_init(void)
 {
     if (_parent_can_mgr != nullptr) {
@@ -370,6 +384,11 @@ bool AP_UAVCAN::try_init(void)
 
             auto *node = get_node();
 
+            auto *listener = new AP_UAVCAN_RxListener;
+            
+            hal.console->printf("node=%p\n", node);
+            node->getDispatcher().installRxFrameListener(listener);
+            
             if (node != nullptr) {
                 if (!node->isStarted()) {
                     uavcan::NodeID self_node_id(_uavcan_node);
