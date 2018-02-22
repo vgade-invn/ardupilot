@@ -1921,6 +1921,7 @@ void GCS_MAVLINK::handle_common_message(mavlink_message_t *msg)
         handle_send_autopilot_version(msg);
         break;
 
+#if 0
     case MAVLINK_MSG_ID_MISSION_WRITE_PARTIAL_LIST:
         /* fall through */
     case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
@@ -1942,6 +1943,7 @@ void GCS_MAVLINK::handle_common_message(mavlink_message_t *msg)
     case MAVLINK_MSG_ID_MISSION_SET_CURRENT:
         handle_common_mission_message(msg);
         break;
+#endif
 
     case MAVLINK_MSG_ID_SERIAL_CONTROL:
         handle_serial_control(msg);
