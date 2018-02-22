@@ -1,41 +1,53 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+import re
+
 def build(bld):
     vehicle = bld.path.name
+
+    libs = bld.ap_common_vehicle_libraries() + [
+        'AP_ADSB',
+        'AC_AttitudeControl',
+        'AC_InputManager',
+        'AC_Fence',
+        'AC_Avoidance',
+        'AC_PID',
+        'AC_PrecLand',
+        'AC_Sprayer',
+        'AC_WPNav',
+        'AP_Camera',
+        'AP_IRLock',
+        'AP_InertialNav',
+        'AP_LandingGear',
+        'AP_Menu',
+        'AP_Motors',
+        'AP_Parachute',
+        'AP_RCMapper',
+        'AP_Avoidance',
+        'AP_AdvancedFailsafe',
+        'AP_Proximity',
+        'AP_SmartRTL',
+        'AP_Stats',
+        'AP_Gripper',
+        'AP_Beacon',
+        'AP_Arming',
+        'AP_VisualOdom',
+        'AP_WheelEncoder',
+        'AP_Winch',
+    ]
+
+    for define in bld.env.DEFINES:
+        m = re.match("STUB_OUT_(.*)=1", define)
+        if m is not None:
+            lib = m.group(1)
+            libs.remove(lib)
+    libs.append("AP_Stub")
+
     bld.ap_stlib(
         name=vehicle + '_libs',
         ap_vehicle=vehicle,
-        ap_libraries=bld.ap_common_vehicle_libraries() + [
-            'AP_ADSB',
-            'AC_AttitudeControl',
-            'AC_InputManager',
-            'AC_Fence',
-            'AC_Avoidance',
-            'AC_PID',
-            'AC_PrecLand',
-            'AC_Sprayer',
-            'AC_WPNav',
-            'AP_Camera',
-            'AP_IRLock',
-            'AP_InertialNav',
-            'AP_LandingGear',
-            'AP_Menu',
-            'AP_Motors',
-            'AP_Parachute',
-            'AP_RCMapper',
-            'AP_Avoidance',
-            'AP_AdvancedFailsafe',
-            'AP_Proximity',
-            'AP_SmartRTL',
-            'AP_Stats',
-            'AP_Gripper',
-            'AP_Beacon',
-            'AP_Arming',
-            'AP_VisualOdom',
-            'AP_WheelEncoder',
-            'AP_Winch',
-        ],
+        ap_libraries=libs,
     )
 
     bld.ap_program(
