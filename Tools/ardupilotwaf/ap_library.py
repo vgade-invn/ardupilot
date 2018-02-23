@@ -96,6 +96,15 @@ def ap_library(bld, library, vehicle):
 
     src = library_dir.ant_glob(wildcard)
 
+    # boards.py can specify that some library files not be compiled:
+    for define in bld.env.DEFINES:
+        m = re.match("STUB_FILE_OUT_(.*)=1", define)
+        if m is not None:
+            filename = m.group(1)
+            filename += ".cpp"
+            my_re = re.compile(r'.*/libraries/.*/%s' % filename)
+            src = filter(lambda v: not my_re.match(v.abspath()), src)
+
     if not common_tg:
         kw = dict(bld.env.AP_LIBRARIES_OBJECTS_KW)
         kw['features'] = kw.get('features', []) + ['ap_library_object']
