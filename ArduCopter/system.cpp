@@ -548,6 +548,7 @@ void Copter::allocate_motors(void)
             motors = new AP_MotorsMatrix(copter.scheduler.get_loop_rate_hz());
             motors_var_info = AP_MotorsMatrix::var_info;
             break;
+#if 0
         case AP_Motors::MOTOR_FRAME_TRI:
             motors = new AP_MotorsTri(copter.scheduler.get_loop_rate_hz());
             motors_var_info = AP_MotorsTri::var_info;
@@ -565,6 +566,7 @@ void Copter::allocate_motors(void)
             motors = new AP_MotorsTailsitter(copter.scheduler.get_loop_rate_hz());
             motors_var_info = AP_MotorsTailsitter::var_info;
             break;
+#endif
 #else // FRAME_CONFIG == HELI_FRAME
         case AP_Motors::MOTOR_FRAME_HELI_DUAL:
             motors = new AP_MotorsHeli_Dual(copter.scheduler.get_loop_rate_hz());
@@ -633,6 +635,7 @@ void Copter::allocate_motors(void)
     // reload lines from the defaults file that may now be accessible
     AP_Param::reload_defaults_file();
     
+#if 0
     // now setup some frame-class specific defaults
     switch ((AP_Motors::motor_frame_class)g2.frame_class.get()) {
     case AP_Motors::MOTOR_FRAME_Y6:
@@ -649,6 +652,7 @@ void Copter::allocate_motors(void)
     default:
         break;
     }
+#endif
 
     // brushed 16kHz defaults to 16kHz pulses
     if (motors->get_pwm_type() >= AP_Motors::PWM_TYPE_BRUSHED) {
