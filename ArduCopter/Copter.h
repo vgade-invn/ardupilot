@@ -483,7 +483,9 @@ private:
     AC_AttitudeControl_t *attitude_control;
     AC_PosControl *pos_control;
     AC_WPNav *wp_nav;
+#if MODE_CIRCLE_ENABLED == ENABLED
     AC_Circle *circle_nav;
+#endif
 
     // System Timers
     // --------------
@@ -963,7 +965,9 @@ private:
 #if MODE_BRAKE_ENABLED == ENABLED
     ModeBrake mode_brake;
 #endif
+#if MODE_CIRCLE_ENABLED == ENABLED
     ModeCircle mode_circle;
+#endif
 #if MODE_DRIFT_ENABLED == ENABLED
     ModeDrift mode_drift;
 #endif
