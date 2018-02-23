@@ -384,7 +384,21 @@ class skyviper_f412(chibios):
         env.CHIBIOS_FATFS_FLAG = 'USE_FATFS=no'
         env.DEFAULT_PARAMETERS = '../../Tools/Frame_params/SkyViper-F412/defaults.parm'
         env.CXXFLAGS += ['-DCHIBIOS_SHORT_BOARD_NAME="SRT-F412"' ]
-        
+
+class skyviper_f412_512k(skyviper_f412):
+    name = 'skyviper-f412-512k'
+    def configure_env(self, cfg, env):
+        super(skyviper_f412_512k, self).configure_env(cfg, env)
+        env.DEFINES.update(
+            STUB_OUT_AP_GPS = 1,
+            STUB_OUT_AP_Compass = 1,
+            STUB_OUT_AP_Beacon = 1,
+            STUB_OUT_AP_NavEKF3 = 1,
+            STUB_FILE_OUT_AP_NavEKF2_MagFusion = 1,
+            STUB_FILE_OUT_AP_NavEKF2_OptFlowFusion = 1,
+            STUB_FILE_OUT_AP_NavEKF2_RngBcnFusion = 1,
+            STUB_FILE_OUT_AP_NavEKF2_GPSStatus = 1,
+        )
 
 class skyviper_f412_rev1(skyviper_f412):
     name = 'skyviper-f412-rev1'
