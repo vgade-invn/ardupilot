@@ -36,3 +36,21 @@ define SOLO_SUPPORT_ENABLED DISABLED
 define SPRAYER DISABLED
 define VISUAL_ODOMETRY_ENABLED DISABLED
 define WINCH_ENABLED DISABLED
+
+# disable extra peripherals that are not used on this board varient
+undef USART6_TX
+undef USART6_RX
+undef USART6
+undef USART1_TX
+undef USART1_RX
+undef USART1
+
+STDOUT_SERIAL SD2
+
+UART_ORDER EMPTY EMPTY USART2
+
+I2C_ORDER I2C1
+undef HAL_INS_MPU60x0_I2C_BUS
+define HAL_INS_MPU60x0_I2C_BUS 0
+undef I2C2_SDA
+undef I2C2_SCL
