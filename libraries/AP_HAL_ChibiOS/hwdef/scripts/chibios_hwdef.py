@@ -431,8 +431,8 @@ def write_UART_config(f):
     # write out driver declarations for HAL_ChibOS_Class.cpp
     devnames = "ABCDEFGH"
     sdev = 0
-    for dev in uart_list:
-        idx = uart_list.index(dev)
+    for idx in range(len(uart_list)):
+        dev = uart_list[idx]
         if dev == 'EMPTY':
             f.write('#define HAL_UART%s_DRIVER Empty::UARTDriver uart%sDriver\n' %
                 (devnames[idx], devnames[idx]))
