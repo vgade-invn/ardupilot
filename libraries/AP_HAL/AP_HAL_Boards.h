@@ -94,6 +94,7 @@
 #define HAL_INS_RST         21
 #define HAL_INS_LSM9DS1     22
 #define HAL_INS_ICM20789_SPI 23
+#define HAL_INS_SKYVIPER_F412 24
 
 /* Barometer driver types */
 #define HAL_BARO_NONE        0
@@ -114,6 +115,7 @@
 #define HAL_BARO_20789_I2C_SPI  15
 #define HAL_BARO_LPS22H_SPI	16
 #define HAL_BARO_LPS25H_IMU_I2C 17
+#define HAL_BARO_SKYVIPER_F412 18
 
 /* Compass driver types */
 #define HAL_COMPASS_NONE                0
