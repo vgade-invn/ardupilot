@@ -620,6 +620,7 @@ void QuadPlane::setup_defaults(void)
     motor_class = (enum AP_Motors::motor_frame_class)frame_class.get();
     if (motor_class == AP_Motors::MOTOR_FRAME_TAILSITTER) {
         setup_defaults_table(defaults_table_tailsitter, ARRAY_SIZE(defaults_table_tailsitter));
+        SRV_Channels::set_angle(SRV_Channel::k_motor_tilt, 4500); // mid-motor tilt
     }
     
     // reset ESC calibration

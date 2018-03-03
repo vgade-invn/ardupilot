@@ -61,9 +61,11 @@ void QuadPlane::tailsitter_output(void)
             float tilt_right = (elevator - aileron) * tailsitter.vectored_forward_gain;
             SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorLeft, tilt_left);
             SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorRight, tilt_right);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_motor_tilt, (tilt_left+tilt_right)*0.5); // mid-motor
         } else {
             SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorLeft, 0);
             SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorRight, 0);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_motor_tilt, 0); // mid-motor
         }
         if (in_tailsitter_vtol_transition() && !throttle_wait && is_flying() && hal.util->get_soft_armed()) {
             /*
@@ -75,6 +77,7 @@ void QuadPlane::tailsitter_output(void)
             SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, throttle);
             SRV_Channels::set_output_scaled(SRV_Channel::k_throttleLeft, throttle);
             SRV_Channels::set_output_scaled(SRV_Channel::k_throttleRight, throttle);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_throttleMid, throttle);
             SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0);
             pos_control->get_accel_z_pid().set_integrator(throttle*10);
         }
@@ -113,6 +116,7 @@ void QuadPlane::tailsitter_output(void)
         }
         SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorLeft, tilt_left);
         SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorRight, tilt_right);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_motor_tilt, (tilt_left+tilt_right)*0.5); // mid-motor
     }
     
     

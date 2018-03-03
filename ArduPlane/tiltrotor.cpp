@@ -359,6 +359,10 @@ void QuadPlane::tiltrotor_vectored_yaw(void)
     
     float tilt_threshold = (tilt.max_angle_deg/90.0f);
     bool no_yaw = (tilt.current_tilt > tilt_threshold);
+
+    // mid-motor tilt
+    SRV_Channels::set_output_scaled(SRV_Channel::k_motor_tilt, 1000 * base_output);
+
     if (no_yaw) {
         SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorLeft,  1000 * base_output);
         SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorRight, 1000 * base_output);
