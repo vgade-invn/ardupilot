@@ -15,9 +15,10 @@
  * Code by Andrew Tridgell and Siddharth Bharat Purohit
  */
 #include "GPIO.h"
-#if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
 
 #include <AP_BoardConfig/AP_BoardConfig.h>
+
+#if HAL_USE_EXT == TRUE
 
 using namespace ChibiOS;
 
@@ -216,4 +217,4 @@ void ext_interrupt_cb(EXTDriver *extp, expchannel_t channel) {
         ext_irq[channel]();
     }
 }
-#endif //HAL_BOARD_ChibiOS
+#endif // HAL_USE_EXT

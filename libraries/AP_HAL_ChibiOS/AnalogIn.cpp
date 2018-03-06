@@ -15,6 +15,10 @@
  * Code by Andrew Tridgell and Siddharth Bharat Purohit
  */
 #include <AP_HAL/AP_HAL.h>
+#include "ch.h"
+#include "hal.h"
+
+#if HAL_USE_ADC == TRUE
 
 #include "AnalogIn.h"
 
@@ -310,3 +314,4 @@ AP_HAL::AnalogSource* AnalogIn::channel(int16_t pin)
     return nullptr;
 }
 
+#endif // HAL_USE_ADC
