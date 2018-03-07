@@ -394,6 +394,9 @@ bool AP_InertialSensor_Invensense::_accumulate(uint8_t *samples, uint8_t n_sampl
         int16_t t2 = int16_val(data, 3);
         if (!_check_raw_temp(t2)) {
             debug("temp reset IMU[%u] %d %d", _accel_instance, _raw_temp, t2);
+            if (total_transfers > 1000) {
+                _inc_accel_error_count(_accel_instance);
+            }
             _fifo_reset();
             return false;
         }
@@ -437,6 +440,9 @@ bool AP_InertialSensor_Invensense::_accumulate_fast_sampling(uint8_t *samples, u
         int16_t t2 = int16_val(data, 3);
         if (!_check_raw_temp(t2)) {
             debug("temp reset IMU[%u] %d %d", _accel_instance, _raw_temp, t2);
+            if (total_transfers > 1000) {
+                _inc_accel_error_count(_accel_instance);
+            }
             _fifo_reset();
             ret = false;
             break;
@@ -567,11 +573,15 @@ void AP_InertialSensor_Invensense::_read_fifo()
                 break;
             }
         }
+        total_transfers++;
         n_samples -= n;
     }
 
     if (need_reset) {
         //debug("fifo reset n_samples %u", bytes_read/MPU_SAMPLE_SIZE);
+        if (total_transfers > 1000) {
+            _inc_accel_error_count(_accel_instance);
+        }
         _fifo_reset();
     }
     

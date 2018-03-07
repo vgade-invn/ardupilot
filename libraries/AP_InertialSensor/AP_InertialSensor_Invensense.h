@@ -138,6 +138,9 @@ private:
     // buffer for fifo read
     uint8_t *_fifo_buffer;
 
+    // used to prevent logging of startup errors on FIFO
+    uint32_t total_transfers;
+    
     /*
       accumulators for fast sampling
       See description in _accumulate_fast_sampling()
