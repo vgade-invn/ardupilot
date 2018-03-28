@@ -34,6 +34,12 @@ extern SerialUSBConfig serusbcfg;
 extern SerialUSBDriver SDU1;
 #endif
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 void setup_usb_strings(void);
+#if defined(__cplusplus)
+}
+#endif
 
 /** @} */
