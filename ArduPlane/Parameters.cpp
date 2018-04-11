@@ -1184,11 +1184,33 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("MANUAL_RCMASK", 10, ParametersG2, manual_rc_mask, 0),
     
+#if EFI_ENABLED == ENABLED
+    // @Group: EFI_
+    // @Path: ../libraries/AP_EFI/AP_EFI.cpp
+    AP_SUBGROUPINFO(efi, "EFI", 13, ParametersG2, AP_EFI),
+#endif // EFI_ENABLED
+
+    // @Param: ICE_IDLE_RPM
+    // @DisplayName: RPM Setpoint for Idle Governor
+    // @Description: This configures the RPM that will be commanded by the idle governor. Set to -1 to disable
+    // @User: Advanced
+    AP_GROUPINFO("ICE_IDLE_RPM", 14, ParametersG2, idle_rpm, -1),
+
+    // @Param: ICE_IDLE_DB
+    // @DisplayName: Deadband for Idle Governor
+    // @Description: This configures the deadband that is tolerated before adjusting the idle setpoint
+    AP_GROUPINFO("ICE_IDLE_DB", 15, ParametersG2, idle_db, 50),
+
+    // @Param: ICE_IDLE_SLEW
+    // @DisplayName: Slew Rate for ICE
+    // @Description: This configures the slewrate used to adjust the idle setpoint in percentage points per second
+    AP_GROUPINFO("ICE_IDLE_SLEW", 16, ParametersG2, idle_slew, 1),
+    
     AP_GROUPEND
 };
 
 ParametersG2::ParametersG2(void) :
-    ice_control(plane.rpm_sensor, plane.ahrs),
+    ice_control(plane.rpm_sensor, plane.ahrs, efi),
     soaring_controller(plane.ahrs, plane.TECS_controller, plane.aparm)
 {
     AP_Param::setup_object_defaults(this, var_info);

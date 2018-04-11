@@ -568,6 +568,9 @@ private:
     int8_t  throttle_watt_limit_min; // for reverse thrust
     uint32_t throttle_watt_limit_timer_ms;
 
+    // ICE idle governor
+    float idle_governor_integrator;
+
     AP_Vehicle::FixedWing::FlightStage flight_stage = AP_Vehicle::FixedWing::FLIGHT_NORMAL;
 
     // probability of aircraft is currently in flight. range from 0 to
@@ -818,6 +821,7 @@ private:
     void send_pid_tuning(mavlink_channel_t chan);
     void send_rpm(mavlink_channel_t chan);
     void send_current_waypoint(mavlink_channel_t chan);
+    void send_efi_status(mavlink_channel_t chan);
 
     void send_aoa_ssa(mavlink_channel_t chan);
 
@@ -961,6 +965,7 @@ private:
     void read_battery(void);
     void read_receiver_rssi(void);
     void rpm_update(void);
+    void efi_update(void);
     void button_update(void);
     void stats_update();
     void ice_update(void);
@@ -1034,6 +1039,7 @@ private:
     void servos_auto_trim(void);
     void servos_twin_engine_mix();
     void throttle_watt_limiter(int8_t &min_throttle, int8_t &max_throttle);
+    void update_ice_idle_governor(int8_t& min_throttle);
     bool allow_reverse_thrust(void);
     void update_aux();
     void update_is_flying_5Hz(void);

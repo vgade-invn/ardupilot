@@ -407,7 +407,66 @@ void Plane::throttle_watt_limiter(int8_t &min_throttle, int8_t &max_throttle)
     }
 }
     
+/*
+  Update low throttle limit to ensure steady idle for IC Engines
+*/
+void Plane::update_ice_idle_governor(int8_t &min_throttle)
+{
+    // Initialize idle poing to min_throttle on the first run
+    static bool idle_point_initialized = false;
+    if (!idle_point_initialized) {
+        idle_governor_integrator = min_throttle;
+        idle_point_initialized = true;
+    }
 
+    // Check to make sure we have an enabled IC Engine, EFI Instance and that the idle governor is enabled
+    if (g2.ice_control.get_state() != AP_ICEngine::ICE_RUNNING || !g2.efi.is_healthy(0) || g2.idle_rpm < 0) {
+        return;
+    }
+
+    // get current RPM feedback from EFI unit
+    uint32_t rpm = g2.efi.get_rpm(0);
+
+    // Double Check to make sure engine is really running
+    if (rpm < 1) {
+        // Reset idle point to the default value when the engine is stopped
+        idle_governor_integrator = min_throttle;
+        return;
+    }
+
+    // Override
+    min_throttle = round(idle_governor_integrator);
+
+    // Caclulate Error in system
+    int32_t error = g2.idle_rpm - rpm;
+
+    bool underspeed = error > 0;
+
+    // Don't adjust idle point when we're within the deadband
+    if (abs(error) < g2.idle_db) {
+        return;
+    }
+
+    // Don't adjust idle point if the commanded throttle is above the current idle throttle setpoint and the RPM is above the idle RPM setpoint (Normal flight)
+    if (SRV_Channels::get_output_scaled(SRV_Channel::k_throttle) > min_throttle && !underspeed) {
+        return;
+    }
+
+    // Calculate the change per loop to acheieve the desired slew rate of 1 percent per second
+    static const float idle_setpoint_step = g2.idle_slew/scheduler.get_loop_rate_hz();
+
+    // Update Integrator 
+    if (underspeed) {
+        idle_governor_integrator += idle_setpoint_step;
+    } else {
+        idle_governor_integrator -= idle_setpoint_step;
+    }
+
+    idle_governor_integrator = constrain_float(idle_governor_integrator, aparm.throttle_min.get(), 40.0f);
+
+    min_throttle = round(idle_governor_integrator);
+
+}
 
 /*
   setup output channels all non-manual modes
@@ -422,6 +481,9 @@ void Plane::set_servos_controlled(void)
     // convert 0 to 100% (or -100 to +100) into PWM
     int8_t min_throttle = aparm.throttle_min.get();
     int8_t max_throttle = aparm.throttle_max.get();
+
+    // apply idle governor
+    update_ice_idle_governor(min_throttle);
     
     if (min_throttle < 0 && !allow_reverse_thrust()) {
         // reverse thrust is available but inhibited.
@@ -473,7 +535,8 @@ void Plane::set_servos_controlled(void)
         SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, channel_throttle->get_control_in_zero_dz());
     } else if (quadplane.in_vtol_mode()) {
         // ask quadplane code for forward throttle
-        SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, quadplane.forward_throttle_pct());
+        SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, 
+            constrain_int16(quadplane.forward_throttle_pct(), min_throttle, max_throttle));
     }
 
     // suppress throttle when soaring is active

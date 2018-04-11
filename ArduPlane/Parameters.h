@@ -544,6 +544,20 @@ public:
 
     // mask of channels to do manual pass-thru for
     AP_Int32 manual_rc_mask;
+    
+#if EFI_ENABLED == ENABLED
+    // EFI Engine Monitor
+    AP_EFI efi;
+#endif  
+
+    // ICE Idle Controller RPM setpoint
+    AP_Int16 idle_rpm;
+
+    // ICE Idle Controller RPM deadband
+    AP_Int16 idle_db;
+
+    // ICE Idle Controller Slew Rate
+    AP_Float idle_slew;
 };
 
 extern const AP_Param::Info var_info[];
