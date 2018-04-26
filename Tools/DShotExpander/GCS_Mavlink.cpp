@@ -2,6 +2,20 @@
 
 #include "GCS_Mavlink.h"
 
+// try to send a message, return false if it won't fit in the serial tx buffer
+bool GCS_MAVLINK_DShotExpander::try_send_message(enum ap_message id)
+{
+    switch (id) {
+    case MSG_HEARTBEAT:
+        CHECK_PAYLOAD_SIZE(HEARTBEAT);
+        send_heartbeat();
+        return true;
+    default:
+        break;
+    }
+    return false;
+}
+
 void DShotExpander::gcs_send_heartbeat(void)
 {
     hal.scheduler->delay_microseconds(500);

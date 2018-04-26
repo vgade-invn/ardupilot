@@ -25,6 +25,9 @@ protected:
     MAV_STATE system_status() const override { return (MAV_STATE)0; }
     uint32_t telem_delay() const override { return 0; }
 
+    bool try_send_message(enum ap_message id) override;
+    
+
     void handleMessage(mavlink_message_t * msg) override;
     bool handle_guided_request(AP_Mission::Mission_Command &cmd) override { return false; };
     void handle_change_alt_request(AP_Mission::Mission_Command &cmd) override {};

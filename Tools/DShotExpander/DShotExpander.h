@@ -32,6 +32,9 @@ private:
 
     static const AP_FWVersion fwver;
     AP_SerialManager serial_manager;
+
+    // Dataflash
+    DataFlash_Class DataFlash;
     
     // GCS selection
     GCS_DShotExpander _gcs;
