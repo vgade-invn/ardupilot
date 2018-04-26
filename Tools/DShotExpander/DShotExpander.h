@@ -1,6 +1,8 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Param/AP_Param.h>
 #include <AP_Scheduler/AP_Scheduler.h>
+#include <SRV_Channel/SRV_Channel.h>
+#include <AP_BoardConfig/AP_BoardConfig.h>
 #include "Parameters.h"
 #include "GCS_DShotExpander.h"
 
@@ -37,6 +39,9 @@ private:
 
     // Dataflash
     DataFlash_Class DataFlash;
+
+    SRV_Channels servo_channels;
+    AP_BoardConfig BoardConfig;
     
     // GCS selection
     GCS_DShotExpander _gcs;
