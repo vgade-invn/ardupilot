@@ -46,7 +46,7 @@ void DShotExpander::one_hz_loop()
 void DShotExpander::loop()
 {
     scheduler.loop();
-    hal.scheduler->delay_microseconds(2500);
+    hal.scheduler->delay_microseconds(20000);
 }
 
 /*
