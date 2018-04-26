@@ -18,6 +18,10 @@ const AP_Param::Info DShotExpander::var_info[] = {
     // @User: Advanced
     GSCALAR(format_version,         "FORMAT_VERSION", 0),
 
+    // @Group: SCHED_
+    // @Path: ../libraries/AP_Scheduler/AP_Scheduler.cpp
+    GOBJECT(scheduler, "SCHED_", AP_Scheduler),
+    
     AP_VAREND
 };
 
@@ -29,11 +33,13 @@ void DShotExpander::load_parameters(void)
 
         // erase all parameters
         hal.console->printf("Firmware change: erasing EEPROM...\n");
+        hal.scheduler->delay_microseconds(100);
         AP_Param::erase_all();
 
         // save the current format version
         g.format_version.set_and_save(Parameters::k_format_version);
         hal.console->printf("done.\n");
+        hal.scheduler->delay_microseconds(100);
     }
 
     AP_Param::load_all();
