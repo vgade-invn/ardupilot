@@ -31,6 +31,7 @@ private:
     void gcs_check_input();
 
     static const AP_FWVersion fwver;
+    AP_SerialManager serial_manager;
     
     // GCS selection
     GCS_DShotExpander _gcs;
