@@ -1348,7 +1348,7 @@ void AP_InertialSensor::update(void)
  */
 void AP_InertialSensor::wait_for_sample(void)
 {
-    if (_have_sample) {
+    if (_have_sample || _gyro_count == 0) {
         // the user has called wait_for_sample() again without
         // consuming the sample with update()
         return;
