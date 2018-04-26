@@ -28,7 +28,11 @@ void DShotExpander::setup()
     // initialise the main loop scheduler
 
     load_parameters();
-        
+
+    serial_manager.init();
+    gcs().chan(0).setup_uart(serial_manager, AP_SerialManager::SerialProtocol_MAVLink, 0);
+    gcs().setup_uarts(serial_manager);
+    
     scheduler.init(&scheduler_tasks[0], ARRAY_SIZE_SIMPLE(scheduler_tasks), 0);
 }
 

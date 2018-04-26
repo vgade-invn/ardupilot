@@ -21,6 +21,10 @@ const AP_Param::Info DShotExpander::var_info[] = {
     // @Group: SCHED_
     // @Path: ../libraries/AP_Scheduler/AP_Scheduler.cpp
     GOBJECT(scheduler, "SCHED_", AP_Scheduler),
+
+    // @Group: SERIAL
+    // @Path: ../libraries/AP_SerialManager/AP_SerialManager.cpp
+    GOBJECT(serial_manager, "SERIAL",   AP_SerialManager),
     
     AP_VAREND
 };

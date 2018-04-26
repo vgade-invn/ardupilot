@@ -14,6 +14,7 @@ public:
         //
         k_param_format_version = 0,
         k_param_scheduler,
+        k_param_serial_manager,
     };
 
     AP_Int16 format_version;
