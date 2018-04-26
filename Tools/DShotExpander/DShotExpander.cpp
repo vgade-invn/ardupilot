@@ -53,6 +53,7 @@ void DShotExpander::loop()
   constructor for main DShotExpander class
  */
 DShotExpander::DShotExpander(void)
+    : DataFlash(fwver.fw_string, g.log_bitmask)
 {
 }
 

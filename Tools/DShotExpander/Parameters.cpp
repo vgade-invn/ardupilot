@@ -25,6 +25,18 @@ const AP_Param::Info DShotExpander::var_info[] = {
     // @Group: SERIAL
     // @Path: ../libraries/AP_SerialManager/AP_SerialManager.cpp
     GOBJECT(serial_manager, "SERIAL",   AP_SerialManager),
+
+    // @Group: LOG
+    // @Path: ../libraries/DataFlash/DataFlash.cpp
+    GOBJECT(DataFlash,      "LOG",  DataFlash_Class),
+
+    // @Param: LOG_BITMASK
+    // @DisplayName: Log bitmask
+    // @Description: 4 byte bitmap of log types to enable
+    // @Values: 830:Default,894:Default+RCIN,958:Default+IMU,1854:Default+Motors,-6146:NearlyAll-AC315,45054:NearlyAll,131071:All+FastATT,262142:All+MotBatt,393214:All+FastIMU,397310:All+FastIMU+PID,655358:All+FullIMU,0:Disabled
+    // @Bitmask: 0:ATTITUDE_FAST,1:ATTITUDE_MED,2:GPS,3:PM,4:CTUN,5:NTUN,6:RCIN,7:IMU,8:CMD,9:CURRENT,10:RCOUT,11:OPTFLOW,12:PID,13:COMPASS,14:INAV,15:CAMERA,17:MOTBATT,18:IMU_FAST,19:IMU_RAW
+    // @User: Standard
+    GSCALAR(log_bitmask,    "LOG_BITMASK",          0),
     
     AP_VAREND
 };
