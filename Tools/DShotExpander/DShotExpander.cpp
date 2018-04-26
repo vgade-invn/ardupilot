@@ -6,13 +6,43 @@
 
 const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 
-void DShotExpander::setup() {
+#define SCHED_TASK(func, rate_hz, max_time_micros) SCHED_TASK_CLASS(DShotExpander, &dshotexpander, func, rate_hz, max_time_micros)
+
+const AP_Scheduler::Task DShotExpander::scheduler_tasks[] = {
+    SCHED_TASK(fast_loop,  1000, 100),
+    SCHED_TASK(one_hz_loop,  1, 100),
+    SCHED_TASK(gcs_send_heartbeat,  1,  100),
+//    SCHED_TASK(gcs_send_deferred,     50,    550),
+//    SCHED_TASK(gcs_data_stream_send,  50,    550),
+};
+
+
+void DShotExpander::setup()
+{
+    // Load the default values of variables listed in var_info[]s
+    AP_Param::setup_sketch_defaults();
+
+    hal.scheduler->delay(3000);
+    
+    hal.console->printf("setup\n");
+    // initialise the main loop scheduler
+
+    load_parameters();
+        
+    scheduler.init(&scheduler_tasks[0], ARRAY_SIZE_SIMPLE(scheduler_tasks), 0);
 }
+
+
+void DShotExpander::one_hz_loop()
+{
+    hal.console->printf("tick\n");
+}
+
 
 void DShotExpander::loop()
 {
-    hal.console->printf("tick\n");
-    hal.scheduler->delay(1000);
+    scheduler.loop();
+    hal.scheduler->delay_microseconds(2500);
 }
 
 /*
@@ -20,6 +50,11 @@ void DShotExpander::loop()
  */
 DShotExpander::DShotExpander(void)
 {
+}
+
+void DShotExpander::fast_loop(void)
+{
+    hal.scheduler->delay_microseconds(500);    
 }
 
 DShotExpander dshotexpander;

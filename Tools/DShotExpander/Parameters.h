@@ -13,6 +13,7 @@ public:
         // Layout version number, always key zero.
         //
         k_param_format_version = 0,
+        k_param_scheduler,
     };
 
     AP_Int16 format_version;
