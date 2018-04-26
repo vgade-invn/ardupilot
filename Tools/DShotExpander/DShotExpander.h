@@ -15,6 +15,8 @@ public:
     void loop() override;
 
 private:
+    AP_Param param_loader;
+
     static const AP_Param::Info var_info[];
     Parameters g;
 

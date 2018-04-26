@@ -44,6 +44,11 @@ const AP_Param::Info DShotExpander::var_info[] = {
 
 void DShotExpander::load_parameters(void)
 {
+    if (!AP_Param::check_var_info()) {
+        hal.console->printf("Bad var table\n");
+        AP_HAL::panic("Bad var table");
+    }
+
     if (!g.format_version.load() ||
         g.format_version != Parameters::k_format_version) {
 

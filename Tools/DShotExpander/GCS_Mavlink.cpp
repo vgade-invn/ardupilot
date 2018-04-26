@@ -11,26 +11,24 @@ bool GCS_MAVLINK_DShotExpander::try_send_message(enum ap_message id)
         send_heartbeat();
         return true;
     default:
-        break;
+        return GCS_MAVLINK::try_send_message(id);
     }
     return false;
 }
 
 void DShotExpander::gcs_send_heartbeat(void)
 {
-    hal.scheduler->delay_microseconds(500);
     gcs().send_message(MSG_HEARTBEAT);
 }
 
 void DShotExpander::gcs_send_deferred(void)
 {
-    hal.scheduler->delay_microseconds(500);
     gcs().retry_deferred();
 }
 
 void DShotExpander::gcs_data_stream_send(void)
 {
-    hal.scheduler->delay_microseconds(500);
+    gcs().data_stream_send();
 }
 
 const AP_Param::GroupInfo GCS_MAVLINK::var_info[] = {
@@ -161,3 +159,4 @@ const AP_FWVersion &GCS_MAVLINK_DShotExpander::get_fwver() const
 {
     return dshotexpander.fwver;
 }
+

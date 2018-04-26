@@ -11,9 +11,10 @@ const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 const AP_Scheduler::Task DShotExpander::scheduler_tasks[] = {
     SCHED_TASK(fast_loop,  1000, 100),
     SCHED_TASK(one_hz_loop,  1, 100),
-    SCHED_TASK(gcs_send_heartbeat,  1,  100),
-//    SCHED_TASK(gcs_send_deferred,     50,    550),
-//    SCHED_TASK(gcs_data_stream_send,  50,    550),
+    SCHED_TASK(gcs_check_input,      400,    180),
+    SCHED_TASK(gcs_send_heartbeat,     1,    110),
+    SCHED_TASK(gcs_send_deferred,     50,    550),
+    SCHED_TASK(gcs_data_stream_send,  50,    550),
 };
 
 
@@ -39,7 +40,6 @@ void DShotExpander::setup()
 
 void DShotExpander::one_hz_loop()
 {
-    hal.console->printf("tick\n");
 }
 
 
@@ -53,13 +53,13 @@ void DShotExpander::loop()
   constructor for main DShotExpander class
  */
 DShotExpander::DShotExpander(void)
-    : DataFlash(fwver.fw_string, g.log_bitmask)
+    : param_loader(var_info),
+      DataFlash(fwver.fw_string, g.log_bitmask)
 {
 }
 
 void DShotExpander::fast_loop(void)
 {
-    hal.scheduler->delay_microseconds(500);    
 }
 
 DShotExpander dshotexpander;
