@@ -141,6 +141,34 @@ void GCS_MAVLINK_DShotExpander::handleMessage(mavlink_message_t* msg)
         break;
     }
 
+    case MAVLINK_MSG_ID_COMMAND_LONG: {
+        mavlink_command_long_t packet;
+        mavlink_msg_command_long_decode(msg, &packet);
+        
+        MAV_RESULT result = MAV_RESULT_UNSUPPORTED;
+        
+        switch (packet.command) {
+        case MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
+            if (is_equal(packet.param1, 1.0f) || is_equal(packet.param1, 3.0f)) {
+                // when packet.param1 == 3 we reboot to hold in bootloader
+                hal.scheduler->reboot(is_equal(packet.param1, 3.0f));
+                result = MAV_RESULT_ACCEPTED;
+            }
+            break;
+
+        default:
+            result = handle_command_long_message(packet);
+            break;
+        }
+
+        mavlink_msg_command_ack_send_buf(
+            msg,
+            chan,
+            packet.command,
+            result);
+        break;
+    }
+        
     default:
         handle_common_message(msg);
         break;
