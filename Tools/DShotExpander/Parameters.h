@@ -16,7 +16,9 @@ public:
         k_param_scheduler,
         k_param_serial_manager,
         k_param_DataFlash,
-        k_param_log_bitmask
+        k_param_log_bitmask,
+        k_param_servo_channels,
+        k_param_BoardConfig,
     };
 
     AP_Int16 format_version;

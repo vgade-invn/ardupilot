@@ -25,14 +25,14 @@ void DShotExpander::setup()
 
     hal.scheduler->delay(3000);
     
-    hal.console->printf("setup\n");
-    // initialise the main loop scheduler
-
     load_parameters();
 
     serial_manager.init();
     gcs().chan(0).setup_uart(serial_manager, AP_SerialManager::SerialProtocol_MAVLink, 0);
     gcs().setup_uarts(serial_manager);
+
+    BoardConfig.init();
+    BoardConfig.init_safety();
     
     scheduler.init(&scheduler_tasks[0], ARRAY_SIZE_SIMPLE(scheduler_tasks), 0);
 }
@@ -40,6 +40,7 @@ void DShotExpander::setup()
 
 void DShotExpander::one_hz_loop()
 {
+    SRV_Channels::enable_aux_servos();
 }
 
 
@@ -60,6 +61,10 @@ DShotExpander::DShotExpander(void)
 
 void DShotExpander::fast_loop(void)
 {
+    SRV_Channels::calc_pwm();
+    SRV_Channels::cork();
+    SRV_Channels::output_ch_all();
+    SRV_Channels::push();    
 }
 
 DShotExpander dshotexpander;
