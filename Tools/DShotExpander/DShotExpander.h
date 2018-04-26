@@ -46,6 +46,18 @@ private:
     // GCS selection
     GCS_DShotExpander _gcs;
     GCS_DShotExpander &gcs() { return _gcs; }
+
+    void setup_uart();
+    static void uart_start(void *ctx);
+    void uart_thread();
+    void stop_motors();
+    AP_HAL::UARTDriver *uart;
+
+    static const uint8_t max_channels = 8;
+    
+    uint32_t crc_errors;
+    uint32_t pkt_errors;
+    uint32_t last_packet_ms;
 };
 
 extern const AP_HAL::HAL& hal;

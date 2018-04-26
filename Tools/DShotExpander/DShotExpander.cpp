@@ -33,6 +33,13 @@ void DShotExpander::setup()
 
     BoardConfig.init();
     BoardConfig.init_safety();
+
+    hal.rcout->set_esc_scaling(1000, 2000);
+
+    hal.rcout->set_freq(0xFF, 400);
+    hal.rcout->set_output_mode(0xFF, AP_HAL::RCOutput::MODE_PWM_DSHOT150);
+
+    setup_uart();
     
     scheduler.init(&scheduler_tasks[0], ARRAY_SIZE_SIMPLE(scheduler_tasks), 0);
 }
@@ -41,6 +48,7 @@ void DShotExpander::setup()
 void DShotExpander::one_hz_loop()
 {
     SRV_Channels::enable_aux_servos();
+    hal.uartB->printf("tick\n");
 }
 
 
@@ -61,10 +69,6 @@ DShotExpander::DShotExpander(void)
 
 void DShotExpander::fast_loop(void)
 {
-    SRV_Channels::calc_pwm();
-    SRV_Channels::cork();
-    SRV_Channels::output_ch_all();
-    SRV_Channels::push();    
 }
 
 DShotExpander dshotexpander;
