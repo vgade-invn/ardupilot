@@ -48,7 +48,8 @@ void DShotExpander::setup()
 void DShotExpander::one_hz_loop()
 {
     SRV_Channels::enable_aux_servos();
-    hal.uartB->printf("tick\n");
+    hal.uartB->printf("tickB\n");
+    hal.uartC->printf("tickC\n");
 }
 
 
