@@ -51,6 +51,7 @@ private:
     AP_Int16 telem_rate;
     AP_Int8 debug_level;
     AP_Int8 output_type;
+    AP_Int8 distribution_enable;
     
     enum mspState {
         MSP_IDLE=0,
@@ -166,7 +167,7 @@ private:
 
     AP_HAL::UARTDriver *uart;
     AP_HAL::UARTDriver *debug_uart;
-    AP_HAL::UARTDriver *telem_uart;    
+    AP_HAL::UARTDriver *telem_uart[2];
     
     static const uint8_t max_motors = 8;
     uint8_t num_motors;
@@ -191,6 +192,7 @@ private:
 
     // when did we last request telemetry?
     uint32_t last_telem_request_us;
+    uint32_t last_telem_byte_read_us[2];
     uint8_t last_telem_esc;
     static const uint8_t telem_packet_size = 10;
 
@@ -223,10 +225,11 @@ private:
     void blheli_process_command(void);
     void run_connection_test(uint8_t chan);
     uint8_t telem_crc8(uint8_t crc, uint8_t crc_seed) const;
-    void read_telemetry_packet(void);
+    void read_telemetry_packet(AP_HAL::UARTDriver *);
     
     // protocol handler hook
     bool protocol_handler(uint8_t , AP_HAL::UARTDriver *);
+    void distribution_write(void);
 };
 
 
