@@ -32,8 +32,8 @@ void DShotExpander::uart_thread(void)
     const uint8_t max_len = 4 + max_channels*2;
     uint8_t pkt[4+max_channels*2];
     
-    uart = hal.uartB;
-    uart->begin(921600);
+    uart = hal.uartC;
+    uart->begin(115200);
 
     while (true) {
         // wait for min number of bytes
@@ -91,10 +91,15 @@ void DShotExpander::uart_thread(void)
         }
 
         uint8_t nchan = (nread - 4)/2;
+        static uint16_t lastv[8];
         for (uint8_t i=0; i<nchan; i++) {
             uint16_t v = pkt[2+i*2] | (pkt[3+i*2]<<8);
-            uint16_t pwm = 1000 + v / 2;
+            uint16_t pwm = v?(1000 + v):0;
             SRV_Channels::set_output_pwm(SRV_Channels::get_motor_function(i), pwm);
+            if (lastv[i] != v) {
+                hal.console->printf("mot[%u]=%u v=0x%x\n", i, pwm, v);
+                lastv[i] = v;
+            }
         }
 
         last_packet_ms = AP_HAL::millis();
