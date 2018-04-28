@@ -93,6 +93,13 @@ const AP_Param::GroupInfo AP_BLHeli::var_info[] = {
     // @Values: 0:None,1:OneShot,2:OneShot125,3:Brushed,4:DShot150,5:DShot300,6:DShot600,7:DShot1200
     // @User: Advanced
     AP_GROUPINFO("OTYPE",  7, AP_BLHeli, output_type, 0),
+
+    // @Param: DPROT
+    // @DisplayName: Enable dshot distribution protocol
+    // @Description: This enables a DShot serial distribution protocol on the telemetry UART. This protocol allows DShot outputs to be distributed to another MCU running the DShotExpander protocol firmware
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
+    AP_GROUPINFO("DPROT",  8, AP_BLHeli, distribution_enable, 0),
     
     AP_GROUPEND
 };
@@ -1203,7 +1210,19 @@ void AP_BLHeli::update(void)
     if (telem_rate > 0) {
         AP_SerialManager *serial_manager = AP_SerialManager::get_instance();
         if (serial_manager) {
-            telem_uart = serial_manager->find_serial(AP_SerialManager::SerialProtocol_ESCTelemetry,0);
+            telem_uart[0] = serial_manager->find_serial(AP_SerialManager::SerialProtocol_ESCTelemetry,0);
+            if (telem_uart[0] && distribution_enable) {
+                telem_uart[0]->set_unbuffered_writes(true);
+            }
+            if (telem_uart[0]) {
+                // allow for a 2nd telemetry uart. This is useful if
+                // you want a separate uart for two sets of motors,
+                // eg. for two wings on a quadplane
+                telem_uart[1] = serial_manager->find_serial(AP_SerialManager::SerialProtocol_ESCTelemetry,1);
+                if (telem_uart[1] && distribution_enable) {
+                    telem_uart[1]->set_unbuffered_writes(true);
+                }
+            }
         }
     }
 
@@ -1227,12 +1246,12 @@ uint8_t AP_BLHeli::telem_crc8(uint8_t crc, uint8_t crc_seed) const
 /*
   read an ESC telemetry packet
  */
-void AP_BLHeli::read_telemetry_packet(void)
+void AP_BLHeli::read_telemetry_packet(AP_HAL::UARTDriver *tuart)
 {
     uint8_t buf[telem_packet_size];
     uint8_t crc = 0;
     for (uint8_t i=0; i<telem_packet_size; i++) {
-        int16_t v = telem_uart->read();
+        int16_t v = tuart->read();
         if (v < 0) {
             // short read, we should have 10 bytes ready when this function is called
             return;
@@ -1286,53 +1305,102 @@ void AP_BLHeli::read_telemetry_packet(void)
  */
 void AP_BLHeli::update_telemetry(void)
 {
-    if (!telem_uart) {
+    if (!telem_uart[0]) {
         return;
     }
+    if (distribution_enable) {
+        distribution_write();
+    }
     uint32_t now = AP_HAL::micros();
-    uint32_t nbytes = telem_uart->available();
     uint32_t telem_rate_us = 1000000U / uint32_t(telem_rate.get() * num_motors);
     if (telem_rate_us < 2000) {
         // make sure we have a gap between frames
         telem_rate_us = 2000;
     }
+    for (uint8_t p=0; p<2; p++) {
+        AP_HAL::UARTDriver *tuart = telem_uart[p];
+        if (tuart == nullptr) {
+            continue;
+        }
+        uint32_t nbytes = tuart->available();
     
-    if (nbytes > telem_packet_size) {
-        // if we have more than 10 bytes then we don't know which ESC
-        // they are from. Throw them all away
-        if (nbytes > telem_packet_size*2) {
-            // something badly wrong with this uart, disable ESC
-            // telemetry so we don't chew lots of CPU reading garbage
-            telem_uart = nullptr;
-            return;
+        if (nbytes > telem_packet_size) {
+            // if we have more than 10 bytes then we don't know which ESC
+            // they are from. Throw them all away
+            hal.console->printf("discard %u on %u\n", nbytes, p);
+            while (nbytes--) {
+                tuart->read();
+            }
+            continue;
         }
-        while (nbytes--) {
-            telem_uart->read();
+        if (nbytes > 0 &&
+            nbytes < telem_packet_size &&
+            (last_telem_byte_read_us[p] == 0 ||
+             now - last_telem_byte_read_us[p] < 1000)) {
+            // wait a bit longer, we don't have enough bytes yet
+            if (last_telem_byte_read_us[p] == 0) {
+                last_telem_byte_read_us[p] = now;
+            }
+            continue;
         }
-        return;
-    }
-    if (nbytes > 0 &&
-        nbytes < telem_packet_size &&
-        now - last_telem_request_us < telem_rate_us) {
-        // wait a bit longer, we don't have enough bytes yet
-        return;
-    }
-    if (nbytes > 0 && nbytes < telem_packet_size) {
-        // we've waited long enough, discard bytes if we don't have 10 yet
-        while (nbytes--) {
-            telem_uart->read();
+        if (nbytes > 0 && nbytes < telem_packet_size) {
+            // we've waited long enough, discard bytes if we don't have 10 yet
+            hal.console->printf("discard2 %u on %u\n", nbytes, p);
+            while (nbytes--) {
+                tuart->read();
+            }
+            continue;
         }
-        return;
-    }
-    if (nbytes == telem_packet_size) {
-        // we have a full packet ready to parse
-        read_telemetry_packet();
+        if (nbytes == telem_packet_size) {
+            // we have a full packet ready to parse
+            read_telemetry_packet(tuart);
+            last_telem_byte_read_us[p] = 0;
+        }
     }
     if (now - last_telem_request_us >= telem_rate_us) {
         last_telem_esc = (last_telem_esc + 1) % num_motors;
         uint16_t mask = 1U << motor_map[last_telem_esc];
         hal.rcout->set_telem_request_mask(mask);
         last_telem_request_us = now;
+    }
+}
+
+
+#define APM_DSHOT_MAGIC 0x82
+
+/*
+  write the DShot distribution protocol to the telemetry UARTs
+ */
+void AP_BLHeli::distribution_write(void)
+{
+    uint8_t plen = 4 + num_motors*2;
+    uint8_t pkt[plen], *p = &pkt[0];
+
+    *p++ = APM_DSHOT_MAGIC;
+    *p++ = plen;
+
+    uint16_t min_pwm = 1000;
+    uint16_t max_pwm = 2000;
+    hal.rcout->get_esc_scaling(min_pwm, max_pwm);
+    
+    for (uint8_t i=0; i<num_motors; i++) {
+        uint16_t v = hal.rcout->read(motor_map[i]);
+        if (v <= min_pwm) {
+            v = 0; 
+        } else {
+            v -= min_pwm;
+        }
+        *p++ = v & 0xFF;
+        *p++ = v >> 8;
+    }
+    uint16_t crc = crc_xmodem(pkt, plen-2);
+    *p++ = crc & 0xFF;
+    *p++ = crc >> 8;
+    for (uint8_t i=0; i<2; i++) {
+        if (telem_uart[i]->txspace() < plen) {
+            continue;
+        }
+        telem_uart[i]->write(pkt, plen);
     }
 }
 
