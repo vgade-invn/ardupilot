@@ -94,21 +94,29 @@ const AP_Param::GroupInfo AP_BLHeli::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("OTYPE",  7, AP_BLHeli, output_type, 0),
 
-    // @Param: DPROT
-    // @DisplayName: Enable dshot distribution protocol
-    // @Description: This enables a DShot serial distribution protocol on the telemetry UART. This protocol allows DShot outputs to be distributed to another MCU running the DShotExpander protocol firmware
-    // @Values: 0:Disabled,1:Enabled
+    // @Param: DMASK1
+    // @DisplayName: Mask of channels to enable DShot UART distribution for
+    // @Description: This enables a DShot serial distribution protocol on the first DShot telemetry UART. This is for advanced users, and should not be enabled without reading the documentation.
     // @User: Advanced
-    AP_GROUPINFO("DPROT",  8, AP_BLHeli, distribution_enable, 0),
+    AP_GROUPINFO("DMASK1",  8, AP_BLHeli, distribution_mask[0], 0),
+
+    // @Param: DMASK2
+    // @DisplayName: Mask of channels to enable DShot UART distribution for
+    // @Description: This enables a DShot serial distribution protocol on the second DShot telemetry UART. This is for advanced users, and should not be enabled without reading the documentation.
+    // @User: Advanced
+    AP_GROUPINFO("DMASK2",  9, AP_BLHeli, distribution_mask[1], 0),
     
     AP_GROUPEND
 };
+
+AP_BLHeli *AP_BLHeli::instance;
 
 // constructor
 AP_BLHeli::AP_BLHeli(void)
 {
     // set defaults from the parameter table
     AP_Param::setup_object_defaults(this, var_info);
+    instance = this;
 }
 
 /*
@@ -1211,27 +1219,37 @@ void AP_BLHeli::update(void)
         AP_SerialManager *serial_manager = AP_SerialManager::get_instance();
         if (serial_manager) {
             telem_uart[0] = serial_manager->find_serial(AP_SerialManager::SerialProtocol_ESCTelemetry,0);
-            if (telem_uart[0] && distribution_enable) {
-                telem_uart[0]->set_unbuffered_writes(true);
-            }
             if (telem_uart[0]) {
                 // allow for a 2nd telemetry uart. This is useful if
                 // you want a separate uart for two sets of motors,
                 // eg. for two wings on a quadplane
                 telem_uart[1] = serial_manager->find_serial(AP_SerialManager::SerialProtocol_ESCTelemetry,1);
-                if (telem_uart[1] && distribution_enable) {
-                    telem_uart[1]->set_unbuffered_writes(true);
-                }
+            } else {
+                telem_uart[1] = nullptr;
             }
         }
     }
 
 }
 
+// get the most recent telemetry data packet for a motor
+bool AP_BLHeli::get_telem_data(uint8_t esc_index, struct telem_data &td, uint32_t &timestamp_ms)
+{
+    if (esc_index >= max_motors) {
+        return false;
+    }
+    if (last_telem_ms[esc_index] == 0) {
+        return false;
+    }
+    timestamp_ms = last_telem_ms[esc_index];
+    td = last_telem[esc_index];
+    return true;
+}
+
 /*
   implement the 8 bit CRC used by the BLHeli ESC telemetry protocol
  */
-uint8_t AP_BLHeli::telem_crc8(uint8_t crc, uint8_t crc_seed) const
+uint8_t AP_BLHeli::telem_crc8(uint8_t crc, uint8_t crc_seed)
 {
     uint8_t crc_u = crc;
     crc_u ^= crc_seed;
@@ -1269,33 +1287,37 @@ void AP_BLHeli::read_telemetry_packet(AP_HAL::UARTDriver *tuart)
         debug("Bad CRC on %u\n", last_telem_esc);
         return;
     }
-    uint8_t temperature = buf[0];
-    uint16_t voltage = (buf[1]<<8) | buf[2];
-    uint16_t current = (buf[3]<<8) | buf[4];
-    uint16_t consumption = (buf[5]<<8) | buf[6];
-    uint16_t rpm = (buf[7]<<8) | buf[8];
+    struct telem_data td;
+    td.temperature = buf[0];
+    td.voltage = (buf[1]<<8) | buf[2];
+    td.current = (buf[3]<<8) | buf[4];
+    td.consumption = (buf[5]<<8) | buf[6];
+    td.rpm = (buf[7]<<8) | buf[8];
 
+    last_telem[last_telem_esc] = td;
+    last_telem_ms[last_telem_esc] = AP_HAL::millis();
+    
     DataFlash_Class *df = DataFlash_Class::instance();
     if (df && df->logging_enabled()) {
         struct log_Esc pkt = {
             LOG_PACKET_HEADER_INIT(uint8_t(LOG_ESC1_MSG+last_telem_esc)),
             time_us     : AP_HAL::micros64(),
-            rpm         : int32_t(rpm*100U),
-            voltage     : uint16_t(voltage),
-            current     : uint16_t(current),
-            temperature : int16_t(temperature * 100U),
-            current_tot : consumption
+            rpm         : int32_t(td.rpm*100U),
+            voltage     : td.voltage,
+            current     : td.current,
+            temperature : int16_t(td.temperature * 100U),
+            current_tot : td.consumption
         };
         df->WriteBlock(&pkt, sizeof(pkt));
     }
 #if 0
-    hal.console->printf("ESC[%u] T=%u V=%u C=%u con=%u RPM=%u\n",
+    hal.console->printf("ESC[%u] T=%u V=%u C=%u con=%u RPM=%u t=%u\n",
                         last_telem_esc,
-                        temperature,
-                        voltage,
-                        current,
-                        consumption,
-                        rpm);
+                        td.temperature,
+                        td.voltage,
+                        td.current,
+                        td.consumption,
+                        td.rpm, AP_HAL::millis());
 #endif
 }
 
@@ -1308,7 +1330,7 @@ void AP_BLHeli::update_telemetry(void)
     if (!telem_uart[0]) {
         return;
     }
-    if (distribution_enable) {
+    if (distribution_mask[0] || distribution_mask[1]) {
         distribution_write();
     }
     uint32_t now = AP_HAL::micros();
@@ -1322,12 +1344,20 @@ void AP_BLHeli::update_telemetry(void)
         if (tuart == nullptr) {
             continue;
         }
+        if (!telem_uart_started[p]) {
+            // we need to use begin() here to ensure the correct thread owns the uart
+            tuart->begin(115200);
+            if (distribution_mask[p]) {
+                tuart->set_unbuffered_writes(true);
+            }
+            telem_uart_started[p] = true;
+        }
+        
         uint32_t nbytes = tuart->available();
     
         if (nbytes > telem_packet_size) {
             // if we have more than 10 bytes then we don't know which ESC
             // they are from. Throw them all away
-            hal.console->printf("discard %u on %u\n", nbytes, p);
             while (nbytes--) {
                 tuart->read();
             }
@@ -1345,7 +1375,6 @@ void AP_BLHeli::update_telemetry(void)
         }
         if (nbytes > 0 && nbytes < telem_packet_size) {
             // we've waited long enough, discard bytes if we don't have 10 yet
-            hal.console->printf("discard2 %u on %u\n", nbytes, p);
             while (nbytes--) {
                 tuart->read();
             }
@@ -1357,11 +1386,13 @@ void AP_BLHeli::update_telemetry(void)
             last_telem_byte_read_us[p] = 0;
         }
     }
-    if (now - last_telem_request_us >= telem_rate_us) {
-        last_telem_esc = (last_telem_esc + 1) % num_motors;
-        uint16_t mask = 1U << motor_map[last_telem_esc];
-        hal.rcout->set_telem_request_mask(mask);
-        last_telem_request_us = now;
+    if (distribution_mask[0] == 0 && distribution_mask[1] == 0) {
+        if (now - last_telem_request_us >= telem_rate_us) {
+            last_telem_esc = (last_telem_esc + 1) % num_motors;
+            uint16_t mask = 1U << motor_map[last_telem_esc];
+            hal.rcout->set_telem_request_mask(mask);
+            last_telem_request_us = now;
+        }
     }
 }
 
@@ -1377,30 +1408,57 @@ void AP_BLHeli::distribution_write(void)
     uint8_t pkt[plen], *p = &pkt[0];
 
     *p++ = APM_DSHOT_MAGIC;
-    *p++ = plen;
+    *p++ = 0;
 
     uint16_t min_pwm = 1000;
     uint16_t max_pwm = 2000;
     hal.rcout->get_esc_scaling(min_pwm, max_pwm);
-    
-    for (uint8_t i=0; i<num_motors; i++) {
-        uint16_t v = hal.rcout->read(motor_map[i]);
-        if (v <= min_pwm) {
-            v = 0; 
-        } else {
-            v -= min_pwm;
-        }
-        *p++ = v & 0xFF;
-        *p++ = v >> 8;
+
+    uint32_t telem_rate_us = 1000000U / uint32_t(telem_rate.get() * num_motors);
+    if (telem_rate_us < 2000) {
+        // make sure we have a gap between frames
+        telem_rate_us = 2000;
     }
-    uint16_t crc = crc_xmodem(pkt, plen-2);
-    *p++ = crc & 0xFF;
-    *p++ = crc >> 8;
-    for (uint8_t i=0; i<2; i++) {
-        if (telem_uart[i]->txspace() < plen) {
+
+    int16_t telem_esc = -1;
+    uint32_t now = AP_HAL::micros();
+    if (now - last_telem_request_us >= telem_rate_us) {
+        last_telem_esc = (last_telem_esc + 1) % num_motors;
+        telem_esc = last_telem_esc;
+        last_telem_request_us = now;
+    }
+    
+    for (uint8_t d=0; d<2; d++) {
+        AP_HAL::UARTDriver *tuart = telem_uart[d];
+        uint32_t dmask = distribution_mask[d];
+        if (tuart == nullptr || dmask == 0) {
             continue;
         }
-        telem_uart[i]->write(pkt, plen);
+        for (uint8_t i=0; i<num_motors; i++) {
+            if ((dmask & (1U<<i)) == 0) {
+                continue;
+            }
+            uint16_t v = hal.rcout->read(motor_map[i]);
+            if (v <= min_pwm) {
+                v = 0; 
+            } else {
+                v -= min_pwm;
+            }
+            if (telem_esc == i) {
+                v |= 0x8000;
+            }
+            *p++ = v & 0xFF;
+            *p++ = v >> 8;
+        }
+        uint8_t send_len = (2+p-&pkt[0]);
+        pkt[1] = send_len;
+        uint16_t crc = crc_xmodem(pkt, send_len-2);
+        *p++ = crc & 0xFF;
+        *p++ = crc >> 8;
+        if (tuart->txspace() < send_len) {
+            continue;
+        }
+        tuart->write(pkt, send_len);
     }
 }
 
