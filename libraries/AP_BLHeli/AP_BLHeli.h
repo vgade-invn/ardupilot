@@ -40,9 +40,28 @@ public:
     bool process_input(uint8_t b);
 
     static const struct AP_Param::GroupInfo var_info[];
+
+    struct telem_data {
+        uint8_t temperature;
+        uint16_t voltage;
+        uint16_t current;
+        uint16_t consumption;
+        uint16_t rpm;
+    };
+
+    // get the most recent telemetry data packet for a motor
+    bool get_telem_data(uint8_t esc_index, struct telem_data &td, uint32_t &timestamp_ms);
+
+    static AP_BLHeli *get_instance(void) {
+        return instance;
+    }
+
+    // public telemetry CRC function for external use
+    static uint8_t telem_crc8(uint8_t crc, uint8_t crc_seed);
     
 private:
-
+    static AP_BLHeli *instance;
+    
     // mask of channels to use for BLHeli protocol
     AP_Int32 channel_mask;
     AP_Int8 channel_auto;
@@ -51,7 +70,7 @@ private:
     AP_Int16 telem_rate;
     AP_Int8 debug_level;
     AP_Int8 output_type;
-    AP_Int8 distribution_enable;
+    AP_Int16 distribution_mask[2];
     
     enum mspState {
         MSP_IDLE=0,
@@ -168,9 +187,13 @@ private:
     AP_HAL::UARTDriver *uart;
     AP_HAL::UARTDriver *debug_uart;
     AP_HAL::UARTDriver *telem_uart[2];
+    bool telem_uart_started[2];
     
     static const uint8_t max_motors = 8;
     uint8_t num_motors;
+
+    struct telem_data last_telem[max_motors];
+    uint32_t last_telem_ms[max_motors];
 
     // have we initialised the interface?
     bool initialised;
@@ -224,7 +247,6 @@ private:
     bool BL_VerifyFlash(const uint8_t *buf, uint16_t n);
     void blheli_process_command(void);
     void run_connection_test(uint8_t chan);
-    uint8_t telem_crc8(uint8_t crc, uint8_t crc_seed) const;
     void read_telemetry_packet(AP_HAL::UARTDriver *);
     
     // protocol handler hook
