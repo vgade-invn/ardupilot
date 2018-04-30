@@ -51,6 +51,7 @@ private:
     static void uart_start(void *ctx);
     void uart_thread();
     void stop_motors();
+    void send_telem_packet(uint8_t esc_num);
     AP_HAL::UARTDriver *uart;
 
     static const uint8_t max_channels = 8;

@@ -91,15 +91,21 @@ void DShotExpander::uart_thread(void)
         }
 
         uint8_t nchan = (nread - 4)/2;
-        static uint16_t lastv[8];
         for (uint8_t i=0; i<nchan; i++) {
             uint16_t v = pkt[2+i*2] | (pkt[3+i*2]<<8);
-            uint16_t pwm = v?(1000 + v):0;
-            SRV_Channels::set_output_pwm(SRV_Channels::get_motor_function(i), pwm);
-            if (lastv[i] != v) {
-                hal.console->printf("mot[%u]=%u v=0x%x\n", i, pwm, v);
-                lastv[i] = v;
+            // telemetry request is encoded in the top bit
+            bool telem_request = false;
+            if (v & 0x8000) {
+                telem_request = true;
+                v &= 0x7FFF;
             }
+            uint16_t pwm = v?(1000 + v):0;
+            SRV_Channel::Aux_servo_function_t motor = SRV_Channels::get_motor_function(i);
+            uint8_t motor_chan;
+            if (telem_request && SRV_Channels::find_channel(motor, motor_chan)) {
+                send_telem_packet(uint8_t(motor - SRV_Channel::k_motor1));
+            }
+            SRV_Channels::set_output_pwm(motor, pwm);
         }
 
         last_packet_ms = AP_HAL::millis();
@@ -118,5 +124,41 @@ void DShotExpander::stop_motors()
         SRV_Channels::cork();
         SRV_Channels::output_ch_all();
         SRV_Channels::push();    
+    }
+}
+
+/*
+  send a telemetry packet back to the master
+ */
+void DShotExpander::send_telem_packet(uint8_t esc_num)
+{
+    AP_BLHeli *blh = AP_BLHeli::get_instance();
+    if (!blh) {
+        return;
+    }
+    AP_BLHeli::telem_data td;
+    uint32_t telem_ms;
+    if (!blh->get_telem_data(esc_num, td, telem_ms) ||
+        AP_HAL::millis() - telem_ms > 1000) {
+        return;
+    }
+    uint8_t buf[10];
+    buf[0] = td.temperature;
+    buf[1] = td.voltage >> 8;
+    buf[2] = td.voltage & 0xFF;
+    buf[3] = td.current >> 8;
+    buf[4] = td.current & 0xFF;
+    buf[5] = td.consumption >> 8;
+    buf[6] = td.consumption & 0xFF;
+    buf[7] = td.rpm >> 8;
+    buf[8] = td.rpm & 0xFF;
+
+    uint8_t crc = 0;
+    for (uint8_t i=0; i<9; i++) {    
+        crc = AP_BLHeli::telem_crc8(buf[i], crc);
+    }
+    buf[9] = crc;
+    if (uart->txspace() >= 10) {
+        uart->write(buf, 10);
     }
 }
