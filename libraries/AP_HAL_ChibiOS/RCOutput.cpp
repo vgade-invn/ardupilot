@@ -20,6 +20,11 @@
 #include <AP_HAL/utility/RingBuffer.h>
 #include "GPIO.h"
 
+#if HAL_WITH_UAVCAN
+#include <AP_BoardConfig/AP_BoardConfig_CAN.h>
+#include <AP_UAVCAN/AP_UAVCAN.h>
+#endif
+
 #if HAL_USE_PWM == TRUE
 
 using namespace ChibiOS;
@@ -413,6 +418,36 @@ void RCOutput::push_local(void)
     if (trigger_groupmask) {
         trigger_groups();
     }
+
+#if HAL_WITH_UAVCAN
+    if (AP_BoardConfig_CAN::get_can_num_ifaces() >= 1)
+    {
+        for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_DRIVERS; i++) {
+            if (hal.can_mgr[i] != nullptr)
+            {
+                AP_UAVCAN *ap_uc = hal.can_mgr[i]->get_UAVCAN();
+                if (ap_uc != nullptr)
+                {
+                    if (ap_uc->rc_out_sem_take())
+                    {
+                        for (uint8_t j = 0; j < total_channels; j++)
+                        {
+                            ap_uc->rco_write(read(j), j);
+                        }
+
+                        if (hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED) {
+                            ap_uc->rco_arm_actuators(true);
+                        } else {
+                            ap_uc->rco_arm_actuators(false);
+                        }
+
+                        ap_uc->rc_out_sem_give();
+                    }
+                }
+            }
+        }
+    }
+#endif // HAL_WITH_UAVCAN
 }
 
 uint16_t RCOutput::read(uint8_t chan)
