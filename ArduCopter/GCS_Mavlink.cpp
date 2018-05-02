@@ -634,6 +634,7 @@ GCS_MAVLINK_Copter::data_stream_send(void)
         send_message(MSG_ATTITUDE);
         send_message(MSG_SIMSTATE); // SIMSTATE, AHRS2
         send_message(MSG_PID_TUNING); // Up to four PID_TUNING messages are sent, depending on GCS_PID_MASK parameter
+        send_message(MSG_ESC_TELEMETRY);
     }
 
     if (gcs().out_of_time()) return;
