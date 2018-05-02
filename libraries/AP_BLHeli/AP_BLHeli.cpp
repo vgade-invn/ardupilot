@@ -1295,6 +1295,7 @@ void AP_BLHeli::read_telemetry_packet(AP_HAL::UARTDriver *tuart)
     td.rpm = (buf[7]<<8) | buf[8];
 
     last_telem[last_telem_esc] = td;
+    last_telem[last_telem_esc].count++;
     last_telem_ms[last_telem_esc] = AP_HAL::millis();
     
     DataFlash_Class *df = DataFlash_Class::instance();
@@ -1459,6 +1460,44 @@ void AP_BLHeli::distribution_write(void)
             continue;
         }
         tuart->write(pkt, send_len);
+    }
+}
+
+/*
+  send ESC telemetry messages over MAVLink
+ */
+void AP_BLHeli::send_esc_telemetry_mavlink(uint8_t mav_chan)
+{
+    if (num_motors == 0) {
+        return;
+    }
+    uint8_t temperature[4] {};
+    uint16_t voltage[4] {};
+    uint16_t current[4] {};
+    uint16_t totalcurrent[4] {};
+    uint16_t rpm[4] {};
+    uint16_t count[4] {};
+    uint32_t now = AP_HAL::millis();
+    for (uint8_t i=0; i<num_motors; i++) {
+        uint8_t idx = i % 4;
+        if (last_telem_ms[i] && (now - last_telem_ms[i] < 1000)) {
+            temperature[idx]  = last_telem[i].temperature;
+            voltage[idx]      = last_telem[i].voltage;
+            current[idx]      = last_telem[i].current;
+            totalcurrent[idx] = last_telem[i].consumption;
+            rpm[idx]          = last_telem[i].rpm;
+            count[idx]        = last_telem[i].count;
+        }
+        if (i % 4 == 3 || i == num_motors - 1) {
+            if (!HAVE_PAYLOAD_SPACE((mavlink_channel_t)mav_chan, ESC_TELEMETRY_1_TO_4)) {
+                break;
+            }
+            if (i < 4) {
+                mavlink_msg_esc_telemetry_1_to_4_send((mavlink_channel_t)mav_chan, temperature, voltage, current, totalcurrent, rpm, count);
+            } else {
+                mavlink_msg_esc_telemetry_5_to_8_send((mavlink_channel_t)mav_chan, temperature, voltage, current, totalcurrent, rpm, count);
+            }
+        }
     }
 }
 
