@@ -20,6 +20,7 @@
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <AP_RangeFinder/RangeFinder_Backend.h>
 #include <AP_Airspeed/AP_Airspeed.h>
+#include <AP_BLHeli/AP_BLHeli.h>
 
 #include "GCS.h"
 
@@ -2671,6 +2672,17 @@ bool GCS_MAVLINK::try_send_message(const enum ap_message id)
         send_ahrs();
         break;
 
+#if HAL_SUPPORT_RCOUT_SERIAL
+    case MSG_ESC_TELEMETRY: {
+        CHECK_PAYLOAD_SIZE(ESC_TELEMETRY_1_TO_4);
+        AP_BLHeli *blheli = AP_BLHeli::get_instance();
+        if (blheli) {
+            blheli->send_esc_telemetry_mavlink(uint8_t(chan));
+        }
+        break;
+    }
+#endif
+        
     default:
         // try_send_message must always at some stage return true for
         // a message, or we will attempt to infinitely retry the
