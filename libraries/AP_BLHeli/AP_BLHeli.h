@@ -47,6 +47,7 @@ public:
         uint16_t current;
         uint16_t consumption;
         uint16_t rpm;
+        uint16_t count;
     };
 
     // get the most recent telemetry data packet for a motor
@@ -58,6 +59,9 @@ public:
 
     // public telemetry CRC function for external use
     static uint8_t telem_crc8(uint8_t crc, uint8_t crc_seed);
+
+    // send ESC telemetry messages over MAVLink
+    void send_esc_telemetry_mavlink(uint8_t mav_chan);
     
 private:
     static AP_BLHeli *instance;
