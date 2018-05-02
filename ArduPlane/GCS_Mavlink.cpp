@@ -777,6 +777,7 @@ GCS_MAVLINK_Plane::data_stream_send(void)
             send_message(MSG_PID_TUNING);
         }
         send_message(MSG_LANDING);
+        send_message(MSG_ESC_TELEMETRY);
     }
 
     if (gcs().out_of_time()) return;
