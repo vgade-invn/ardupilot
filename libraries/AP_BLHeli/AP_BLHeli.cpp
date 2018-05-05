@@ -1311,15 +1311,15 @@ void AP_BLHeli::read_telemetry_packet(AP_HAL::UARTDriver *tuart)
         };
         df->WriteBlock(&pkt, sizeof(pkt));
     }
-#if 0
-    hal.console->printf("ESC[%u] T=%u V=%u C=%u con=%u RPM=%u t=%u\n",
-                        last_telem_esc,
-                        td.temperature,
-                        td.voltage,
-                        td.current,
-                        td.consumption,
-                        td.rpm, AP_HAL::millis());
-#endif
+    if (debug_level >= 2) {
+        hal.console->printf("ESC[%u] T=%u V=%u C=%u con=%u RPM=%u t=%u\n",
+                            last_telem_esc,
+                            td.temperature,
+                            td.voltage,
+                            td.current,
+                            td.consumption,
+                            td.rpm, (unsigned)AP_HAL::millis());
+    }
 }
 
 /*
@@ -1491,6 +1491,13 @@ void AP_BLHeli::send_esc_telemetry_mavlink(uint8_t mav_chan)
             totalcurrent[idx] = last_telem[i].consumption;
             rpm[idx]          = last_telem[i].rpm;
             count[idx]        = last_telem[i].count;
+        } else {
+            temperature[idx] = 0;
+            voltage[idx] = 0;
+            current[idx] = 0;
+            totalcurrent[idx] = 0;
+            rpm[idx] = 0;
+            count[idx] = 0;
         }
         if (i % 4 == 3 || i == num_motors - 1) {
             if (!HAVE_PAYLOAD_SPACE((mavlink_channel_t)mav_chan, ESC_TELEMETRY_1_TO_4)) {
