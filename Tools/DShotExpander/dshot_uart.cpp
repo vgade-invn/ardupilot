@@ -35,6 +35,12 @@ void DShotExpander::uart_thread(void)
     uart = hal.uartC;
     uart->begin(115200);
 
+    // make sure initial motor output is zero. This ensures that on a
+    // reboot we do send a zero output, so an ESC won't stay waiting
+    // for zero
+    stop_motors();
+    hal.scheduler->delay(10);
+                
     while (true) {
         // wait for min number of bytes
         if (!uart->wait_timeout(4, 20)) {
