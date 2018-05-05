@@ -23,7 +23,7 @@
 
 #include "AP_BLHeli.h"
 
-#if HAL_SUPPORT_RCOUT_SERIAL
+#ifdef HAVE_AP_BLHELI_SUPPORT
 
 #include <AP_Math/crc.h>
 #include <AP_Motors/AP_Motors_Class.h>
@@ -1512,4 +1512,5 @@ void AP_BLHeli::send_esc_telemetry_mavlink(uint8_t mav_chan)
     }
 }
 
-#endif // HAL_SUPPORT_RCOUT_SERIAL
+#endif // HAVE_AP_BLHELI_SUPPORT
+
