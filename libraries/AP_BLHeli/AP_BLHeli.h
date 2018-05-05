@@ -26,6 +26,8 @@
 
 #if HAL_SUPPORT_RCOUT_SERIAL
 
+#define HAVE_AP_BLHELI_SUPPORT
+
 #include <AP_Param/AP_Param.h>
 #include "msp_protocol.h"
 #include "blheli_4way_protocol.h"
@@ -42,11 +44,11 @@ public:
     static const struct AP_Param::GroupInfo var_info[];
 
     struct telem_data {
-        uint8_t temperature;
-        uint16_t voltage;
-        uint16_t current;
-        uint16_t consumption;
-        uint16_t rpm;
+        uint8_t temperature; // degrees C
+        uint16_t voltage;    // volts * 100
+        uint16_t current;    // amps * 100
+        uint16_t consumption;// mAh
+        uint16_t rpm;        // eRPM
         uint16_t count;
     };
 
