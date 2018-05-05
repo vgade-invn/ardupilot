@@ -1456,6 +1456,10 @@ void AP_BLHeli::distribution_write(void)
         uint16_t crc = crc_xmodem(pkt, send_len-2);
         *p++ = crc & 0xFF;
         *p++ = crc >> 8;
+
+        // reset pkt pointer
+        p = &pkt[2];
+        
         if (tuart->txspace() < send_len) {
             continue;
         }
