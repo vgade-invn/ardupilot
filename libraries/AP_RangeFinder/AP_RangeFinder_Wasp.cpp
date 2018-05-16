@@ -30,6 +30,7 @@ const AP_Param::GroupInfo AP_RangeFinder_Wasp::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("WASP_MAVG", 1, AP_RangeFinder_Wasp, mavg, 1),
     AP_GROUPINFO("WASP_MAVF", 3, AP_RangeFinder_Wasp, mavf, 1),
+    AP_GROUPEND
 };
 
 
@@ -43,13 +44,15 @@ AP_RangeFinder_Wasp::AP_RangeFinder_Wasp(RangeFinder::RangeFinder_State &_state,
                                          uint8_t serial_instance) :
     AP_RangeFinder_Backend(_state)
 {
+    AP_Param::setup_object_defaults(this, var_info);
+
     uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_Rangefinder, serial_instance);
     if (uart != nullptr) {
         uart->begin(serial_manager.find_baudrate(AP_SerialManager::SerialProtocol_Rangefinder, serial_instance));
         uart->write((const uint8_t*)config, strlen(config));
 
-        state.backend_var_info = var_info;
-        AP_Param::load_object_from_eeprom(this, state.backend_var_info);
+        // register Wasp specific parameters
+        state.var_info = var_info;
     }
 }
 

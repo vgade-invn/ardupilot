@@ -528,11 +528,13 @@ const AP_Param::GroupInfo RangeFinder::var_info[] = {
     AP_GROUPINFO("4_ORIENT", 56, RangeFinder, state[3].orientation, ROTATION_PITCH_270),
 #endif
 
-    AP_SUBGROUPVARPTR(drivers[0], "_", 57, RangeFinder, state.[0].backend_var_info),
-    AP_SUBGROUPVARPTR(drivers[0], "2_", 58, RangeFinder, state[1].backend_var_info),
+    AP_SUBGROUPVARPTR(drivers[0], "_",  57, RangeFinder, backend_var_info[0]),
+    AP_SUBGROUPVARPTR(drivers[1], "2_", 58, RangeFinder, backend_var_info[1]),
     
     AP_GROUPEND
 };
+
+const AP_Param::GroupInfo *RangeFinder::backend_var_info[RANGEFINDER_MAX_INSTANCES];
 
 RangeFinder::RangeFinder(AP_SerialManager &_serial_manager, enum Rotation orientation_default) :
     num_instances(0),
@@ -728,6 +730,12 @@ void RangeFinder::detect_instance(uint8_t instance, uint8_t& serial_instance)
         break;
     default:
         break;
+    }
+
+    // if the backend has some local parameters then make those available in the tree
+    if (drivers[instance] && state[instance].var_info) {
+        backend_var_info[instance] = state[instance].var_info;
+        AP_Param::load_object_from_eeprom(drivers[instance], backend_var_info[instance]);
     }
 }
 
