@@ -390,6 +390,9 @@ void Aircraft::fill_fdm(struct sitl_fdm &fdm)
     memcpy(fdm.rcin, rcin, rcin_chan_count * sizeof(float));
     fdm.bodyMagField = mag_bf;
 
+    fdm.dbg1 = dbg1;
+    fdm.dbg2 = dbg2;
+
     if (smoothing.enabled) {
         fdm.xAccel = smoothing.accel_body.x;
         fdm.yAccel = smoothing.accel_body.y;

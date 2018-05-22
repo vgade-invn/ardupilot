@@ -173,6 +173,9 @@ protected:
     bool use_time_sync = true;
     float last_speedup = -1.0f;
 
+    float dbg1;
+    float dbg2;
+
     // allow for AHRS_ORIENTATION
     AP_Int8 *ahrs_orientation;
     
