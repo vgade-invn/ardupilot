@@ -93,8 +93,14 @@ void BalanceBot::update(const struct sitl_input &input)
     //float motorL_tdem = -torque_out;
     //float motorR_tdem = -torque_out;
 
-    float motorL_tdem = input.hydra0_torque/(2000.0f/0.065f);
-    float motorR_tdem = input.hydra1_torque/(2000.0f/0.065f);
+    float motor1 = 2*((input.servos[0]-1000)/1000.0f - 0.5f);
+    float motor2 = 2*((input.servos[2]-1000)/1000.0f - 0.5f);
+    
+    //float motorL_tdem = input.hydra0_torque/(2000.0f/0.065f);
+    //float motorR_tdem = input.hydra1_torque/(2000.0f/0.065f);
+
+    float motorL_tdem = motor1*0.001;
+    float motorR_tdem = motor2*0.001;
 
     //::printf("%d ", (int16_t)input.hydra0_torque);
 
@@ -198,6 +204,28 @@ void BalanceBot::update(const struct sitl_input &input)
     _states.attitude.rotate(_states.ang_vel * dt);
     _states.attitude.normalize();
 
+    // training wheels ...
+    float r, p, y;
+    const float training_limit = radians(10);
+    _states.attitude.to_euler(r, p, y);
+    if (r >= training_limit) {
+        r = training_limit;
+        _states.ang_vel.x = MIN(_states.ang_vel.x, 0);
+    }
+    if (r <= -training_limit) {
+        r = -training_limit;
+        _states.ang_vel.x = MAX(_states.ang_vel.x, 0);
+    }
+    if (p >= training_limit) {
+        p = training_limit;
+        _states.ang_vel.y = MIN(_states.ang_vel.y, 0);
+    }
+    if (p <= -training_limit) {
+        p = -training_limit;
+        _states.ang_vel.y = MAX(_states.ang_vel.y, 0);
+    }
+    _states.attitude.from_euler(r, p, y);
+
     //::printf("tru % .2f ", _states.Lwheel_ang_vel_y);
 
     //::printf("wdot % .6f % .6f % .6f w % .6f % .6f % .6f v % .6f % .6f % .6f\n", angular_acceleration_bf.x,angular_acceleration_bf.y,angular_acceleration_bf.z, _states.ang_vel.x,_states.ang_vel.y,_states.ang_vel.z);
@@ -208,7 +236,18 @@ void BalanceBot::update(const struct sitl_input &input)
     position = _states.pos_ned + body_to_ned*pos_cart_bf;
     velocity_ef = _states.vel_ned + body_to_ned * (_states.ang_vel % pos_cart_bf);
     accel_body = _states.proper_accel + angular_acceleration_bf % pos_cart_bf + _states.ang_vel % (_states.ang_vel % pos_cart_bf);
+
+    accel_body.x = constrain_float(accel_body.x, -16*GRAVITY_MSS, 16*GRAVITY_MSS);
+    accel_body.y = constrain_float(accel_body.y, -16*GRAVITY_MSS, 16*GRAVITY_MSS);
+    accel_body.z = constrain_float(accel_body.z, -16*GRAVITY_MSS, 16*GRAVITY_MSS);
+    
     gyro = _states.ang_vel;
+
+    gyro.x = constrain_float(gyro.x, -radians(2000), radians(2000));
+    gyro.y = constrain_float(gyro.y, -radians(2000), radians(2000));
+    gyro.z = constrain_float(gyro.z, -radians(2000), radians(2000));
+    _states.ang_vel = gyro;
+    
     _states.attitude.rotation_matrix(dcm);
 
     float predicted_Lwheel_ang_vel = (-(ned_to_horizon_frame*velocity_ef).x + (body_to_ned*gyro).z*(.295/2.0f))/radius_wheel;
