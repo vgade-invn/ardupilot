@@ -576,6 +576,74 @@ class AutoTestRover(AutoTest):
         if ex is not None:
             raise ex
 
+    def get_message_rate(self, victim_message, timeout):
+        tstart = self.get_sim_time()
+        count = 0
+        while self.get_sim_time() < tstart + timeout:
+            m = self.mav.recv_match(type=victim_message,
+                                    blocking=True,
+                                    timeout=0.5
+                                    )
+            if m is not None:
+                count += 1
+        time_delta = self.get_sim_time() - tstart
+        self.progress("%s count after %f seconds: %u" %
+                      (victim_message, time_delta, count))
+        return count/time_delta
+
+    def rate_to_interval_us(self, rate):
+        return 1/float(rate)*1000000.0
+
+    def test_rate(self, desc, in_rate, expected_rate):
+        self.progress("###### %s" % desc)
+        self.progress("Setting rate to %u" % in_rate)
+        # SET_MESSAGE_INTERVAL rates are given in microseconds
+        if in_rate == 0 or in_rate == -1:
+            set_interval = in_rate
+        else:
+            set_interval = self.rate_to_interval_us(in_rate)
+
+        self.mavproxy.send("long SET_MESSAGE_INTERVAL %u %d\n" %
+                           (self.victim_message_id, set_interval))
+        self.mav.recv_match(type='COMMAND_ACK', blocking=True)
+        new_measured_rate = self.get_message_rate(self.victim_message, 10)
+        self.progress("Measured rate: %f (want %u)" %
+                      (new_measured_rate, expected_rate))
+        if round(new_measured_rate) != expected_rate:
+            raise NotAchievedException()
+
+    def test_set_message_interval(self):
+        self.victim_message = 'VFR_HUD'
+        self.victim_message_id = mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD
+        try:
+            # tell MAVProxy to stop stuffing around with the rates:
+            self.mavproxy.send("set streamrate -1\n")
+
+            rate = round(self.get_message_rate(self.victim_message, 20))
+            self.progress("Initial rate: %u" % rate)
+
+            self.test_rate("Test set to %u" % (rate/2,), rate/2, rate/2)
+            # this assumes the streamrates have not been played with:
+            self.test_rate("Resetting original rate using 0-value", 0, rate)
+            self.test_rate("Disabling using -1-value", -1, 0)
+            self.test_rate("Resetting original rate", rate, rate)
+
+            # now try getting a message which is not ordinarily streamed out:
+            rate = round(self.get_message_rate("CAMERA_FEEDBACK", 20))
+            if rate != 0:
+                raise PreconditionFailedException()
+            camera_feedback_id = 180
+            self.mavproxy.send("long SET_MESSAGE_INTERVAL %u %d\n" %
+                               (camera_feedback_id, 100000))
+            rate = round(self.get_message_rate("CAMERA_FEEDBACK", 20))
+            if rate != 10:
+                raise NotAchievedException()
+
+        except Exception as e:
+            # tell MAVProxy to start stuffing around with the rates:
+            self.mavproxy.send("set streamrate 10\n")
+            raise e
+
     def autotest(self):
         """Autotest APMrover2 in SITL."""
         if not self.hasInit:
@@ -636,6 +704,9 @@ class AutoTestRover(AutoTest):
             self.disarm_vehicle()
 
             self.run_test("Test RC overrides", self.test_rc_overrides)
+
+            self.run_test("Test MAV_CMD_SET_MESSAGE_INTERVAL",
+                          self.test_set_message_interval)
 
             self.run_test("Download logs", lambda:
                           self.log_download(
