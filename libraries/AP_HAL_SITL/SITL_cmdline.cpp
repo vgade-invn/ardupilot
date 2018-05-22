@@ -17,7 +17,7 @@
 #include <SITL/SIM_Plane.h>
 #include <SITL/SIM_QuadPlane.h>
 #include <SITL/SIM_Rover.h>
-#include <SITL/SIM_Balance>
+#include <SITL/SIM_BalanceBot.h>
 #include <SITL/SIM_CRRCSim.h>
 #include <SITL/SIM_Gazebo.h>
 #include <SITL/SIM_last_letter.h>

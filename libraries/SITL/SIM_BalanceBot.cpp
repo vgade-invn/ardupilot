@@ -231,8 +231,6 @@ void BalanceBot::update(const struct sitl_input &input)
     //::printf("wdot % .6f % .6f % .6f w % .6f % .6f % .6f v % .6f % .6f % .6f\n", angular_acceleration_bf.x,angular_acceleration_bf.y,angular_acceleration_bf.z, _states.ang_vel.x,_states.ang_vel.y,_states.ang_vel.z);
 
     // update output
-    hydra0_ang_pos = (uint16_t)(_states.Lwheel_ang_pos_y*65536.0f/(2.0f*M_PI));
-    hydra1_ang_pos = (uint16_t)(_states.Rwheel_ang_pos_y*65536.0f/(2.0f*M_PI));
     position = _states.pos_ned + body_to_ned*pos_cart_bf;
     velocity_ef = _states.vel_ned + body_to_ned * (_states.ang_vel % pos_cart_bf);
     accel_body = _states.proper_accel + angular_acceleration_bf % pos_cart_bf + _states.ang_vel % (_states.ang_vel % pos_cart_bf);
