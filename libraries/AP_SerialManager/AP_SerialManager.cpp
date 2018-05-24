@@ -23,6 +23,10 @@
 #include <AP_HAL/AP_HAL.h>
 #include "AP_SerialManager.h"
 
+#if HAL_WITH_UAVCAN
+#include <AP_UAVCAN/AP_UAVCAN.h>
+#endif
+
 extern const AP_HAL::HAL& hal;
 
 #ifdef HAL_SERIAL5_PROTOCOL
@@ -98,7 +102,7 @@ const AP_Param::GroupInfo AP_SerialManager::var_info[] = {
     AP_GROUPINFO("3_BAUD", 6, AP_SerialManager, state[3].baud, AP_SERIALMANAGER_GPS_BAUD/1000),
 
     // @Param: 4_PROTOCOL
-    // @DisplayName: Serial4 protocol selection
+    // @DisplayName: Serial 4 protocol selection
     // @Description: Control what protocol Serial4 port should be used for. Note that the Frsky options require external converter hardware. See the wiki for details.
     // @Values: -1:None, 1:MAVLink1, 2:MAVLink2, 3:Frsky D, 4:Frsky SPort, 5:GPS, 7:Alexmos Gimbal Serial, 8:SToRM32 Gimbal Serial, 9:Rangefinder, 10:FrSky SPort Passthrough (OpenTX), 11:Lidar360, 13:Beacon, 14:Volz servo out, 15:SBus servo out, 16:ESC Telemetry, 17:Devo Telemetry
     // @User: Standard
@@ -113,7 +117,7 @@ const AP_Param::GroupInfo AP_SerialManager::var_info[] = {
     AP_GROUPINFO("4_BAUD", 8, AP_SerialManager, state[4].baud, AP_SERIALMANAGER_GPS_BAUD/1000),
 
     // @Param: 5_PROTOCOL
-    // @DisplayName: Serial5 protocol selection
+    // @DisplayName: Serial 5 protocol selection
     // @Description: Control what protocol Serial5 port should be used for. Note that the Frsky options require external converter hardware. See the wiki for details.
     // @Values: -1:None, 1:MAVLink1, 2:MAVLink2, 3:Frsky D, 4:Frsky SPort, 5:GPS, 7:Alexmos Gimbal Serial, 8:SToRM32 Gimbal Serial, 9:Rangefinder, 10:FrSky SPort Passthrough (OpenTX), 11:Lidar360, 13:Beacon, 14:Volz servo out, 15:SBus servo out, 16:ESC Telemetry, 17:Devo Telemetry
     // @User: Standard
@@ -128,7 +132,7 @@ const AP_Param::GroupInfo AP_SerialManager::var_info[] = {
     AP_GROUPINFO("5_BAUD", 10, AP_SerialManager, state[5].baud, SERIAL5_BAUD),
 
     // index 11 used by 0_PROTOCOL
-    
+
     AP_GROUPEND
 };
 
@@ -168,7 +172,17 @@ void AP_SerialManager::init()
     if (state[0].uart == nullptr) {
         init_console();
     }
-    
+
+#if HAL_WITH_UAVCAN
+    for (uint8_t can_mgr = 0; can_mgr < MAX_NUMBER_OF_CAN_DRIVERS; can_mgr++) {
+        AP_UAVCAN *ap_uavcan = AP_UAVCAN::get_uavcan(can_mgr);
+        const uint8_t state_index = 5 + can_mgr;
+        if (ap_uavcan != nullptr && state_index < SERIALMANAGER_NUM_PORTS) {
+            state[state_index].uart = ap_uavcan->get_uart();
+        }
+    }
+#endif
+
     // initialise serial ports
     for (uint8_t i=1; i<SERIALMANAGER_NUM_PORTS; i++) {
 
