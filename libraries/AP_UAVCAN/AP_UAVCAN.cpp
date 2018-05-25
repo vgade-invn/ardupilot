@@ -784,8 +784,9 @@ void AP_UAVCAN::tunnel_send()
 
     uavcan::tunnel::Broadcast bdcst_msg;
     const uint16_t max_buf_capacity = bdcst_msg.buffer.capacity();
+    uint8_t packet_count = 0;
 
-    while (_tunnel.uart->tx_pending()) {
+    while (_tunnel.uart->tx_pending() && packet_count++ < 5) {
 
         // we're re-using the same msg, so lets make sure to clear it
         bdcst_msg.buffer.clear();
