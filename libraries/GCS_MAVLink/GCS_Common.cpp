@@ -876,6 +876,13 @@ void GCS_MAVLINK::packetReceived(const mavlink_status_t &status,
         accept_packet(status, msg)) {
         handleMessage(&msg);
     }
+
+    static uint32_t last_ms = 0;
+    uint32_t now = AP_HAL::millis();
+    if (msg.msgid != MAVLINK_MSG_ID_STATUSTEXT && now - last_ms > 100) {
+        last_ms = now;
+        gcs().send_text(MAV_SEVERITY_DEBUG, "chan: %u, active: %u,", chan, mavlink_active);
+    }
 }
 
 void
