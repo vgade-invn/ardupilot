@@ -1,13 +1,8 @@
 #include "UARTDriver.h"
 
 
-#if HAL_CPU_CLASS >= HAL_CPU_CLASS_1000
-    #define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_TX            32768
-    #define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_RX            8192
-#else
-    #define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_TX            512
-    #define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_RX            512
-#endif
+#define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_TX            512
+#define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_RX            512
 
 /*
   open virtual port
