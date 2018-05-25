@@ -372,7 +372,7 @@ static void tunnel_broadcast_st_cb(const uavcan::ReceivedDataStructure<uavcan::t
 
     UARTDriver* uart = ap_uavcan->get_uart();
     if (uart != nullptr) {
-        uart->write(&msg.buffer[0], msg.buffer.size());
+        uart->handle_inbound(&msg.buffer[0], msg.buffer.size());
     }
 }
 
