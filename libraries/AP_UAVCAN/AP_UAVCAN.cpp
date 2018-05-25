@@ -781,20 +781,29 @@ void AP_UAVCAN::tunnel_send()
         return;
     }
 
+    uavcan::tunnel::Broadcast bdcst_msg;
+    const uint16_t max_buf_capacity = bdcst_msg.buffer.capacity();
+
     while (_tunnel.uart->tx_pending()) {
 
-        uavcan::tunnel::Broadcast bdcst_msg;
+        // we're re-using the same msg, so lets make sure to clear it
+        bdcst_msg.buffer.clear();
 
         // attempt to load as many bytes as can fit into bdcst_msg.buffer
-        for (uint16_t i=0; i<bdcst_msg.buffer.size(); i++) {
+        for (uint16_t i=0; i<max_buf_capacity; i++) {
 
             // but if there's no more data to send then we're done and can exit to transmit it
-            int16_t ret = _tunnel.uart->fetch_for_outbound();
-            if (ret == -1) {
+            const int16_t data = _tunnel.uart->fetch_for_outbound();
+            if (data == -1) {
                 break;
             }
-            bdcst_msg.buffer.push_back(ret);
+
+            // make sure we're only sending pure uint8_t values to push_back
+            const uint8_t data_byte = data;
+            bdcst_msg.buffer.push_back(data_byte);
         }
+
+        // transmit whatever has been pushed to bdcst_msg.buffer
         if (tunnel_broadcast_array[_uavcan_i]->broadcast(bdcst_msg) < 0) {
             // send failed. UAVCAN Tx buffer is probably full but we don't know how to check for that until it's too late
             // well, that sucks. We loaded it up and it failed. Now our data is lost
