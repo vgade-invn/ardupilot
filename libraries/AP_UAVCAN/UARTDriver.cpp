@@ -5,8 +5,8 @@
     #define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_TX            32768
     #define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_RX            8192
 #else
-    #define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_TX            1024
-    #define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_RX            1024
+    #define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_TX            512
+    #define AP_UAVCAN_UARTDRIVER_BUF_SIZE_MIN_RX            512
 #endif
 
 /*
