@@ -84,7 +84,7 @@ const AP_Param::GroupInfo AP_UAVCAN::var_info[] = {
     AP_GROUPINFO("SRV_RT", 4, AP_UAVCAN, _servo_rate_hz, 50),
     
     // @Param: VSER_P
-    // @DisplayName: Virtual serial port protocl
+    // @DisplayName: Virtual serial port protocol
     // @Description: Control the protocol for the virtual serial port over UAVCAN. Also known as protocol tunneling
     // @Values: -1:None, 1:MAVLink1, 2:MAVLink2, 3:Frsky D, 4:Frsky SPort, 5:GPS, 7:Alexmos Gimbal Serial, 8:SToRM32 Gimbal Serial, 9:Rangefinder, 10:FrSky SPort Passthrough (OpenTX), 11:Lidar360, 13:Beacon, 14:Volz servo out, 15:SBus servo out, 16:ESC Telemetry, 17:Devo Telemetry
     // @User: Advanced
