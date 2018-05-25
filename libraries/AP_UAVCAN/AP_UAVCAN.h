@@ -11,6 +11,7 @@
 #include <AP_HAL/Semaphores.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_Param/AP_Param.h>
+#include <AP_UAVCAN/UARTDriver.h>
 
 #include <AP_GPS/GPS_Backend.h>
 #include <AP_Baro/AP_Baro_Backend.h>
@@ -131,6 +132,15 @@ public:
     void SRV_send_servos();
     void SRV_send_esc();
 
+    // tunnel output
+    bool tunnel_sem_take();
+    void tunnel_sem_give();
+    void tunnel_send();
+
+
+    // protocol tunneling uart interface
+    UARTDriver* get_uart(void) { return _tunnel.uart; }
+
 private:
     // ------------------------- GPS
     // 255 - means free node
@@ -168,6 +178,13 @@ private:
     uint16_t _bi_BM_listener_to_id[AP_UAVCAN_MAX_LISTENERS];
     AP_BattMonitor_Backend* _bi_BM_listeners[AP_UAVCAN_MAX_LISTENERS];
 
+    // Protocol tunneling
+    struct {
+        AP_Int8 protocol;
+        uint32_t baud = 921600; // unimplemented, but lets give it a valid number
+        UARTDriver* uart;
+    } _tunnel;
+
     struct {
         uint16_t pulse;
         uint16_t safety_pulse;
@@ -196,6 +213,8 @@ private:
 
     AP_HAL::Semaphore *SRV_sem;
     AP_HAL::Semaphore *_led_out_sem;
+    AP_HAL::Semaphore *_tunnel_sem;
+
 
     class SystemClock: public uavcan::ISystemClock, uavcan::Noncopyable {
         SystemClock()

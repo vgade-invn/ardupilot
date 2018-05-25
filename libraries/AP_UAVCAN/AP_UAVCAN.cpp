@@ -11,6 +11,7 @@
 
 #include "AP_UAVCAN.h"
 #include <GCS_MAVLink/GCS.h>
+#include <AP_SerialManager/AP_SerialManager.h>
 
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_BoardConfig/AP_BoardConfig_CAN.h>
@@ -35,6 +36,8 @@
 
 #include <uavcan/equipment/power/BatteryInfo.hpp>
 
+#include <uavcan/tunnel/Broadcast.hpp>
+
 extern const AP_HAL::HAL& hal;
 
 #define debug_uavcan(level, fmt, args...) do { if ((level) <= AP_BoardConfig_CAN::get_can_debug()) { hal.console->printf(fmt, ##args); }} while (0)
@@ -55,6 +58,7 @@ const AP_Param::GroupInfo AP_UAVCAN::var_info[] = {
     // @Description: UAVCAN node should be set implicitly
     // @Range: 1 250
     // @User: Advanced
+    // @RebootRequired: True
     AP_GROUPINFO("NODE", 1, AP_UAVCAN, _uavcan_node, 10),
 
     // @Param: SRV_BM
@@ -79,6 +83,15 @@ const AP_Param::GroupInfo AP_UAVCAN::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("SRV_RT", 4, AP_UAVCAN, _servo_rate_hz, 50),
     
+    // @Param: VSER_P
+    // @DisplayName: Virtual serial port protocl
+    // @Description: Control the protocol for the virtual serial port over UAVCAN. Also known as protocol tunneling
+    // @Values: -1:None, 1:MAVLink1, 2:MAVLink2, 3:Frsky D, 4:Frsky SPort, 5:GPS, 7:Alexmos Gimbal Serial, 8:SToRM32 Gimbal Serial, 9:Rangefinder, 10:FrSky SPort Passthrough (OpenTX), 11:Lidar360, 13:Beacon, 14:Volz servo out, 15:SBus servo out, 16:ESC Telemetry, 17:Devo Telemetry
+    // @User: Advanced
+    // @RebootRequired: True
+    AP_GROUPINFO("VSER_P", 5, AP_UAVCAN, _tunnel.protocol, AP_SerialManager::SerialProtocol::SerialProtocol_None),
+
+
     AP_GROUPEND
 };
 
@@ -349,7 +362,29 @@ static void battery_info_st_cb1(const uavcan::ReceivedDataStructure<uavcan::equi
 static void (*battery_info_st_cb_arr[2])(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo>& msg)
         = { battery_info_st_cb0, battery_info_st_cb1 };
 
+
+static void tunnel_broadcast_st_cb(const uavcan::ReceivedDataStructure<uavcan::tunnel::Broadcast>& msg, uint8_t mgr)
+{
+    AP_UAVCAN *ap_uavcan = AP_UAVCAN::get_uavcan(mgr);
+    if (ap_uavcan == nullptr) {
+        return;
+    }
+
+    UARTDriver* uart = ap_uavcan->get_uart();
+    if (uart != nullptr) {
+        uart->write(&msg.buffer[0], msg.buffer.size());
+    }
+}
+
+static void tunnel_broadcast_st_cb0(const uavcan::ReceivedDataStructure<uavcan::tunnel::Broadcast>& msg)
+{   tunnel_broadcast_st_cb(msg, 0); }
+static void tunnel_broadcast_st_cb1(const uavcan::ReceivedDataStructure<uavcan::tunnel::Broadcast>& msg)
+{   tunnel_broadcast_st_cb(msg, 1); }
+static void (*tunnel_broadcast_st_cb_arr[2])(const uavcan::ReceivedDataStructure<uavcan::tunnel::Broadcast>& msg)
+        = { tunnel_broadcast_st_cb0, tunnel_broadcast_st_cb1 };
+
 // publisher interfaces
+static uavcan::Publisher<uavcan::tunnel::Broadcast>* tunnel_broadcast_array[MAX_NUMBER_OF_CAN_DRIVERS];
 static uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>* act_out_array[MAX_NUMBER_OF_CAN_DRIVERS];
 static uavcan::Publisher<uavcan::equipment::esc::RawCommand>* esc_raw[MAX_NUMBER_OF_CAN_DRIVERS];
 static uavcan::Publisher<uavcan::equipment::indication::LightsCommand>* rgb_led[MAX_NUMBER_OF_CAN_DRIVERS];
@@ -402,6 +437,7 @@ AP_UAVCAN::AP_UAVCAN() :
 
     SRV_sem = hal.util->new_semaphore();
     _led_out_sem = hal.util->new_semaphore();
+    _tunnel_sem = hal.util->new_semaphore();
 
     debug_uavcan(2, "AP_UAVCAN constructed\n\r");
 }
@@ -512,6 +548,19 @@ bool AP_UAVCAN::try_init(void)
                         debug_uavcan(1, "UAVCAN BatteryInfo subscriber start problem\n\r");
                         return false;
                     }
+
+                    uavcan::Subscriber<uavcan::tunnel::Broadcast> *tunnel_broadcast_st;
+                    tunnel_broadcast_st = new uavcan::Subscriber<uavcan::tunnel::Broadcast>(*node);
+                    const int tunnel_broadcast_start_res = tunnel_broadcast_st->start(tunnel_broadcast_st_cb_arr[_uavcan_i]);
+                    if (tunnel_broadcast_start_res < 0) {
+                        debug_uavcan(1, "UAVCAN Tunnel Broadcast subscriber start problem\n\r");
+                        return false;
+                    }
+
+
+                    tunnel_broadcast_array[_uavcan_i] = new uavcan::Publisher<uavcan::tunnel::Broadcast>(*node);
+                    tunnel_broadcast_array[_uavcan_i]->setTxTimeout(uavcan::MonotonicDuration::fromMSec(CAN_PERIODIC_TX_TIMEOUT_MS));
+                    tunnel_broadcast_array[_uavcan_i]->setPriority(uavcan::TransferPriority::OneLowerThanHighest);
 
                     act_out_array[_uavcan_i] = new uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>(*node);
                     act_out_array[_uavcan_i]->setTxTimeout(uavcan::MonotonicDuration::fromMSec(CAN_PERIODIC_TX_TIMEOUT_MS));
@@ -705,6 +754,49 @@ void AP_UAVCAN::do_cyclic(void)
         led_out_sem_give();
     }
 
+    if (tunnel_sem_take()) {
+        tunnel_send();
+        tunnel_sem_give();
+    }
+}
+
+bool AP_UAVCAN::tunnel_sem_take()
+{
+    bool sem_ret = _tunnel_sem->take(10);
+    if (!sem_ret) {
+        debug_uavcan(1, "AP_UAVCAN Tunnel semaphore fail\n\r");
+    }
+    return sem_ret;
+}
+
+void AP_UAVCAN::tunnel_sem_give()
+{
+    _tunnel_sem->give();
+}
+
+void AP_UAVCAN::tunnel_send()
+{
+    if (_tunnel.uart == nullptr) {
+        // the uart is null if the protocol is NONE at boot
+        return;
+    }
+    if (!_tunnel.uart->tx_pending()) {
+        return;
+    }
+
+    uavcan::tunnel::Broadcast bdcst_msg;
+
+    // attempt to load as many bytes as can fit into bdcst_msg.buffer
+    for (uint16_t i=0; i<bdcst_msg.buffer.size(); i++) {
+
+        // but if there's no more data then we're done and can exit early
+        int16_t ret = _tunnel.uart->fetch_for_outbound();
+        if (ret == -1) {
+            break;
+        }
+        bdcst_msg.buffer.push_back(ret);
+    }
+    tunnel_broadcast_array[_uavcan_i]->broadcast(bdcst_msg);
 }
 
 bool AP_UAVCAN::led_out_sem_take()
