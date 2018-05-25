@@ -755,6 +755,7 @@ void AP_UAVCAN::do_cyclic(void)
     }
 
     if (tunnel_sem_take()) {
+        //tunnel_mavlink_learn_route();
         tunnel_send();
         tunnel_sem_give();
     }
@@ -808,6 +809,62 @@ void AP_UAVCAN::tunnel_send()
             // send failed. UAVCAN Tx buffer is probably full but we don't know how to check for that until it's too late
             // well, that sucks. We loaded it up and it failed. Now our data is lost
             return;
+        }
+    }
+}
+
+/*
+ * sending a MAVlink is how we learn a route
+ */
+void AP_UAVCAN::tunnel_mavlink_learn_route()
+{
+    uint32_t now = AP_HAL::millis();
+
+    if (now - tunnel_mavlink_heartbeat_last_ms < 1000) {
+        return;
+    }
+
+
+//    ::printf("UAVCAN: hb\n");
+//    ::printf("UAVCAN: hb msg %u from chan %u on chan %u sysid=%d compid=%d\n",
+//             msg->msgid,
+//             (unsigned)in_channel,
+//             (unsigned)routes[i].channel,
+//             (int)target_system,
+//             (int)target_component);
+
+    if (_tunnel.uart == nullptr || _tunnel_mavlink_route_is_learned) {
+        return;
+    }
+    if (_tunnel.protocol == AP_SerialManager::SerialProtocol::SerialProtocol_MAVLink ||
+            _tunnel.protocol == AP_SerialManager::SerialProtocol::SerialProtocol_MAVLink2) {
+
+        mavlink_message_t msg = {0};
+
+        mavlink_heartbeat_t heartbeat;
+        heartbeat.type = MAV_TYPE_SUBMARINE;
+        heartbeat.autopilot = MAV_AUTOPILOT_ARDUPILOTMEGA;
+        heartbeat.base_mode = 0;
+        heartbeat.system_status = 0;
+        heartbeat.mavlink_version = 0;
+        heartbeat.custom_mode = 0;
+
+        uint16_t len = mavlink_msg_heartbeat_encode(_uavcan_node-10, _uavcan_node-10, &msg, &heartbeat);
+
+
+//        mavlink_msg_heartbeat_encode(_uavcan_node-10, _uavcan_node-10, &msg, &heartbeat);
+
+//        mavlink_channel_t chan;
+//        if (get_mavlink_channel(AP_SerialManager::SerialProtocol::SerialProtocol_MAVLink, 0, chan)) {
+//            routing.check_and_forward(chan, &msg)
+//        }
+
+        // send a MAVLink packet so the router learns this route
+        if (_tunnel.uart->write(&msg.magic, len) > 0) {
+            // send was successful. Don't do it anymore
+            //_tunnel_mavlink_route_is_learned = true;
+            tunnel_mavlink_heartbeat_last_ms = now;
+
         }
     }
 }

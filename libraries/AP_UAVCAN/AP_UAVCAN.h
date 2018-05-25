@@ -184,6 +184,10 @@ private:
         uint32_t baud = 921600; // unimplemented, but lets give it a valid number
         UARTDriver* uart;
     } _tunnel;
+    bool _tunnel_mavlink_route_is_learned;
+    uint32_t tunnel_mavlink_heartbeat_last_ms;
+
+    void tunnel_mavlink_learn_route(void);
 
     struct {
         uint16_t pulse;
