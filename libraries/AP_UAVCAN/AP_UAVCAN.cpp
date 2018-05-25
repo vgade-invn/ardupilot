@@ -780,23 +780,27 @@ void AP_UAVCAN::tunnel_send()
         // the uart is null if the protocol is NONE at boot
         return;
     }
-    if (!_tunnel.uart->tx_pending()) {
-        return;
-    }
 
-    uavcan::tunnel::Broadcast bdcst_msg;
+    while (_tunnel.uart->tx_pending()) {
 
-    // attempt to load as many bytes as can fit into bdcst_msg.buffer
-    for (uint16_t i=0; i<bdcst_msg.buffer.size(); i++) {
+        uavcan::tunnel::Broadcast bdcst_msg;
 
-        // but if there's no more data then we're done and can exit early
-        int16_t ret = _tunnel.uart->fetch_for_outbound();
-        if (ret == -1) {
-            break;
+        // attempt to load as many bytes as can fit into bdcst_msg.buffer
+        for (uint16_t i=0; i<bdcst_msg.buffer.size(); i++) {
+
+            // but if there's no more data to send then we're done and can exit to transmit it
+            int16_t ret = _tunnel.uart->fetch_for_outbound();
+            if (ret == -1) {
+                break;
+            }
+            bdcst_msg.buffer.push_back(ret);
         }
-        bdcst_msg.buffer.push_back(ret);
+        if (tunnel_broadcast_array[_uavcan_i]->broadcast(bdcst_msg) < 0) {
+            // send failed. UAVCAN Tx buffer is probably full but we don't know how to check for that until it's too late
+            // well, that sucks. We loaded it up and it failed. Now our data is lost
+            return;
+        }
     }
-    tunnel_broadcast_array[_uavcan_i]->broadcast(bdcst_msg);
 }
 
 bool AP_UAVCAN::led_out_sem_take()
