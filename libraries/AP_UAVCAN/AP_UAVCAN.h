@@ -139,7 +139,7 @@ public:
 
 
     // protocol tunneling uart interface
-    UARTDriver* get_uart(void) { return _tunnel.uart; }
+    UARTDriver* get_uart(AP_SerialManager::SerialProtocol &protocol);
 
 private:
     // ------------------------- GPS

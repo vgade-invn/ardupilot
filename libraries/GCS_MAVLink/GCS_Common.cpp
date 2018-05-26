@@ -101,6 +101,8 @@ GCS_MAVLINK::setup_uart(const AP_SerialManager& serial_manager, AP_SerialManager
         return;
     }
 
+    hal.console->printf("setup_uart %u %u\n", (unsigned)protocol, (unsigned)instance);        
+    
     /*
       Now try to cope with SiK radios that may be stuck in bootloader
       mode because CTS was held while powering on. This tells the
@@ -1625,6 +1627,9 @@ void GCS_MAVLINK::send_ekf_origin() const
  */
 void GCS_MAVLINK::send_heartbeat() const
 {
+    if (chan != MAVLINK_COMM_0) {
+        hal.console->printf("send_hb(%u)\n", (unsigned)chan);
+    }
     mavlink_msg_heartbeat_send(
         chan,
         frame_type(),

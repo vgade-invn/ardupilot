@@ -174,11 +174,15 @@ void AP_SerialManager::init()
     }
 
 #if HAL_WITH_UAVCAN
+    hal.console->printf("AP_SerialManager::init UAVCAN\n");
     for (uint8_t can_mgr = 0; can_mgr < MAX_NUMBER_OF_CAN_DRIVERS; can_mgr++) {
         AP_UAVCAN *ap_uavcan = AP_UAVCAN::get_uavcan(can_mgr);
         const uint8_t state_index = 5 + can_mgr;
         if (ap_uavcan != nullptr && state_index < SERIALMANAGER_NUM_PORTS) {
-            state[state_index].uart = ap_uavcan->get_uart();
+            SerialProtocol protocol;
+            state[state_index].uart = ap_uavcan->get_uart(protocol);
+            state[state_index].protocol = protocol;
+            hal.console->printf("AP_SerialManager::init uart=%p\n", state[state_index].uart);
         }
     }
 #endif
@@ -280,6 +284,7 @@ AP_HAL::UARTDriver *AP_SerialManager::find_serial(enum SerialProtocol protocol, 
     for(uint8_t i=0; i<SERIALMANAGER_NUM_PORTS; i++) {
         if (protocol_match(protocol, (enum SerialProtocol)state[i].protocol.get())) {
             if (found_instance == instance) {
+                hal.console->printf("found_serial %u %u\n", (unsigned)protocol, (unsigned)instance);
                 return state[i].uart;
             }
             found_instance++;

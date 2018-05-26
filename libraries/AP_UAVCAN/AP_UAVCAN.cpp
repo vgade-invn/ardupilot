@@ -370,7 +370,8 @@ static void tunnel_broadcast_st_cb(const uavcan::ReceivedDataStructure<uavcan::t
         return;
     }
 
-    UARTDriver* uart = ap_uavcan->get_uart();
+    AP_SerialManager::SerialProtocol protocol;
+    UARTDriver* uart = ap_uavcan->get_uart(protocol);
     if (uart != nullptr) {
         uart->handle_inbound(&msg.buffer[0], msg.buffer.size());
     }
@@ -1555,6 +1556,15 @@ AP_UAVCAN *AP_UAVCAN::get_uavcan(uint8_t iface)
         return nullptr;
     }
     return hal.can_mgr[iface]->get_UAVCAN();
+}
+
+UARTDriver *AP_UAVCAN::get_uart(AP_SerialManager::SerialProtocol &protocol)
+{
+    if (!_tunnel.uart) {
+        _tunnel.uart = new UARTDriver();
+    }
+    protocol = (AP_SerialManager::SerialProtocol)_tunnel.protocol.get();
+    return _tunnel.uart;
 }
 
 #endif // HAL_WITH_UAVCAN
