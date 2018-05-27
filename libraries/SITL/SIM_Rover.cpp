@@ -32,7 +32,7 @@ SimRover::SimRover(const char *home_str, const char *frame_str) :
     skid_turn_rate(140), // degrees/sec
     skid_steering(false)
 {
-    skid_steering = strstr(frame_str, "skid") != nullptr;
+    skid_steering = strstr(frame_str, "skid") != nullptr || strstr(frame_str, "balancebot") != nullptr;
 
     if (skid_steering) {
         printf("SKID Steering Rover Simulation Started\n");
@@ -148,6 +148,8 @@ void SimRover::update(const struct sitl_input &input)
 
     // new position vector
     position += velocity_ef * delta_time;
+
+    ::printf("rc3:%u rc1:%u accel:%f\n",input.servos[2],input.servos[0],accel);
 
     // update lat/lon/altitude
     update_position();

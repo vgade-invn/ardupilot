@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include "SIM_Aircraft.h"
+#include "SIM_Rover.h"
 
 namespace SITL {
 
-class BalanceBot : public Aircraft {
+class BalanceBot : public SimRover {
 public:
     BalanceBot(const char *home_str, const char *frame_str);
 
@@ -35,6 +35,8 @@ public:
         return new BalanceBot(home_str, frame_str);
     }
 private:
+    float theta = 0;
+    float ang_vel = 0;
     struct {
         Quaternion attitude;
         Vector3f pos_ned;

@@ -37,7 +37,7 @@ public:
         return new SimRover(home_str, frame_str);
     }
 
-private:
+protected:
     float max_speed;
     float max_accel;
     float max_wheel_turn;
