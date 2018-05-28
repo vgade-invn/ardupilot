@@ -122,23 +122,26 @@ void BalanceBot::update(const struct sitl_input &input)
     float accel = max_accel * (target_speed - speed) / max_speed;
 
     float force_on_body = 2*accel*mass_wheel;
-//
-    float angular_accel = (force_on_body + mass_body*((GRAVITY_MSS*tan(radians(theta))) + length*ang_vel*ang_vel*sin(radians(theta))))
-            /((I_body + mass_body*length*length)/cos(radians(theta)) - mass_body*length*cos(radians(theta)));
-//
+
     float new_ang_vel = ang_vel;
     float new_theta = theta;
 
     new_ang_vel += angular_accel * delta_time;
     new_theta += ang_vel * delta_time;
+//
+    angular_accel = (force_on_body + mass_body*((GRAVITY_MSS*tan(radians(theta)))
+            + length*ang_vel*ang_vel*sin(radians(theta))))
+            /((I_body + mass_body*length*length)/cos(radians(theta)) - mass_body*length*cos(radians(theta)));
+//
 
     // training wheels
     if (abs(new_theta)<=10){
         ang_vel= new_ang_vel;
         theta = new_theta;
     }
-    else
-        ang_vel = 0;
+//    else
+//        ;
+//        //ang_vel = 0;
 
     gyro = Vector3f(0,radians(ang_vel),radians(yaw_rate));
 
@@ -172,7 +175,7 @@ void BalanceBot::update(const struct sitl_input &input)
     // new position vector
     position += velocity_ef * delta_time + Vector3f(0,0,(length*cos(radians(theta))+wheel_radius));
 
-    ::printf("alt: %f\ ang_acc: %f ang_vel %f\n",(length*cos(radians(theta))+wheel_radius),angular_accel,ang_vel);
+    ::printf("theta: %f\ ang_acc: %f ang_vel %f\n",theta,angular_accel,ang_vel);
 
     // update lat/lon/altitude
     update_position();

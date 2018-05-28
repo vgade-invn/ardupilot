@@ -37,6 +37,7 @@ public:
 private:
     float theta = 0;
     float ang_vel = 0;
+    float angular_accel = 0;
     struct {
         Quaternion attitude;
         Vector3f pos_ned;
