@@ -35,9 +35,13 @@ public:
         return new BalanceBot(home_str, frame_str);
     }
 private:
-    float theta = 0;
+    // these three variables are specific to the inverted pendulum and its orientation
+    // theta is the angle between the vertical and the rod(clockwise positive)
+    float theta = radians(180);
     float ang_vel = 0;
     float angular_accel = 0;
+    // to set training wheels on/off;
+    bool training_wheels = 0;
     struct {
         Quaternion attitude;
         Vector3f pos_ned;

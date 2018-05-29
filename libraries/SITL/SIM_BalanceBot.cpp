@@ -88,13 +88,15 @@ void BalanceBot::update(const struct sitl_input &input)
     //float motorL_tdem = -torque_out;
     //float motorR_tdem = -torque_out;
 
-    const float length = 0.5f;
-    const float wheel_radius = .095f;
+    const float length = 1.0f; //m length of pendulum rod
+    const float wheel_radius = .095f; //m
 
-    const float mass_wheel = .3f; // kg
-    const float mass_body = .27f; //kg
+    const float mass_cart = 1.0f; // kg
+    const float mass_rod = 1.0f; //kg
 
-    const float I_body = (mass_body*length*length)/12.0f;
+    const float max_force = 5.0f; //N
+
+    const float I_rod = (mass_rod*4*length*length)/12.0f;
 
     float steering,throttle;
 
@@ -115,35 +117,33 @@ void BalanceBot::update(const struct sitl_input &input)
     // yaw rate in degrees/s
     float yaw_rate = calc_yaw_rate(steering, speed);
 
-    // target speed with current throttle
-    float target_speed = throttle * max_speed;
+    //input force to the cart
+    float force_on_body = throttle * max_force; //N
 
-    // linear acceleration in m/s/s - very crude model
-    float accel = max_accel * (target_speed - speed) / max_speed;
-
-    float force_on_body = 2*accel*mass_wheel;
-
+    // temp variables to hold updated theta and angular rate
     float new_ang_vel = ang_vel;
     float new_theta = theta;
 
+    float accel = (force_on_body + mass_rod*length*ang_vel*ang_vel*sin(theta)
+    - (3.0f/4.0f)*mass_rod*GRAVITY_MSS*sin(theta)*cos(theta))
+            / (mass_cart + mass_rod + (3.0f/4.0f)*mass_rod*cos(theta)*cos(theta));
+
+    angular_accel = mass_rod*length*(-GRAVITY_MSS*sin(theta) + accel*cos(theta))
+            /(I_rod + mass_rod*length*length);
+
     new_ang_vel += angular_accel * delta_time;
-    new_theta += ang_vel * delta_time;
-//
-    angular_accel = (force_on_body + mass_body*((GRAVITY_MSS*tan(radians(theta)))
-            + length*ang_vel*ang_vel*sin(radians(theta))))
-            /((I_body + mass_body*length*length)/cos(radians(theta)) - mass_body*length*cos(radians(theta)));
-//
+    new_theta += new_ang_vel * delta_time;
 
     // training wheels
-    if (abs(new_theta)<=10){
+//    if (training_wheels && !(fabsf(new_theta)<=radians(10))){
+//        ang_vel = 0;
+//    }
+//    else {
         ang_vel= new_ang_vel;
-        theta = new_theta;
-    }
-//    else
-//        ;
-//        //ang_vel = 0;
+        theta = fmod(new_theta,radians(360));
+//    }
 
-    gyro = Vector3f(0,radians(ang_vel),radians(yaw_rate));
+    gyro = Vector3f(0,(ang_vel),radians(yaw_rate));
 
     // update attitude
     dcm.rotate(gyro * delta_time);
@@ -173,16 +173,16 @@ void BalanceBot::update(const struct sitl_input &input)
     position.z = 0;
 
     // new position vector
-    position += velocity_ef * delta_time + Vector3f(0,0,(length*cos(radians(theta))+wheel_radius));
+    position += ((velocity_ef * delta_time) + Vector3f(0,0,(length*cos(theta)+wheel_radius)));
 
-    ::printf("theta: %f\ ang_acc: %f ang_vel %f\n",theta,angular_accel,ang_vel);
+    ::printf("force:%f speed:%f theta: %d\ ang_acc: %f ang_vel %d\n",force_on_body, velocity_ef.x,(int)degrees(theta),angular_accel,(int)degrees(ang_vel));
 
     // update lat/lon/altitude
     update_position();
     time_advance();
 
     // update magnetic field
-//    update_mag_field_bf();
+    update_mag_field_bf();
     
 
 //    SimRover::update(input);

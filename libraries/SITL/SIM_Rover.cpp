@@ -149,7 +149,7 @@ void SimRover::update(const struct sitl_input &input)
     // new position vector
     position += velocity_ef * delta_time;
 
-    ::printf("rc3:%u rc1:%u accel:%f\n",input.servos[2],input.servos[0],accel);
+//    ::printf("rc3:%u rc1:%u accel:%f\n",input.servos[2],input.servos[0],accel);
 
     // update lat/lon/altitude
     update_position();
