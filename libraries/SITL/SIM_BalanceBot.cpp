@@ -98,6 +98,8 @@ void BalanceBot::update(const struct sitl_input &input)
 
     const float I_rod = (mass_rod*4*length*length)/12.0f;
 
+    const float damping_constant = 0.7;
+
     float steering,throttle;
 
     float motor1 = 2*((input.servos[0]-1000)/1000.0f - 0.5f);
@@ -124,13 +126,14 @@ void BalanceBot::update(const struct sitl_input &input)
     float new_ang_vel = ang_vel;
     float new_theta = theta;
 
-    float accel = (force_on_body + mass_rod*length*ang_vel*ang_vel*sin(theta)
-    - (3.0f/4.0f)*mass_rod*GRAVITY_MSS*sin(theta)*cos(theta))
-            / (mass_cart + mass_rod + (3.0f/4.0f)*mass_rod*cos(theta)*cos(theta));
+    float accel = (force_on_body - (damping_constant*x_speed) + mass_rod*length*ang_vel*ang_vel*sin(theta)
+    + (3.0f/4.0f)*mass_rod*GRAVITY_MSS*sin(theta)*cos(theta))
+            / (mass_cart + mass_rod - (3.0f/4.0f)*mass_rod*cos(theta)*cos(theta));
 
-    angular_accel = mass_rod*length*(-GRAVITY_MSS*sin(theta) + accel*cos(theta))
+    angular_accel = mass_rod*length*(-GRAVITY_MSS*sin(theta) - accel*cos(theta))
             /(I_rod + mass_rod*length*length);
 
+    x_speed+= accel*delta_time;
     new_ang_vel += angular_accel * delta_time;
     new_theta += new_ang_vel * delta_time;
 
@@ -169,13 +172,10 @@ void BalanceBot::update(const struct sitl_input &input)
     // new velocity vector
     velocity_ef += accel_earth * delta_time;
 
-    // before updating height of the pendulum
-    position.z = 0;
-
     // new position vector
-    position += ((velocity_ef * delta_time) + Vector3f(0,0,(length*cos(theta)+wheel_radius)));
+    position += (velocity_ef * delta_time);
 
-    ::printf("force:%f speed:%f theta: %d\ ang_acc: %f ang_vel %d\n",force_on_body, velocity_ef.x,(int)degrees(theta),angular_accel,(int)degrees(ang_vel));
+    ::printf("acc:%f speed:%f theta: %d\ e_speed: %f ang_vel %d\n",accel, x_speed,(int)degrees(theta),velocity_ef.x,(int)degrees(ang_vel));
 
     // update lat/lon/altitude
     update_position();

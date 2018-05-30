@@ -36,10 +36,11 @@ public:
     }
 private:
     // these three variables are specific to the inverted pendulum and its orientation
-    // theta is the angle between the vertical and the rod(clockwise positive)
+    // theta is the angle between the vertical and the rod(counter-clockwise positive)
     float theta = radians(180);
     float ang_vel = 0;
     float angular_accel = 0;
+    float x_speed = 0;
     // to set training wheels on/off;
     bool training_wheels = 0;
     struct {
