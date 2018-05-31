@@ -153,14 +153,14 @@ void BalanceBot::update(const struct sitl_input &input)
     dcm.normalize();
 
     // accel in body frame due to motor
-    accel_body = Vector3f(accel, 0, 0);
+    accel_body = Vector3f(0, 0, 0);
 
     // add in accel due to direction change
     accel_body.y += radians(yaw_rate) * speed;
 
     // now in earth frame
     Vector3f accel_earth = dcm * accel_body;
-    accel_earth += Vector3f(0, 0, GRAVITY_MSS);
+    accel_earth += Vector3f(accel, 0, GRAVITY_MSS);
 
     // we are on the ground, so our vertical accel is zero
     accel_earth.z = 0;
