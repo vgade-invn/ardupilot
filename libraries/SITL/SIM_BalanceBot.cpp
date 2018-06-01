@@ -126,11 +126,11 @@ void BalanceBot::update(const struct sitl_input &input)
     float new_ang_vel = ang_vel;
     float new_theta = theta;
 
-    float accel = (force_on_body - (damping_constant*x_speed) + mass_rod*length*ang_vel*ang_vel*sin(theta)
+    float accel = (force_on_body - (damping_constant*x_speed) - mass_rod*length*ang_vel*ang_vel*sin(theta)
     + (3.0f/4.0f)*mass_rod*GRAVITY_MSS*sin(theta)*cos(theta))
             / (mass_cart + mass_rod - (3.0f/4.0f)*mass_rod*cos(theta)*cos(theta));
 
-    angular_accel = mass_rod*length*(-GRAVITY_MSS*sin(theta) - accel*cos(theta))
+    angular_accel = mass_rod*length*(GRAVITY_MSS*sin(theta) + accel*cos(theta))
             /(I_rod + mass_rod*length*length);
 
     x_speed+= accel*delta_time;
