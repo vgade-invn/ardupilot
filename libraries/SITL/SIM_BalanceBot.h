@@ -14,7 +14,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /*
-  rover simulator class
+  BalanceBot simulator class
 */
 
 #pragma once
@@ -40,20 +40,6 @@ private:
     float theta = radians(0);
     float ang_vel = 0;
     float angular_accel = 0;
-    float x_speed = 0;
-    // to set training wheels on/off;
-    bool training_wheels = 0;
-    struct {
-        Quaternion attitude;
-        Vector3f pos_ned;
-        Vector3f vel_ned;
-        Vector3f ang_vel;
-        Vector3f proper_accel;
-        float Lwheel_ang_vel_y = 0;
-        float Rwheel_ang_vel_y = 0;
-        float Lwheel_ang_pos_y = 0;
-        float Rwheel_ang_pos_y = 0;
-    } _states;
 };
 
 } // namespace SITL
