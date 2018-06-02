@@ -18,7 +18,7 @@
 #include <AP_Math/AP_Math.h>
 
 #include "Util.h"
-#include <chheap.h>
+#include <chlib.h>
 #include "ToneAlarm.h"
 #include "RCOutput.h"
 
