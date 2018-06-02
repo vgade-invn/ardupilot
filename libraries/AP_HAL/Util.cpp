@@ -67,7 +67,7 @@ uint64_t AP_HAL::Util::get_system_clock_ms() const
     gettimeofday(&ts, nullptr);
     return ((long long)((ts.tv_sec * 1000) + (ts.tv_usec / 1000)));
 #elif CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
-    return ST2MS(chVTGetSystemTime());
+    return chTimeI2MS(chVTGetSystemTime());
 #else
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
