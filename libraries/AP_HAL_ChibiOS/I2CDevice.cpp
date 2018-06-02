@@ -253,10 +253,10 @@ bool I2CDevice::_transfer(const uint8_t *send, uint32_t send_len,
         bus.i2c_active = true;
         osalDbgAssert(I2CD[bus.busnum].i2c->state == I2C_READY, "i2cStart state");
         if(send_len == 0) {
-            ret = i2cMasterReceiveTimeout(I2CD[bus.busnum].i2c, _address, recv_buf, recv_len, MS2ST(timeout_ms));
+            ret = i2cMasterReceiveTimeout(I2CD[bus.busnum].i2c, _address, recv_buf, recv_len, chTimeMS2I(timeout_ms));
         } else {
             ret = i2cMasterTransmitTimeout(I2CD[bus.busnum].i2c, _address, send_buf, send_len,
-                                           recv_buf, recv_len, MS2ST(timeout_ms));
+                                           recv_buf, recv_len, chTimeMS2I(timeout_ms));
         }
         bus.i2c_active = false;
         if (ret != MSG_OK) {
