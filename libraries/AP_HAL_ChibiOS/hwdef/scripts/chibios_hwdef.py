@@ -397,6 +397,15 @@ def write_mcu_config(f):
     f.write('#define FLASH_LOAD_ADDRESS 0x%08x\n' % flash_reserve_start)
     f.write('\n')
 
+    ram_size = get_config('RAM_SIZE_KB', default=192, type=int)
+    ram_base = get_config('RAM_BASE_ADDRESS', default=0x20000000, type=int)
+    f.write('// main memory size and address\n')
+    f.write('#define HAL_RAM_SIZE_KB %uU\n' % ram_size)
+    f.write('#define HAL_RAM_BASE_ADDRESS 0x%08x\n' % ram_base)
+
+    f.write('\n// board serial number (12 bytes)\n')
+    f.write('#define UDID_START UID_BASE\n\n')
+
     lib = get_mcu_lib(mcu_type)
     build_info = lib.build
     # setup build variables
