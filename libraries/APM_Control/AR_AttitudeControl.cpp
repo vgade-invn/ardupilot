@@ -166,7 +166,8 @@ AR_AttitudeControl::AR_AttitudeControl(AP_AHRS &ahrs) :
     _ahrs(ahrs),
     _steer_angle_p(AR_ATTCONTROL_STEER_ANG_P),
     _steer_rate_pid(AR_ATTCONTROL_STEER_RATE_P, AR_ATTCONTROL_STEER_RATE_I, AR_ATTCONTROL_STEER_RATE_D, AR_ATTCONTROL_STEER_RATE_IMAX, AR_ATTCONTROL_STEER_RATE_FILT, AR_ATTCONTROL_DT, AR_ATTCONTROL_STEER_RATE_FF),
-    _throttle_speed_pid(AR_ATTCONTROL_THR_SPEED_P, AR_ATTCONTROL_THR_SPEED_I, AR_ATTCONTROL_THR_SPEED_D, AR_ATTCONTROL_THR_SPEED_IMAX, AR_ATTCONTROL_THR_SPEED_FILT, AR_ATTCONTROL_DT)
+    _throttle_speed_pid(AR_ATTCONTROL_THR_SPEED_P, AR_ATTCONTROL_THR_SPEED_I, AR_ATTCONTROL_THR_SPEED_D, AR_ATTCONTROL_THR_SPEED_IMAX, AR_ATTCONTROL_THR_SPEED_FILT, AR_ATTCONTROL_DT),
+    _pitch_to_throttle_pid(AR_ATTCONTROL_PITCH_THR_P, AR_ATTCONTROL_PITCH_THR_I, AR_ATTCONTROL_PITCH_THR_D, AR_ATTCONTROL_PITCH_THR_IMAX, AR_ATTCONTROL_PITCH_THR_FILT, AR_ATTCONTROL_DT)
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
@@ -418,6 +419,36 @@ float AR_AttitudeControl::get_throttle_out_stop(bool motor_limit_low, bool motor
         // run speed controller to bring vehicle to stop
         return get_throttle_out_speed(0.0f, motor_limit_low, motor_limit_high, cruise_speed, cruise_throttle);
     }
+}
+
+// for balancebot
+// return a throttle output from -1 to +1 given a desired pitch angle
+// desired_pitch is in radians
+float AR_AttitudeControl::get_throttle_out_from_pitch(float desired_pitch = 0)
+{
+    // calculate dt
+    const uint32_t now = AP_HAL::millis();
+    float dt = (now - _balance_last_ms) / 1000.0f;
+    if ((_balance_last_ms == 0) || (dt > (AR_ATTCONTROL_TIMEOUT_MS / 1000.0f))) {
+        dt = 0.0f;
+        _pitch_to_throttle_pid.reset_filter();
+    } else {
+        _pitch_to_throttle_pid.set_dt(dt);
+    }
+    _balance_last_ms = now;
+
+    const float pitch_error = desired_pitch - _ahrs.pitch;
+    printf("pitch: %f\n",degrees(_ahrs.pitch));
+    if (pitch_error<0.01f)
+        return 0.0f;
+    _pitch_to_throttle_pid.set_input_filter_all(pitch_error);
+
+    // record desired speed for logging purposes only
+    _pitch_to_throttle_pid.set_desired_rate(desired_pitch);
+
+    return constrain_float(_pitch_to_throttle_pid.get_pid()/100.0f, -1.0f, +1.0f);
+//    return 0.0f;
+
 }
 
 // get forward speed in m/s (earth-frame horizontal velocity but only along vehicle x-axis).  returns true on success

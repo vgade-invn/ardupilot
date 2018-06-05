@@ -20,6 +20,11 @@
 #define AR_ATTCONTROL_THR_SPEED_IMAX    1.00f
 #define AR_ATTCONTROL_THR_SPEED_D       0.00f
 #define AR_ATTCONTROL_THR_SPEED_FILT    10.00f
+#define AR_ATTCONTROL_PITCH_THR_P       150.0f
+#define AR_ATTCONTROL_PITCH_THR_I       30.0f
+#define AR_ATTCONTROL_PITCH_THR_D       70.0f
+#define AR_ATTCONTROL_PITCH_THR_IMAX    30.0f
+#define AR_ATTCONTROL_PITCH_THR_FILT    10.0f
 #define AR_ATTCONTROL_DT                0.02f
 #define AR_ATTCONTROL_TIMEOUT_MS        200
 
@@ -81,6 +86,11 @@ public:
     // return a throttle output from -1 to +1 to perform a controlled stop.  stopped is set to true once stop has been completed
     float get_throttle_out_stop(bool motor_limit_low, bool motor_limit_high, float cruise_speed, float cruise_throttle, bool &stopped);
 
+    // for balancebot
+    // return a throttle output from -1 to +1 given a desired pitch angle
+    // desired_pitch is in radians
+    float get_throttle_out_from_pitch(float desired_pitch);
+
     // low level control accessors for reporting and logging
     AC_P& get_steering_angle_p() { return _steer_angle_p; }
     AC_PID& get_steering_rate_pid() { return _steer_rate_pid; }
@@ -113,6 +123,8 @@ private:
     AC_P     _steer_angle_p;        // steering angle controller
     AC_PID   _steer_rate_pid;       // steering rate controller
     AC_PID   _throttle_speed_pid;   // throttle speed controller
+    AC_PID   _pitch_to_throttle_pid;// balancebot pitch controller
+
     AP_Float _throttle_accel_max;   // speed/throttle control acceleration (and deceleration) maximum in m/s/s.  0 to disable limits
     AP_Int8  _brake_enable;         // speed control brake enable/disable. if set to 1 a reversed output to the motors to slow the vehicle.
     AP_Float _stop_speed;           // speed control stop speed.  Motor outputs to zero once vehicle speed falls below this value
@@ -131,4 +143,7 @@ private:
     uint32_t _stop_last_ms;         // system time the vehicle was at a complete stop
     bool     _throttle_limit_low;   // throttle output was limited from going too low (used to reduce i-term buildup)
     bool     _throttle_limit_high;  // throttle output was limited from going too high (used to reduce i-term buildup)
+
+    // pitch control balance_bot
+    uint32_t _balance_last_ms = 0;
 };

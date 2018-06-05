@@ -546,6 +546,9 @@ private:
     bool disarm_motors(void);
     bool is_boat() const;
 
+    // BalanceBot.cpp
+    void balance_pitch(float &);
+
     enum Failsafe_Action {
         Failsafe_Action_None          = 0,
         Failsafe_Action_RTL           = 1,

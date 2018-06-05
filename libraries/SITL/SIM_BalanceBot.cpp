@@ -114,7 +114,7 @@ void BalanceBot::update(const struct sitl_input &input)
     // new position vector
     position += (velocity_ef * delta_time);
 
-    ::printf("acc:%f speed:%f theta: %d\ ang_vel %d\n",accel, velocity_ef.x,(int)degrees(theta),(int)degrees(ang_vel));
+//    ::printf("acc:%f speed:%f theta: %d\ ang_vel %d\n",throttle, velocity_ef.x,(int)degrees(theta),(int)degrees(ang_vel));
 
     // update lat/lon/altitude
     update_position();
