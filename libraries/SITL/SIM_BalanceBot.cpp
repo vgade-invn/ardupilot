@@ -22,6 +22,8 @@
 #include <string.h>
 #include <stdio.h>
 
+extern const AP_HAL::HAL& hal;
+
 namespace SITL {
 
 BalanceBot::BalanceBot(const char *home_str, const char *frame_str) :
@@ -68,6 +70,12 @@ void BalanceBot::update(const struct sitl_input &input)
     //input force to the cart
     float force_on_body = throttle * max_force; //N
 
+    float r, p, y;
+    dcm.to_euler(&r, &p, &y);
+    float theta = p;
+
+    float ang_vel = gyro.y;
+    
     // temp variables to hold updated theta and angular rate
     float new_ang_vel = ang_vel;
     float new_theta = theta;
@@ -76,8 +84,8 @@ void BalanceBot::update(const struct sitl_input &input)
     + (3.0f/4.0f)*mass_rod*GRAVITY_MSS*sin(theta)*cos(theta))
             / (mass_cart + mass_rod - (3.0f/4.0f)*mass_rod*cos(theta)*cos(theta));
 
-    angular_accel = mass_rod*length*(GRAVITY_MSS*sin(theta) + accel*cos(theta))
-            /(I_rod + mass_rod*length*length);
+    float angular_accel = mass_rod*length*(GRAVITY_MSS*sin(theta) + accel*cos(theta))
+        /(I_rod + mass_rod*length*length);
 
     new_ang_vel += angular_accel * delta_time;
     new_theta += new_ang_vel * delta_time;
@@ -85,7 +93,7 @@ void BalanceBot::update(const struct sitl_input &input)
     ang_vel= new_ang_vel;
     theta = fmod(new_theta,radians(360));
 
-    gyro = Vector3f(0,(ang_vel),radians(yaw_rate));
+    gyro = Vector3f(0,ang_vel,radians(yaw_rate));
 
     // update attitude
     dcm.rotate(gyro * delta_time);
@@ -104,6 +112,17 @@ void BalanceBot::update(const struct sitl_input &input)
     // we are on the ground, so our vertical accel is zero
     accel_earth.z = 0;
 
+    if (!hal.util->get_soft_armed()) {
+        // reset to vertical when not armed for faster testing
+        accel_earth.zero();
+        velocity_ef.zero();
+        dcm.identity();
+        gyro.zero();
+        theta = 0;
+        ang_vel = 0;
+        angular_accel = 0;
+    }
+    
     // work out acceleration as seen by the accelerometers. It sees the kinematic
     // acceleration (ie. real movement), plus gravity
     accel_body = dcm.transposed() * (accel_earth + Vector3f(0, 0, -GRAVITY_MSS));

@@ -34,12 +34,6 @@ public:
     static Aircraft *create(const char *home_str, const char *frame_str) {
         return new BalanceBot(home_str, frame_str);
     }
-private:
-    // these three variables are specific to the inverted pendulum and its orientation
-    // theta is the angle between the vertical and the rod(counter-clockwise positive)
-    float theta = radians(0);
-    float ang_vel = 0;
-    float angular_accel = 0;
 };
 
 } // namespace SITL
