@@ -159,6 +159,9 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_STR_RAT_MAX", 8, AR_AttitudeControl, _steer_rate_max, AR_ATTCONTROL_STEER_RATE_MAX),
 
+    // balance bot PID
+    AP_SUBGROUPINFO(_pitch_to_throttle_pid, "_BAL_", 9, AR_AttitudeControl, AC_PID),
+    
     AP_GROUPEND
 };
 
@@ -439,14 +442,12 @@ float AR_AttitudeControl::get_throttle_out_from_pitch(float desired_pitch = 0)
 
     const float pitch_error = desired_pitch - _ahrs.pitch;
     printf("pitch: %f\n",degrees(_ahrs.pitch));
-    if (pitch_error<0.01f)
-        return 0.0f;
     _pitch_to_throttle_pid.set_input_filter_all(pitch_error);
 
     // record desired speed for logging purposes only
     _pitch_to_throttle_pid.set_desired_rate(desired_pitch);
 
-    return constrain_float(_pitch_to_throttle_pid.get_pid()/100.0f, -1.0f, +1.0f);
+    return constrain_float(_pitch_to_throttle_pid.get_pid(), -1.0f, +1.0f);
 //    return 0.0f;
 
 }

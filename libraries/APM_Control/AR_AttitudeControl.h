@@ -95,6 +95,7 @@ public:
     AC_P& get_steering_angle_p() { return _steer_angle_p; }
     AC_PID& get_steering_rate_pid() { return _steer_rate_pid; }
     AC_PID& get_throttle_speed_pid() { return _throttle_speed_pid; }
+    AC_PID& get_pitch_to_throttle_pid() { return _pitch_to_throttle_pid; }
 
     // get forward speed in m/s (earth-frame horizontal velocity but only along vehicle x-axis).  returns true on success
     bool get_forward_speed(float &speed) const;
