@@ -1,7 +1,8 @@
 #include<stdio.h>
 #include "Rover.h"
 
-void Rover::balance_pitch(float &throttle){
+void Rover::balance_pitch(float &throttle)
+{
     float balance_throttle = 0;
     float throttle_new = 0;
     balance_throttle = g2.attitude_control.get_throttle_out_from_pitch(0);
