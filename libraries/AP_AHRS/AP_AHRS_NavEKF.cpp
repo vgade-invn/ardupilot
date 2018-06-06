@@ -89,11 +89,12 @@ void AP_AHRS_NavEKF::update(bool skip_ins_update)
         _ekf_type.set(2);
     }
 
+    update_DCM(skip_ins_update);
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     update_SITL();
 #endif
 
-    update_DCM(skip_ins_update);
     if (_ekf_type == 2) {
         // if EK2 is primary then run EKF2 first to give it CPU
         // priority
