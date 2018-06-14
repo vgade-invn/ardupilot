@@ -64,6 +64,8 @@ void AP_RTC::set_utc_usec(uint64_t time_utc_usec, source_type type)
         hal.util->set_hw_rtc(time_utc_usec);
     }
 
+    rtc_source_type = type;
+
     // update signing timestamp
     GCS_MAVLINK::update_signing_timestamp(time_utc_usec);
 }
@@ -73,7 +75,8 @@ bool AP_RTC::get_utc_usec(uint64_t &usec) const
     if (rtc_source_type == SOURCE_NONE) {
         return false;
     }
-    return AP_HAL::micros64() + rtc_shift;
+    usec = AP_HAL::micros64() + rtc_shift;
+    return true;
 }
 
 bool AP_RTC::get_system_clock_utc(int32_t &hour, int32_t &min, int32_t &sec, int32_t &ms)
