@@ -640,6 +640,7 @@ private:
         ap_message longest_id;
         uint32_t no_space_for_message;
         uint32_t statustext_last_sent_ms;
+        uint32_t behind;
     } try_send_message_stats;
     uint8_t max_slowdown;
 #endif

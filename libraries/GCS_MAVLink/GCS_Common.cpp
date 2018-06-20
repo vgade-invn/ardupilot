@@ -1152,6 +1152,9 @@ void GCS_MAVLINK::retry_deferred()
             if (time_basis + interval_ms < start) {
                 // very not good; we're getting behind...
                 time_basis = start;
+#if DEBUG_SEND_MESSAGE_TIMINGS
+                try_send_message_stats.behind++;
+#endif
             }
             deferred.send_not_before_ms = time_basis + interval_ms;
         } else {
@@ -1396,6 +1399,13 @@ GCS_MAVLINK::update(uint32_t max_time_us)
                             chan,
                             max_slowdown);
             max_slowdown = 0;
+        }
+        if (try_send_message_stats.behind) {
+            gcs().send_text(MAV_SEVERITY_INFO,
+                            "GCS.chan(%u): behind=%u",
+                            chan,
+                            try_send_message_stats.behind);
+            try_send_message_stats.behind = 0;
         }
         try_send_message_stats.statustext_last_sent_ms = tnow;
     }
