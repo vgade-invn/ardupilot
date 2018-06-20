@@ -1059,7 +1059,11 @@ void GCS_MAVLINK::point_next_deferred_message_to_next_message_to_send()
     } else {
         chan_is_streaming &= ~(1U<<(chan-MAVLINK_COMM_0));
     }
-    next_deferred_message_to_send_is_stale = false;
+    if (hal.scheduler->in_delay_callback()) {
+        next_deferred_message_to_send_state = VALID_IN_DELAY;
+    } else {
+        next_deferred_message_to_send_state = VALID;
+    }
 }
 
 uint32_t GCS_MAVLINK::reschedule_interval(deferred_message_t &deferred) const
@@ -1090,7 +1094,16 @@ uint32_t GCS_MAVLINK::reschedule_interval(deferred_message_t &deferred) const
 
 uint8_t GCS_MAVLINK::next_deferred_message_to_send()
 {
-    if (next_deferred_message_to_send_is_stale) {
+    if (hal.scheduler->in_delay_callback() &&
+        next_deferred_message_to_send_state == VALID_IN_DELAY) {
+        // no need to recalculate; it was last calculated when we
+        // were in delay callback and has not been invalidated
+    } else if (!hal.scheduler->in_delay_callback() &&
+               next_deferred_message_to_send_state == VALID) {
+        // no need to recalculate; it was last calculated when we
+        // were not in delay callback and has not been invalidated
+    } else {
+        // recalculate the next message to send
         point_next_deferred_message_to_next_message_to_send();
     }
     return _next_deferred_message_to_send;
@@ -1146,7 +1159,7 @@ void GCS_MAVLINK::retry_deferred()
             deferred.send_not_before_ms = 0;
         }
 
-        next_deferred_message_to_send_is_stale = true;
+        next_deferred_message_to_send_state = INVALID;
     }
 }
 
@@ -1202,7 +1215,7 @@ bool GCS_MAVLINK::set_ap_message_interval(enum ap_message id, uint16_t interval)
         // stop sending this message and free the slot
         deferred_message.send_not_before_ms = 0;
         deferred_message.id = MSG_LAST;
-        next_deferred_message_to_send_is_stale = true;
+        next_deferred_message_to_send_state = INVALID;
         return true;
     }
 
@@ -1215,7 +1228,7 @@ bool GCS_MAVLINK::set_ap_message_interval(enum ap_message id, uint16_t interval)
         deferred_message.send_not_before_ms > now + interval) {
         // reschedule it:
         deferred_message.send_not_before_ms = now;
-        next_deferred_message_to_send_is_stale = true;
+        next_deferred_message_to_send_state = INVALID;
     }
 
     return true;
@@ -1237,7 +1250,7 @@ void GCS_MAVLINK::send_message(enum ap_message id)
             if (deferred_messages[i].send_not_before_ms == 0 ||
                 deferred_messages[i].send_not_before_ms > now) {
                 deferred_messages[i].send_not_before_ms = now;
-                next_deferred_message_to_send_is_stale = true;
+                next_deferred_message_to_send_state = INVALID;
             }
             return;
         }
@@ -1249,7 +1262,7 @@ void GCS_MAVLINK::send_message(enum ap_message id)
     if (free_slot != no_deferred_message_to_send) {
         deferred_messages[free_slot].id = id;
         deferred_messages[free_slot].send_not_before_ms = now;
-        next_deferred_message_to_send_is_stale = true;
+        next_deferred_message_to_send_state = INVALID;
     } else {
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
         AP_HAL::panic("no free slots");

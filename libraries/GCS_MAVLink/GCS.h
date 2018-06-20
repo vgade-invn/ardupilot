@@ -476,8 +476,14 @@ private:
     // a function to search the list of all messages we might send and
     // find the best candidate to send:
     void point_next_deferred_message_to_next_message_to_send();
-    // a boolean indicating next_deferred_message_to_send needs updating
-    bool next_deferred_message_to_send_is_stale = true;
+
+    // state of the next-message-to-send variable:
+    enum {
+        INVALID,
+        VALID,         // can only be used outside of delay callback
+        VALID_IN_DELAY // can only be used inside of delay callback
+    } next_deferred_message_to_send_state;
+
     // returns true if it is OK to send a message while we are in
     // delay callback.  In particular, when we are doing sensor init
     // we still send heartbeats.
