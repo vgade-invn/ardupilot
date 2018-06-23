@@ -94,6 +94,8 @@ def ap_get_all_libraries(bld):
         # we don't need the full set of libraries for the bootloader build
         return ['AP_HAL']
     libraries = []
+    if bld.env.BOOTLOADER:
+        return libraries
     for lib_node in bld.srcnode.ant_glob('libraries/*', dir=True, src=False):
         name = lib_node.name
         if name in IGNORED_AP_LIBRARIES:
@@ -108,6 +110,8 @@ def ap_get_all_libraries(bld):
 
 @conf
 def ap_common_vehicle_libraries(bld):
+    if bld.env.BOOTLOADER:
+        return []
     libraries = COMMON_VEHICLE_DEPENDENT_LIBRARIES
 
     if bld.env.DEST_BINFMT == 'pe':

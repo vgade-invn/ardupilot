@@ -288,10 +288,14 @@ class chibios(Board):
             HAVE_OCLOEXEC = 0,
             HAVE_STD_NULLPTR_T = 0,
         )
+        if cfg.options.bootloader:
+            env.CXXFLAGS += ['-D_CHIBIOS_NIL_CONF_']
+        else:
+            env.CXXFLAGS += ['-D_CHIBIOS_RT_CONF_']
+            env.AP_LIBRARIES += [
+                'AP_HAL_ChibiOS',
+            ]
 
-        env.AP_LIBRARIES += [
-            'AP_HAL_ChibiOS',
-        ]
 
         # make board name available for USB IDs
         env.CHIBIOS_BOARD_NAME = 'HAL_BOARD_NAME="%s"' % self.name
