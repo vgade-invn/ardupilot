@@ -96,9 +96,15 @@ include $(CHIBIOS)/$(CHIBIOS_STARTUP_MK)
 # HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/$(CHIBIOS_PLATFORM_MK)
+
+ifeq ($(BL_BUILD), yes)
+include $(CHIBIOS)/os/hal/osal/nil/osal.mk
+include $(CHIBIOS)/os/nil/nil.mk
+else
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
-# RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
+endif
+
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 # Other files (optional).
 #include $(CHIBIOS)/test/rt/test.mk
@@ -222,9 +228,15 @@ CPPWARN = -Wall -Wextra -Wundef
 
 # List all user C define here, like -D_DEBUG=1
 UDEFS = $(FATFS_FLAGS) -DHAL_BOARD_NAME=\"$(HAL_BOARD_NAME)\"
-
 # Define ASM defines here
-UADEFS =
+ifeq ($(BL_BUILD), yes)
+UADEFS = -D_CHIBIOS_NIL_CONF_
+UDEFS += -D_CHIBIOS_NIL_CONF_
+else
+UADEFS = -D_CHIBIOS_RT_CONF_
+UDEFS += -D_CHIBIOS_RT_CONF_
+endif
+
 
 # List all user directories here
 UINCDIR =

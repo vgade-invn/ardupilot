@@ -30,7 +30,6 @@
 
 #include "hwdef.h"
 
-#define _CHIBIOS_RT_CONF_
 
 /*===========================================================================*/
 /**
@@ -210,10 +209,13 @@
  *
  * @note    The default is @p TRUE.
  */
+#ifndef _CHIBIOS_NIL_CONF_
 #ifndef CH_CFG_USE_MUTEXES
 #define CH_CFG_USE_MUTEXES                  TRUE
 #endif
-
+#else
+#define CH_CFG_USE_MUTEXES                  FALSE
+#endif
 /**
  * @brief   Enables recursive behavior on mutexes.
  * @note    Recursive mutexes are heavier and have an increased
@@ -349,10 +351,13 @@
  * @note    Requires @p CH_CFG_USE_WAITEXIT.
  * @note    Requires @p CH_CFG_USE_HEAP and/or @p CH_CFG_USE_MEMPOOLS.
  */
+#ifndef _CHIBIOS_NIL_CONF_
 #ifndef CH_CFG_USE_DYNAMIC
 #define CH_CFG_USE_DYNAMIC                  TRUE
 #endif
-
+#else
+#define CH_CFG_USE_DYNAMIC                  FALSE
+#endif
 /** @} */
 
 /*===========================================================================*/
