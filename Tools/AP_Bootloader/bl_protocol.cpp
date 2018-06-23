@@ -112,8 +112,6 @@
 // interrupt vector table for STM32
 #define SCB_VTOR 0xE000ED08
 
-static virtual_timer_t systick_vt;
-
 /*
   millisecond timer array
  */
@@ -124,24 +122,31 @@ static virtual_timer_t systick_vt;
 static enum led_state {LED_BLINK, LED_ON, LED_OFF} led_state;
 
 volatile unsigned timer[NTIMERS];
-
 /*
   1ms timer tick callback
  */
-static void sys_tick_handler(void *ctx)
+THD_WORKING_AREA(wasys_tick_handler, 128);
+static THD_FUNCTION(sys_tick_handler, arg)
 {
-    chVTSetI(&systick_vt, MS2ST(1), sys_tick_handler, nullptr);
     uint8_t i;
-    for (i = 0; i < NTIMERS; i++)
-        if (timer[i] > 0) {
-            timer[i]--;
-        }
+    while (true) {
+        for (i = 0; i < NTIMERS; i++)
+            if (timer[i] > 0) {
+                timer[i]--;
+            }
 
-    if ((led_state == LED_BLINK) && (timer[TIMER_LED] == 0)) {
-        led_toggle(LED_BOOTLOADER);
-        timer[TIMER_LED] = 50;
+        if ((led_state == LED_BLINK) && (timer[TIMER_LED] == 0)) {
+            led_toggle(LED_BOOTLOADER);
+            timer[TIMER_LED] = 50;
+        }
+        chThdSleep(MS2ST(1));
     }
 }
+
+
+THD_TABLE_BEGIN
+THD_TABLE_ENTRY(wasys_tick_handler, "SysTick_Handler", sys_tick_handler, NULL)
+THD_TABLE_END
 
 static void delay(unsigned msec)
 {
@@ -316,9 +321,6 @@ bootloader(unsigned timeout)
 {
     uint32_t	address = board_info.fw_size;	/* force erase before upload will work */
     uint32_t	first_word = 0xffffffff;
-
-    chVTObjectInit(&systick_vt);
-    chVTSet(&systick_vt, MS2ST(1), sys_tick_handler, nullptr);
 
     /* if we are working with a timeout, start it running */
     if (timeout) {
