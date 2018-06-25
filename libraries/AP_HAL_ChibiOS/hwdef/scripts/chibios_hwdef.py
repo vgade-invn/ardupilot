@@ -452,7 +452,7 @@ def write_mcu_config(f):
 #define CH_CFG_USE_DYNAMIC FALSE
 #define CH_CFG_USE_MEMPOOLS FALSE
 #define CH_DBG_FILL_THREADS FALSE
-#define CH_CFG_USE_SEMAPHORES FALSE
+#define CH_CFG_USE_SEMAPHORES TRUE
 #define CH_CFG_USE_HEAP FALSE        
 #define CH_CFG_USE_MUTEXES FALSE
 #define CH_CFG_USE_CONDVARS FALSE
@@ -462,6 +462,7 @@ def write_mcu_config(f):
 #define CH_CFG_USE_MAILBOXES FALSE
 #define HAL_USE_I2C FALSE
 #define HAL_USE_PWM FALSE
+#define CH_CFG_NUM_THREADS 3        
 ''')
 
 def write_ldscript(fname):
