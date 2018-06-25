@@ -1030,12 +1030,7 @@ void GCS_MAVLINK::point_next_deferred_message_to_next_message_to_send()
         if (e.id == MSG_LAST) {
             continue;
         }
-        if (e.id == MSG_NEXT_PARAM && e.interval_ms == 0) {
-            // force parameters to *always* get streamed so a vehicle
-            // is recoverable from bad configuration:
-            e.interval_ms = 100;
-        }
-        if (e.interval_ms) {
+        if (e.interval_ms && e.id != MSG_NEXT_PARAM) {
             repeating_message_found = true;
         }
         if (e.send_not_before_ms == 0) {
@@ -1168,6 +1163,16 @@ void GCS_MAVLINK::retry_deferred()
 
 bool GCS_MAVLINK::set_ap_message_interval(enum ap_message id, uint16_t interval)
 {
+    if (id == MSG_NEXT_PARAM) {
+        // force parameters to *always* get streamed so a vehicle is
+        // recoverable from bad configuration:
+        if (interval == 0) {
+            interval = 100;
+        } else if (interval > 1000) {
+            interval = 1000;
+        }
+    }
+
     // first find a slot for the message.  It may already have one -
     // which we will obviously reuse, but it might not, in which case
     // we allocate one for the message.
