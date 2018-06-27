@@ -218,3 +218,36 @@ uint32_t get_fattime()
     
     return fattime;
 }
+
+// get RTC backup register 0
+static uint32_t get_rtc_backup0(void)
+{
+	PWR->CR |= PWR_CR_DBP;
+	RCC->BDCR |= RCC_BDCR_RTCEN;
+	uint32_t result = RTC->BKP0R;
+	RCC->BDCR &= RCC_BDCR_RTCEN;
+	PWR->CR &= ~PWR_CR_DBP;
+	return result;
+}
+
+// set RTC backup register 0
+static void set_rtc_backup0(uint32_t v)
+{
+	PWR->CR |= PWR_CR_DBP;
+	RCC->BDCR |= RCC_BDCR_RTCEN;
+	RTC->BKP0R = v;
+	RCC->BDCR &= RCC_BDCR_RTCEN;
+	PWR->CR &= ~PWR_CR_DBP;
+}
+
+// see if RTC registers is setup for a fast reboot
+enum rtc_boot_magic check_fast_reboot(void)
+{
+    return (enum rtc_boot_magic)get_rtc_backup0();
+}
+
+// set RTC register for a fast reboot
+void set_fast_reboot(enum rtc_boot_magic v)
+{
+    set_rtc_backup0(v);
+}

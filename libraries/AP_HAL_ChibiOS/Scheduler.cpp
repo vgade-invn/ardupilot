@@ -32,6 +32,7 @@
 #include <DataFlash/DataFlash.h>
 #include <AP_Scheduler/AP_Scheduler.h>
 #include <AP_BoardConfig/AP_BoardConfig.h>
+#include "hwdef/common/stm32_util.h"
 #include "shared_dma.h"
 #include "sdcard.h"
 
@@ -244,6 +245,9 @@ void Scheduler::reboot(bool hold_in_bootloader)
 
     // stop sdcard driver, if active
     sdcard_stop();
+
+    // setup RTC for fast reboot
+    set_fast_reboot(hold_in_bootloader?RTC_BOOT_HOLD:RTC_BOOT_FAST);
 
     // disable all interrupt sources
     port_disable();
