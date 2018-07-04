@@ -7,11 +7,6 @@
 #define HAL_GPIO_INPUT  0
 #define HAL_GPIO_OUTPUT 1
 #define HAL_GPIO_ALT    2
-#define HAL_GPIO_INTERRUPT_LOW 0
-#define HAL_GPIO_INTERRUPT_HIGH 1
-#define HAL_GPIO_INTERRUPT_FALLING 2
-#define HAL_GPIO_INTERRUPT_RISING 3
-#define HAL_GPIO_INTERRUPT_BOTH 4
 
 class AP_HAL::DigitalSource {
 public:
@@ -37,9 +32,19 @@ public:
     /* Alternative interface: */
     virtual AP_HAL::DigitalSource* channel(uint16_t n) = 0;
 
+    enum INTERRUPT_TRIGGER_TYPE {
+        INTERRUPT_NONE,
+        INTERRUPT_FALLING,
+        INTERRUPT_RISING,
+        INTERRUPT_BOTH,
+    };
+
     /* Interrupt interface: */
-    virtual bool    attach_interrupt(uint8_t interrupt_num, AP_HAL::Proc p,
-            uint8_t mode) = 0;
+    //                                ret , pin    , state,timestamp
+    FUNCTOR_TYPEDEF(irq_handler_fn_t, void, uint8_t, bool, uint32_t);
+    virtual bool    attach_interrupt(uint8_t pin,
+                                     irq_handler_fn_t fn,
+                                     INTERRUPT_TRIGGER_TYPE mode) = 0;
 
     /* return true if USB cable is connected */
     virtual bool    usb_connected(void) = 0;
