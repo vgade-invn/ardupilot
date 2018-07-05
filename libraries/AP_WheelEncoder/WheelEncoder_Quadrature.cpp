@@ -15,122 +15,80 @@
 
 #include <AP_HAL/AP_HAL.h>
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
 #include <AP_BoardConfig/AP_BoardConfig.h>
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #include <board_config.h>
+#endif
 #include "WheelEncoder_Quadrature.h"
 #include <stdio.h>
+#include <GCS_MAVLink/GCS.h>
 
 extern const AP_HAL::HAL& hal;
-AP_WheelEncoder_Quadrature::IrqState AP_WheelEncoder_Quadrature::irq_state[WHEELENCODER_MAX_INSTANCES];
 
 // constructor
 AP_WheelEncoder_Quadrature::AP_WheelEncoder_Quadrature(AP_WheelEncoder &frontend, uint8_t instance, AP_WheelEncoder::WheelEncoder_State &state) :
 	AP_WheelEncoder_Backend(frontend, instance, state)
 {
+    irq_handler_fn = FUNCTOR_BIND_MEMBER(&AP_WheelEncoder_Quadrature::irq_handler, void, uint8_t, bool, uint32_t);
 }
+
+// check if pin has changed and initialise gpio event callback
+void AP_WheelEncoder_Quadrature::update_pin(uint8_t &pin,
+                                            uint8_t new_pin,
+                                            uint8_t &pin_value,
+                                            AP_HAL::GPIO::irq_handler_fn_t fn)
+{
+    if (new_pin == pin) {
+        // no change
+        return;
+    }
+
+    // remove old gpio event callback if present
+    hal.gpio->attach_interrupt(pin, nullptr, AP_HAL::GPIO::INTERRUPT_NONE);
+
+    pin = new_pin;
+
+    // install interrupt handler on rising or falling edge of gpio for pin a
+    if (new_pin != 255) {
+        if (!hal.gpio->attach_interrupt(pin,
+                                        fn,
+                                        AP_HAL::GPIO::INTERRUPT_BOTH)) {
+            hal.console->printf("WEnc: Failed to attach interrupt to pin=%u\n", pin);
+        } else {
+            hal.console->printf("WEnc: Attached interrupt to pin=%u\n", pin);
+        }
+        pin_value = hal.gpio->read(pin);
+    }
+}
+
+static uint32_t interrupt_count_a = 0;
+static uint32_t interrupt_count_b = 0;
+static uint32_t errors = 0;
 
 void AP_WheelEncoder_Quadrature::update(void)
 {
-    uint8_t instance = _state.instance;
+    update_pin(last_pin_a, get_pin_a(), last_pin_a_value, irq_handler_fn);
+    update_pin(last_pin_b, get_pin_b(), last_pin_b_value, irq_handler_fn);
 
-    // check if pin a has changed and initialise gpio event callback
-    if (last_pin_a != get_pin_a()) {
-        last_pin_a = get_pin_a();
-
-        // remove old gpio event callback if present
-        if (irq_state[instance].last_gpio_a != 0) {
-            stm32_gpiosetevent(irq_state[instance].last_gpio_a, false, false, false, nullptr);
-            irq_state[instance].last_gpio_a = 0;
-        }
-
-        // install interrupt handler on rising or falling edge of gpio for pin a
-        irq_state[instance].last_gpio_a = get_gpio(last_pin_a);
-        if (irq_state[instance].last_gpio_a != 0) {
-            stm32_gpiosetevent(irq_state[instance].last_gpio_a, true, true, false, _state.instance==0 ? irq_handler0_pina : irq_handler1_pina);
-        }
-
-    }
-
-    // check if pin b has changed and initialise gpio event callback
-    if (last_pin_b != get_pin_b()) {
-        last_pin_b = get_pin_b();
-
-        // remove old gpio event callback if present
-        if (irq_state[instance].last_gpio_b != 0) {
-            stm32_gpiosetevent(irq_state[instance].last_gpio_b, false, false, false, nullptr);
-            irq_state[instance].last_gpio_b = 0;
-        }
-
-        // install interrupt handler on rising or falling edge of gpio for pin b
-        irq_state[instance].last_gpio_b = get_gpio(last_pin_b);
-        if (irq_state[instance].last_gpio_b != 0) {
-            stm32_gpiosetevent(irq_state[instance].last_gpio_b, true, true, false, _state.instance==0 ? irq_handler0_pinb : irq_handler1_pinb);
-        }
-
+    static uint32_t last_warn_ms = 0;
+    const uint32_t now = AP_HAL::millis();
+    if (now - last_warn_ms > 1000) {
+        last_warn_ms = now;
+        gcs().send_text(MAV_SEVERITY_WARNING, "%u interrupts a=%u b=%u errors=%u", _state.instance, interrupt_count_a, interrupt_count_b, errors);
     }
 
     // disable interrupts to prevent race with irq_handler
-    irqstate_t istate = irqsave();
+    void *irqstate = hal.scheduler->disable_interrupts_save();
 
     // copy distance and error count so it is accessible to front end
-    _state.distance_count = irq_state[instance].distance_count;
-    _state.total_count = irq_state[instance].total_count;
-    _state.error_count = irq_state[instance].error_count;
-    _state.last_reading_ms = irq_state[instance].last_reading_ms;
+    _state.distance_count = irq_state.distance_count;
+    _state.total_count = irq_state.total_count;
+    _state.error_count = irq_state.error_count;
+    _state.last_reading_ms = irq_state.last_reading_ms;
 
     // restore interrupts
-    irqrestore(istate);
-}
-
-// interrupt handler for instance 0, pin a
-int AP_WheelEncoder_Quadrature::irq_handler0_pina(int irq, void *context)
-{
-    irq_handler(0, true);
-    return 0;
-}
-
-// interrupt handler for instance 0, pin b
-int AP_WheelEncoder_Quadrature::irq_handler0_pinb(int irq, void *context)
-{
-    irq_handler(0, false);
-    return 0;
-}
-
-// interrupt handler for instance 1, pin a
-int AP_WheelEncoder_Quadrature::irq_handler1_pina(int irq, void *context)
-{
-    irq_handler(1, true);
-    return 0;
-}
-
-// interrupt handler for instance 1, pin b
-int AP_WheelEncoder_Quadrature::irq_handler1_pinb(int irq, void *context)
-{
-    irq_handler(1, false);
-    return 0;
-}
-
-// get gpio id from pin number
-uint32_t AP_WheelEncoder_Quadrature::get_gpio(uint8_t pin_number)
-{
-#ifdef GPIO_GPIO0_INPUT
-    switch (pin_number) {
-    case 50:
-        return GPIO_GPIO0_INPUT;
-    case 51:
-        return GPIO_GPIO1_INPUT;
-    case 52:
-        return GPIO_GPIO2_INPUT;
-    case 53:
-        return GPIO_GPIO3_INPUT;
-    case 54:
-        return GPIO_GPIO4_INPUT;
-    case 55:
-        return GPIO_GPIO5_INPUT;
-    }
-#endif
-    return 0;
+    hal.scheduler->restore_interrupts(irqstate);
 }
 
 // convert pin a and pin b state to a wheel encoder phase
@@ -176,23 +134,35 @@ void AP_WheelEncoder_Quadrature::update_phase_and_error_count(bool pin_a_now, bo
     total_count++;
 }
 
-// combined irq handler
-void AP_WheelEncoder_Quadrature::irq_handler(uint8_t instance, bool pin_a)
+void AP_WheelEncoder_Quadrature::irq_handler(uint8_t pin,
+                                             bool pin_value,
+                                             uint32_t timestamp)
 {
     // sanity check
-    if (irq_state[instance].last_gpio_a == 0 || irq_state[instance].last_gpio_b == 0) {
+    if (last_pin_a == 0 || last_pin_b == 0) {
         return;
     }
 
-    // read value of pin-a and pin-b
-    bool pin_a_high = stm32_gpioread(irq_state[instance].last_gpio_a);
-    bool pin_b_high = stm32_gpioread(irq_state[instance].last_gpio_b);
-
     // update distance and error counts
-    update_phase_and_error_count(pin_a_high, pin_b_high, irq_state[instance].phase, irq_state[instance].distance_count, irq_state[instance].total_count, irq_state[instance].error_count);
+    if (pin == last_pin_a) {
+        last_pin_a_value = pin_value;
+        interrupt_count_a++;
+    } else if (pin == last_pin_b) {
+        last_pin_b_value = pin_value;
+        interrupt_count_b++;
+    } else {
+        errors++;
+        return;
+    };
+    update_phase_and_error_count(last_pin_a_value,
+                                 last_pin_b_value,
+                                 irq_state.phase,
+                                 irq_state.distance_count,
+                                 irq_state.total_count,
+                                 irq_state.error_count);
 
     // record update time
-    irq_state[instance].last_reading_ms = AP_HAL::millis();
+    irq_state.last_reading_ms = timestamp;
 }
 
 #endif // CONFIG_HAL_BOARD
