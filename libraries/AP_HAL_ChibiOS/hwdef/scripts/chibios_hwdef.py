@@ -504,7 +504,7 @@ def copy_common_linkerscript(outdir, hwdef):
 def write_USB_config(f):
     '''write USB config defines'''
     if not have_type_prefix('OTG'):
-        return;
+        return
     f.write('// USB configuration\n')
     f.write('#define HAL_USB_VENDOR_ID %s\n' % get_config('USB_VENDOR', default=0x0483)) # default to ST
     f.write('#define HAL_USB_PRODUCT_ID %s\n' % get_config('USB_PRODUCT', default=0x5740))

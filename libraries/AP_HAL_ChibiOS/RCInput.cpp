@@ -29,20 +29,29 @@ extern AP_IOMCU iomcu;
 
 #define SIG_DETECT_TIMEOUT_US 500000
 using namespace ChibiOS;
+
+#ifdef HAL_RCINPUT_WITH_SERIAL
+SerialConfig rcin_serial_config = RCIN_SERIAL_CFG;
+#endif
+
 extern const AP_HAL::HAL& hal;
 void RCInput::init()
 {
 #if HAL_USE_ICU == TRUE
     //attach timer channel on which the signal will be received
     sig_reader.attach_capture_timer(&RCIN_ICU_TIMER, RCIN_ICU_CHANNEL, STM32_RCIN_DMA_STREAM, STM32_RCIN_DMA_CHANNEL);
-    rcin_prot.init();
+    rcin_prot.init_sigread_protocols();
 #endif
 
 #if HAL_USE_EICU == TRUE
     sig_reader.init(&RCININT_EICU_TIMER, RCININT_EICU_CHANNEL);
-    rcin_prot.init();
+    rcin_prot.init_sigread_protocols();
 #endif
 
+#ifdef HAL_RCINPUT_WITH_SERIAL
+    sdStart(&RCIN_SERIAL, &rcin_serial_config);
+    rcin_prot.init_serial_protocols();
+#endif
     _init = true;
 }
 
@@ -119,19 +128,33 @@ void RCInput::_timer_tick(void)
 #if HAL_USE_ICU == TRUE || HAL_USE_EICU == TRUE
     uint32_t width_s0, width_s1;
 
-    while(sig_reader.read(width_s0, width_s1)) {
-        rcin_prot.process_pulse(width_s0, width_s1);
-    }
-
-    if (rcin_prot.new_input()) {
-        rcin_mutex.take(HAL_SEMAPHORE_BLOCK_FOREVER);
-        _rcin_timestamp_last_signal = AP_HAL::micros();
-        _num_channels = rcin_prot.num_channels();
-        for (uint8_t i=0; i<_num_channels; i++) {
-            _rc_values[i] = rcin_prot.read(i);
+    if (!rcin_prot.valid_serial_prot()) {
+        while(sig_reader.read(width_s0, width_s1)) {
+            rcin_prot.process_pulse(width_s0, width_s1);
         }
-        rcin_mutex.give();
+
+        if (rcin_prot.new_input()) {
+            rcin_mutex.take(HAL_SEMAPHORE_BLOCK_FOREVER);
+            _rcin_timestamp_last_signal = AP_HAL::micros();
+            _num_channels = rcin_prot.num_channels();
+            for (uint8_t i=0; i<_num_channels; i++) {
+                _rc_values[i] = rcin_prot.read(i);
+            }
+            rcin_mutex.give();
+        }
+    } else {
+        //Stop SigReader
     }
+#endif
+
+#ifdef HAL_RCINPUT_WITH_SERIAL
+    int16_t byte;
+    do {
+        byte = chnGetTimeout(&RCIN_SERIAL, TIME_IMMEDIATE);
+        if (byte != Q_TIMEOUT) {
+            rcin_prot.process_byte(byte);
+        }
+    } while(byte != Q_TIMEOUT);
 #endif
 
 #if HAL_RCINPUT_WITH_AP_RADIO
@@ -155,7 +178,7 @@ void RCInput::_timer_tick(void)
     }
     rcin_mutex.give();
 #endif
-    
+
 
     // note, we rely on the vehicle code checking new_input()
     // and a timeout for the last valid input to handle failsafe
