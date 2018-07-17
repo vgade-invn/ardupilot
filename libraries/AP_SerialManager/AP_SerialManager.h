@@ -102,7 +102,12 @@ public:
         SerialProtocol_ESCTelemetry = 16,
         SerialProtocol_Devo_Telem = 17,
         SerialProtocol_OpticalFlow = 18,
+        SerialProtocol_STorM32_Native = 83
     };
+
+//OW
+    bool get_mavlink_channel_for_serial(uint8_t serial_no, mavlink_channel_t& mav_chan) const;
+//OWEND
 
     // get singleton instance
     static AP_SerialManager *get_instance(void) {
