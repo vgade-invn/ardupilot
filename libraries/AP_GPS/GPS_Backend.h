@@ -52,6 +52,12 @@ public:
     virtual void handle_msg(const mavlink_message_t *msg) { return ; }
     virtual void handle_gnss_msg(const AP_GPS::GPS_State &msg) { return ; }
 
+#if HAL_WITH_UAVCAN
+    //Common Uavcan backend methods
+    virtual AP_UAVCAN* get_uavcan_manager() { return nullptr; }
+    virtual uint8_t get_uavcan_node() { return UINT8_MAX; }
+#endif
+
     // driver specific lag, returns true if the driver is confident in the provided lag
     virtual bool get_lag(float &lag) const { lag = 0.2f; return true; }
 

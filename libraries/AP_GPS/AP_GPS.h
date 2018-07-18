@@ -43,7 +43,8 @@
 #define UNIX_OFFSET_MSEC (17000ULL * 86400ULL + 52ULL * 10ULL * AP_MSEC_PER_WEEK - GPS_LEAPSECONDS_MILLIS)
 
 class AP_GPS_Backend;
-
+class AP_GPS_UAVCAN;
+class AP_UAVCAN;
 /// @class AP_GPS
 /// GPS driver main class
 class AP_GPS
@@ -61,6 +62,7 @@ class AP_GPS
     friend class AP_GPS_SBP2;
     friend class AP_GPS_SIRF;
     friend class AP_GPS_UBLOX;
+    friend class AP_GPS_UAVCAN;
     friend class AP_GPS_Backend;
 
 public:
@@ -164,6 +166,7 @@ public:
 
     /// Startup initialisation.
     void init(const AP_SerialManager& serial_manager);
+    bool register_backend(AP_GPS_Backend* backend, uint8_t instance);
 
     /// Update GPS state based on possible bytes received from the module.
     /// This routine must be called periodically (typically at 10Hz or
@@ -417,6 +420,10 @@ public:
     // returns true if all GPS instances have passed all final arming checks/state changes
     bool prepare_for_arming(void);
 
+#if HAL_WITH_UAVCAN
+    static void uavcan_init_callback(AP_UAVCAN* _ap_uavcan);
+#endif
+
 protected:
 
     // configuration parameters
@@ -440,6 +447,8 @@ protected:
     AP_Float _blend_tc;
 
     uint32_t _log_gps_bit = -1;
+
+    bool have_free_backends() const { return num_instances < GPS_MAX_RECEIVERS; }
 
 private:
     static AP_GPS *_singleton;

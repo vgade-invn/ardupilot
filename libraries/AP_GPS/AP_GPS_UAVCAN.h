@@ -20,27 +20,41 @@
 
 #include <AP_Common/AP_Common.h>
 #include <AP_HAL/AP_HAL.h>
-
 #include "AP_GPS.h"
 #include "GPS_Backend.h"
-
+class FixCb;
+class AuxCb;
 class AP_GPS_UAVCAN : public AP_GPS_Backend {
 public:
-    AP_GPS_UAVCAN(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::UARTDriver *_port);
-    ~AP_GPS_UAVCAN() override;
-
+    AP_GPS_UAVCAN(AP_GPS &_gps, AP_GPS::GPS_State &_state);
+    ~AP_GPS_UAVCAN();
+    static void handle_fix_msg_trampoline(AP_UAVCAN* ap_uavcan, uint8_t node_id, const FixCb &cb);
+    static void handle_aux_msg_trampoline(AP_UAVCAN* ap_uavcan, uint8_t node_id, const AuxCb &cb);
     bool read() override;
-    void set_uavcan_manager(uint8_t mgr);
-
-    // This method is called from UAVCAN thread
-    void handle_gnss_msg(const AP_GPS::GPS_State &msg) override;
-
+    virtual AP_UAVCAN* get_uavcan_manager() override { return ap_uavcan; }
+    virtual uint8_t get_uavcan_node() override { return node_id; }
     const char *name() const override { return "UAVCAN"; }
+    static void subscribe_gps_uavcan_messages(AP_UAVCAN* ap_uavcan);
+    static AP_GPS_Backend* allocate_detected_modules(AP_GPS &_gps, AP_GPS::GPS_State &_state);
 
 private:
     bool _new_data;
-    uint8_t _manager;
 
-    AP_GPS::GPS_State _interm_state;
-    AP_HAL::Semaphore *_sem_gnss;
+    //Module Detection Registry
+    static struct DetectedModules {
+        AP_UAVCAN* ap_uavcan;
+        uint8_t node_id;
+    } _detected_modules[GPS_MAX_RECEIVERS];
+    static AP_HAL::Semaphore *_sem_registry;
+    static bool take_registry();
+    static void give_registry();
+    static AP_GPS_UAVCAN* get_uavcan_backend(AP_UAVCAN* ap_uavcan, uint8_t node_id);
+
+    void handle_fix_msg(const FixCb &cb);
+    void handle_aux_msg(const AuxCb &cb);
+
+    AP_UAVCAN* ap_uavcan;
+    uint8_t node_id;
+    AP_HAL::Semaphore *sem;
+    AP_GPS::GPS_State interim_state;
 };
