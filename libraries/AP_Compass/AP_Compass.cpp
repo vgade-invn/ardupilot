@@ -20,6 +20,7 @@
 #if HAL_WITH_UAVCAN
 #include <AP_BoardConfig/AP_BoardConfig_CAN.h>
 #include "AP_Compass_UAVCAN.h"
+#include <AP_UAVCAN/AP_UAVCAN.h>
 #endif
 #include "AP_Compass_MMC3416.h"
 #include "AP_Compass_MAG3110.h"
@@ -491,6 +492,13 @@ Compass::Compass(void)
     AP_Param::setup_object_defaults(this, var_info);
 }
 
+#if HAL_WITH_UAVCAN
+void Compass::uavcan_init_callback(AP_UAVCAN* _ap_uavcan)
+{
+    AP_Compass_UAVCAN::subscribe_compass_uavcan_messages(_ap_uavcan);
+}
+#endif
+
 // Default init method
 //
 bool
@@ -709,6 +717,13 @@ void Compass::_detect_backends(void)
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     ADD_BACKEND(DRIVER_SITL, new AP_Compass_SITL(*this), nullptr, false);
     return;
+#endif
+
+
+#if HAL_WITH_UAVCAN
+    for (uint8_t i = 0; i < COMPASS_MAX_BACKEND; i++) {
+        ADD_BACKEND(DRIVER_UAVCAN, AP_Compass_UAVCAN::probe(*this), "UAVCAN", true);
+    }
 #endif
 
 #ifdef HAL_PROBE_EXTERNAL_I2C_COMPASSES
@@ -1015,18 +1030,6 @@ void Compass::_detect_backends(void)
     ADD_BACKEND(DRIVER_HMC5883, AP_Compass_HMC5843::probe(*this, GET_I2C_DEVICE(HAL_EXT_COMPASS_HMC5843_I2C_BUS, HAL_COMPASS_HMC5843_I2C_ADDR),
                                                           true, ROTATION_ROLL_180),
                 AP_Compass_HMC5843::name, true);
-#endif
-
-#if HAL_WITH_UAVCAN
-    if (_driver_enabled(DRIVER_UAVCAN)) {
-        bool added;
-        do {
-            added = _add_backend(AP_Compass_UAVCAN::probe(*this), "UAVCAN", true);
-            if (_backend_count == COMPASS_MAX_BACKEND || _compass_count == COMPASS_MAX_INSTANCES) {
-                return;
-            }
-        } while (added);
-    }
 #endif
 
     if (_backend_count == 0 ||

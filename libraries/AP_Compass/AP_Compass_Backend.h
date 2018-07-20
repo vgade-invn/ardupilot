@@ -36,7 +36,12 @@ public:
 
     // callback for UAVCAN messages
     virtual void handle_mag_msg(Vector3f &mag) {};
-
+#if HAL_WITH_UAVCAN
+    //Common Uavcan backend methods
+    virtual AP_UAVCAN* get_uavcan_manager() { return nullptr; }
+    virtual uint8_t get_uavcan_node() { return UINT8_MAX; }
+    virtual uint8_t get_uavcan_sensor_id() { return UINT8_MAX; }
+#endif
     /*
       device driver IDs. These are used to fill in the devtype field
       of the device ID, which shows up as COMPASS*ID* parameters to

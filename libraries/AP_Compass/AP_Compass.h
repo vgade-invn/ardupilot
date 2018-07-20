@@ -46,9 +46,12 @@
 #define COMPASS_MAX_INSTANCES 3
 #define COMPASS_MAX_BACKEND   3
 
+class AP_Compass_UAVCAN;
+class AP_UAVCAN;
 class Compass
 {
 friend class AP_Compass_Backend;
+friend class AP_Compass_UAVCAN;
 public:
     Compass();
 
@@ -69,6 +72,10 @@ public:
     ///             found or is not functioning.
     ///
     bool init();
+
+#if HAL_WITH_UAVCAN
+    static void uavcan_init_callback(AP_UAVCAN* _ap_uavcan);
+#endif
 
     /// Read the compass and update the mag_ variables.
     ///
@@ -326,6 +333,7 @@ public:
 
     uint8_t get_filter_range() const { return uint8_t(_filter_range.get()); }
 
+    bool have_free_backends() const { return (_compass_count < COMPASS_MAX_INSTANCES);}
 private:
     static Compass *_singleton;
     /// Register a new compas driver, allocating an instance number
