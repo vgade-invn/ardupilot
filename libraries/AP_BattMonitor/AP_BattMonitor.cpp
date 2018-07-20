@@ -3,8 +3,12 @@
 #include "AP_BattMonitor_SMBus.h"
 #include "AP_BattMonitor_Bebop.h"
 #include "AP_BattMonitor_BLHeliESC.h"
+#include <AP_Common/AP_Common.h>
+
 #if HAL_WITH_UAVCAN
 #include "AP_BattMonitor_UAVCAN.h"
+#include <AP_UAVCAN/AP_UAVCAN.h>
+#include <AP_BoardConfig/AP_BoardConfig_CAN.h>
 #endif
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 #include <DataFlash/DataFlash.h>
@@ -45,6 +49,13 @@ AP_BattMonitor::AP_BattMonitor(uint32_t log_battery_bit, battery_failsafe_handle
     }
     _singleton = this;
 }
+
+#if HAL_WITH_UAVCAN
+void AP_BattMonitor::uavcan_init_callback(AP_UAVCAN* _ap_uavcan)
+{
+    AP_BattMonitor_UAVCAN::subscribe_battmon_uavcan_messages(_ap_uavcan);
+}
+#endif
 
 // init - instantiate the battery monitors
 void

@@ -26,7 +26,7 @@ class AP_BattMonitor_SMBus;
 class AP_BattMonitor_SMBus_Solo;
 class AP_BattMonitor_SMBus_Maxell;
 class AP_BattMonitor_UAVCAN;
-
+class AP_UAVCAN;
 class AP_BattMonitor
 {
     friend class AP_BattMonitor_Backend;
@@ -84,6 +84,13 @@ public:
 
     // detect and initialise any available battery monitors
     void init();
+
+    AP_BattMonitor_Backend* register_backend(AP_BattMonitor_Params::BattMonitor_Type type, uint8_t instance);
+
+
+#if HAL_WITH_UAVCAN
+    static void uavcan_init_callback(AP_UAVCAN* _ap_uavcan);
+#endif
 
     /// Read the battery voltage and current for all batteries.  Should be called at 10hz
     void read();
