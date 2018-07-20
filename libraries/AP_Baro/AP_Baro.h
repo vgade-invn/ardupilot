@@ -17,12 +17,13 @@
 #define BARO_DATA_CHANGE_TIMEOUT_MS     2000    // timeout in ms since last successful read that involved temperature of pressure changing
 
 class AP_Baro_Backend;
-
+class AP_Baro_UAVCAN;
+class AP_UAVCAN;
 class AP_Baro
 {
     friend class AP_Baro_Backend;
     friend class AP_Baro_SITL; // for access to sensors[]
-
+    friend class AP_Baro_UAVCAN;
 public:
     AP_Baro();
 
@@ -44,6 +45,9 @@ public:
     // initialise the barometer object, loading backend drivers
     void init(void);
 
+#if HAL_WITH_UAVCAN
+    static void uavcan_init_callback(AP_UAVCAN* _ap_uavcan);
+#endif
     // update the barometer object, asking backends to push data to
     // the frontend
     void update(void);
@@ -181,6 +185,7 @@ public:
     void set_log_baro_bit(uint32_t bit) { _log_baro_bit = bit; }
     bool should_df_log() const;
 
+    bool have_free_backends() const { return !(_num_drivers == BARO_MAX_DRIVERS || _num_sensors == BARO_MAX_INSTANCES); }
 private:
     // singleton
     static AP_Baro *_instance;

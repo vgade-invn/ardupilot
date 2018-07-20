@@ -17,11 +17,12 @@ public:
     // trigger them to read the sensor
     virtual void accumulate(void) {}
 
-    // callback for UAVCAN messages
-    virtual void handle_baro_msg(float pressure, float temperature) {}
-
     void backend_update(uint8_t instance);
-
+#if HAL_WITH_UAVCAN
+    //Common Uavcan backend methods
+    virtual AP_UAVCAN* get_uavcan_manager() { return nullptr; }
+    virtual uint8_t get_uavcan_node() { return UINT8_MAX; }
+#endif
     //  Check that the baro valid by using a mean filter.
     // If the value further that filtrer_range from mean value, it is rejected.
     bool pressure_ok(float press);
