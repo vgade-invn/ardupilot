@@ -70,6 +70,13 @@ public:
     {
         return _method != nullptr;
     }
+    // invalidate the functor; after this the bool operator on the
+    // functor will return false.
+    void invalidate()
+    {
+        _method = nullptr;
+        _obj = nullptr;
+    }
 
     template<class T, RetType (T::*method)(Args...)>
     static constexpr Functor bind(T *obj)
