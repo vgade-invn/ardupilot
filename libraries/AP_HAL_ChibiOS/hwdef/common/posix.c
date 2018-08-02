@@ -51,7 +51,6 @@
    - POSIX file and directory manipulation
         - basename
         - baseext   - NOT POSIX
-        - chmod
         - chdir
         - dirname
         - getcwd
@@ -1477,62 +1476,6 @@ char *baseext(char *str)
 }
 
 
-/// @brief POSIX change directory.
-///
-/// - man page chdir (2).
-///
-/// @param[in] pathname: directory to change to
-///
-/// @return 0 on sucess.
-/// @return -1 on error with errno set.
-
-int chdir(const char *pathname)
-{
-    errno = 0;
-
-    int res = f_chdir(pathname);
-    if(res != FR_OK)
-    {
-        errno = fatfs_to_errno(res);
-        return(-1);
-    }
-    return(0);
-}
-
-/// @brief POSIX chmod function - change file access permission
-/// Unfortunately file f_open modes and f_chmod modes are not the same
-/// Files that are open have way more options - but only while the file is open.
-///  - so this is a bit of a hack - we can only set read only  - if on one has write perms 
-///
-/// - man page chmod (2).
-///
-/// @param[in] pathname: filename string.
-/// @param[in] mode: POSIX chmod modes.
-///
-/// @return fileno on success.
-
-int chmod(const char *pathname, mode_t mode)
-{
-    int rc;
-    errno = 0;
-
-    // FIXME for now we combine user,group and other perms and ask if anyone has write perms ?
-
-    // Read only ???
-    if ( !( mode & ( S_IWUSR | S_IWGRP | S_IWOTH)))
-    {
-        // file is read only
-        rc = f_chmod(pathname, AM_RDO, AM_RDO);
-        if (rc != FR_OK)
-        {
-            errno = fatfs_to_errno(rc);
-            return(-1);
-        }
-    }
-    
-    return(0);
-}
-
 /// @brief POSIX directory name of a filename.
 ///  Return the index of the last '/' character.
 ///
@@ -1566,24 +1509,6 @@ int dirname(char *str)
     }
     return(end);
 }
-
-#if 0
-/// @brief POSIX fchmod function - change file access permission
-/// FatFS does not have a function that will map to this
-///
-/// - man page fchmod (2).
-///
-/// @param[in] fd: file handle
-/// @param[in] mode: POSIX chmod modes.
-///
-/// @return fileno on success.
-
-int fchmod(int fd, mode_t mode)
-{
-    //FIXME TODO
-    return (-1);
-}
-#endif
 
 /// @brief POSIX get current working directory
 ///
@@ -1619,6 +1544,7 @@ char *getcwd(char *pathname, int len)
 
 int mkdir(const char *pathname, mode_t mode)
 {
+    (void)mode;
     errno = 0;
 
     int res = f_mkdir(pathname);
@@ -1626,10 +1552,6 @@ int mkdir(const char *pathname, mode_t mode)
     {
         errno = fatfs_to_errno(res);
         return(-1);
-    }
-
-    if (mode) {
-        chmod(pathname, mode);
     }
 
     return(0);

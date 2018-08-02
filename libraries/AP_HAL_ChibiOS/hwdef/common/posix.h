@@ -35,6 +35,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <ff.h>
 #include <stdarg.h>
 #include <time.h>
+#include "ffconf.h"
 
 #define MAXLN 128
 #define ISSPACE " \t\n\r\f\v"
@@ -125,8 +126,8 @@ typedef struct utimbuf
    time_t modtime;      /* modification time */
 } utime_t;
 
-#if _USE_LFN != 0
-#define MAX_NAME_LEN _MAX_LFN 
+#if FF_USE_LFN != 0
+#define MAX_NAME_LEN FF_MAX_LFN 
 #else
 #define MAX_NAME_LEN 13
 #endif
@@ -352,14 +353,8 @@ int64_t fs_gettotal(void);
 int stat ( const char *name , struct stat *buf );
 char *basename (const char *str );
 char *baseext ( char *str );
-int chdir ( const char *pathname );
-int chmod ( const char *pathname , mode_t mode );
 int dirname ( char *str );
 //int utime(const char *filename, const struct utimbuf *times);
-
-#if 0
- int fchmod ( int fd , mode_t mode );
-#endif
 
 char *getcwd ( char *pathname , int len );
 int mkdir ( const char *pathname , mode_t mode );
