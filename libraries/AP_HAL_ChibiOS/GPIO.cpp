@@ -121,9 +121,6 @@ bool GPIO::_attach_interrupt(ioline_t line, AP_HAL::Proc p, uint8_t mode)
 {
     uint32_t chmode = 0;
     switch(mode) {
-        case INTERRUPT_NONE:
-            chmode = PAL_EVENT_MODE_DISABLED;
-            break;
         case INTERRUPT_FALLING:
             chmode = PAL_EVENT_MODE_FALLING_EDGE;
             break;
@@ -148,6 +145,10 @@ bool GPIO::_attach_interrupt(ioline_t line, AP_HAL::Proc p, uint8_t mode)
             return false;
         }
         osalSysUnlock();
+    }
+
+    if (!p) {
+        chmode = PAL_EVENT_MODE_DISABLED;
     }
 
     palDisableLineEvent(line);
