@@ -38,9 +38,14 @@ public:
     /* Alternative interface: */
     AP_HAL::DigitalSource* channel(uint16_t n);
 
-    /* Interrupt interface: */
+    /* Interrupt interface - fast, for RCOutput */
     bool    attach_interrupt(uint8_t interrupt_num, AP_HAL::Proc p,
             uint8_t mode);
+
+    /* Interrupt interface - for AP_HAL::GPIO */
+    bool    attach_interrupt(uint8_t interrupt_num,
+                             irq_handler_fn_t fn,
+                             INTERRUPT_TRIGGER_TYPE mode);
 
     /* return true if USB cable is connected */
     bool    usb_connected(void) override;
@@ -53,6 +58,8 @@ public:
 private:
     bool _usb_connected;
     bool _ext_started;
+
+    bool _attach_interrupt(ioline_t line, palcallback_t cb, void *p, uint8_t mode);
 };
 
 class ChibiOS::DigitalSource : public AP_HAL::DigitalSource {

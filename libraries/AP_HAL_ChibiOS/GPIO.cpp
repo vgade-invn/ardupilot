@@ -26,6 +26,7 @@ static struct gpio_entry {
     bool enabled;
     uint8_t pwm_num;
     ioline_t pal_line;
+    AP_HAL::GPIO::irq_handler_fn_t fn; // callback for GPIO interface
 } _gpio_tab[] = HAL_GPIO_PINS;
 
 #define NUM_PINS ARRAY_SIZE(_gpio_tab)
@@ -48,6 +49,7 @@ static struct gpio_entry *gpio_by_pin_num(uint8_t pin_num, bool check_enabled=tr
 }
 
 static void pal_interrupt_cb(void *arg);
+static void pal_interrupt_cb_functor(void *arg);
 
 GPIO::GPIO()
 {}
@@ -115,9 +117,33 @@ AP_HAL::DigitalSource* GPIO::channel(uint16_t pin)
 extern const AP_HAL::HAL& hal;
 
 /* 
+   Attach an interrupt handler to a GPIO pin number. The pin number
+   must be one specified with a GPIO() marker in hwdef.dat
+ */
+bool GPIO::attach_interrupt(uint8_t pin,
+                            irq_handler_fn_t fn,
+                            INTERRUPT_TRIGGER_TYPE mode)
+{
+    struct gpio_entry *g = gpio_by_pin_num(pin, false);
+    if (!g) {
+        return false;
+    }
+    g->fn = fn;
+    return _attach_interrupt(g->pal_line,
+                             palcallback_t(fn?pal_interrupt_cb_functor:nullptr),
+                             g,
+                             mode);
+}
+
+/*
    Attach an interrupt handler to ioline_t
  */
 bool GPIO::_attach_interrupt(ioline_t line, AP_HAL::Proc p, uint8_t mode)
+{
+    return _attach_interrupt(line, palcallback_t(p?pal_interrupt_cb:nullptr), (void*)p, mode);
+}
+
+bool GPIO::_attach_interrupt(ioline_t line, palcallback_t cb, void *p, uint8_t mode)
 {
     uint32_t chmode = 0;
     switch(mode) {
@@ -153,21 +179,8 @@ bool GPIO::_attach_interrupt(ioline_t line, AP_HAL::Proc p, uint8_t mode)
 
     palDisableLineEvent(line);
     palEnableLineEvent(line, chmode);
-    palSetLineCallback(line, p?pal_interrupt_cb:nullptr, (void*)p);
+    palSetLineCallback(line, cb, p);
     return true;
-}
-
-/* 
-   Attach an interrupt handler to a GPIO pin number. The pin number
-   must be one specified with a GPIO() marker in hwdef.dat
- */
-bool GPIO::attach_interrupt(uint8_t pin, AP_HAL::Proc p, uint8_t mode)
-{
-    struct gpio_entry *g = gpio_by_pin_num(pin, false);
-    if (!g) {
-        return false;
-    }
-    return _attach_interrupt(g->pal_line, p, mode);
 }
 
 bool GPIO::usb_connected(void)
@@ -204,5 +217,18 @@ void pal_interrupt_cb(void *arg)
     if (arg != nullptr) {
         ((AP_HAL::Proc)arg)();
     }
+}
+
+void pal_interrupt_cb_functor(void *arg)
+{
+    const uint32_t now = AP_HAL::micros();
+
+    struct gpio_entry *g = (gpio_entry *)arg;
+    if (g == nullptr) {
+        // what?
+        return;
+    }
+
+    (g->fn)(g->pin_num, palReadLine(g->pal_line), now);
 }
 
