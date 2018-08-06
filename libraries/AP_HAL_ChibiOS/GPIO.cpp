@@ -121,13 +121,16 @@ bool GPIO::_attach_interrupt(ioline_t line, AP_HAL::Proc p, uint8_t mode)
 {
     uint32_t chmode = 0;
     switch(mode) {
-        case HAL_GPIO_INTERRUPT_FALLING:
+        case INTERRUPT_NONE:
+            chmode = PAL_EVENT_MODE_DISABLED;
+            break;
+        case INTERRUPT_FALLING:
             chmode = PAL_EVENT_MODE_FALLING_EDGE;
             break;
-        case HAL_GPIO_INTERRUPT_RISING:
+        case INTERRUPT_RISING:
             chmode = PAL_EVENT_MODE_RISING_EDGE;
             break;
-        case HAL_GPIO_INTERRUPT_BOTH:
+        case INTERRUPT_BOTH:
             chmode = PAL_EVENT_MODE_BOTH_EDGES;
             break;
         default:
