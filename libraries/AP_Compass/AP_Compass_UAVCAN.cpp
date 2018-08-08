@@ -114,48 +114,42 @@ void AP_Compass_UAVCAN::handle_magnetic_field(AP_UAVCAN* ap_uavcan, uint8_t node
 
 AP_Compass_UAVCAN* AP_Compass_UAVCAN::get_uavcan_backend(AP_UAVCAN* ap_uavcan, uint8_t node_id, uint8_t sensor_id)
 {
-    AP_Compass_UAVCAN* driver = nullptr;
     if (ap_uavcan == nullptr) {
         return nullptr;
     }
-    Compass& _frontend = AP::compass();
-    for (uint8_t i = 0; i < _frontend._backend_count; i++) {
-        if (_frontend._backends[i] == nullptr) {
-            continue;
-        }
-        if (_frontend._backends[i]->get_uavcan_manager() == ap_uavcan && 
-            _frontend._backends[i]->get_uavcan_node() == node_id &&
-            _frontend._backends[i]->get_uavcan_sensor_id() == sensor_id) {
-            return (AP_Compass_UAVCAN*)_frontend._backends[i];
+    for (uint8_t i=0; i<COMPASS_MAX_BACKEND; i++) {
+        if (_detected_modules[i].driver &&
+            _detected_modules[i].ap_uavcan == ap_uavcan &&
+            _detected_modules[i].node_id == node_id &&
+            _detected_modules[i].sensor_id == sensor_id) {
+            return _detected_modules[i].driver;
         }
     }
 
-    if (driver == nullptr) {
-        if (take_registry()) {
-            bool already_detected = false;
-            //Check if there's an empty spot for possible registeration
-            for (uint8_t i = 0; i < COMPASS_MAX_BACKEND; i++) {
-                if (_detected_modules[i].ap_uavcan == ap_uavcan && 
-                    _detected_modules[i].node_id == node_id &&
-                    _detected_modules[i].sensor_id == sensor_id) {
-                    //Already Detected
-                    already_detected = true;
-                }
+    if (take_registry()) {
+        bool already_detected = false;
+        //Check if there's an empty spot for possible registeration
+        for (uint8_t i = 0; i < COMPASS_MAX_BACKEND; i++) {
+            if (_detected_modules[i].ap_uavcan == ap_uavcan && 
+                _detected_modules[i].node_id == node_id &&
+                _detected_modules[i].sensor_id == sensor_id) {
+                //Already Detected
+                already_detected = true;
             }
-            if (!already_detected) {
-                for (uint8_t i = 0; i < COMPASS_MAX_BACKEND; i++) {
-                    if (_detected_modules[i].ap_uavcan == nullptr) {
-                        _detected_modules[i].ap_uavcan = ap_uavcan;
-                        _detected_modules[i].node_id = node_id;
-                        _detected_modules[i].sensor_id = sensor_id;
-                        break;
-                    }
-                }
-            }
-            give_registry();
         }
+        if (!already_detected) {
+            for (uint8_t i = 0; i < COMPASS_MAX_BACKEND; i++) {
+                if (nullptr == _detected_modules[i].ap_uavcan) {
+                    _detected_modules[i].ap_uavcan = ap_uavcan;
+                    _detected_modules[i].node_id = node_id;
+                    _detected_modules[i].sensor_id = sensor_id;
+                    break;
+                }
+            }
+        }
+        give_registry();
     }
-    return driver;
+    return nullptr;
 }
 
 AP_Compass_Backend* AP_Compass_UAVCAN::probe(Compass& _frontend)
@@ -165,14 +159,14 @@ AP_Compass_Backend* AP_Compass_UAVCAN::probe(Compass& _frontend)
     }
     AP_Compass_UAVCAN* driver = nullptr;
     for (uint8_t i = 0; i < COMPASS_MAX_BACKEND; i++) {
-        if (_detected_modules[i].ap_uavcan != nullptr) {
+        if (!_detected_modules[i].driver && _detected_modules[i].ap_uavcan) {
             //Register new Compass mode to a backend
             driver = new AP_Compass_UAVCAN(_frontend, _detected_modules[i].ap_uavcan, _detected_modules[i].node_id, _detected_modules[i].sensor_id);
             if (driver) {
+                _detected_modules[i].driver = driver;
                 driver->init();
                 debug_mag_uavcan(2, _detected_modules[i].ap_uavcan->get_driver_num(),"Found Mag Node %d on Bus %d Sensor ID %d\n", _detected_modules[i].node_id, _detected_modules[i].ap_uavcan->get_driver_num(), _detected_modules[i].sensor_id);
             }
-            _detected_modules[i].ap_uavcan = nullptr;
             break;
         }
     }
@@ -245,7 +239,7 @@ void AP_Compass_UAVCAN::read(void)
     }
 }
 
-void AP_Compass_UAVCAN::handle_mag_msg(Vector3f &mag)
+void AP_Compass_UAVCAN::handle_mag_msg(const Vector3f &mag)
 {
     Vector3f raw_field = mag * 1000.0;
 

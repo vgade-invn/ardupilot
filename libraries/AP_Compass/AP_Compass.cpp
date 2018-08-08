@@ -720,12 +720,6 @@ void Compass::_detect_backends(void)
 #endif
 
 
-#if HAL_WITH_UAVCAN
-    for (uint8_t i = 0; i < COMPASS_MAX_BACKEND; i++) {
-        ADD_BACKEND(DRIVER_UAVCAN, AP_Compass_UAVCAN::probe(*this), "UAVCAN", true);
-    }
-#endif
-
 #ifdef HAL_PROBE_EXTERNAL_I2C_COMPASSES
     // allow boards to ask for external probing of all i2c compass types in hwdef.dat
     _probe_external_i2c_compasses();
@@ -1032,6 +1026,12 @@ void Compass::_detect_backends(void)
                 AP_Compass_HMC5843::name, true);
 #endif
 
+#if HAL_WITH_UAVCAN
+    for (uint8_t i = 0; i < COMPASS_MAX_BACKEND; i++) {
+        ADD_BACKEND(DRIVER_UAVCAN, AP_Compass_UAVCAN::probe(*this), "UAVCAN", true);
+    }
+#endif
+    
     if (_backend_count == 0 ||
         _compass_count == 0) {
         hal.console->printf("No Compass backends available\n");

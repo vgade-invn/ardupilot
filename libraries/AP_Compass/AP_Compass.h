@@ -333,7 +333,6 @@ public:
 
     uint8_t get_filter_range() const { return uint8_t(_filter_range.get()); }
 
-    bool have_free_backends() const { return (_compass_count < COMPASS_MAX_INSTANCES);}
 private:
     static Compass *_singleton;
     /// Register a new compas driver, allocating an instance number
