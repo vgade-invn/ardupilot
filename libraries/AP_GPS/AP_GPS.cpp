@@ -438,7 +438,7 @@ void AP_GPS::detect_instance(uint8_t instance)
     }
 
 #if HAL_WITH_UAVCAN
-    if (new_gps == nullptr && (_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_UAVCAN)) {
+    if (new_gps == nullptr && _type[instance] == GPS_TYPE_UAVCAN) {
         new_gps = AP_GPS_UAVCAN::allocate_detected_modules(*this, state[instance]);
         if (new_gps) {
             goto found_gps;
