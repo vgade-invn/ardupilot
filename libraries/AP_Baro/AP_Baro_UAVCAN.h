@@ -30,6 +30,7 @@ private:
     uint64_t _last_timestamp;
     AP_UAVCAN* _ap_uavcan;
     uint8_t _node_id;
+    bool new_pressure;
 
     //Module Detection Registry
     static struct DetectedModules {

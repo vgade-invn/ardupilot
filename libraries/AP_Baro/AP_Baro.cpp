@@ -419,13 +419,6 @@ void AP_Baro::init(void)
     return;
 #endif
 
-#if HAL_WITH_UAVCAN
-    //Detect UAVCAN Modules, try as many times as there are driver slots
-    for (uint8_t i = 0; i < BARO_MAX_DRIVERS; i++) {
-        ADD_BACKEND(AP_Baro_UAVCAN::probe(*this));
-    }
-#endif
-
 #if AP_FEATURE_BOARD_DETECT
     switch (AP_BoardConfig::get_board_type()) {
     case AP_BoardConfig::PX4_BOARD_PX4V1:
@@ -598,6 +591,13 @@ void AP_Baro::init(void)
  #endif                                         
 #endif
     }
+
+#if HAL_WITH_UAVCAN
+    //Detect UAVCAN Modules, try as many times as there are driver slots
+    for (uint8_t i = 0; i < BARO_MAX_DRIVERS; i++) {
+        ADD_BACKEND(AP_Baro_UAVCAN::probe(*this));
+    }
+#endif    
 
 #if CONFIG_HAL_BOARD != HAL_BOARD_F4LIGHT // most boards requires external baro
 

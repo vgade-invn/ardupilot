@@ -58,8 +58,9 @@ void AP_Baro_UAVCAN::handle_pressure(AP_UAVCAN* ap_uavcan, uint8_t node_id, cons
     if (driver == nullptr) {
         return;
     }
-    if (driver->_sem_baro->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
+    if (driver->_sem_baro->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {        
         driver->_pressure = cb.msg->static_pressure;
+        driver->new_pressure = true;
         driver->_sem_baro->give();
     }
 }
@@ -146,6 +147,7 @@ AP_Baro_Backend* AP_Baro_UAVCAN::probe(AP_Baro &baro)
             } else {
                 backend->_ap_uavcan = _detected_modules[i].ap_uavcan;
                 backend->_node_id = _detected_modules[i].node_id;
+                backend->register_sensor();
                 debug_baro_uavcan(2, _detected_modules[i].ap_uavcan->get_driver_num(),"Registered UAVCAN Baro Node %d on Bus %d\n", _detected_modules[i].node_id, _detected_modules[i].ap_uavcan->get_driver_num());
             }
             _detected_modules[i].ap_uavcan = nullptr;
@@ -173,10 +175,11 @@ AP_Baro_UAVCAN::~AP_Baro_UAVCAN()
 // Read the sensor
 void AP_Baro_UAVCAN::update(void)
 {
-    if (_sem_baro->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
+    if (new_pressure && _sem_baro->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
         _copy_to_frontend(_instance, _pressure, _temperature);
 
         _frontend.set_external_temperature(_temperature);
+        new_pressure = false;
         _sem_baro->give();
     }
 }
