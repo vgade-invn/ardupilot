@@ -21,6 +21,7 @@
 #include <AP_AdvancedFailsafe/AP_AdvancedFailsafe.h>
 #include <AP_VisualOdom/AP_VisualOdom.h>
 #include <AP_Common/AP_FWVersion.h>
+#include <AP_Common/Bitmask.h>
 
 #define DEBUG_SEND_MESSAGE_TIMINGS 0
 
@@ -440,85 +441,76 @@ private:
     char _perf_packet_name[16];
     char _perf_update_name[16];
 
-    // outbound ("deferred message") queue.
-
-    // this is a simple array of deferred_message_t.  We keep a
-    // pointer to the next message that is to be sent (by offset,
-    // next_deferred_message_to_send); we need only check its
-    // send_not_before_ms entry to determine if we have work to do.
-    // In the event the message is sent, its send_not_before_ms is
-    // updated, and we linearly scan the array to find the next
-    // message that should be sent.  We may immediately send that
-    // message, or may find it isn't due to be sent yet, or that we
-    // have hit some sort of time limit.  An interval of 0 indicates
-    // that this message should not be rescheduled once sent.  An
-    // send_not_before_ms of zero indicates this message should not be
-    // sent.
-
     // structure holding information about a scheduled message.
     struct deferred_message_t {
-        enum ap_message id;
+        // requested message interval in ms
         uint16_t interval_ms;
-        uint32_t send_not_before_ms; // from AP_HAL::millis()
+        // last send time from millis16()
+        uint16_t last_sent_ms;
     };
-    // all scheduled messages.  We currently size this so we can
-    // schedule all events at the same time.  This does not need to be
-    // the case.  At time of writing MSG_LAST ~= 50, meaning
-    // deferred_messages sucks up ~350 bytes of memory:
+
+    // 16 bit timestamp of last decision to send a message
+    uint16_t last_message_send_ms;
+    uint16_t next_message_due_dt_ms;
+
+    // what is the smallest message interval we are sending?
+    uint16_t smallest_interval_ms;
+    
+    // all scheduled messages.  We size this so we can schedule all
+    // events at the same time.
     deferred_message_t deferred_messages[MSG_LAST];
+
+    // bitmap of one-shot msgs pending
+    Bitmask one_shot_pending{MSG_LAST};
+    
     // a constant that is used in the case no messages are due to be
     // sent (note integer wrapping)
-    static const uint8_t no_deferred_message_to_send = -1;
-    // the offset of the next message which will be sent on the link:
-    uint8_t _next_deferred_message_to_send = no_deferred_message_to_send;
-    // function that updates next deferred message to send and returns it
-    uint8_t next_deferred_message_to_send();
-    // a function to search the list of all messages we might send and
-    // find the best candidate to send:
-    void point_next_deferred_message_to_next_message_to_send();
+    static const uint8_t no_deferred_message_to_send = 0xff;
 
-    // state of the next-message-to-send variable:
-    enum {
-        INVALID,
-        VALID,         // can only be used outside of delay callback
-        VALID_IN_DELAY // can only be used inside of delay callback
-    } next_deferred_message_to_send_state;
+    // work out which message to send next
+    uint8_t get_next_message_to_send();
 
     // returns true if it is OK to send a message while we are in
     // delay callback.  In particular, when we are doing sensor init
     // we still send heartbeats.
     bool send_message_in_delay_callback(const ap_message id) const;
+    
     // if true is returned, interval will contain the default interval for id
     bool default_interval_for_ap_message(const ap_message id, uint16_t &interval) const;
+    
     //  if true is returned, interval will contain the default interval for id
     bool default_interval_for_mavlink_message_id(const uint32_t mavlink_message_id, uint16_t &interval) const;
+    
     // returns an interval in milliseconds for any ap_message in stream id
     uint16_t interval_for_stream(GCS_MAVLINK::streams id) const;
+    
     // set an inverval for a specific mavlink message.  Returns false
     // on failure (typically because there is no mapping from that
     // mavlink ID to an ap_message)
     bool set_mavlink_message_id_interval(const uint32_t mavlink_id,
                                          const uint32_t interval_ms);
+    
     // map a mavlink ID to an ap_message which, if passed to
     // try_send_message, will cause a mavlink message with that id to
     // be emitted.  Returns MSG_LAST if no such mapping exists.
     ap_message mavlink_id_to_ap_message_id(const uint32_t mavlink_id) const;
+    
     // set the interval at which an ap_message should be emitted (in ms)
-    bool set_ap_message_interval(enum ap_message id, uint16_t interval);
+    void set_ap_message_interval(enum ap_message id, uint16_t interval);
+    
     // call set_ap_message_interval for each entry in a stream,
     // the interval being based on the stream's rate
     void initialise_message_intervals_for_stream(GCS_MAVLINK::streams id);
+    
     // call initialise_message_intervals_for_stream on every stream:
     void initialise_message_intervals_from_streamrates();
+    
     // boolean that indicated that message intervals have been set
     // from streamrates:
     bool deferred_messages_initialised;
+    
     // push as many queue entries as is sensible:
     void retry_deferred();
-    // return interval deferred message should be sent after.  When
-    // sending parameters and waypoints this may be longer than the
-    // interval specified in "deferred"
-    uint32_t reschedule_interval(deferred_message_t &deferred) const;
 
     // time when we missed sending a parameter for GCS
     static uint32_t reserve_param_space_start_ms;
@@ -634,6 +626,9 @@ private:
 
     void zero_rc_outputs();
 
+    // 16 bit milliseconds since boot, guaranteed non-zero
+    uint16_t millis16(void) const;
+    
 #if DEBUG_SEND_MESSAGE_TIMINGS
     struct {
         uint32_t longest_time_us;

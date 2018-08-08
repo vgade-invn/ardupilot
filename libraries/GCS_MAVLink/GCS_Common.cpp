@@ -55,9 +55,6 @@ GCS *GCS::_singleton = nullptr;
 GCS_MAVLINK::GCS_MAVLINK()
 {
     AP_Param::setup_object_defaults(this, var_info);
-    for (uint8_t i=0; i<ARRAY_SIZE(deferred_messages); i++) {
-        deferred_messages[i].id = MSG_LAST;
-    }
 }
 
 void
@@ -990,7 +987,8 @@ bool GCS_MAVLINK::set_mavlink_message_id_interval(const uint32_t mavlink_id,
         gcs().send_text(MAV_SEVERITY_INFO, "No ap_message for mavlink id (%u)", mavlink_id);
         return false;
     }
-    return set_ap_message_interval(id, interval_ms);
+    set_ap_message_interval(id, interval_ms);
+    return true;
 }
 
 bool GCS_MAVLINK::send_message_in_delay_callback(const ap_message id) const
@@ -1015,118 +1013,124 @@ bool GCS_MAVLINK::send_message_in_delay_callback(const ap_message id) const
     return false;
 }
 
+/*
+  return milliseconds since boot as 16 bit number. 
+ */
+uint16_t GCS_MAVLINK::millis16() const
+{
+    return AP_HAL::millis() & 0xFFFF;
+}
+
 // linearly scan the message queue to find the next message to send out:
-void GCS_MAVLINK::point_next_deferred_message_to_next_message_to_send()
+uint8_t GCS_MAVLINK::get_next_message_to_send()
 {
-    // assume failure:
-    _next_deferred_message_to_send = no_deferred_message_to_send;
+    // check for a one-shot msg
+    int16_t one_shot_id = one_shot_pending.first_set();
+    if (one_shot_id >= 0) {
+        one_shot_pending.clear(one_shot_id);
+        return one_shot_id;
+    }
 
-    bool first_done = false;
-    uint32_t winning_time = 0;
-    bool repeating_message_found = false; // so we can mark chan as streaming
+    if (smallest_interval_ms == 0) {
+        // nothing being sent 
+       return no_deferred_message_to_send;
+    }
 
-    for (uint8_t i=0; i<ARRAY_SIZE(deferred_messages); i++) {
-        deferred_message_t &e = deferred_messages[i];
-        if (e.id == MSG_LAST) {
+    uint16_t now = millis16();
+    if (next_message_due_dt_ms != 0 &&
+        uint16_t(now - last_message_send_ms) < next_message_due_dt_ms) {
+        // no new msg due
+        return no_deferred_message_to_send;
+    }
+    
+    // assume we don't find a message
+    uint8_t ret = no_deferred_message_to_send;
+
+    uint16_t longest_overtime_ms = 0;
+    bool in_delay_callback = hal.scheduler->in_delay_callback();
+    uint16_t next_due_dt_ms = UINT16_MAX;
+
+    // when sending parameters or waypoints then slow everyone else down
+    uint16_t interval_mul = 1;
+    if (_queued_parameter || waypoint_receiving) {
+        interval_mul = 4;
+    }
+    
+    // look for which msg is due
+    for (uint8_t i=0; i<MSG_LAST; i++) {
+        const deferred_message_t &e = deferred_messages[i];
+        const enum ap_message id = (enum ap_message)i;
+        if (e.interval_ms == 0) {
+            // not streaming this msg
             continue;
         }
-        if (e.interval_ms && e.id != MSG_NEXT_PARAM) {
-            repeating_message_found = true;
+        uint16_t dt = now - e.last_sent_ms;
+
+        // slow down the message if we have a slowdown set
+        uint16_t interval = e.interval_ms;
+        if (id != MSG_NEXT_PARAM && id != MSG_NEXT_WAYPOINT) {
+            interval *= interval_mul;
         }
-        if (e.send_not_before_ms == 0) {
+        if (id != MSG_HEARTBEAT) {
+            interval += stream_slowdown * 20;
+        }
+        
+        if (dt < interval) {
+            // it is not due, calculate when it is due
+            uint16_t due = e.last_sent_ms + interval;
+            uint16_t due_delta_ms = due - last_message_send_ms;
+            if (due_delta_ms < next_due_dt_ms) {
+                next_due_dt_ms = due_delta_ms;
+            }
             continue;
         }
-        if (first_done &&
-            e.send_not_before_ms > winning_time) {
+        // prioritise messages by how far over time they are
+        uint16_t overtime_ms = dt - interval;
+        if (overtime_ms < longest_overtime_ms) {
+            // another one is better
             continue;
         }
-        if (hal.scheduler->in_delay_callback() &&
-            !send_message_in_delay_callback(e.id)) {
+        if (in_delay_callback &&
+            !send_message_in_delay_callback(id)) {
             continue;
         }
-
-        first_done = true;
-        winning_time = e.send_not_before_ms;
-        _next_deferred_message_to_send = i;
+        longest_overtime_ms = overtime_ms;
+        ret = i;
     }
-    if (repeating_message_found) {
-        chan_is_streaming |= (1U<<(chan-MAVLINK_COMM_0));
-    } else {
-        chan_is_streaming &= ~(1U<<(chan-MAVLINK_COMM_0));
+    if (ret == no_deferred_message_to_send) {
+        next_message_due_dt_ms = MIN(next_due_dt_ms, smallest_interval_ms);
+        return no_deferred_message_to_send;
     }
-    if (hal.scheduler->in_delay_callback()) {
-        next_deferred_message_to_send_state = VALID_IN_DELAY;
-    } else {
-        next_deferred_message_to_send_state = VALID;
-    }
-}
-
-uint32_t GCS_MAVLINK::reschedule_interval(deferred_message_t &deferred) const
-{
-    uint32_t interval_ms = deferred.interval_ms;
-
-    // never slow down heartbeats:
-    if (deferred.id == MSG_HEARTBEAT) {
-        return interval_ms;
-    }
-
-    // add in adjustments for streamrate-slowdown (e.g. based
-    // on feedback from telemetry radio on its state).
-    // slowdown is basically 50ths of a second
-    interval_ms += stream_slowdown * 20;
-
-    // slow most messages down if we're transfering parameters or
-    // waypoints:
-    if (_queued_parameter && deferred.id != MSG_NEXT_PARAM) {
-        // we are sending parameters, penalize everbody else:
-        interval_ms *= 4;
-    } else if (waypoint_receiving && deferred.id != MSG_NEXT_WAYPOINT) {
-        interval_ms *= 4;
-    }
-
-    return interval_ms;
-}
-
-uint8_t GCS_MAVLINK::next_deferred_message_to_send()
-{
-    if (hal.scheduler->in_delay_callback() &&
-        next_deferred_message_to_send_state == VALID_IN_DELAY) {
-        // no need to recalculate; it was last calculated when we
-        // were in delay callback and has not been invalidated
-    } else if (!hal.scheduler->in_delay_callback() &&
-               next_deferred_message_to_send_state == VALID) {
-        // no need to recalculate; it was last calculated when we
-        // were not in delay callback and has not been invalidated
-    } else {
-        // recalculate the next message to send
-        point_next_deferred_message_to_next_message_to_send();
-    }
-    return _next_deferred_message_to_send;
+    // we are sending a message. Flush the cache, we run through the
+    // loop again next time
+    last_message_send_ms = now;
+    next_message_due_dt_ms = 0;
+    return ret;
 }
 
 void GCS_MAVLINK::retry_deferred()
 {
 
-    const uint32_t start = AP_HAL::millis();
+    const uint16_t start = millis16();
+    uint16_t now = start;
     gcs().set_out_of_time(false);
-    while (AP_HAL::millis() - start < 5) { // spend a max of 5ms sending messages.  This should never trigger - out_of_time() should become true
+
+    // spend a max of 5ms sending messages.  This should never trigger
+    // as out_of_time() should become true
+    while (uint16_t(now - start) < 5) {
         if (gcs().out_of_time()) {
             break;
         }
-        const uint8_t next = next_deferred_message_to_send();
+        const uint8_t next = get_next_message_to_send();
         if (next == no_deferred_message_to_send) {
             // no messages to send *at all*.
             break;
         }
         deferred_message_t &deferred = deferred_messages[next];
-        if (deferred.send_not_before_ms > start) {
-            // next message to send isn't due to be sent yet
-            break;
-        }
 #if DEBUG_SEND_MESSAGE_TIMINGS
         uint32_t start_send_message_us = AP_HAL::micros();
 #endif
-        if (!try_send_message(deferred.id)) {
+        if (!try_send_message((enum ap_message)next)) {
             // didn't fit in buffer...
 #if DEBUG_SEND_MESSAGE_TIMINGS
             try_send_message_stats.no_space_for_message++;
@@ -1141,27 +1145,22 @@ void GCS_MAVLINK::retry_deferred()
         }
 #endif
         if (deferred.interval_ms) {
-            // reschedule message
-            const uint32_t interval_ms = reschedule_interval(deferred);
-            uint32_t time_basis = deferred.send_not_before_ms;
-            if (time_basis + interval_ms < start) {
-                // very not good; we're getting behind...
-                time_basis = start;
-#if DEBUG_SEND_MESSAGE_TIMINGS
-                try_send_message_stats.behind++;
-#endif
+            // try to keep the rate constant
+            uint16_t dt = uint16_t(deferred.last_sent_ms + 2*deferred.interval_ms) - now;
+            if (dt > UINT16_MAX/2) {
+                // we're falling behind
+                deferred.last_sent_ms = now;
+            } else {
+                // we are not falling behind, so run msgs at desired rate
+                deferred.last_sent_ms += deferred.interval_ms;
             }
-            deferred.send_not_before_ms = time_basis + interval_ms;
-        } else {
-            // this was a one-shot message
-            deferred.send_not_before_ms = 0;
         }
 
-        next_deferred_message_to_send_state = INVALID;
+        now = millis16();
     }
 }
 
-bool GCS_MAVLINK::set_ap_message_interval(enum ap_message id, uint16_t interval)
+void GCS_MAVLINK::set_ap_message_interval(enum ap_message id, uint16_t interval)
 {
     if (id == MSG_NEXT_PARAM) {
         // force parameters to *always* get streamed so a vehicle is
@@ -1173,39 +1172,6 @@ bool GCS_MAVLINK::set_ap_message_interval(enum ap_message id, uint16_t interval)
         }
     }
 
-    // first find a slot for the message.  It may already have one -
-    // which we will obviously reuse, but it might not, in which case
-    // we allocate one for the message.
-    bool reusing_slot = false;
-    uint8_t free_slot = no_deferred_message_to_send;
-    uint8_t slot = no_deferred_message_to_send;
-    for (uint8_t i=0; i<ARRAY_SIZE(deferred_messages); i++) {
-        deferred_message_t &deferred_message = deferred_messages[i];
-        if (deferred_message.id == id) {
-            slot = i;
-            reusing_slot = true;
-            break;
-        }
-        if (deferred_message.id == MSG_LAST &&
-            free_slot == no_deferred_message_to_send) {
-            free_slot = i;
-        }
-    }
-
-    if (slot == no_deferred_message_to_send) {
-        // message not found in our queue
-        if (interval == 0) {
-            // if it is not in our queue then I guess we succeeded?
-            return true;
-        }
-        // use a found free slot if possible:
-        slot = free_slot;
-    }
-    if (slot == no_deferred_message_to_send) {
-        // no free slots....
-        return false;
-    }
-
     // don't send out a message more than once per loop.  At these
     // sorts of rates you're probably going to start slipping
     // messages...
@@ -1215,31 +1181,38 @@ bool GCS_MAVLINK::set_ap_message_interval(enum ap_message id, uint16_t interval)
     }
 
     // ::fprintf(stderr, "Setting interval for %u to %ums\n", id, interval);
+    deferred_message_t &deferred_message = deferred_messages[id];
 
-    deferred_message_t &deferred_message = deferred_messages[slot];
-    deferred_message.id = id;
+    if (interval == deferred_message.interval_ms) {
+        // no change
+        return;
+    }
+    
     deferred_message.interval_ms = interval;
-    if (interval == 0) {
-        // stop sending this message and free the slot
-        deferred_message.send_not_before_ms = 0;
-        deferred_message.id = MSG_LAST;
-        next_deferred_message_to_send_state = INVALID;
-        return true;
+    if (interval != 0) {
+        // send at end of interval
+        deferred_message.last_sent_ms = millis16();
     }
 
-    // we avoid rescheduling for no good reason.  Otherwise any time
-    // the GCS does something like a set-stream-rate all messages come
-    // out straight away.
-    const uint32_t now = AP_HAL::millis();
-    if (!reusing_slot ||
-        deferred_message.send_not_before_ms == 0 ||
-        deferred_message.send_not_before_ms > now + interval) {
-        // reschedule it:
-        deferred_message.send_not_before_ms = now;
-        next_deferred_message_to_send_state = INVALID;
+    // re-calculate the smallest interval
+    smallest_interval_ms = 0;
+    for (uint8_t i=0; i<MSG_LAST; i++) {
+        if (deferred_messages[i].interval_ms != 0 &&
+            (smallest_interval_ms == 0 ||
+             deferred_messages[i].interval_ms < smallest_interval_ms)) {
+            smallest_interval_ms = deferred_messages[i].interval_ms;
+        }
     }
-
-    return true;
+    
+    // we consider a channel to be streaming if it has a non-zero interval
+    // for at least one message
+    if (smallest_interval_ms == 0) {
+        chan_is_streaming &= ~(1U<<(chan-MAVLINK_COMM_0));
+    } else {
+        chan_is_streaming |= (1U<<(chan-MAVLINK_COMM_0));
+    }
+    
+    next_message_due_dt_ms = 0;
 }
 
 // queue a message to be sent (try_send_message does the *actual*
@@ -1249,33 +1222,7 @@ void GCS_MAVLINK::send_message(enum ap_message id)
     if (id == MSG_HEARTBEAT) {
         save_signing_timestamp(false);
     }
-
-    const uint32_t now = AP_HAL::millis();
-    uint8_t free_slot = no_deferred_message_to_send;
-    for (uint8_t i=0; i<ARRAY_SIZE(deferred_messages); i++) {
-        if (deferred_messages[i].id == id) {
-            // set or shorten next time to send:
-            if (deferred_messages[i].send_not_before_ms == 0 ||
-                deferred_messages[i].send_not_before_ms > now) {
-                deferred_messages[i].send_not_before_ms = now;
-                next_deferred_message_to_send_state = INVALID;
-            }
-            return;
-        }
-        if (deferred_messages[i].id == MSG_LAST &&
-            free_slot == no_deferred_message_to_send) {
-            free_slot = i;
-        }
-    }
-    if (free_slot != no_deferred_message_to_send) {
-        deferred_messages[free_slot].id = id;
-        deferred_messages[free_slot].send_not_before_ms = now;
-        next_deferred_message_to_send_state = INVALID;
-    } else {
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-        AP_HAL::panic("no free slots");
-#endif
-    }
+    one_shot_pending.set(id);
 }
 
 void GCS_MAVLINK::packetReceived(const mavlink_status_t &status,
