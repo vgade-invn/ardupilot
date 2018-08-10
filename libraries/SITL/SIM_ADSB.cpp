@@ -49,11 +49,11 @@ void ADSB_Vehicle::update(float delta_t)
 
         double vel_min = 5, vel_max = 20;
         if (position.length() > 500) {
-            vel_min *= 3;
-            vel_max *= 3;
+            vel_min *= 1.5;
+            vel_max *= 1.5;
         } else if (position.length() > 10000) {
-            vel_min *= 10;
-            vel_max *= 10;
+            vel_min *= 2;
+            vel_max *= 2;
         }
         velocity_ef.x = Aircraft::rand_normal(vel_min, vel_max);
         velocity_ef.y = Aircraft::rand_normal(vel_min, vel_max);
