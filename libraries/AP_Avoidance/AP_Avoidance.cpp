@@ -56,7 +56,7 @@ const AP_Param::GroupInfo AP_Avoidance::var_info[] = {
     // @DisplayName: Collision Avoidance Behavior - Warn
     // @Description: Specifies aircraft behaviour when a collision may occur
     // The following values should come from the mavlink COLLISION_ACTION enum
-    // @Values: 0:None,1:Report
+    // @Values: 0:None,1:Report,2:MissionAvoidance
     // @User: Advanced
     AP_GROUPINFO("W_ACTION",    3, AP_Avoidance, _warn_action, MAV_COLLISION_ACTION_REPORT),
 

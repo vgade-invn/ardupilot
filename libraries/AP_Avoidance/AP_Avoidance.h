@@ -136,8 +136,6 @@ protected:
     // reference to AHRS, so we can ask for our position, heading and speed
     const AP_AHRS &_ahrs;
 
-private:
-
     // constants
     const uint32_t MAX_OBSTACLE_AGE_MS = 5000;      // obstacles that have not been heard from for 5 seconds are removed from the list
     const static uint8_t _gcs_notify_interval = 1; // seconds
