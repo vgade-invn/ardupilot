@@ -626,6 +626,9 @@ bool Plane::verify_nav_wp(const AP_Mission::Mission_Command& cmd)
         }
     }
 
+    // possibly do mission avoidance
+    avoidance_adsb.mission_avoidance(current_loc, flex_next_WP_loc, ahrs.groundspeed());
+    
     if (auto_state.crosstrack) {
         nav_controller->update_waypoint(prev_WP_loc, flex_next_WP_loc);
     } else {

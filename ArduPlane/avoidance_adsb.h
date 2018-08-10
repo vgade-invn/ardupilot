@@ -17,6 +17,8 @@ public:
     AP_Avoidance_Plane(const AP_Avoidance_Plane &other) = delete;
     AP_Avoidance_Plane &operator=(const AP_Avoidance_Plane&) = delete;
 
+    void mission_avoidance(const Location &loc, Location &target_loc, float groundspeed);
+    
 protected:
     // override avoidance handler
     MAV_COLLISION_ACTION handle_avoidance(const AP_Avoidance::Obstacle *obstacle, MAV_COLLISION_ACTION requested_action) override;
@@ -35,4 +37,11 @@ protected:
 
     // control mode before avoidance began
     FlightMode prev_control_mode = RTL;
+
+private:
+    bool mission_direct_path_ok(const Vector2f &loc, const Vector2f &target,
+                                const Vector2f *predicted_loc, uint8_t count,
+                                const Vector2f &tgt,
+                                float avoid_sec, float groundspeed);
+    bool mission_avoid_loc_ok(const Vector2f &loc, const Vector2f *predicted_loc, uint8_t count);
 };
