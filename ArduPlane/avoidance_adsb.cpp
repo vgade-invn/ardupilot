@@ -202,3 +202,98 @@ bool AP_Avoidance_Plane::handle_avoidance_horizontal(const AP_Avoidance::Obstacl
     return false;
 }
 
+/*
+  see if a test position is outside the radius of a set of obstacles
+ */
+bool AP_Avoidance_Plane::mission_avoid_loc_ok(const Vector2f &loc, const Vector2f *predicted_loc, uint8_t count)
+{
+    const float min_dist = _warn_distance_xy;
+    const float dist_sq = sq(min_dist);
+    for (uint8_t i=0; i<count; i++) {
+        if (predicted_loc[i].is_zero()) {
+            // timed out entry
+            continue;
+        }
+        if ((loc - predicted_loc[i]).length_squared() <= dist_sq) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+  see if we can follow a direct path to the target from the given point
+ */
+bool AP_Avoidance_Plane::mission_direct_path_ok(const Vector2f &loc, const Vector2f &target,
+                                                const Vector2f *predicted_loc, uint8_t count,
+                                                const Vector2f &tgt,
+                                                float avoid_sec, float groundspeed)
+{
+    const float min_dist = _warn_distance_xy;
+    const float dist_sq = sq(min_dist);
+    Vector2f loc2 = loc + (tgt - loc).normalized() * groundspeed * avoid_sec;
+    for (uint8_t i=0; i<count; i++) {
+        if (predicted_loc[i].is_zero()) {
+            // timed out entry
+            continue;
+        }
+        Vector2f pred2 = predicted_loc[i] + Vector2f(_obstacles[i]._velocity.x, _obstacles[i]._velocity.y) * avoid_sec;
+        if ((loc2 - pred2).length_squared() <= dist_sq) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+  update waypoint to avoid dynamic obstacles
+ */
+void AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed)
+{
+    if (!_enabled || _warn_action != 2) {
+        return;
+    }
+    const float avoid_ratio = 4;
+    const float avoid_sec = (_warn_distance_xy / groundspeed) / avoid_ratio;
+    const int32_t bearing_inc_cd = 500;
+    const float full_distance = get_distance(current_loc, target_loc);
+    const float distance = groundspeed * avoid_sec;
+    const int32_t bearing_cd = get_bearing_cd(current_loc, target_loc);
+    const uint32_t timeout_ms = 5000;
+
+    // get predicted locations of all obstacles
+    const uint32_t now = AP_HAL::millis();
+    Vector2f predicted_loc[_obstacle_count] {};
+    
+    for (uint8_t i=0; i<_obstacle_count; i++) {
+        if (now - _obstacles[i].timestamp_ms > timeout_ms) {
+            continue;
+        }
+        Vector2f vel(_obstacles[i]._velocity.x, _obstacles[i]._velocity.y);
+        predicted_loc[i] = location_diff(current_loc, _obstacles[i]._location);
+        predicted_loc[i] += vel * avoid_sec;
+    }
+
+    const Vector2f target = location_diff(current_loc, target_loc);
+
+    for (uint8_t i=0; i<72; i++) {
+        int32_t bearing_delta_cd = i*bearing_inc_cd/2;
+        if (i & 1) {
+            bearing_delta_cd = -bearing_delta_cd;
+        }
+        const float bearing_test = (bearing_cd + bearing_delta_cd)*0.01;
+        Vector2f loc_test = Vector2f(cosf(radians(bearing_test)), sinf(radians(bearing_test))) * distance;
+        if (mission_avoid_loc_ok(loc_test, predicted_loc, _obstacle_count)) {
+            // found a good bearing, double check it will allow for a direct path after full radius
+            Vector2f loc_test2 = Vector2f(cosf(radians(bearing_test)), sinf(radians(bearing_test))) * distance * avoid_ratio;
+            if (mission_direct_path_ok(loc_test2, target, predicted_loc, _obstacle_count, target, avoid_sec / avoid_ratio, groundspeed)) {
+                target_loc = current_loc;
+                location_update(target_loc, bearing_test, full_distance);
+                if (i != 0) {
+                    ::printf("avoid bearing %d\n", bearing_delta_cd);
+                }
+                return;
+            }
+        }
+    }
+}
