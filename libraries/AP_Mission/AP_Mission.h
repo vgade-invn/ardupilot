@@ -192,6 +192,13 @@ public:
         float release_rate;     // release rate in meters/second
     };
 
+    // Fence_Vertex
+    struct PACKED Fence_Vertex {
+        uint8_t count;          // vertex count
+        int32_t lat;            // latitude *1e7
+        int32_t lng;            // longitude *1e7
+    };
+    
     union PACKED Content {
         // jump structure
         Jump_Command jump;
@@ -256,6 +263,9 @@ public:
         // do-winch
         Winch_Command winch;
 
+        // fence vertex
+        Fence_Vertex fence_vertex;
+        
         // location
         Location location;      // Waypoint location
 
@@ -460,6 +470,9 @@ public:
     // available.
     bool jump_to_landing_sequence(void);
 
+    // find the first waypoint of type FENCE_INCLUSION
+    uint16_t get_fence_inclusion_start();
+    
     // user settable parameters
     static const struct AP_Param::GroupInfo var_info[];
 
