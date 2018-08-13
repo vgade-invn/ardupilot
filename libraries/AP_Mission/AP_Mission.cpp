@@ -1800,3 +1800,76 @@ const char *AP_Mission::Mission_Command::type() const {
         return "?";
     }
 }
+
+// find the first mission item within a given exclusion zone, or 0 if not found
+uint16_t AP_Mission::get_fence_exclusion_start(uint8_t zone_num, uint16_t &count)
+{
+    uint8_t zone_count = 0;
+    
+    for (uint16_t i = 0; i < num_commands(); ) {
+        Mission_Command tmp;
+        if (!read_cmd_from_storage(i, tmp)) {
+            i++;
+            continue;
+        }
+        if (tmp.id == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
+            count = tmp.content.fence_vertex.count;
+            if (count == 0) {
+                return 0;
+            }
+            for (uint16_t j=0; j < count; j++) {
+                if (!read_cmd_from_storage(i+j, tmp)) {
+                    return 0;
+                }
+                if (tmp.id != MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION ||
+                    tmp.content.fence_vertex.count != count) {
+                    // bad sequence
+                    return 0;
+                }
+            }
+            if (zone_count == zone_num) {
+                return i;
+            }
+            i += count;
+            zone_count++;
+        } else {
+            i++;
+        }
+    }
+    return 0;
+}
+
+// find the number of fence exclusion zones
+uint16_t AP_Mission::get_fence_exclusion_count(void) 
+{
+    uint8_t zone_count = 0;
+    
+    for (uint16_t i = 0; i < num_commands(); ) {
+        Mission_Command tmp;
+        if (!read_cmd_from_storage(i, tmp)) {
+            i++;
+            continue;
+        }
+        if (tmp.id == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
+            uint16_t count = tmp.content.fence_vertex.count;
+            if (count == 0) {
+                return 0;
+            }
+            for (uint16_t j=0; j < count; j++) {
+                if (!read_cmd_from_storage(i+j, tmp)) {
+                    return 0;
+                }
+                if (tmp.id != MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION ||
+                    tmp.content.fence_vertex.count != count) {
+                    // bad sequence
+                    return 0;
+                }
+            }
+            i += count;
+            zone_count++;
+        } else {
+            i++;
+        }
+    }
+    return zone_count;
+}
