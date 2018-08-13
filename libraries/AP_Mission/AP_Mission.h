@@ -470,8 +470,11 @@ public:
     // available.
     bool jump_to_landing_sequence(void);
 
-    // find the first waypoint of type FENCE_INCLUSION
-    uint16_t get_fence_inclusion_start();
+    // find the first waypoint of type FENCE_EXCLUSION for a specific zone
+    uint16_t get_fence_exclusion_start(uint8_t zone_num, uint16_t &count);
+
+    // find the number of exclusions zones
+    uint16_t get_fence_exclusion_count(void);
     
     // user settable parameters
     static const struct AP_Param::GroupInfo var_info[];
