@@ -36,6 +36,9 @@ int32_t      get_bearing_cd(const struct Location &loc1, const struct Location &
 // return bearing in centi-degrees between two positions
 float        get_bearing_cd(const Vector3f &origin, const Vector3f &destination);
 
+// return bearing in degrees between two positions
+float get_bearing_deg(const struct Location &loc1, const struct Location &loc2);
+
 // see if location is past a line perpendicular to
 // the line between point1 and point2. If point1 is
 // our previous waypoint and point2 is our target waypoint
