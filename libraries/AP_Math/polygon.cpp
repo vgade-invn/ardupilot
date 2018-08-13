@@ -93,3 +93,19 @@ template bool Polygon_outside<int32_t>(const Vector2l &P, const Vector2l *V, uns
 template bool Polygon_complete<int32_t>(const Vector2l *V, unsigned n);
 template bool Polygon_outside<float>(const Vector2f &P, const Vector2f *V, unsigned n);
 template bool Polygon_complete<float>(const Vector2f *V, unsigned n);
+
+
+/*
+  determine if the polygon of N verticies defined by points V is
+  intersected by a line from point p1 to point p2
+ */
+bool Polygon_intersects(const Vector2f *V, unsigned N, const Vector2f &p1, const Vector2f &p2)
+{
+    for (uint8_t i=0; i<N-1; i++) {
+        Vector2f tmp;
+        if (Vector2f::segment_intersection(V[i],V[i+1],p1,p2,tmp)) {
+            return true;
+        }
+    }
+    return false;
+}
