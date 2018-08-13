@@ -39,9 +39,21 @@ protected:
     FlightMode prev_control_mode = RTL;
 
 private:
-    bool mission_direct_path_ok(const Vector2f &loc, const Vector2f &target,
-                                const Vector2f *predicted_loc, uint8_t count,
-                                const Vector2f &tgt,
-                                float avoid_sec, float groundspeed);
     bool mission_avoid_loc_ok(const Vector2f &loc, const Vector2f *predicted_loc, uint8_t count);
+    bool mission_avoid_exclusions(const Location &current_loc, const Location &loc_test);
+    void load_exclusion_zones(void);
+    void unload_exclusion_zones(void);
+
+    uint8_t num_exclusion_zones;
+    struct exclusion_zone {
+        // closed polygon, with points[0] == points[n-1]
+        uint8_t num_points;
+        Vector2f *points;
+    } *exclusion_zones;
+    uint32_t mission_change_ms;
+
+    void grow_exclusion_zone(struct exclusion_zone &ezone, float margin);
+    
+    // number of meters of padding around exlusion zones
+    const float exclusion_margin = 50;
 };

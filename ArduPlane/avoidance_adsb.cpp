@@ -222,30 +222,6 @@ bool AP_Avoidance_Plane::mission_avoid_loc_ok(const Vector2f &loc, const Vector2
 }
 
 /*
-  see if we can follow a direct path to the target from the given point
- */
-bool AP_Avoidance_Plane::mission_direct_path_ok(const Vector2f &loc, const Vector2f &target,
-                                                const Vector2f *predicted_loc, uint8_t count,
-                                                const Vector2f &tgt,
-                                                float avoid_sec, float groundspeed)
-{
-    const float min_dist = _warn_distance_xy;
-    const float dist_sq = sq(min_dist);
-    Vector2f loc2 = loc + (tgt - loc).normalized() * groundspeed * avoid_sec;
-    for (uint8_t i=0; i<count; i++) {
-        if (predicted_loc[i].is_zero()) {
-            // timed out entry
-            continue;
-        }
-        Vector2f pred2 = predicted_loc[i] + Vector2f(_obstacles[i]._velocity.x, _obstacles[i]._velocity.y) * avoid_sec;
-        if ((loc2 - pred2).length_squared() <= dist_sq) {
-            return false;
-        }
-    }
-    return true;
-}
-
-/*
   update waypoint to avoid dynamic obstacles
  */
 void AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed)
@@ -261,10 +237,14 @@ void AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location
     const int32_t bearing_cd = get_bearing_cd(current_loc, target_loc);
     const uint32_t timeout_ms = 5000;
 
+    // load exclusion zones from the mission, if any
+    load_exclusion_zones();
+    
     // get predicted locations of all obstacles
     const uint32_t now = AP_HAL::millis();
     Vector2f predicted_loc[_obstacle_count] {};
-    
+
+    // predict forward the positions of the moving obstacles
     for (uint8_t i=0; i<_obstacle_count; i++) {
         if (now - _obstacles[i].timestamp_ms > timeout_ms) {
             continue;
@@ -274,26 +254,175 @@ void AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location
         predicted_loc[i] += vel * avoid_sec;
     }
 
-    const Vector2f target = location_diff(current_loc, target_loc);
-
-    for (uint8_t i=0; i<72; i++) {
+    // try all 5 degree increments around a circle, alternating left
+    // and right. For each one check that if we flew in that direction
+    // that we would avoid all obstacles
+    float best_bearing = bearing_cd * 0.01;
+    
+    for (uint8_t i=0; i<360 / (bearing_inc_cd/100); i++) {
         int32_t bearing_delta_cd = i*bearing_inc_cd/2;
         if (i & 1) {
             bearing_delta_cd = -bearing_delta_cd;
         }
+        // bearing that we are probing
         const float bearing_test = (bearing_cd + bearing_delta_cd)*0.01;
-        Vector2f loc_test = Vector2f(cosf(radians(bearing_test)), sinf(radians(bearing_test))) * distance;
-        if (mission_avoid_loc_ok(loc_test, predicted_loc, _obstacle_count)) {
-            // found a good bearing, double check it will allow for a direct path after full radius
-            Vector2f loc_test2 = Vector2f(cosf(radians(bearing_test)), sinf(radians(bearing_test))) * distance * avoid_ratio;
-            if (mission_direct_path_ok(loc_test2, target, predicted_loc, _obstacle_count, target, avoid_sec / avoid_ratio, groundspeed)) {
+
+        // position we will get to
+        Location loc_test = current_loc;
+        location_update(loc_test, bearing_test, distance);
+
+        // difference from current_loc as floats
+        Vector2f loc_diff = location_diff(current_loc, loc_test);
+        
+        if (mission_avoid_loc_ok(loc_diff, predicted_loc, _obstacle_count) &&
+            mission_avoid_exclusions(current_loc, loc_test)) {
+            // This bearing will avoid all dynamic and static
+            // obstacles for one step of 'distance'. Now check if it
+            // will put us in a position where we have a clear path to
+            // our destination for distance*avoid_ratio
+            best_bearing = bearing_test;
+            
+            float new_bearing = 0.01 * get_bearing_cd(loc_test, target_loc);
+            Location loc_test2 = loc_test;
+            location_update(loc_test2, new_bearing, distance * avoid_ratio);
+            Vector2f loc_diff2 = location_diff(current_loc, loc_test2);
+            if (mission_avoid_loc_ok(loc_diff2, predicted_loc, _obstacle_count) &&
+                mission_avoid_exclusions(loc_test, loc_test2)) {
+                // all good, now project in the chosen direction by the full distance
                 target_loc = current_loc;
                 location_update(target_loc, bearing_test, full_distance);
-                if (i != 0) {
-                    ::printf("avoid bearing %d\n", bearing_delta_cd);
-                }
                 return;
             }
         }
     }
+
+    // none of the possible paths were OK for our tests, choose the
+    // one that did best on the first step
+    target_loc = current_loc;
+    location_update(target_loc, best_bearing, full_distance);
+}
+
+/*
+  load exclusion zones from mission items
+ */
+void AP_Avoidance_Plane::load_exclusion_zones(void)
+{
+    if (mission_change_ms == plane.mission.last_change_time_ms()) {
+        // no change
+        return;
+    }
+
+    // unload previous zones
+    unload_exclusion_zones();
+    
+    num_exclusion_zones = plane.mission.get_fence_exclusion_count();
+    if (num_exclusion_zones == 0) {
+        return;
+    }
+    exclusion_zones = new struct exclusion_zone [num_exclusion_zones];
+    if (!exclusion_zones) {
+        goto failed;
+    }
+    for (uint8_t zone=0; zone<num_exclusion_zones; zone++) {
+        struct exclusion_zone &ezone = exclusion_zones[zone];
+        uint16_t count;
+        uint16_t start = plane.mission.get_fence_exclusion_start(zone, count);
+        if (start == 0) {
+            goto failed;
+        }
+        ezone.num_points = count+1;
+        ezone.points = new Vector2f[ezone.num_points];
+        if (!ezone.points) {
+            goto failed;
+        }
+        for (uint8_t i=0; i<count; i++) {
+            AP_Mission::Mission_Command cmd;
+            if (!plane.mission.read_cmd_from_storage(start+i, cmd)) {
+                goto failed;
+            }
+            ezone.points[i].x = cmd.content.fence_vertex.lat*1e-7;
+            ezone.points[i].y = cmd.content.fence_vertex.lng*1e-7;
+        }
+        // complete the polygon, so we can use the polygon library
+        // functions
+        ezone.points[count] = ezone.points[0];
+
+        // expand it by the margin
+        grow_exclusion_zone(ezone, exclusion_margin);
+    }
+    mission_change_ms = plane.mission.last_change_time_ms();
+    return;
+    
+failed:
+    gcs().send_text(MAV_SEVERITY_CRITICAL, "exclusion zone failed");
+    
+    // set the timestamp so we don't continuously reload
+    mission_change_ms = plane.mission.last_change_time_ms();
+}
+
+/*
+  unload the exclusion zones
+ */
+void AP_Avoidance_Plane::unload_exclusion_zones(void)
+{
+    if (!exclusion_zones) {
+        num_exclusion_zones = 0;
+        return;
+    }
+    for (uint8_t zone=0; zone<num_exclusion_zones; zone++) {
+        delete [] exclusion_zones[zone].points;
+    }
+    delete exclusion_zones;
+    exclusion_zones = nullptr;
+}
+
+/*
+  return true if the path from current_loc to loc_test avoids all exclusion zones
+  NOTE: should also avoid the geofence
+ */
+bool AP_Avoidance_Plane::mission_avoid_exclusions(const Location &current_loc, const Location &loc_test)
+{
+    for (uint8_t zone=0; zone<num_exclusion_zones; zone++) {
+        const struct exclusion_zone &ezone = exclusion_zones[zone];
+        Vector2f p1(current_loc.lat*1e-7, current_loc.lng*1e-7);
+        Vector2f p2(loc_test.lat*1e-7, loc_test.lng*1e-7);
+        if (Polygon_intersects(ezone.points, ezone.num_points, p1, p2)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+  grow an exclusion zone by a given amount
+ */
+void AP_Avoidance_Plane::grow_exclusion_zone(struct exclusion_zone &ezone, float margin)
+{
+    // find center
+    Vector2f center;
+    for (uint8_t i=0; i<ezone.num_points-1; i++) {
+        center += ezone.points[i];
+    }
+    center /= ezone.num_points - 1;
+    Location center_loc;
+    center_loc.lat = center.x * 1e7;
+    center_loc.lng = center.y * 1e7;
+
+    // move each point away from the center by the margin
+    for (uint8_t i=0; i<ezone.num_points-1; i++) {
+        Vector2f &pt = ezone.points[i];
+        Location loc;
+        loc.lat = pt.x * 1e7;
+        loc.lng = pt.y * 1e7;
+        
+        float distance = get_distance(center_loc, loc);
+        float bearing = get_bearing_deg(center_loc, loc);
+        loc = center_loc;
+        location_update(loc, bearing, distance+margin);
+        pt.x = loc.lat * 1e-7;
+        pt.y = loc.lng * 1e-7;
+    }
+
+    // close the loop again
+    ezone.points[ezone.num_points-1] = ezone.points[0];
 }
