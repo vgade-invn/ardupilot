@@ -882,6 +882,8 @@ private:
     void geofence_send_status(mavlink_channel_t chan);
     bool geofence_breached(void);
     void geofence_disable_and_send_error_msg(const char *errorMsg);
+    bool geofence_get_polygon(Vector2l *&points, uint8_t &num_points);
+    uint32_t geofence_last_change_ms(void);
     void disarm_if_autoland_complete();
     float tecs_hgt_afe(void);
     void set_nav_controller(void);
