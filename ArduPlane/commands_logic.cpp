@@ -627,7 +627,11 @@ bool Plane::verify_nav_wp(const AP_Mission::Mission_Command& cmd)
     }
 
     // possibly do mission avoidance
-    avoidance_adsb.mission_avoidance(current_loc, flex_next_WP_loc, ahrs.groundspeed());
+    bool avoiding = avoidance_adsb.mission_avoidance(current_loc, flex_next_WP_loc, ahrs.groundspeed());
+    if (avoiding) {
+        // stop cross-tracking when we are avoiding obstacles
+        auto_state.crosstrack = false;
+    }
     
     if (auto_state.crosstrack) {
         nav_controller->update_waypoint(prev_WP_loc, flex_next_WP_loc);
