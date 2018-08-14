@@ -17,7 +17,7 @@ public:
     AP_Avoidance_Plane(const AP_Avoidance_Plane &other) = delete;
     AP_Avoidance_Plane &operator=(const AP_Avoidance_Plane&) = delete;
 
-    void mission_avoidance(const Location &loc, Location &target_loc, float groundspeed);
+    bool mission_avoidance(const Location &loc, Location &target_loc, float groundspeed);
     
 protected:
     // override avoidance handler
@@ -41,8 +41,12 @@ protected:
 private:
     bool mission_avoid_loc_ok(const Vector2f &loc, const Vector2f *predicted_loc, uint8_t count);
     bool mission_avoid_exclusions(const Location &current_loc, const Location &loc_test);
+    bool mission_avoid_fence(const Location &loc_test);
     void load_exclusion_zones(void);
     void unload_exclusion_zones(void);
+    void load_fence_boundary(void);
+    float get_avoidance_radius(const class Obstacle &obstacle) const;
+    bool within_avoidance_height(const class Obstacle &obstacle) const;
 
     uint8_t num_exclusion_zones;
     struct exclusion_zone {
@@ -52,8 +56,18 @@ private:
     } *exclusion_zones;
     uint32_t mission_change_ms;
 
-    void grow_exclusion_zone(struct exclusion_zone &ezone, float margin);
+    // georefence, with a inner margin (shrunk from real geofence)
+    uint8_t num_fence_points;
+    Vector2l *fence_points;
+    uint32_t last_fence_change_ms;
+
+    // grow a polygon by the given number of meters. Used to add a
+    // margin to exclusion zones and the fence. The position change in
+    // points is relative to the average point
+    void grow_polygonf(Vector2f *points, uint8_t num_points, float change_m);
+    void grow_polygonl(Vector2l *points, uint8_t num_points, float change_m);
     
-    // number of meters of padding around exlusion zones
+    // number of meters of padding around exlusion zones and inside the fence
     const float exclusion_margin = 50;
+    const float fence_margin = 100;
 };

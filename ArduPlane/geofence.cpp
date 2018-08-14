@@ -23,6 +23,7 @@
 static struct GeofenceState {
     uint8_t num_points;
     bool boundary_uptodate;
+    uint32_t last_change_ms;
     bool fence_triggered;
     bool is_pwm_enabled;          //true if above FENCE_ENABLE_PWM threshold
     bool previous_is_pwm_enabled; //true if above FENCE_ENALBE_PWM threshold
@@ -82,6 +83,7 @@ void Plane::set_fence_point_with_index(const Vector2l &point, unsigned i)
 
     if (geofence_state != nullptr) {
         geofence_state->boundary_uptodate = false;
+        geofence_state->last_change_ms = 0;
     }
 }
 
@@ -138,6 +140,7 @@ void Plane::geofence_load(void)
 
     geofence_state->boundary_uptodate = true;
     geofence_state->fence_triggered = false;
+    geofence_state->last_change_ms = AP_HAL::millis();
 
     gcs().send_text(MAV_SEVERITY_INFO,"Geofence loaded");
     gcs().send_message(MSG_FENCE_STATUS);
@@ -468,6 +471,30 @@ bool Plane::geofence_breached(void)
     return geofence_state ? geofence_state->fence_triggered : false;
 }
 
+/*
+  fetch the current polygon
+ */
+bool Plane::geofence_get_polygon(Vector2l *&points, uint8_t &num_points)
+{
+    if (!geofence_state || !geofence_enabled() || !geofence_state->boundary_uptodate) {
+        return false;
+    }
+    
+    points = &geofence_state->boundary[1];
+    num_points = g.fence_total - 1;
+    return true;
+}
+
+/*
+  get the time the geofence last changed
+ */
+uint32_t Plane::geofence_last_change_ms(void)
+{
+    if (!geofence_state || !geofence_enabled() || !geofence_state->boundary_uptodate) {
+        return 0;
+    }
+    return geofence_state->last_change_ms;
+}
 
 #else // GEOFENCE_ENABLED
 
@@ -495,6 +522,16 @@ bool Plane::geofence_set_floor_enabled(bool floor_enable) {
 bool Plane::geofence_breached(void)
 {
     return false;
+}
+
+bool Plane::geofence_get_polygon(Vector2l *&points, uint8_t &num_points)
+{
+    return false;
+}
+
+uint32_t Plane::geofence_last_change_ms(void) const
+{
+    return 0;
 }
 
 #endif // GEOFENCE_ENABLED
