@@ -18,6 +18,8 @@
 
 #include "AP_Math.h"
 
+#pragma GCC optimize("O3")
+
 /*
  *  The point in polygon algorithm is based on:
  *  http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
@@ -103,7 +105,22 @@ bool Polygon_intersects(const Vector2f *V, unsigned N, const Vector2f &p1, const
 {
     for (uint8_t i=0; i<N-1; i++) {
         Vector2f tmp;
-        if (Vector2f::segment_intersection(V[i],V[i+1],p1,p2,tmp)) {
+        const Vector2f &v1 = V[i];
+        const Vector2f &v2 = V[i+1];
+        // optimisations for common cases
+        if (v1.x > p1.x && v2.x > p1.x && v1.x > p2.x && v2.x > p2.x) {
+            continue;
+        }
+        if (v1.y > p1.y && v2.y > p1.y && v1.y > p2.y && v2.y > p2.y) {
+            continue;
+        }
+        if (v1.x < p1.x && v2.x < p1.x && v1.x < p2.x && v2.x < p2.x) {
+            continue;
+        }
+        if (v1.y < p1.y && v2.y < p1.y && v1.y < p2.y && v2.y < p2.y) {
+            continue;
+        }
+        if (Vector2f::segment_intersection(v1,v2,p1,p2,tmp)) {
             return true;
         }
     }
