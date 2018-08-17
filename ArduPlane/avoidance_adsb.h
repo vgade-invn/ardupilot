@@ -39,7 +39,7 @@ protected:
     FlightMode prev_control_mode = RTL;
 
 private:
-    bool mission_avoid_loc_ok(const Vector2f &loc, const Vector2f *predicted_loc, uint8_t count);
+    bool mission_avoids_collisions(const Location &our_loc, const Vector2f &our_velocity, float avoid_sec);
     bool mission_avoid_exclusions(const Location &current_loc, const Location &loc_test);
     bool mission_avoid_fence(const Location &loc_test);
     void load_exclusion_zones(void);
@@ -47,6 +47,7 @@ private:
     void load_fence_boundary(void);
     float get_avoidance_radius(const class Obstacle &obstacle) const;
     bool within_avoidance_height(const class Obstacle &obstacle) const;
+    bool have_collided(const Location &loc);
 
     uint8_t num_exclusion_zones;
     struct exclusion_zone {
