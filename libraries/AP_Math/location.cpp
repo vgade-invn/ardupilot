@@ -128,6 +128,16 @@ void location_update(struct Location &loc, float bearing, float distance)
 }
 
 /*
+  create a new location by going bearing_deg and distance_m
+ */
+Location location_project(const Location &loc1, float bearing_deg, float distance_m)
+{
+    Location loc2 = loc1;
+    location_update(loc2, bearing_deg, distance_m);
+    return loc2;
+}
+
+/*
  *  extrapolate latitude/longitude given distances north and east
  */
 void location_offset(struct Location &loc, float ofs_north, float ofs_east)
