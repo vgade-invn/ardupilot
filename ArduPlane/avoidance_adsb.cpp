@@ -203,43 +203,37 @@ bool AP_Avoidance_Plane::handle_avoidance_horizontal(const AP_Avoidance::Obstacl
 }
 
 /*
-  see if a test position is outside the radius of a set of obstacles
+  see if a velocity vector would avoid collisions with all objects
  */
-bool AP_Avoidance_Plane::mission_avoid_loc_ok(const Vector2f &loc, const Vector2f *predicted_loc, uint8_t count)
+bool AP_Avoidance_Plane::mission_avoids_collisions(const Location &our_loc, const Vector2f &our_velocity, float avoid_sec)
 {
-    for (uint8_t i=0; i<count; i++) {
-        if (predicted_loc[i].is_zero()) {
-            // timed out entry
+    uint32_t now = AP_HAL::millis();
+    const uint32_t timeout_ms = 5000;
+    
+    for (uint8_t i=0; i<_obstacle_count; i++) {
+        const Obstacle &obstacle = _obstacles[i];
+        if (now - obstacle.timestamp_ms > timeout_ms) {
             continue;
         }
-        if (!within_avoidance_height(_obstacles[i])) {
+        if (!within_avoidance_height(obstacle)) {
             continue;
         }
-        const Vector2f &ploc = predicted_loc[i];
+        // work in frame of the obstacle
+        const Vector2f relative_position = location_diff(obstacle._location, our_loc);
+        const Vector2f relative_velocity = our_velocity - Vector2f(obstacle._velocity.x,obstacle._velocity.y);
+        const Vector2f final_pos = relative_position + relative_velocity * avoid_sec;
 
         // lookup how far to keep from the object
-        const float radius = get_avoidance_radius(_obstacles[i]) + exclusion_margin;
-
-        // optimisation to short-circuit most checks
-        unsigned short_circuit = 0;
-        if (loc.x > 0 && ploc.x > 0 && ploc.x - loc.x > radius) {
-            short_circuit = __LINE__;
-        }
-        if (loc.x < 0 && ploc.x < 0 && loc.x - ploc.x > radius) {
-            short_circuit = __LINE__;
-        }
-        if (loc.y > 0 && ploc.y > 0 && ploc.y - loc.y > radius) {
-            short_circuit = __LINE__;
-        }
-        if (loc.y < 0 && ploc.y < 0 && loc.y - ploc.y > radius) {
-            short_circuit = __LINE__;
-        }
-        Vector2f origin {};
+        const float radius = get_avoidance_radius(obstacle) + exclusion_margin;
         Vector2f tmp;
-        if (Vector2f::circle_segment_intersection(origin, loc, predicted_loc[i], radius, tmp)) {
-            if (short_circuit) {
-                AP_HAL::panic("short circuit error");
-            }
+        Vector2f origin;
+
+        if (relative_position.length_squared() < radius*radius ||
+            final_pos.length_squared() < radius*radius) {
+            return false;
+        }
+        
+        if (Vector2f::circle_segment_intersection(relative_position, final_pos, origin, radius, tmp)) {
             return false;
         }
     }
@@ -247,24 +241,53 @@ bool AP_Avoidance_Plane::mission_avoid_loc_ok(const Vector2f &loc, const Vector2
 }
 
 /*
+  check if we have already collided with a dynamic obstacle
+ */
+bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
+{
+    uint32_t now = AP_HAL::millis();
+    const uint32_t timeout_ms = 5000;
+    
+    for (uint8_t i=0; i<_obstacle_count; i++) {
+        const Obstacle &obstacle = _obstacles[i];
+        if (now - obstacle.timestamp_ms > timeout_ms) {
+            continue;
+        }
+        if (!within_avoidance_height(obstacle)) {
+            continue;
+        }
+        const float radius = get_avoidance_radius(obstacle);
+        float distance = get_distance(current_loc, obstacle._location);
+        if (distance < radius) {
+            //::printf("Collided with %u at %.0fm\n", obstacle.src_id, distance);
+            return true;
+        }
+    }
+    return false;
+}
+
+/*
   update waypoint to avoid dynamic obstacles. Return true if doing avoidance
  */
 bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed)
 {
-    if (!_enabled || _warn_action != 2) {
+    if (!_enabled || _warn_action != 2 || groundspeed < 1) {
         return false;
     }
-    const float avoid_ratio = 4;
     const float full_distance = get_distance(current_loc, target_loc);
-    const float avoid_max = MIN(_warn_distance_xy, full_distance);
-    const float avoid_sec = (avoid_max / groundspeed) / avoid_ratio;
+    const float avoid_step1_m = 500;
+    const float avoid_step2_m = 1000;
+    const float avoid_max = MIN(avoid_step1_m, full_distance/2);
+    const float avoid_sec1 = avoid_max / groundspeed;
     const int32_t bearing_inc_cd = 500;
-    const float distance = groundspeed * avoid_sec;
+    const float distance = groundspeed * avoid_sec1;
     const int32_t bearing_cd = get_bearing_cd(current_loc, target_loc);
-    const uint32_t timeout_ms = 5000;
 
-    if (full_distance < 50) {
-        // if we are within 50m, go for it
+    // report collisions
+    have_collided(current_loc);
+    
+    if (full_distance < 20) {
+        // if we are within 20m, go for it
         return false;
     }
 
@@ -274,24 +297,10 @@ bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location
     // load inner fence, if any
     load_fence_boundary();
     
-    // get predicted locations of all obstacles
-    const uint32_t now = AP_HAL::millis();
-    Vector2f predicted_loc[_obstacle_count] {};
-
-    // predict forward the positions of the moving obstacles
-    for (uint8_t i=0; i<_obstacle_count; i++) {
-        if (now - _obstacles[i].timestamp_ms > timeout_ms) {
-            continue;
-        }
-        Vector2f vel(_obstacles[i]._velocity.x, _obstacles[i]._velocity.y);
-        predicted_loc[i] = location_diff(current_loc, _obstacles[i]._location);
-        predicted_loc[i] += vel * avoid_sec;
-    }
-
     // try all 5 degree increments around a circle, alternating left
     // and right. For each one check that if we flew in that direction
     // that we would avoid all obstacles
-    float best_bearing = bearing_cd * 0.01;
+    int32_t best_bearing = bearing_cd*0.01;
     bool have_best_bearing = false;
     
     for (uint8_t i=0; i<360 / (bearing_inc_cd/100); i++) {
@@ -300,18 +309,19 @@ bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location
             bearing_delta_cd = -bearing_delta_cd;
         }
         // bearing that we are probing
-        const float bearing_test = (bearing_cd + bearing_delta_cd)*0.01;
+        const int32_t bearing_test_cd = wrap_180_cd(bearing_cd + bearing_delta_cd);
+        const float bearing_test = bearing_test_cd * 0.01;
 
         // position we will get to
-        Location loc_test = current_loc;
-        location_update(loc_test, bearing_test, distance);
+        Location loc_test = location_project(current_loc, bearing_test, distance);
 
         // difference from current_loc as floats
         Vector2f loc_diff = location_diff(current_loc, loc_test);
-        
-        if (mission_avoid_loc_ok(loc_diff, predicted_loc, _obstacle_count) &&
+        Vector2f our_velocity = loc_diff / avoid_sec1;
+
+        if (mission_avoid_fence(loc_test) &&
             mission_avoid_exclusions(current_loc, loc_test) &&
-            mission_avoid_fence(loc_test)) {
+            mission_avoids_collisions(current_loc, our_velocity, avoid_sec1)) {
             // This bearing will avoid all dynamic and static
             // obstacles for one step of 'distance'. Now check if it
             // will put us in a position where we have a clear path to
@@ -320,18 +330,27 @@ bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location
                 best_bearing = bearing_test;
                 have_best_bearing = true;
             }
+
+            const float test_bearings[] = { 0, 45, -45 };
+            const float target_bearing = get_bearing_deg(loc_test, target_loc);
+            for (uint8_t j=0; j<ARRAY_SIZE(test_bearings); j++) {
+                float new_bearing = target_bearing + test_bearings[j];
+                float target_distance2 = get_distance(loc_test, target_loc);
+                float distance2 = MIN(avoid_step2_m, target_distance2);
+                float avoid_sec2 = distance2 / groundspeed;
+                Location loc_test2 = location_project(loc_test, new_bearing, distance2);
             
-            float new_bearing = 0.01 * get_bearing_cd(loc_test, target_loc);
-            Location loc_test2 = loc_test;
-            location_update(loc_test2, new_bearing, distance * avoid_ratio);
-            Vector2f loc_diff2 = location_diff(current_loc, loc_test2);
-            if (mission_avoid_loc_ok(loc_diff2, predicted_loc, _obstacle_count) &&
-                mission_avoid_exclusions(loc_test, loc_test2) &&
-                mission_avoid_fence(loc_test2)) {
-                // all good, now project in the chosen direction by the full distance
-                target_loc = current_loc;
-                location_update(target_loc, bearing_test, full_distance);
-                return i != 0;
+                Vector2f loc_diff2 = location_diff(loc_test, loc_test2);
+                Vector2f our_velocity2 = loc_diff2 / avoid_sec2;
+
+                if (mission_avoid_fence(loc_test2) &&
+                    mission_avoid_exclusions(loc_test, loc_test2) &&
+                    mission_avoids_collisions(loc_test, our_velocity2, avoid_sec2)) {
+                    // all good, now project in the chosen direction by the full distance
+                    target_loc = location_project(current_loc, bearing_test, full_distance);
+                    //::printf("good: i=%d j=%d bearing_test:%d new_bearing:%d\n", i, j, int(bearing_test), int(new_bearing));
+                    return i != 0 || j != 0;
+                }
             }
         }
     }
@@ -340,7 +359,7 @@ bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location
     // one that did best on the first step
     target_loc = current_loc;
     location_update(target_loc, best_bearing, full_distance);
-    
+
     return true;
 }
 
@@ -459,8 +478,7 @@ void AP_Avoidance_Plane::grow_polygonf(Vector2f *points, uint8_t num_points, flo
         
         float distance = get_distance(center_loc, loc);
         float bearing = get_bearing_deg(center_loc, loc);
-        loc = center_loc;
-        location_update(loc, bearing, MAX(distance+change_m, 1));
+        loc = location_project(center_loc, bearing, MAX(distance+change_m, 1));
         pt.x = loc.lat * 1e-7;
         pt.y = loc.lng * 1e-7;
     }
@@ -495,8 +513,7 @@ void AP_Avoidance_Plane::grow_polygonl(Vector2l *points, uint8_t num_points, flo
         
         float distance = get_distance(center_loc, loc);
         float bearing = get_bearing_deg(center_loc, loc);
-        loc = center_loc;
-        location_update(loc, bearing, MAX(distance+change_m, 1));
+        loc = location_project(center_loc, bearing, MAX(distance+change_m, 1));
         pt.x = loc.lat;
         pt.y = loc.lng;
     }
