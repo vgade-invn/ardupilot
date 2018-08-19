@@ -39,8 +39,8 @@ protected:
     FlightMode prev_control_mode = RTL;
 
 private:
-    bool mission_avoids_collisions(const Location &our_loc, const Vector2f &our_velocity, float avoid_sec);
-    bool mission_avoid_exclusions(const Location &current_loc, const Location &loc_test);
+    float mission_avoidance_margin(const Location &our_loc, const Vector2f &our_velocity, float avoid_sec);
+    float mission_exclusion_margin(const Location &current_loc, const Location &loc_test);
     bool mission_avoid_fence(const Location &loc_test);
     void load_exclusion_zones(void);
     void unload_exclusion_zones(void);
@@ -54,6 +54,9 @@ private:
         // closed polygon, with points[0] == points[n-1]
         uint8_t num_points;
         Vector2f *points;
+        // lat/lon of first point. Other points are relative to that
+        // point
+        Location first_loc;
     } *exclusion_zones;
     uint32_t mission_change_ms;
 
@@ -65,10 +68,13 @@ private:
     // grow a polygon by the given number of meters. Used to add a
     // margin to exclusion zones and the fence. The position change in
     // points is relative to the average point
-    void grow_polygonf(Vector2f *points, uint8_t num_points, float change_m);
     void grow_polygonl(Vector2l *points, uint8_t num_points, float change_m);
     
     // number of meters of padding around exlusion zones and inside the fence
-    const float exclusion_margin = 50;
+    const float exclusion_margin_dynamic = 100;
+    const float exclusion_margin_static = 75;
     const float fence_margin = 100;
+
+    // 100m over the per-object margins is considered a wide margin from any obstacle
+    const float avoidance_large_m = 100;
 };
