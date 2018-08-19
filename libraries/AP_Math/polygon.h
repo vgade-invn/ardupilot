@@ -30,3 +30,9 @@ bool        Polygon_complete(const Vector2<T> *V, unsigned n);
  */
 bool Polygon_intersects(const Vector2f *V, unsigned N, const Vector2f &p1, const Vector2f &p2);
 
+
+/*
+  return the closest distance that a line from p1 to p2 comes to an
+  edge of closed polygon V, defined by N points
+ */
+float Polygon_closest_distance(const Vector2f *V, unsigned N, const Vector2f &p1, const Vector2f &p2);
