@@ -77,6 +77,7 @@ private:
         // lat/lon of first point. Other points are relative to that
         // point
         Location first_loc;
+        uint16_t first_wp;
     } *exclusion_zones;
     uint32_t mission_change_ms;
 
@@ -97,4 +98,8 @@ private:
 
     // 100m over the per-object margins is considered a wide margin from any obstacle
     const float avoidance_large_m = 100;
+
+    enum {
+        OPTION_IGNORE_HEIGHT=1<<0,
+    };
 };

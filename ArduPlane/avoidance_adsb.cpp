@@ -297,7 +297,7 @@ bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
         const struct exclusion_zone &ezone = exclusion_zones[zone];
         const Vector2f p1 = location_diff(ezone.first_loc, current_loc);
         if (!Polygon_outside(p1, ezone.points, ezone.num_points)) {
-            debug(1, "Within exclusion %u\n", zone);
+            debug(1, "Within exclusion wp:%u\n", ezone.first_wp);
             ret = true;
         }
     }
@@ -350,6 +350,7 @@ void AP_Avoidance_Plane::load_exclusion_zones(void)
             loc.lng = cmd.content.fence_vertex.lng;
             if (i == 0) {
                 ezone.first_loc = loc;
+                ezone.first_wp = start;
             }
             ezone.points[i] = location_diff(ezone.first_loc, loc);
         }
@@ -448,6 +449,9 @@ float AP_Avoidance_Plane::get_avoidance_radius(const class Obstacle &obstacle) c
  */
 bool AP_Avoidance_Plane::within_avoidance_height(const class Obstacle &obstacle) const
 {
+    if (_options.get() & OPTION_IGNORE_HEIGHT) {
+        return true;
+    }
     if (obstacle.src_id >= 20000 && obstacle.src_id < 30000) {
         // weather, always avoid
         return true;
@@ -616,7 +620,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
             } else if (fabsf(wrap_180(ground_course_deg - bearing_test)) <
                        fabsf(wrap_180(ground_course_deg - best_bearing))) {
                 // replace bearing with one that is closer to our current ground course
-                debug(2, "replace %.1f with %.1f, gc=%.1f\n", best_bearing, bearing_test, ground_course_deg);
+                debug(3, "replace %.1f with %.1f, gc=%.1f\n", best_bearing, bearing_test, ground_course_deg);
                 best_bearing = bearing_test;
             }
 
@@ -650,16 +654,15 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
     }
 
     if (have_best_bearing) {
-        // None of the directions had a positive margin. Go in the
-        // direction with the best margin
-        target_loc = location_project(current_loc, best_margin_bearing, full_distance);
-        debug(4,"bad1: bmp=%d bm:%.1f\n", int(best_margin_bearing), best_margin);
+        // none of the directions tested were OK for 2-step checks. Choose the direction
+        // that was best for the first step
+        debug(2, "bad1: bb=%d bm:%.1f\n", int(best_bearing), best_margin);
+        target_loc = location_project(current_loc, best_bearing, full_distance);
     } else {
-        // none of the possible paths were OK for our tests, choose the
-        // one that did best on the first step
-        target_loc = current_loc;
-        location_update(target_loc, best_bearing, full_distance);
-        debug(4, "bad2: bb=%d bm:%.1f\n", int(best_bearing), best_margin);
+        // none of the possible paths had a positive margin. Choose
+        // the one with the highest margin
+        debug(2,"bad2: bmp=%d bm:%.1f\n", int(best_margin_bearing), best_margin);
+        target_loc = location_project(current_loc, best_margin_bearing, full_distance);
     }
 
     return true;
