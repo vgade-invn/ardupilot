@@ -127,6 +127,12 @@ const AP_Param::GroupInfo AP_Avoidance::var_info[] = {
     // @Description: This sets the verbosity of debug code
     // @User: Advanced
     AP_GROUPINFO("DEBUG",    13, AP_Avoidance, _debug, 0),
+
+    // @Param: OPTIONS
+    // @DisplayName: ADS-B avoidance options
+    // @Description: Bitmask of behaviour options
+    // @User: Advanced
+    AP_GROUPINFO("OPTIONS",  14, AP_Avoidance, _options, 0),
     
     AP_GROUPEND
 };
