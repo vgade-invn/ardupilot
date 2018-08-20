@@ -275,7 +275,8 @@ bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
 {
     uint32_t now = AP_HAL::millis();
     const uint32_t timeout_ms = 5000;
-
+    bool ret = false;
+    
     for (uint8_t i=0; i<_obstacle_count; i++) {
         const Obstacle &obstacle = _obstacles[i];
         if (now - obstacle.timestamp_ms > timeout_ms) {
@@ -288,10 +289,20 @@ bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
         float distance = get_distance(current_loc, obstacle._location);
         if (distance < radius) {
             debug(1, "Collided with %u %.0fm\n", obstacle.src_id, distance);
-            return true;
+            ret = true;
         }
     }
-    return false;
+
+    for (uint8_t zone=0; zone<num_exclusion_zones; zone++) {
+        const struct exclusion_zone &ezone = exclusion_zones[zone];
+        const Vector2f p1 = location_diff(ezone.first_loc, current_loc);
+        if (!Polygon_outside(p1, ezone.points, ezone.num_points)) {
+            debug(1, "Within exclusion %u\n", zone);
+            ret = true;
+        }
+    }
+    
+    return ret;
 }
 
 /*
