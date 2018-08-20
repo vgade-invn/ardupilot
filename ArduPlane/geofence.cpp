@@ -11,6 +11,8 @@
                               // index [1 to n-1] to define a polygon, minimum 3 for a triangle
                               // index [n] (must be same as index 1 to close the polygon)
 
+static HAL_Semaphore_Recursive _rsem;
+
 /*
  *  The state of geo-fencing. This structure is dynamically allocated
  *  the first time it is used. This means we only pay for the pointer
@@ -44,6 +46,11 @@ static struct GeofenceState {
 
 static const StorageAccess fence_storage(StorageManager::StorageFence);
 
+HAL_Semaphore &Plane::get_fence_semaphore(void)
+{
+    return _rsem;
+}
+
 /*
   maximum number of fencepoints
  */
@@ -59,6 +66,8 @@ Vector2l Plane::get_fence_point_with_index(unsigned i)
 {
     Vector2l ret;
 
+    WITH_SEMAPHORE(_rsem);
+
     if (i > (unsigned)g.fence_total || i >= max_fencepoints()) {
         return Vector2l(0,0);
     }
@@ -73,6 +82,8 @@ Vector2l Plane::get_fence_point_with_index(unsigned i)
 // save a fence point
 void Plane::set_fence_point_with_index(const Vector2l &point, unsigned i)
 {
+    WITH_SEMAPHORE(_rsem);
+    
     if (i >= (unsigned)g.fence_total.get() || i >= max_fencepoints()) {
         // not allowed
         return;
@@ -94,6 +105,8 @@ void Plane::geofence_load(void)
 {
     uint8_t i;
 
+    WITH_SEMAPHORE(_rsem);
+    
     if (geofence_state == nullptr) {
         uint16_t boundary_size = sizeof(Vector2l) * max_fencepoints();
         if (hal.util->available_memory() < 100 + boundary_size + sizeof(struct GeofenceState)) {
@@ -174,6 +187,8 @@ bool Plane::geofence_present(void)
  */
 void Plane::geofence_update_pwm_enabled_state() 
 {
+    WITH_SEMAPHORE(_rsem);
+    
     bool is_pwm_enabled;
     if (g.fence_channel == 0) {
         is_pwm_enabled = false;
@@ -202,6 +217,8 @@ void Plane::geofence_update_pwm_enabled_state()
 //return true on success, false on failure
 bool Plane::geofence_set_enabled(bool enable, GeofenceEnableReason r) 
 {
+    WITH_SEMAPHORE(_rsem);
+    
     if (geofence_state == nullptr && enable) {
         geofence_load();
     }
@@ -224,6 +241,8 @@ bool Plane::geofence_set_enabled(bool enable, GeofenceEnableReason r)
  */
 bool Plane::geofence_enabled(void)
 {
+    WITH_SEMAPHORE(_rsem);
+    
     geofence_update_pwm_enabled_state();
 
     if (geofence_state == nullptr) {
@@ -246,7 +265,9 @@ bool Plane::geofence_enabled(void)
  * Set floor state IF the fence is present.
  * Return false on failure to set floor state.
  */
-bool Plane::geofence_set_floor_enabled(bool floor_enable) {
+bool Plane::geofence_set_floor_enabled(bool floor_enable)
+{
+    WITH_SEMAPHORE(_rsem);
     if (geofence_state == nullptr) {
         return false;
     }

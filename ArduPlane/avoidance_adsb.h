@@ -39,6 +39,7 @@ protected:
     FlightMode prev_control_mode = RTL;
 
 private:
+    bool update_mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed);
     float mission_avoidance_margin(const Location &our_loc, const Vector2f &our_velocity, float avoid_sec);
     float mission_exclusion_margin(const Location &current_loc, const Location &loc_test);
     bool mission_avoid_fence(const Location &loc_test);
@@ -48,6 +49,25 @@ private:
     float get_avoidance_radius(const class Obstacle &obstacle) const;
     bool within_avoidance_height(const class Obstacle &obstacle) const;
     bool have_collided(const Location &loc);
+
+    bool thread_created;
+    void avoidance_thread(void);
+
+    // an avoidance request from the navigation code
+    struct {
+        Location current_loc;
+        Location target_loc;
+        float groundspeed;
+        uint32_t request_time_ms;
+    } avoidance_request;
+
+    // an avoidance result from the avoidance thread
+    struct {
+        Location target_loc;
+        Location new_target_loc;
+        uint32_t result_time_ms;
+        bool avoidance_needed;
+    } avoidance_result;
 
     uint8_t num_exclusion_zones;
     struct exclusion_zone {

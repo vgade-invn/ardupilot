@@ -869,6 +869,7 @@ private:
     void update_events(void);
     uint8_t max_fencepoints(void);
     Vector2l get_fence_point_with_index(unsigned i);
+    HAL_Semaphore &get_fence_semaphore(void);
     void set_fence_point_with_index(const Vector2l &point, unsigned i);
     void geofence_load(void);
     bool geofence_present(void);

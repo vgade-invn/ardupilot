@@ -289,129 +289,6 @@ bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
 }
 
 /*
-  update waypoint to avoid dynamic obstacles. Return true if doing avoidance
- */
-bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed)
-{
-    if (!_enabled || _warn_action != 2 || groundspeed < 1) {
-        return false;
-    }
-    const float full_distance = get_distance(current_loc, target_loc);
-    const float avoid_step1_m = 500;
-    const float avoid_step2_m = 1000;
-    const float avoid_max = MIN(avoid_step1_m, full_distance-1);
-    const float avoid_sec1 = avoid_max / groundspeed;
-    const int32_t bearing_inc_cd = 500;
-    const float distance = groundspeed * avoid_sec1;
-    const int32_t bearing_cd = get_bearing_cd(current_loc, target_loc);
-
-    // report collisions
-    have_collided(current_loc);
-    
-    if (full_distance < 20) {
-        // if we are within 20m, go for it
-        return false;
-    }
-
-    // load exclusion zones from the mission, if any
-    load_exclusion_zones();
-
-    // load inner fence, if any
-    load_fence_boundary();
-    
-    // try all 5 degree increments around a circle, alternating left
-    // and right. For each one check that if we flew in that direction
-    // that we would avoid all obstacles
-    int32_t best_bearing = bearing_cd*0.01;
-    bool have_best_bearing = false;
-    float best_margin = -10000;
-    int32_t best_margin_bearing = best_bearing;
-
-    for (uint8_t i=0; i<360 / (bearing_inc_cd/100); i++) {
-        int32_t bearing_delta_cd = i*bearing_inc_cd/2;
-        if (i & 1) {
-            bearing_delta_cd = -bearing_delta_cd;
-        }
-        // bearing that we are probing
-        const int32_t bearing_test_cd = wrap_180_cd(bearing_cd + bearing_delta_cd);
-        const float bearing_test = bearing_test_cd * 0.01;
-
-        // position we will get to
-        Location loc_test = location_project(current_loc, bearing_test, distance);
-
-        // difference from current_loc as floats
-        Vector2f loc_diff = location_diff(current_loc, loc_test);
-        Vector2f our_velocity = loc_diff / avoid_sec1;
-
-        if (!mission_avoid_fence(loc_test)) {
-            // don't go in a direction that could hit the fence
-            continue;
-        }
-        float ex_margin = mission_exclusion_margin(current_loc, loc_test);
-        float obs_margin = mission_avoidance_margin(current_loc, our_velocity, avoid_sec1);
-        float margin = MIN(ex_margin, obs_margin);
-        if (margin > best_margin) {
-            best_margin_bearing = bearing_test;
-            best_margin = margin;
-        }
-        if (margin > 0) {
-            // This bearing will avoid all dynamic and static
-            // obstacles for one step of 'distance'. Now check if it
-            // will put us in a position where we have a clear path to
-            // our destination for distance*avoid_ratio
-            if (!have_best_bearing) {
-                best_bearing = bearing_test;
-                have_best_bearing = true;
-            }
-
-            const float test_bearings[] = { 0, 45, -45 };
-            const float target_bearing = get_bearing_deg(loc_test, target_loc);
-            for (uint8_t j=0; j<ARRAY_SIZE(test_bearings); j++) {
-                float new_bearing = target_bearing + test_bearings[j];
-                float target_distance2 = get_distance(loc_test, target_loc);
-                float distance2 = constrain_float(avoid_step2_m, 10, target_distance2);
-                float avoid_sec2 = distance2 / groundspeed;
-                Location loc_test2 = location_project(loc_test, new_bearing, distance2);
-            
-                Vector2f loc_diff2 = location_diff(loc_test, loc_test2);
-                Vector2f our_velocity2 = loc_diff2 / avoid_sec2;
-
-                if (!mission_avoid_fence(loc_test2)) {
-                    continue;
-                }
-                float ex_margin2 = mission_exclusion_margin(loc_test, loc_test2);
-                float obs_margin2 = mission_avoidance_margin(loc_test, our_velocity2, avoid_sec2);
-                float margin2 = MIN(ex_margin2, obs_margin2);
-                if (margin2 > 0) {
-                    // all good, now project in the chosen direction by the full distance
-                    target_loc = location_project(current_loc, bearing_test, full_distance);
-                    //::printf("good: i=%d j=%d bearing_test:%d new_bearing:%d margin1:%.1f margin2:%.1f\n",
-                    //i, j, int(bearing_test), int(new_bearing), margin, margin2);
-                    return i != 0 || j != 0;
-                }
-            }
-        }
-    }
-
-    if (have_best_bearing) {
-        // None of the directions had a positive margin. Go in the
-        // direction with the best margin
-        target_loc = location_project(current_loc, best_margin_bearing, full_distance);
-        //::printf("bad1: best_margin_bearing=%d best_margin:%.1f\n",
-        //         int(best_margin_bearing), best_margin);
-    } else {
-        // none of the possible paths were OK for our tests, choose the
-        // one that did best on the first step
-        target_loc = current_loc;
-        location_update(target_loc, best_bearing, full_distance);
-        //::printf("bad2: best_bearing=%d best_margin:%.1f\n",
-        //         int(best_bearing), best_margin);
-    }
-
-    return true;
-}
-
-/*
   load exclusion zones from mission items
  */
 void AP_Avoidance_Plane::load_exclusion_zones(void)
@@ -423,6 +300,8 @@ void AP_Avoidance_Plane::load_exclusion_zones(void)
 
     // unload previous zones
     unload_exclusion_zones();
+
+    WITH_SEMAPHORE(plane.mission.get_semaphore());
     
     num_exclusion_zones = plane.mission.get_fence_exclusion_count();
     if (num_exclusion_zones == 0) {
@@ -593,6 +472,8 @@ bool AP_Avoidance_Plane::within_avoidance_height(const class Obstacle &obstacle)
  */
 void AP_Avoidance_Plane::load_fence_boundary(void)
 {
+    WITH_SEMAPHORE(plane.get_fence_semaphore());
+    
     if (plane.geofence_last_change_ms() == last_fence_change_ms) {
         return;
     }
@@ -635,4 +516,203 @@ bool AP_Avoidance_Plane::mission_avoid_fence(const Location &loc_test)
     loc.x = loc_test.lat;
     loc.y = loc_test.lng;
     return !Polygon_outside(loc, fence_points, num_fence_points);
+}
+
+/*
+  update waypoint to avoid dynamic obstacles. Return true if doing avoidance
+ */
+bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed)
+{
+    const float full_distance = get_distance(current_loc, target_loc);
+    const float avoid_step1_m = 500;
+    const float avoid_step2_m = 1000;
+    const float avoid_max = MIN(avoid_step1_m, full_distance-1);
+    const float avoid_sec1 = avoid_max / groundspeed;
+    const int32_t bearing_inc_cd = 500;
+    const float distance = groundspeed * avoid_sec1;
+    const int32_t bearing_cd = get_bearing_cd(current_loc, target_loc);
+
+    // report collisions
+    have_collided(current_loc);
+    
+    if (full_distance < 20) {
+        // if we are within 20m, go for it
+        return false;
+    }
+
+    // load exclusion zones from the mission, if any
+    load_exclusion_zones();
+
+    // load inner fence, if any
+    load_fence_boundary();
+    
+    // try all 5 degree increments around a circle, alternating left
+    // and right. For each one check that if we flew in that direction
+    // that we would avoid all obstacles
+    int32_t best_bearing = bearing_cd*0.01;
+    bool have_best_bearing = false;
+    float best_margin = -10000;
+    int32_t best_margin_bearing = best_bearing;
+
+    for (uint8_t i=0; i<360 / (bearing_inc_cd/100); i++) {
+        int32_t bearing_delta_cd = i*bearing_inc_cd/2;
+        if (i & 1) {
+            bearing_delta_cd = -bearing_delta_cd;
+        }
+        // bearing that we are probing
+        const int32_t bearing_test_cd = wrap_180_cd(bearing_cd + bearing_delta_cd);
+        const float bearing_test = bearing_test_cd * 0.01;
+
+        // position we will get to
+        Location loc_test = location_project(current_loc, bearing_test, distance);
+
+        // difference from current_loc as floats
+        Vector2f loc_diff = location_diff(current_loc, loc_test);
+        Vector2f our_velocity = loc_diff / avoid_sec1;
+
+        if (!mission_avoid_fence(loc_test)) {
+            // don't go in a direction that could hit the fence
+            continue;
+        }
+        float ex_margin = mission_exclusion_margin(current_loc, loc_test);
+        float obs_margin = mission_avoidance_margin(current_loc, our_velocity, avoid_sec1);
+        float margin = MIN(ex_margin, obs_margin);
+        if (margin > best_margin) {
+            best_margin_bearing = bearing_test;
+            best_margin = margin;
+        }
+        if (margin > 0) {
+            // This bearing will avoid all dynamic and static
+            // obstacles for one step of 'distance'. Now check if it
+            // will put us in a position where we have a clear path to
+            // our destination for distance*avoid_ratio
+            if (!have_best_bearing) {
+                best_bearing = bearing_test;
+                have_best_bearing = true;
+            }
+
+            const float test_bearings[] = { 0, 45, -45 };
+            const float target_bearing = get_bearing_deg(loc_test, target_loc);
+            for (uint8_t j=0; j<ARRAY_SIZE(test_bearings); j++) {
+                float new_bearing = target_bearing + test_bearings[j];
+                float target_distance2 = get_distance(loc_test, target_loc);
+                float distance2 = constrain_float(avoid_step2_m, 10, target_distance2);
+                float avoid_sec2 = distance2 / groundspeed;
+                Location loc_test2 = location_project(loc_test, new_bearing, distance2);
+            
+                Vector2f loc_diff2 = location_diff(loc_test, loc_test2);
+                Vector2f our_velocity2 = loc_diff2 / avoid_sec2;
+
+                if (!mission_avoid_fence(loc_test2)) {
+                    continue;
+                }
+                float ex_margin2 = mission_exclusion_margin(loc_test, loc_test2);
+                float obs_margin2 = mission_avoidance_margin(loc_test, our_velocity2, avoid_sec2);
+                float margin2 = MIN(ex_margin2, obs_margin2);
+                if (margin2 > 0) {
+                    // all good, now project in the chosen direction by the full distance
+                    target_loc = location_project(current_loc, bearing_test, full_distance);
+                    //::printf("good: i=%d j=%d bearing_test:%d new_bearing:%d margin1:%.1f margin2:%.1f\n",
+                    //i, j, int(bearing_test), int(new_bearing), margin, margin2);
+                    return i != 0 || j != 0;
+                }
+            }
+        }
+    }
+
+    if (have_best_bearing) {
+        // None of the directions had a positive margin. Go in the
+        // direction with the best margin
+        target_loc = location_project(current_loc, best_margin_bearing, full_distance);
+        //::printf("bad1: best_margin_bearing=%d best_margin:%.1f\n",
+        //         int(best_margin_bearing), best_margin);
+    } else {
+        // none of the possible paths were OK for our tests, choose the
+        // one that did best on the first step
+        target_loc = current_loc;
+        location_update(target_loc, best_bearing, full_distance);
+        //::printf("bad2: best_bearing=%d best_margin:%.1f\n",
+        //         int(best_bearing), best_margin);
+    }
+
+    return true;
+}
+
+/*
+  avoidance thread. This continually updates the avoidance_result
+  structure based on avoidance_request
+ */
+void AP_Avoidance_Plane::avoidance_thread(void)
+{
+    while (true) {
+        hal.scheduler->delay(50);
+        Location current_loc;
+        Location target_loc;
+        Location new_target_loc;
+        float groundspeed;
+        {
+            WITH_SEMAPHORE(_rsem);
+            uint32_t now = AP_HAL::millis();
+            if (now - avoidance_request.request_time_ms > 2000) {
+                // this is a very old request, don't process it
+                continue;
+            }
+            current_loc = avoidance_request.current_loc;
+            target_loc = new_target_loc = avoidance_request.target_loc;
+            groundspeed = avoidance_request.groundspeed;
+        }
+
+        bool res = update_mission_avoidance(current_loc, new_target_loc, groundspeed);
+        {
+            // give the main thread the avoidance result
+            WITH_SEMAPHORE(_rsem);
+            avoidance_result.target_loc = target_loc;
+            avoidance_result.new_target_loc = new_target_loc;
+            avoidance_result.result_time_ms = AP_HAL::millis();
+            avoidance_result.avoidance_needed = res;
+        }
+    }
+}
+
+/*
+  update avoidance request for the thread to work on, and see if there
+  is a result that matches the current target
+ */
+bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed)
+{
+    if (!_enabled || _warn_action != 2) {
+        return false;
+    }
+    
+    WITH_SEMAPHORE(_rsem);
+    
+    if (!thread_created) {
+        // create the avoidance thread as low priority. It should soak
+        // up spare CPU cycles to fill in the avoidance_result structure based
+        // on requests in avoidance_request
+        if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_Avoidance_Plane::avoidance_thread, void),
+                                          "avoidance",
+                                          2048, AP_HAL::Scheduler::PRIORITY_IO, -1)) {
+            return false;
+        }
+        thread_created = true;
+    }
+
+    uint32_t now = AP_HAL::millis();
+    
+    // place new request for the thread to work on
+    avoidance_request.current_loc = current_loc;
+    avoidance_request.target_loc = target_loc;
+    avoidance_request.groundspeed = groundspeed;
+    avoidance_request.request_time_ms = now;
+    
+    if (target_loc.lat == avoidance_result.target_loc.lat &&
+        target_loc.lng == avoidance_result.target_loc.lng &&
+        now - avoidance_result.result_time_ms < 2000) {
+        // we have a result from the thread
+        target_loc = avoidance_result.new_target_loc;
+        return avoidance_result.avoidance_needed;
+    }
+
+    return false;
 }
