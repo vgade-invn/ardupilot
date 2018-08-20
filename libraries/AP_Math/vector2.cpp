@@ -148,7 +148,7 @@ float Vector2<T>::angle(const Vector2<T> &v2) const
 template <typename T>
 float Vector2<T>::angle(void) const
 {
-    return M_PI_2 + atan2f(-y, x);
+    return M_PI_2 + atan2f(-x, y);
 }
 
 // find the intersection between two line segments
