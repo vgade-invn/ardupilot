@@ -194,6 +194,7 @@ protected:
     AP_Int8     _warn_time_horizon;
     AP_Float    _warn_distance_xy;
     AP_Float    _warn_distance_z;
+    AP_Int8     _debug;
 
     // multi-thread support for avoidance
     HAL_Semaphore_Recursive _rsem;

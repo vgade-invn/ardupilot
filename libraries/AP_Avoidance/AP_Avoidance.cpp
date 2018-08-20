@@ -122,6 +122,12 @@ const AP_Param::GroupInfo AP_Avoidance::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("F_ALT_MIN",    12, AP_Avoidance, _fail_altitude_minimum, 0),
 
+    // @Param: DEBUG
+    // @DisplayName: ADS-B avoidance debug
+    // @Description: This sets the verbosity of debug code
+    // @User: Advanced
+    AP_GROUPINFO("DEBUG",    13, AP_Avoidance, _debug, 0),
+    
     AP_GROUPEND
 };
 
