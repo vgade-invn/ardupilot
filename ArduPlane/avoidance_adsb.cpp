@@ -692,7 +692,7 @@ bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location
         // on requests in avoidance_request
         if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_Avoidance_Plane::avoidance_thread, void),
                                           "avoidance",
-                                          2048, AP_HAL::Scheduler::PRIORITY_IO, -1)) {
+                                          4096, AP_HAL::Scheduler::PRIORITY_IO, -1)) {
             return false;
         }
         thread_created = true;
