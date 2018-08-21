@@ -210,14 +210,20 @@ bool AP_Avoidance_Plane::handle_avoidance_horizontal(const AP_Avoidance::Obstacl
  */
 float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, const Vector2f &our_velocity, float avoid_sec)
 {
-    uint32_t now = AP_HAL::millis();
     const uint32_t timeout_ms = 5000;
     float margin = avoidance_large_m;
     uint8_t num_outside_height_range = 0;
     uint8_t num_timed_out = 0;
 
     for (uint8_t i=0; i<_obstacle_count; i++) {
-        const Obstacle &obstacle = _obstacles[i];
+        // obstacles can update via MAVLink while we and calculating
+        // avoidance margins
+        Obstacle obstacle;
+        {
+            WITH_SEMAPHORE(_rsem);
+            obstacle = _obstacles[i];
+        }
+        uint32_t now = AP_HAL::millis();
         if (now - obstacle.timestamp_ms > timeout_ms) {
             num_timed_out++;
             continue;
@@ -228,15 +234,25 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
         }
 
         // use our starting point as origin
-        const Vector2f obstacle_position = location_diff(our_loc, obstacle._location);
+        Vector2f obstacle_position = location_diff(our_loc, obstacle._location);
+
+        // update obstacle position by delta time since we logged its position
+        Vector2f obstacle_velocity(obstacle._velocity.x,obstacle._velocity.y);
+        float dt = (now - obstacle.timestamp_ms) * 0.001;
+        obstacle_position += obstacle_velocity * dt;
+        
         // get our velocity relative to obstacle
-        const Vector2f relative_velocity = our_velocity - Vector2f(obstacle._velocity.x,obstacle._velocity.y);
+        const Vector2f relative_velocity = our_velocity - obstacle_velocity;
         const Vector2f final_pos = relative_velocity * avoid_sec;
 
         // lookup the min distance to keep from the object
         const float radius = get_avoidance_radius(obstacle);
 
-        float dist = Vector2f::closest_distance_between_radial_and_point(final_pos, obstacle_position) - radius;
+        // assume that messages about aircraft position could be up to 2s old when we get them
+        const float position_lag = 2.0;
+        float position_error = position_lag * obstacle_velocity.length();
+
+        float dist = Vector2f::closest_distance_between_radial_and_point(final_pos, obstacle_position) - (radius + position_error);
         if (dist < margin) {
             margin = dist;
         }
@@ -661,7 +677,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
     } else {
         // none of the possible paths had a positive margin. Choose
         // the one with the highest margin
-        debug(2,"bad2: bmp=%d bm:%.1f\n", int(best_margin_bearing), best_margin);
+        debug(2,"bad2: bmb=%d bm:%.1f\n", int(best_margin_bearing), best_margin);
         target_loc = location_project(current_loc, best_margin_bearing, full_distance);
     }
 
