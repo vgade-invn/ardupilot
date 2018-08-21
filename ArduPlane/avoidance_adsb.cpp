@@ -289,10 +289,12 @@ float AP_Avoidance_Plane::mission_exclusion_margin(const Location &current_loc, 
  */
 bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
 {
-    uint32_t now = AP_HAL::millis();
     const uint32_t timeout_ms = 5000;
     bool ret = false;
+
+    WITH_SEMAPHORE(_rsem);
     
+    uint32_t now = AP_HAL::millis();
     for (uint8_t i=0; i<_obstacle_count; i++) {
         const Obstacle &obstacle = _obstacles[i];
         if (now - obstacle.timestamp_ms > timeout_ms) {
@@ -301,6 +303,13 @@ bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
         if (!within_avoidance_height(obstacle)) {
             continue;
         }
+
+        // get updated obstacle position
+        Location obstacle_loc = obstacle._location;
+        Vector2f obstacle_velocity(obstacle._velocity.x,obstacle._velocity.y);
+        float dt = (now - obstacle.timestamp_ms) * 0.001;
+        location_offset(obstacle_loc, obstacle_velocity.x * dt, obstacle_velocity.y * dt);
+        
         const float radius = get_avoidance_radius(obstacle);
         float distance = get_distance(current_loc, obstacle._location);
         if (distance < radius) {
