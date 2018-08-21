@@ -572,7 +572,9 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
     const float full_distance = get_distance(current_loc, target_loc);
     const float avoid_step1_m = 500;
     const float avoid_step2_m = 1000;
-    const float avoid_max = MIN(avoid_step1_m, full_distance-1);
+    // we test for flying past the waypoint, so if we are close, we
+    // have room to dodge after the waypoint
+    const float avoid_max = MIN(avoid_step1_m, full_distance+100);
     const float avoid_sec1 = avoid_max / groundspeed;
     const int32_t bearing_inc_cd = 500;
     const float distance = groundspeed * avoid_sec1;
