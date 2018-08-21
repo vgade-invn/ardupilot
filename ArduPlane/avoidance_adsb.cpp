@@ -601,7 +601,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
     bool have_best_bearing = false;
     float best_margin = -10000;
     int32_t best_margin_bearing = best_bearing;
-    const float rate_of_turn_dps = degrees(GRAVITY_MSS * tanf(radians(plane.aparm.roll_limit_cd*0.01))/(groundspeed+0.1));
+    const float rate_of_turn_dps = degrees(GRAVITY_MSS * tanf(radians(plane.aparm.roll_limit_cd*0.01*0.6))/(groundspeed+0.1));
     
     // get our ground course
     float ground_course_deg;
