@@ -601,7 +601,8 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
     bool have_best_bearing = false;
     float best_margin = -10000;
     int32_t best_margin_bearing = best_bearing;
-
+    const float rate_of_turn_dps = degrees(GRAVITY_MSS * tanf(radians(plane.aparm.roll_limit_cd*0.01))/(groundspeed+0.1));
+    
     // get our ground course
     float ground_course_deg;
     {
@@ -612,25 +613,39 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
     for (uint8_t i=0; i<360 / (bearing_inc_cd/100); i++) {
         int32_t bearing_delta_cd = i*bearing_inc_cd/2;
         if (i & 1) {
+            // we alternate between trying to the left and right of the target
             bearing_delta_cd = -bearing_delta_cd;
         }
         // bearing that we are probing
         const int32_t bearing_test_cd = wrap_180_cd(bearing_cd + bearing_delta_cd);
         const float bearing_test = bearing_test_cd * 0.01;
+        const float course_change_deg = wrap_180(bearing_test - ground_course_deg);
 
+        if (fabsf(course_change_deg) > 170) {
+            // don't consider 180 degree turns, as we can't predict which way we will turn
+            continue;
+        }
+
+        // work out how long it will take to change course
+        float turn_time_s = fabsf(course_change_deg / rate_of_turn_dps);
+
+        // approximate a turn by flying forward for turn_time_s/2,
+        // then flying the new course from there
+        Location projected_loc = location_project(current_loc, ground_course_deg, groundspeed * turn_time_s*0.5);
+        
         // position we will get to
-        Location loc_test = location_project(current_loc, bearing_test, distance);
+        Location loc_test = location_project(projected_loc, bearing_test, distance);
 
         // difference from current_loc as floats
-        Vector2f loc_diff = location_diff(current_loc, loc_test);
+        Vector2f loc_diff = location_diff(projected_loc, loc_test);
         Vector2f our_velocity = loc_diff / avoid_sec1;
 
         if (!mission_avoid_fence(loc_test)) {
             // don't go in a direction that could hit the fence
             continue;
         }
-        float ex_margin = mission_exclusion_margin(current_loc, loc_test);
-        float obs_margin = mission_avoidance_margin(current_loc, our_velocity, avoid_sec1);
+        float ex_margin = mission_exclusion_margin(projected_loc, loc_test);
+        float obs_margin = mission_avoidance_margin(projected_loc, our_velocity, avoid_sec1);
         float margin = MIN(ex_margin, obs_margin);
         if (margin > best_margin) {
             best_margin_bearing = bearing_test;
@@ -671,7 +686,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
                 float margin2 = MIN(ex_margin2, obs_margin2);
                 if (margin2 > 0) {
                     // all good, now project in the chosen direction by the full distance
-                    target_loc = location_project(current_loc, bearing_test, full_distance);
+                    target_loc = location_project(projected_loc, bearing_test, full_distance);
                     debug(4,"good: i=%d j=%d bt:%d nb:%d m1:%.1f m2:%.1f\n",
                           i, j, int(bearing_test), int(new_bearing), margin, margin2);
                     return i != 0 || j != 0;
@@ -702,7 +717,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
 void AP_Avoidance_Plane::avoidance_thread(void)
 {
     while (true) {
-        hal.scheduler->delay(200);
+        hal.scheduler->delay(100);
         Location current_loc;
         Location target_loc;
         Location new_target_loc;
