@@ -29,6 +29,7 @@ public:
     enum InputIgnore {
         RC_IGNORE_RECEIVER  = (1 << 0), // RC reciever modules
         RC_IGNORE_OVERRIDES = (1 << 1), // MAVLink overrides
+        RC_IGNORE_FAILSAFE  = (1 << 2), // ignore RC failsafe bits
     };
 
     // setup the control preferences
@@ -316,6 +317,11 @@ public:
     // has_valid_input should be pure-virtual when Plane is converted
     virtual bool has_valid_input() const { return false; };
 
+    // should we ignore RC failsafe bits from receivers?
+    static bool ignore_rc_failsafe(void) {
+        return options && ((*options) & RC_Channel::RC_IGNORE_FAILSAFE) != 0;
+    }
+    
 private:
     static RC_Channels *_singleton;
     // this static arrangement is to avoid static pointers in AP_Param tables
