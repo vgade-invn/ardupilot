@@ -629,9 +629,15 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
         // work out how long it will take to change course
         float turn_time_s = fabsf(course_change_deg / rate_of_turn_dps);
 
-        // approximate a turn by flying forward for turn_time_s/2,
-        // then flying the new course from there
+        // approximate a turn by flying forward for turn_time_s/2
         Location projected_loc = location_project(current_loc, ground_course_deg, groundspeed * turn_time_s*0.5);
+
+        // if we're turning by more than 90 degrees then add some sideways movement
+        if (fabsf(course_change_deg) > 90) {
+            float direction = course_change_deg>0?(ground_course_deg+90):(ground_course_deg-90);
+            float proportion = sinf(radians(fabsf(course_change_deg) - 90));
+            projected_loc = location_project(projected_loc, direction, groundspeed * proportion * turn_time_s*0.5);
+        }
         
         // position we will get to
         Location loc_test = location_project(projected_loc, bearing_test, distance);
