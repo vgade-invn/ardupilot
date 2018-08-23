@@ -196,6 +196,10 @@ protected:
     AP_Float    _warn_distance_z;
     AP_Int8     _debug;
     AP_Int32    _options;
+    AP_Float    _margin_fence;
+    AP_Float    _margin_dynamic;
+    AP_Float    _margin_exclusion;
+    AP_Float    _margin_wide;
 
     // multi-thread support for avoidance
     HAL_Semaphore_Recursive _rsem;

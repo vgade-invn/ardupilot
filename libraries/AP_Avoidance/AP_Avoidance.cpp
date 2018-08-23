@@ -133,6 +133,30 @@ const AP_Param::GroupInfo AP_Avoidance::var_info[] = {
     // @Description: Bitmask of behaviour options
     // @User: Advanced
     AP_GROUPINFO("OPTIONS",  14, AP_Avoidance, _options, 0),
+
+    // @Param: MARGIN_FENCE
+    // @DisplayName: fence margin
+    // @Description: Avoidance margin for fence
+    // @User: Advanced
+    AP_GROUPINFO("MARGIN_FENCE",  15, AP_Avoidance, _margin_fence, 130),
+
+    // @Param: MARGIN_DYN
+    // @DisplayName: dynamic margin
+    // @Description: Avoidance margin for dynamic objects
+    // @User: Advanced
+    AP_GROUPINFO("MARGIN_DYN",  16, AP_Avoidance, _margin_dynamic, 100),
+
+    // @Param: MARGIN_EXCL
+    // @DisplayName: exclusion zone margin
+    // @Description: Avoidance margin for exclusion zones
+    // @User: Advanced
+    AP_GROUPINFO("MARGIN_EXCL",  17, AP_Avoidance, _margin_exclusion, 100),
+
+    // @Param: MARGIN_WIDE
+    // @DisplayName: wide avoidance margin
+    // @Description: Avoidance margin for wide avoidance
+    // @User: Advanced
+    AP_GROUPINFO("MARGIN_WIDE",  18, AP_Avoidance, _margin_wide, 100),
     
     AP_GROUPEND
 };
