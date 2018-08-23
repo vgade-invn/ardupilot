@@ -91,14 +91,6 @@ private:
     // points is relative to the average point
     void grow_polygonl(Vector2l *points, uint8_t num_points, float change_m);
     
-    // number of meters of padding around exlusion zones and inside the fence
-    const float exclusion_margin_dynamic = 130;
-    const float exclusion_margin_static = 100;
-    const float fence_margin = 130;
-
-    // 100m over the per-object margins is considered a wide margin from any obstacle
-    const float avoidance_large_m = 100;
-
     enum {
         OPTION_IGNORE_HEIGHT=1<<0,
     };

@@ -211,7 +211,7 @@ bool AP_Avoidance_Plane::handle_avoidance_horizontal(const AP_Avoidance::Obstacl
 float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, const Vector2f &our_velocity, float avoid_sec)
 {
     const uint32_t timeout_ms = 5000;
-    float margin = avoidance_large_m;
+    float margin = _margin_wide;
     uint8_t num_outside_height_range = 0;
     uint8_t num_timed_out = 0;
 
@@ -270,12 +270,12 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
  */
 float AP_Avoidance_Plane::mission_exclusion_margin(const Location &current_loc, const Location &loc_test)
 {
-    float margin = avoidance_large_m;
+    float margin = _margin_wide;
     for (uint8_t zone=0; zone<num_exclusion_zones; zone++) {
         const struct exclusion_zone &ezone = exclusion_zones[zone];
         const Vector2f p1 = location_diff(ezone.first_loc, current_loc);
         const Vector2f p2 = location_diff(ezone.first_loc, loc_test);
-        float dist = Polygon_closest_distance(ezone.points, ezone.num_points, p1, p2) - exclusion_margin_static;
+        float dist = Polygon_closest_distance(ezone.points, ezone.num_points, p1, p2) - _margin_exclusion;
         if (dist < margin) {
             margin = dist;
         }
@@ -547,7 +547,7 @@ void AP_Avoidance_Plane::load_fence_boundary(void)
     memcpy(fence_points, points, num_points * sizeof(fence_points[0]));
     num_fence_points = num_points;
 
-    grow_polygonl(fence_points, num_fence_points, -fence_margin);
+    grow_polygonl(fence_points, num_fence_points, - _margin_fence);
 }
 
 /*
