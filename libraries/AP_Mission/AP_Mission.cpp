@@ -877,7 +877,7 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
         cmd.content.user.p1 = packet.param1;
         cmd.content.user.p2 = packet.param2;
         cmd.content.user.p3 = uint8_t(packet.param3);
-        cmd.content.user.p4 = uint8_t(packet.param3);
+        cmd.content.user.p4 = uint8_t(packet.param4);
         break;
         
     default:
