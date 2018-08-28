@@ -174,3 +174,18 @@ void AP_Button::setup_pins(void)
         hal.gpio->write(pin[i], 1);
     }
 }
+
+// get delta time in ms that the last change happened that has mask active
+uint32_t AP_Button::time_mask_changed_delta_ms(uint32_t mask) const
+{
+    if (!enable) {
+        return 0;
+    }
+    if ((last_mask & mask) != mask) {
+        return 0;
+    }
+    if (last_change_time_ms == 0) {
+        return 0;
+    }
+    return AP_HAL::millis64() - last_change_time_ms;
+}

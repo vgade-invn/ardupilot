@@ -31,6 +31,9 @@ public:
 
     // update button state and send messages, called periodically by main loop
     void update(void);
+
+    // get delta time in ms that the last change happened that has mask active
+    uint32_t time_mask_changed_delta_ms(uint32_t mask) const;
     
 private:
     AP_Int8 enable;
