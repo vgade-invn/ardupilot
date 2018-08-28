@@ -552,6 +552,14 @@ private:
         uint32_t impact_timer_ms;
     } crash_state;
 
+    // obc-2018 special landing zone takeoff handling
+    struct {
+        uint32_t cmd_set_ms;
+        uint32_t wait_time_ms;
+        uint32_t button_mask;
+        bool arm_pending;
+    } lz_state;
+
     // true if we are in an auto-throttle mode, which means
     // we need to run the speed/height controller
     bool auto_throttle_mode:1;
@@ -1038,6 +1046,9 @@ private:
 #if SOARING_ENABLED == ENABLED
     void update_soaring();
 #endif
+
+    // obc2018 CanberraUAV specific code
+    void obc2018_lz_check();
 
     // support for AP_Avoidance custom flight mode, AVOID_ADSB
     bool avoid_adsb_init(bool ignore_checks);

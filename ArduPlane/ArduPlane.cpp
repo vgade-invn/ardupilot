@@ -301,6 +301,8 @@ void Plane::one_second_loop()
     // indicates that the sensor or subsystem is present but not
     // functioning correctly
     update_sensor_status_flags();
+
+    obc2018_lz_check();
 }
 
 void Plane::compass_save()

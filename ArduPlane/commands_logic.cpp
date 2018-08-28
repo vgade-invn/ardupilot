@@ -244,6 +244,18 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
         }
         break;
 #endif
+
+    case MAV_CMD_USER_1:
+        // obc-2018 special. Prepare for auto-takeoff at landing zone
+        plane.lz_state.cmd_set_ms = AP_HAL::millis();
+        plane.lz_state.wait_time_ms = uint32_t(cmd.content.user.p1) * 1000U;
+        plane.lz_state.button_mask = uint32_t(cmd.content.user.p2);
+        break;
+
+    case MAV_CMD_USER_2:
+        // obc-2018 special. Set WP_RADIUS_MAX
+        plane.g.waypoint_max_radius.set_and_notify(cmd.content.user.p1);
+        break;
     }
 
     return true;
@@ -1091,4 +1103,54 @@ bool Plane::verify_loiter_heading(bool init)
         return true;
     }
     return false;
+}
+
+
+
+/*
+  special handling of landing zone auto-takeoff for OBC-2018
+ */
+void Plane::obc2018_lz_check(void)
+{
+    if (lz_state.cmd_set_ms == 0) {
+        return;
+    }
+    if (control_mode != AUTO) {
+        lz_state.arm_pending = false;
+        lz_state.cmd_set_ms = 0;
+        return;
+    }
+    if (lz_state.arm_pending) {
+        lz_state.arm_pending = !arm_motors(AP_Arming::MAVLINK);
+        if (!lz_state.arm_pending) {
+            lz_state.cmd_set_ms = 0;
+            gcs().send_text(MAV_SEVERITY_INFO, "LZ: armed");
+        }
+        return;
+    }
+    if (mission.get_current_nav_cmd().id != MAV_CMD_NAV_VTOL_LAND) {
+        // reset auto takeoff state
+        lz_state.cmd_set_ms = 0;
+        return;
+    }
+    uint32_t button_delta_ms = plane.g2.button.time_mask_changed_delta_ms(lz_state.button_mask);
+    if (button_delta_ms == 0) {
+        return;
+    }
+    if (button_delta_ms > 2*lz_state.wait_time_ms) {
+        // ignore stale data
+        lz_state.cmd_set_ms = 0;
+        lz_state.arm_pending = false;
+        return;
+    }
+    uint32_t pending_s = (lz_state.wait_time_ms - button_delta_ms) / 1000;
+    if (pending_s > 0) {
+        gcs().send_text(MAV_SEVERITY_INFO, "LZ: pending %us", pending_s);
+        // not ready yet
+        return;
+    }
+    uint16_t cmdnum = mission.get_current_nav_index()+1;
+    gcs().send_text(MAV_SEVERITY_INFO, "LZ: Advancing to %u and arming", cmdnum);
+    mission.set_current_cmd(cmdnum);
+    lz_state.arm_pending = true;
 }
