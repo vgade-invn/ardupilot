@@ -198,6 +198,14 @@ public:
         int32_t lat;            // latitude *1e7
         int32_t lng;            // longitude *1e7
     };
+
+    // User_Command
+    struct PACKED User_Command {
+        float p1;
+        float p2;
+        uint8_t p3;
+        uint8_t p4;
+    };
     
     union PACKED Content {
         // jump structure
@@ -269,6 +277,9 @@ public:
         // location
         Location location;      // Waypoint location
 
+        // MAV_CMD_USER_n
+        User_Command user;
+        
         // raw bytes, for reading/writing to eeprom. Note that only 10 bytes are available
         // if a 16 bit command ID is used
         uint8_t bytes[12];
