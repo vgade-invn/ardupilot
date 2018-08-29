@@ -132,6 +132,7 @@ void AP_Button::timer_update(void)
     }
     uint8_t mask = get_mask();
     if (mask != last_mask) {
+        last_change_mask = (mask ^ last_mask);
         last_mask = mask;
         last_change_time_ms = AP_HAL::millis64();
     }
@@ -154,7 +155,7 @@ void AP_Button::send_report(void)
             mavlink_msg_button_change_send(chan,
                                            now,
                                            (uint32_t)last_change_time_ms,
-                                           last_mask);
+                                           last_change_mask);
         }
     }
 }
@@ -175,13 +176,13 @@ void AP_Button::setup_pins(void)
     }
 }
 
-// get delta time in ms that the last change happened that has mask active
+// get delta time in ms that the last change happened to the pins in mask
 uint32_t AP_Button::time_mask_changed_delta_ms(uint32_t mask) const
 {
     if (!enable) {
         return 0;
     }
-    if ((last_mask & mask) != mask) {
+    if ((last_change_mask & mask) != mask) {
         return 0;
     }
     if (last_change_time_ms == 0) {

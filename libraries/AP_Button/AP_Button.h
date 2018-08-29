@@ -32,7 +32,7 @@ public:
     // update button state and send messages, called periodically by main loop
     void update(void);
 
-    // get delta time in ms that the last change happened that has mask active
+    // get delta time in ms that the last change happened to the pins in mask
     uint32_t time_mask_changed_delta_ms(uint32_t mask) const;
     
 private:
@@ -45,6 +45,9 @@ private:
     // last button press mask
     uint8_t last_mask;
 
+    // last button press change mask
+    uint8_t last_change_mask;
+    
     // when the mask last changed
     uint64_t last_change_time_ms;
 
