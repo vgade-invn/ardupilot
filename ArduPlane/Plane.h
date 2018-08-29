@@ -748,6 +748,8 @@ private:
     // last time home was updated while disarmed
     uint32_t last_home_update_ms;
 
+    uint32_t flight_start_ms;
+    
     // Camera/Antenna mount tracking and stabilisation stuff
 #if MOUNT == ENABLED
     // current_loc uses the baro/gps soloution for altitude rather than gps only.
@@ -1050,6 +1052,8 @@ private:
     // obc2018 CanberraUAV specific code
     void obc2018_lz_check();
 
+    void flight_time_limit_check();
+    
     // support for AP_Avoidance custom flight mode, AVOID_ADSB
     bool avoid_adsb_init(bool ignore_checks);
     void avoid_adsb_run();

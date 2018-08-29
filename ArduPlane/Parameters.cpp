@@ -1177,6 +1177,13 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(gripper, "GRIP_", 12, ParametersG2, AP_Gripper),
 #endif
 
+    // @Param: FLTTIME_LIMIT
+    // @DisplayName: Maximum flight time limit
+    // @Description: This sets the flight time limit in seconds. If this is reached RTL is engaged. Set to zero to disable.
+    // @Units: s
+    // @User: Advanced
+    AP_GROUPINFO("FLTTIME_LIMIT", 13, ParametersG2, flight_time_limit, 0),
+    
     AP_GROUPEND
 };
 

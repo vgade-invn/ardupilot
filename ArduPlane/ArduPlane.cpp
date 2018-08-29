@@ -303,6 +303,8 @@ void Plane::one_second_loop()
     update_sensor_status_flags();
 
     obc2018_lz_check();
+
+    flight_time_limit_check();
 }
 
 void Plane::compass_save()

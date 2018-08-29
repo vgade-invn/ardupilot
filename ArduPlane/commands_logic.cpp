@@ -1154,3 +1154,23 @@ void Plane::obc2018_lz_check(void)
     mission.set_current_cmd(cmdnum);
     lz_state.arm_pending = true;
 }
+
+void Plane::flight_time_limit_check(void)
+{
+    if (g2.flight_time_limit <= 0) {
+        return;
+    }
+    if (!hal.util->get_soft_armed() || !is_flying() || control_mode != AUTO) {
+        flight_start_ms = 0;
+        return;
+    }
+    if (flight_start_ms == 0) {
+        flight_start_ms = AP_HAL::millis();
+    }
+    uint32_t now = AP_HAL::millis();
+    if ((now - flight_start_ms)/1000 > (uint32_t)g2.flight_time_limit.get()) {
+        gcs().send_text(MAV_SEVERITY_INFO, "Flight time limit reached");
+        set_mode(RTL, MODE_REASON_BATTERY_FAILSAFE);
+        flight_start_ms = 0;
+    }
+}
