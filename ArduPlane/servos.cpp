@@ -501,7 +501,7 @@ void Plane::servos_twin_engine_mix(void)
         // doing reverse thrust
         throttle_left  = constrain_float(throttle + 50 * rudder, -100, 0);
         throttle_right = constrain_float(throttle - 50 * rudder, -100, 0);
-    } else if (throttle <= 0) {
+    } else if (throttle <= 0 || flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND) {
         throttle_left  = throttle_right = 0;
     } else {
         // doing forward thrust
