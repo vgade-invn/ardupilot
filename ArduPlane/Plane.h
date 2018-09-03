@@ -748,7 +748,7 @@ private:
     // last time home was updated while disarmed
     uint32_t last_home_update_ms;
 
-    uint32_t flight_start_ms;
+    bool flight_time_limit_reached;
     
     // Camera/Antenna mount tracking and stabilisation stuff
 #if MOUNT == ENABLED
