@@ -157,6 +157,12 @@ const AP_Param::GroupInfo AP_Avoidance::var_info[] = {
     // @Description: Avoidance margin for wide avoidance
     // @User: Advanced
     AP_GROUPINFO("MARGIN_WIDE",  18, AP_Avoidance, _margin_wide, 100),
+
+    // @Param: MARGIN_HGT
+    // @DisplayName: height avoidance margin
+    // @Description: Avoidance margin for height avoidance
+    // @User: Advanced
+    AP_GROUPINFO("MARGIN_HGT",  19, AP_Avoidance, _margin_height, 20),
     
     AP_GROUPEND
 };

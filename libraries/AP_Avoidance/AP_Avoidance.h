@@ -158,9 +158,9 @@ protected:
     uint32_t src_id_for_adsb_vehicle(AP_ADSB::adsb_vehicle_t vehicle) const;
 
     void check_for_threats();
-    void update_threat_level(const Location &my_loc,
-                             const Vector3f &my_vel,
-                             AP_Avoidance::Obstacle &obstacle);
+    virtual void update_threat_level(const Location &my_loc,
+                                     const Vector3f &my_vel,
+                                     AP_Avoidance::Obstacle &obstacle);
 
     // calls into the AP_ADSB library to retrieve vehicle data
     void get_adsb_samples();
@@ -200,6 +200,7 @@ protected:
     AP_Float    _margin_dynamic;
     AP_Float    _margin_exclusion;
     AP_Float    _margin_wide;
+    AP_Float    _margin_height;
 
     // multi-thread support for avoidance
     HAL_Semaphore_Recursive _rsem;
