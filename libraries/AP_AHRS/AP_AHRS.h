@@ -415,6 +415,9 @@ public:
     float sin_yaw() const   {
         return _sin_yaw;
     }
+    float groundspeed() const {
+        return _groundspeed;
+    }
 
     // for holding parameters
     static const struct AP_Param::GroupInfo var_info[];
@@ -672,6 +675,7 @@ protected:
     // helper trig variables
     float _cos_roll, _cos_pitch, _cos_yaw;
     float _sin_roll, _sin_pitch, _sin_yaw;
+    float _groundspeed;
 
     // which accelerometer instance is active
     uint8_t _active_accel_instance;

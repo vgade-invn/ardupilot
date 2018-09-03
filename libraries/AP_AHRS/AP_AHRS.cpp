@@ -344,6 +344,8 @@ void AP_AHRS::update_trig(void)
     calc_trig(get_rotation_body_to_ned(),
               _cos_roll, _cos_pitch, _cos_yaw,
               _sin_roll, _sin_pitch, _sin_yaw);
+    // also pre-calculate groundspeed
+    _groundspeed = groundspeed_vector().length();
 }
 
 /*
