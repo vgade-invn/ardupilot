@@ -554,6 +554,31 @@ void Plane::do_loiter_to_alt(const AP_Mission::Mission_Command& cmd)
     condition_value = 0;
 }
 
+// do_nav_delay - Delay the next navigation command
+void Plane::do_nav_delay(const AP_Mission::Mission_Command& cmd)
+{
+    auto_state.nav_delay_time_start_ms = millis();
+
+    if (cmd.content.nav_delay.seconds > 0) {
+        // relative delay
+        auto_state.nav_delay_time_max_ms = cmd.content.nav_delay.seconds * 1000; // convert seconds to milliseconds
+    } else {
+        // absolute delay to utc time
+        auto_state.nav_delay_time_max_ms = AP::rtc().get_time_utc(cmd.content.nav_delay.hour_utc, cmd.content.nav_delay.min_utc, cmd.content.nav_delay.sec_utc, 0);
+    }
+    gcs().send_text(MAV_SEVERITY_INFO, "Delaying %u sec", (unsigned)(auto_state.nav_delay_time_max_ms/1000));
+}
+
+// verify_nav_delay - check if we have waited long enough
+bool Plane::verify_nav_delay(const AP_Mission::Mission_Command& cmd)
+{
+    if (millis() - auto_state.nav_delay_time_start_ms > (uint32_t)MAX(auto_state.nav_delay_time_max_ms,0U)) {
+        auto_state.nav_delay_time_max_ms = 0;
+        return true;
+    }
+    return false;
+}
+
 /********************************************************************************/
 //  Verify Nav (Must) commands
 /********************************************************************************/

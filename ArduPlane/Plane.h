@@ -518,6 +518,10 @@ private:
 
         // are we doing loiter mode as a VTOL?
         bool vtol_loiter:1;
+
+        // nav_delay handling
+        uint32_t nav_delay_time_start_ms;
+        uint32_t nav_delay_time_max_ms;
     } auto_state;
 
     struct {
@@ -860,6 +864,8 @@ private:
     bool verify_altitude_wait(const AP_Mission::Mission_Command &cmd);
     bool verify_vtol_takeoff(const AP_Mission::Mission_Command &cmd);
     bool verify_vtol_land(const AP_Mission::Mission_Command &cmd);
+    void do_nav_delay(const AP_Mission::Mission_Command& cmd);
+    bool verify_nav_delay(const AP_Mission::Mission_Command& cmd);
     void do_loiter_at_location();
     bool verify_loiter_heading(bool init);
     void exit_mission_callback();
