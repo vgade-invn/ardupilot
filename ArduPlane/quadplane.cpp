@@ -327,8 +327,8 @@ const AP_Param::GroupInfo QuadPlane::var_info[] = {
 
     // @Param: OPTIONS
     // @DisplayName: quadplane options
-    // @Description: This provides a set of additional control options for quadplanes. LevelTransition means that the wings should be held level to within LEVEL_ROLL_LIMIT degrees during transition to fixed wing flight. If AllowFWTakeoff bit is not set then fixed wing takeoff on quadplanes will instead perform a VTOL takeoff. If AllowFWLand bit is not set then fixed wing land on quadplanes will instead perform a VTOL land.
-    // @Bitmask: 0:LevelTransition,1:AllowFWTakeoff,2:AllowFWLand
+    // @Description: This provides a set of additional control options for quadplanes. LevelTransition means that the wings should be held level to within LEVEL_ROLL_LIMIT degrees during transition to fixed wing flight. If AllowFWTakeoff bit is not set then fixed wing takeoff on quadplanes will instead perform a VTOL takeoff. If AllowFWLand bit is not set then fixed wing land on quadplanes will instead perform a VTOL land. If AllowLandContinue is set then we can continue a mission after a VTOL landing if there are further NAV commands in the mission
+    // @Bitmask: 0:LevelTransition,1:AllowFWTakeoff,2:AllowFWLand,3:AllowLandContinue
     AP_GROUPINFO("OPTIONS", 58, QuadPlane, options, 0),
 
     AP_SUBGROUPEXTENSION("",59, QuadPlane, var_info2),
@@ -2242,6 +2242,16 @@ bool QuadPlane::verify_vtol_land(void)
     }
 
     check_land_complete();
+
+    if (!hal.util->get_soft_armed() && (options & OPTION_ALLOW_LAND_CONTINUE)) {
+        uint16_t idx = plane.mission.get_current_nav_index();
+        AP_Mission::Mission_Command cmd;
+        if (idx != 0 && plane.mission.get_next_nav_cmd(idx+1, cmd)) {
+            gcs().send_text(MAV_SEVERITY_INFO,"Continuing mission");
+            return true;
+        }
+    }
+
     return false;
 }
 

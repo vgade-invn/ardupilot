@@ -419,7 +419,7 @@ private:
 
     // time when we were last in a vtol control mode
     uint32_t last_vtol_mode_ms;
-    
+
     void tiltrotor_slew(float tilt);
     void tiltrotor_binary_slew(bool forward);
     void tiltrotor_update(void);
@@ -450,6 +450,7 @@ private:
         OPTION_LEVEL_TRANSITION=(1<<0),
         OPTION_ALLOW_FW_TAKEOFF=(1<<1),
         OPTION_ALLOW_FW_LAND=(1<<2),
+        OPTION_ALLOW_LAND_CONTINUE=(1<<3),
     };
 
     /*
