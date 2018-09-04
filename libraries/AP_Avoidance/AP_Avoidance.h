@@ -201,6 +201,7 @@ protected:
     AP_Float    _margin_exclusion;
     AP_Float    _margin_wide;
     AP_Float    _margin_height;
+    AP_Float    _lookahead;
 
     // multi-thread support for avoidance
     HAL_Semaphore_Recursive _rsem;

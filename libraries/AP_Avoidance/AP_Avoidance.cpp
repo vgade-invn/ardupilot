@@ -163,6 +163,13 @@ const AP_Param::GroupInfo AP_Avoidance::var_info[] = {
     // @Description: Avoidance margin for height avoidance
     // @User: Advanced
     AP_GROUPINFO("MARGIN_HGT",  19, AP_Avoidance, _margin_height, 20),
+
+    // @Param: LOOKAHEAD
+    // @DisplayName: avoidance lookahead distance
+    // @Description: Avoidance lookahead distance
+    // @Units: metres
+    // @User: Advanced
+    AP_GROUPINFO("LOOKAHEAD",  20, AP_Avoidance, _lookahead, 500),
     
     AP_GROUPEND
 };
