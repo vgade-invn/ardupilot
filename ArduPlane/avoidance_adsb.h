@@ -18,6 +18,9 @@ public:
     AP_Avoidance_Plane &operator=(const AP_Avoidance_Plane&) = delete;
 
     bool mission_avoidance(const Location &loc, Location &target_loc, float groundspeed);
+
+    // check if we are clear to a good radius for takeoff/landing
+    bool mission_clear(const Location &current_loc, float xy_clearance, float z_clearance, float time_s);
     
 protected:
     // override avoidance handler
@@ -47,7 +50,7 @@ private:
     void unload_exclusion_zones(void);
     void load_fence_boundary(void);
     float get_avoidance_radius(const class Obstacle &obstacle) const;
-    bool within_avoidance_height(const class Obstacle &obstacle) const;
+    bool within_avoidance_height(const class Obstacle &obstacle, const float margin) const;
     bool have_collided(const Location &loc);
 
     bool thread_created;

@@ -522,6 +522,8 @@ private:
         // nav_delay handling
         uint32_t nav_delay_time_start_ms;
         uint32_t nav_delay_time_max_ms;
+
+        uint32_t verify_button_start_ms;
     } auto_state;
 
     struct {
@@ -555,14 +557,6 @@ private:
         // length of time impact_detected has been true. Times out after a few seconds. Used to clip isFlyingProbability
         uint32_t impact_timer_ms;
     } crash_state;
-
-    // obc-2018 special landing zone takeoff handling
-    struct {
-        uint32_t cmd_set_ms;
-        uint32_t wait_time_ms;
-        uint32_t button_mask;
-        bool arm_pending;
-    } lz_state;
 
     // true if we are in an auto-throttle mode, which means
     // we need to run the speed/height controller
@@ -861,6 +855,8 @@ private:
     bool verify_continue_and_change_alt();
     bool verify_wait_delay();
     bool verify_within_distance();
+    bool verify_airspace_clear(const AP_Mission::Mission_Command &cmd);
+    bool verify_button(const AP_Mission::Mission_Command &cmd);
     bool verify_altitude_wait(const AP_Mission::Mission_Command &cmd);
     bool verify_vtol_takeoff(const AP_Mission::Mission_Command &cmd);
     bool verify_vtol_land(const AP_Mission::Mission_Command &cmd);
@@ -1054,9 +1050,6 @@ private:
 #if SOARING_ENABLED == ENABLED
     void update_soaring();
 #endif
-
-    // obc2018 CanberraUAV specific code
-    void obc2018_lz_check();
 
     void flight_time_limit_check();
     

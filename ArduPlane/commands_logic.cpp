@@ -97,6 +97,19 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
     case MAV_CMD_NAV_VTOL_LAND:
         crash_state.is_crashed = false;
         return quadplane.do_vtol_land(cmd);
+
+    case MAV_CMD_NAV_DELAY:
+        do_nav_delay(cmd);
+        break;
+
+    case MAV_CMD_NAV_DELAY_AIRSPACE_CLEAR:
+        gcs().send_text(MAV_SEVERITY_INFO, "Waiting for clear airspace");
+        break;
+
+    case MAV_CMD_NAV_DELAY_BUTTON:
+        auto_state.verify_button_start_ms = AP_HAL::millis();
+        gcs().send_text(MAV_SEVERITY_INFO, "Waiting for button 0x%02x", cmd.content.nav_delay_button.mask);
+        break;
         
     // Conditional commands
 
@@ -245,16 +258,38 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
         break;
 #endif
 
-    case MAV_CMD_USER_1:
-        // obc-2018 special. Prepare for auto-takeoff at landing zone
-        plane.lz_state.cmd_set_ms = AP_HAL::millis();
-        plane.lz_state.wait_time_ms = uint32_t(cmd.content.user.p1) * 1000U;
-        plane.lz_state.button_mask = uint32_t(cmd.content.user.p2);
-        break;
-
     case MAV_CMD_USER_2:
         // obc-2018 special. Set WP_RADIUS_MAX
         plane.g.waypoint_max_radius.set_and_notify(cmd.content.user.p1);
+        break;
+
+    case MAV_CMD_DO_CONDITION_JUMP: {
+        switch (cmd.content.conditional_jump.type) {
+        case CONDITION_TYPE_AIRSPACE_CLEAR:
+            if (plane.avoidance_adsb.mission_clear(plane.current_loc,
+                                                   cmd.content.conditional_jump.p1,
+                                                   cmd.content.conditional_jump.p2,
+                                                   cmd.content.conditional_jump.p3)) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Airspace is clear");
+                mission.set_current_cmd(cmd.content.conditional_jump.target);
+            } else {
+                gcs().send_text(MAV_SEVERITY_INFO, "Airspace not clear");
+            }
+            break;
+        default:
+            gcs().send_text(MAV_SEVERITY_INFO, "Unknown condition %u", cmd.content.conditional_jump.type);
+            break;
+        }
+        break;
+    }
+
+    case MAV_CMD_COMPONENT_ARM_DISARM:
+        if (cmd.content.arm_disarm.arm) {
+            bool force_arm = cmd.content.arm_disarm.arm==2;
+            arm_motors(AP_Arming::MISSION, !force_arm);
+        } else {
+            disarm_motors();
+        }
         break;
     }
 
@@ -324,6 +359,15 @@ bool Plane::verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
     case MAV_CMD_NAV_VTOL_LAND:
         return quadplane.verify_vtol_land();
 
+     case MAV_CMD_NAV_DELAY:
+        return verify_nav_delay(cmd);
+        
+    case MAV_CMD_NAV_DELAY_AIRSPACE_CLEAR:
+        return verify_airspace_clear(cmd);
+
+    case MAV_CMD_NAV_DELAY_BUTTON:
+        return verify_button(cmd);
+        
     // Conditional commands
 
     case MAV_CMD_CONDITION_DELAY:
@@ -707,7 +751,7 @@ bool Plane::verify_nav_wp(const AP_Mission::Mission_Command& cmd)
 	}
 
     // have we flown past the waypoint?
-    if (location_passed_point(current_loc, prev_WP_loc, flex_next_WP_loc)) {
+    if (cmd_acceptance_distance == 0 && location_passed_point(current_loc, prev_WP_loc, flex_next_WP_loc)) {
         gcs().send_text(MAV_SEVERITY_INFO, "Passed waypoint #%i dist %um",
                           (unsigned)mission.get_current_nav_cmd().index,
                           (unsigned)get_distance(current_loc, flex_next_WP_loc));
@@ -910,6 +954,7 @@ void Plane::do_wait_delay(const AP_Mission::Mission_Command& cmd)
 {
     condition_start = millis();
     condition_value  = cmd.content.delay.seconds * 1000;    // convert seconds to milliseconds
+    gcs().send_text(MAV_SEVERITY_INFO, "Delaying %d seconds", cmd.content.delay.seconds);
 }
 
 void Plane::do_within_distance(const AP_Mission::Mission_Command& cmd)
@@ -934,6 +979,35 @@ bool Plane::verify_within_distance()
 {
     if (auto_state.wp_distance < MAX(condition_value,0)) {
         condition_value = 0;
+        return true;
+    }
+    return false;
+}
+
+/*
+  wait for airspace to be clear
+ */
+bool Plane::verify_airspace_clear(const AP_Mission::Mission_Command &cmd)
+{
+    if (plane.avoidance_adsb.mission_clear(plane.current_loc,
+                                           cmd.content.nav_delay_airspace.xy,
+                                           cmd.content.nav_delay_airspace.z,
+                                           cmd.content.nav_delay_airspace.time)) {
+        gcs().send_text(MAV_SEVERITY_INFO, "Airspace is clear");
+        return true;
+    }
+    return false;
+}
+
+/*
+  wait for a button change
+ */
+bool Plane::verify_button(const AP_Mission::Mission_Command &cmd)
+{
+    uint32_t now = AP_HAL::millis();
+    uint32_t change = plane.g2.button.time_mask_changed_delta_ms(cmd.content.nav_delay_button.mask);
+    if (change != 0 && (now - auto_state.verify_button_start_ms) >= change) {
+        gcs().send_text(MAV_SEVERITY_INFO, "Button pressed");
         return true;
     }
     return false;
@@ -1128,56 +1202,6 @@ bool Plane::verify_loiter_heading(bool init)
         return true;
     }
     return false;
-}
-
-
-
-/*
-  special handling of landing zone auto-takeoff for OBC-2018
- */
-void Plane::obc2018_lz_check(void)
-{
-    if (lz_state.cmd_set_ms == 0) {
-        return;
-    }
-    if (control_mode != AUTO) {
-        lz_state.arm_pending = false;
-        lz_state.cmd_set_ms = 0;
-        return;
-    }
-    if (lz_state.arm_pending) {
-        lz_state.arm_pending = !arm_motors(AP_Arming::MAVLINK);
-        if (!lz_state.arm_pending) {
-            lz_state.cmd_set_ms = 0;
-            gcs().send_text(MAV_SEVERITY_INFO, "LZ: armed");
-        }
-        return;
-    }
-    if (mission.get_current_nav_cmd().id != MAV_CMD_NAV_VTOL_LAND) {
-        // reset auto takeoff state
-        lz_state.cmd_set_ms = 0;
-        return;
-    }
-    uint32_t button_delta_ms = plane.g2.button.time_mask_changed_delta_ms(lz_state.button_mask);
-    if (button_delta_ms == 0) {
-        return;
-    }
-    if (button_delta_ms > 2*lz_state.wait_time_ms) {
-        // ignore stale data
-        lz_state.cmd_set_ms = 0;
-        lz_state.arm_pending = false;
-        return;
-    }
-    uint32_t pending_s = (lz_state.wait_time_ms - button_delta_ms) / 1000;
-    if (pending_s > 0) {
-        gcs().send_text(MAV_SEVERITY_INFO, "LZ: pending %us", pending_s);
-        // not ready yet
-        return;
-    }
-    uint16_t cmdnum = mission.get_current_nav_index()+1;
-    gcs().send_text(MAV_SEVERITY_INFO, "LZ: Advancing to %u and arming", cmdnum);
-    mission.set_current_cmd(cmdnum);
-    lz_state.arm_pending = true;
 }
 
 void Plane::flight_time_limit_check(void)

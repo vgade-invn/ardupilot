@@ -302,8 +302,6 @@ void Plane::one_second_loop()
     // functioning correctly
     update_sensor_status_flags();
 
-    obc2018_lz_check();
-
     flight_time_limit_check();
 }
 

@@ -228,7 +228,7 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
             num_timed_out++;
             continue;
         }
-        if (!within_avoidance_height(obstacle)) {
+        if (!within_avoidance_height(obstacle, _margin_height)) {
             num_outside_height_range++;
             continue;
         }
@@ -283,6 +283,50 @@ float AP_Avoidance_Plane::mission_exclusion_margin(const Location &current_loc, 
     return margin;
 }
 
+/*
+  see if we have clear airspace for a given distance and time
+ */
+bool AP_Avoidance_Plane::mission_clear(const Location &current_loc, float xy_clearance, float z_clearance, float time_s)
+{
+    if (!_enabled || _warn_action != 2) {
+        return true;
+    }
+
+    const uint32_t timeout_ms = 5000;
+
+    WITH_SEMAPHORE(_rsem);
+
+    uint32_t now = AP_HAL::millis();
+
+    for (uint8_t i=0; i<_obstacle_count; i++) {
+        const Obstacle &obstacle = _obstacles[i];
+        if (now - obstacle.timestamp_ms > timeout_ms) {
+            continue;
+        }
+        if (!within_avoidance_height(obstacle, z_clearance)) {
+            continue;
+        }
+
+        // get updated obstacle position
+        Location obstacle_loc = obstacle._location;
+        Vector2f obstacle_velocity(obstacle._velocity.x,obstacle._velocity.y);
+        float obstacle_speed = obstacle_velocity.length();
+        float dt = (now - obstacle.timestamp_ms) * 0.001;
+        location_offset(obstacle_loc, obstacle_velocity.x * dt, obstacle_velocity.y * dt);
+
+        const float radius = get_avoidance_radius(obstacle);
+        float distance = get_distance(current_loc, obstacle_loc);
+
+        if (distance - (obstacle_speed * time_s) < xy_clearance + radius) {
+            // it could come within the radius in the given time
+            return false;
+        }
+    }
+
+    // all clear
+    return true;
+}
+
 
 /*
   check if we have already collided with a dynamic obstacle
@@ -295,12 +339,13 @@ bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
     WITH_SEMAPHORE(_rsem);
     
     uint32_t now = AP_HAL::millis();
+
     for (uint8_t i=0; i<_obstacle_count; i++) {
         const Obstacle &obstacle = _obstacles[i];
         if (now - obstacle.timestamp_ms > timeout_ms) {
             continue;
         }
-        if (!within_avoidance_height(obstacle)) {
+        if (!within_avoidance_height(obstacle, 0)) {
             continue;
         }
 
@@ -311,7 +356,8 @@ bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
         location_offset(obstacle_loc, obstacle_velocity.x * dt, obstacle_velocity.y * dt);
         
         const float radius = get_avoidance_radius(obstacle);
-        float distance = get_distance(current_loc, obstacle._location);
+        float distance = get_distance(current_loc, obstacle_loc);
+
         if (distance < radius) {
             debug(1, "Collided with %u %.0fm\n", obstacle.src_id, distance);
             ret = true;
@@ -472,7 +518,7 @@ float AP_Avoidance_Plane::get_avoidance_radius(const class Obstacle &obstacle) c
 /*
   check if we are within the height range to need to avoid an obstacle
  */
-bool AP_Avoidance_Plane::within_avoidance_height(const class Obstacle &obstacle) const
+bool AP_Avoidance_Plane::within_avoidance_height(const class Obstacle &obstacle, const float margin) const
 {
     if (_options.get() & OPTION_IGNORE_HEIGHT) {
         return true;
@@ -488,7 +534,6 @@ bool AP_Avoidance_Plane::within_avoidance_height(const class Obstacle &obstacle)
     }
     float obstacle_alt = alt_cm * 0.01;
     float alt_min, alt_max;
-    const float margin = 20;
 
     if (obstacle.src_id < 20000 || (obstacle.src_id >= 30000 && obstacle.src_id < 40000)) {
         // fixed wing or migrating bird, height range 150m, +10 seconds of height change
@@ -570,8 +615,8 @@ bool AP_Avoidance_Plane::mission_avoid_fence(const Location &loc_test)
 bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed)
 {
     const float full_distance = get_distance(current_loc, target_loc);
-    const float avoid_step1_m = 500;
-    const float avoid_step2_m = 1000;
+    const float avoid_step1_m = _lookahead;
+    const float avoid_step2_m = _lookahead*2;
     // we test for flying past the waypoint, so if we are close, we
     // have room to dodge after the waypoint
     const float avoid_max = MIN(avoid_step1_m, full_distance+100);
