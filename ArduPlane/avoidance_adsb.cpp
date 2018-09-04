@@ -298,6 +298,9 @@ bool AP_Avoidance_Plane::mission_clear(const Location &current_loc, float xy_cle
 
     uint32_t now = AP_HAL::millis();
 
+    // assume we are not moving
+    Vector3f my_vel;
+
     for (uint8_t i=0; i<_obstacle_count; i++) {
         const Obstacle &obstacle = _obstacles[i];
         if (now - obstacle.timestamp_ms > timeout_ms) {
@@ -310,14 +313,14 @@ bool AP_Avoidance_Plane::mission_clear(const Location &current_loc, float xy_cle
         // get updated obstacle position
         Location obstacle_loc = obstacle._location;
         Vector2f obstacle_velocity(obstacle._velocity.x,obstacle._velocity.y);
-        float obstacle_speed = obstacle_velocity.length();
         float dt = (now - obstacle.timestamp_ms) * 0.001;
         location_offset(obstacle_loc, obstacle_velocity.x * dt, obstacle_velocity.y * dt);
 
-        const float radius = get_avoidance_radius(obstacle);
-        float distance = get_distance(current_loc, obstacle_loc);
+        float closest_xy = closest_approach_xy(current_loc, my_vel, obstacle_loc, obstacle._velocity, time_s);
 
-        if (distance - (obstacle_speed * time_s) < xy_clearance + radius) {
+        const float radius = get_avoidance_radius(obstacle);
+
+        if (closest_xy < xy_clearance + radius) {
             // it could come within the radius in the given time
             return false;
         }
