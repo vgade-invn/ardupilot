@@ -408,6 +408,8 @@ bool Plane::verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
     case MAV_CMD_DO_VTOL_TRANSITION:
     case MAV_CMD_DO_ENGINE_CONTROL:
     case MAV_CMD_DO_GRIPPER:
+    case MAV_CMD_DO_CONDITION_JUMP:
+    case MAV_CMD_COMPONENT_ARM_DISARM:
         return true;
 
     default:
