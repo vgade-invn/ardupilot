@@ -266,16 +266,22 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
     case MAV_CMD_DO_CONDITION_JUMP: {
         switch (cmd.content.conditional_jump.type) {
         case CONDITION_TYPE_AIRSPACE_CLEAR:
-            if (plane.avoidance_adsb.mission_clear(plane.current_loc,
-                                                   cmd.content.conditional_jump.p1,
-                                                   cmd.content.conditional_jump.p2,
-                                                   cmd.content.conditional_jump.p3)) {
+        case CONDITION_TYPE_AIRSPACE_NOT_CLEAR: {
+            bool clear = plane.avoidance_adsb.mission_clear(plane.current_loc,
+                                                            cmd.content.conditional_jump.p1,
+                                                            cmd.content.conditional_jump.p2,
+                                                            cmd.content.conditional_jump.p3);
+            if (clear) {
                 gcs().send_text(MAV_SEVERITY_INFO, "Airspace is clear");
-                mission.set_current_cmd(cmd.content.conditional_jump.target);
             } else {
                 gcs().send_text(MAV_SEVERITY_INFO, "Airspace not clear");
             }
+            bool jump = cmd.content.conditional_jump.type == CONDITION_TYPE_AIRSPACE_CLEAR?clear:!clear;
+            if (jump) {
+                mission.set_current_cmd(cmd.content.conditional_jump.target);
+            }
             break;
+        }
         default:
             gcs().send_text(MAV_SEVERITY_INFO, "Unknown condition %u", cmd.content.conditional_jump.type);
             break;
