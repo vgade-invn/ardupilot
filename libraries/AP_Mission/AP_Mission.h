@@ -206,6 +206,32 @@ public:
         uint8_t p3;
         uint8_t p4;
     };
+
+    // Arm_Disarm
+    struct PACKED Arm_Disarm {
+        uint8_t arm;
+    };
+
+    // Conditional_Jump
+    struct PACKED Conditional_Jump {
+        uint8_t type;
+        uint16_t target;
+        uint16_t p1;
+        uint16_t p2;
+        uint16_t p3;
+    };
+
+    // Nav_Delay_Airspace
+    struct PACKED Nav_Delay_Airspace {
+        uint16_t xy;
+        uint16_t z;
+        uint16_t time;
+    };
+
+    // Nav_Delay_Button
+    struct PACKED Nav_Delay_Button {
+        uint16_t mask;
+    };
     
     union PACKED Content {
         // jump structure
@@ -279,6 +305,18 @@ public:
 
         // MAV_CMD_USER_n
         User_Command user;
+
+        // Arm_Disarm
+        Arm_Disarm arm_disarm;
+
+        // Conditional_Jump
+        Conditional_Jump conditional_jump;
+
+        // Nav_Delay_Airspace
+        Nav_Delay_Airspace nav_delay_airspace;
+
+        // Nav_Delay_Button
+        Nav_Delay_Button nav_delay_button;
         
         // raw bytes, for reading/writing to eeprom. Note that only 10 bytes are available
         // if a 16 bit command ID is used

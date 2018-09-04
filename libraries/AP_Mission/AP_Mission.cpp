@@ -879,6 +879,28 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
         cmd.content.user.p3 = uint8_t(packet.param3);
         cmd.content.user.p4 = uint8_t(packet.param4);
         break;
+
+    case MAV_CMD_COMPONENT_ARM_DISARM:
+        cmd.content.arm_disarm.arm = packet.param1;
+        break;
+
+    case MAV_CMD_DO_CONDITION_JUMP:
+        cmd.content.conditional_jump.target = packet.param1;
+        cmd.content.conditional_jump.type = packet.param2;
+        cmd.content.conditional_jump.p1 = packet.param3;
+        cmd.content.conditional_jump.p2 = packet.param4;
+        cmd.content.conditional_jump.p3 = packet.z;
+        break;
+
+    case MAV_CMD_NAV_DELAY_AIRSPACE_CLEAR:
+        cmd.content.nav_delay_airspace.xy = packet.param1;
+        cmd.content.nav_delay_airspace.z = packet.param2;
+        cmd.content.nav_delay_airspace.time = packet.param3;
+        break;
+
+    case MAV_CMD_NAV_DELAY_BUTTON:
+        cmd.content.nav_delay_button.mask = packet.param1;
+        break;
         
     default:
         // unrecognised command
@@ -1348,6 +1370,28 @@ bool AP_Mission::mission_cmd_to_mavlink_int(const AP_Mission::Mission_Command& c
         packet.param2 = cmd.content.user.p2;
         packet.param3 = cmd.content.user.p3;
         packet.param4 = cmd.content.user.p4;
+        break;
+
+    case MAV_CMD_COMPONENT_ARM_DISARM:
+        packet.param1 = cmd.content.arm_disarm.arm;
+        break;
+
+    case MAV_CMD_DO_CONDITION_JUMP:
+        packet.param1 = cmd.content.conditional_jump.target;
+        packet.param2 = cmd.content.conditional_jump.type;
+        packet.param3 = cmd.content.conditional_jump.p1;
+        packet.param4 = cmd.content.conditional_jump.p2;
+        packet.z = cmd.content.conditional_jump.p3;
+        break;
+
+    case MAV_CMD_NAV_DELAY_AIRSPACE_CLEAR:
+        packet.param1 = cmd.content.nav_delay_airspace.xy;
+        packet.param2 = cmd.content.nav_delay_airspace.z;
+        packet.param3 = cmd.content.nav_delay_airspace.time;
+        break;
+
+    case MAV_CMD_NAV_DELAY_BUTTON:
+        packet.param1 = cmd.content.nav_delay_button.mask;
         break;
         
     default:
