@@ -275,7 +275,7 @@ float AP_Avoidance_Plane::mission_exclusion_margin(const Location &current_loc, 
         const struct exclusion_zone &ezone = exclusion_zones[zone];
         const Vector2f p1 = location_diff(ezone.first_loc, current_loc);
         const Vector2f p2 = location_diff(ezone.first_loc, loc_test);
-        float dist = Polygon_closest_distance(ezone.points, ezone.num_points, p1, p2) - _margin_exclusion;
+        float dist = Polygon_closest_distance_line(ezone.points, ezone.num_points, p1, p2) - _margin_exclusion;
         if (dist < margin) {
             margin = dist;
         }
@@ -459,41 +459,6 @@ void AP_Avoidance_Plane::unload_exclusion_zones(void)
 }
 
 /*
-  grow an exclusion zone by a given amount, Vector2l version. Assumes
-  polygon is in degrees * 1e7
- */
-void AP_Avoidance_Plane::grow_polygonl(Vector2l *points, uint8_t num_points, float change_m)
-{
-    // find center
-    Vector2f center;
-    for (uint8_t i=0; i<num_points-1; i++) {
-        center.x += points[i].x;
-        center.y += points[i].y;
-    }
-    center /= num_points - 1;
-    Location center_loc;
-    center_loc.lat = center.x;
-    center_loc.lng = center.y;
-
-    // move each point away from the center by the margin
-    for (uint8_t i=0; i<num_points-1; i++) {
-        Vector2l &pt = points[i];
-        Location loc;
-        loc.lat = pt.x;
-        loc.lng = pt.y;
-
-        float distance = get_distance(center_loc, loc);
-        float bearing = get_bearing_deg(center_loc, loc);
-        loc = location_project(center_loc, bearing, MAX(distance+change_m, 1));
-        pt.x = loc.lat;
-        pt.y = loc.lng;
-    }
-
-    // close the loop again
-    points[num_points-1] = points[0];
-}
-
-/*
   get the avoidance radius in meters of a given obstacle type
  */
 float AP_Avoidance_Plane::get_avoidance_radius(const class Obstacle &obstacle) const
@@ -587,29 +552,54 @@ void AP_Avoidance_Plane::load_fence_boundary(void)
         return;
     }
 
-    // copy the fence, so we can expand it
-    fence_points = new Vector2l[num_points];
+    fence_origin.lat = points[0].x;
+    fence_origin.lng = points[0].y;
+
+    // copy the fence as a set of floats
+    fence_points = new Vector2f[num_points];
     if (fence_points == nullptr) {
         return;
     }
-    memcpy(fence_points, points, num_points * sizeof(fence_points[0]));
+    for (uint8_t i=0; i<num_points; i++) {
+        Location loc2;
+        loc2.lat = points[i].x;
+        loc2.lng = points[i].y;
+        fence_points[i] = location_diff(fence_origin, loc2);
+    }
     num_fence_points = num_points;
-
-    grow_polygonl(fence_points, num_fence_points, - _margin_fence);
 }
 
 /*
-  does the proposed flight path avoid the fence?
+  by how much over the fence margin does a path avoid the fence?
  */
-bool AP_Avoidance_Plane::mission_avoid_fence(const Location &loc_test)
+float AP_Avoidance_Plane::mission_avoid_fence_margin(const Location &pos1, const Location &pos2)
 {
     if (num_fence_points < 4) {
-        return true;
+        // no fence
+        return _margin_fence + _margin_wide;
     }
-    Vector2l loc;
-    loc.x = loc_test.lat;
-    loc.y = loc_test.lng;
-    return !Polygon_outside(loc, fence_points, num_fence_points);
+    Vector2f diff1 = location_diff(fence_origin, pos1);
+    Vector2f diff2 = location_diff(fence_origin, pos2);
+    float dist = Polygon_closest_distance_line(fence_points, num_fence_points, diff1, diff2);
+    if (dist <= 0) {
+        // we are crossing, see by how much
+        dist = -Polygon_closest_distance_point(fence_points, num_fence_points, diff2);
+    }
+    dist -= _margin_fence;
+    return dist;
+}
+
+/*
+  get the distance to intersection with the fence
+ */
+float AP_Avoidance_Plane::fence_distance(const Location &loc)
+{
+    Vector2f diff = location_diff(fence_origin, loc);
+    float dist = Polygon_closest_distance_point(fence_points, num_fence_points, diff);
+    if (Polygon_outside(diff, fence_points, num_fence_points)) {
+        return -dist;
+    }
+    return dist;
 }
 
 /*
@@ -622,7 +612,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
     const float avoid_step2_m = _lookahead*2;
     // we test for flying past the waypoint, so if we are close, we
     // have room to dodge after the waypoint
-    const float avoid_max = MIN(avoid_step1_m, full_distance+100);
+    const float avoid_max = MIN(avoid_step1_m, full_distance+MIN(_margin_fence/2,100));
     const float avoid_sec1 = avoid_max / groundspeed;
     const int32_t bearing_inc_cd = 500;
     const float distance = groundspeed * avoid_sec1;
@@ -630,6 +620,24 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
 
     // report collisions
     have_collided(current_loc);
+
+    if (num_fence_points >= 4) {
+        float distance_to_fence = fence_distance(current_loc);
+        if (distance_to_fence < _margin_fence || (fence_avoidance && distance_to_fence < _margin_fence*1.2)) {
+            /*
+              we have come within the fence margin of the fence. Continue
+              flying away from the fence until we are over 1.2 times the
+              margin away
+            */
+            fence_best_avoidance(current_loc, target_loc);
+            if (!fence_avoidance) {
+                debug(2,"Fence avoidance %.0f/%.0f", distance_to_fence, _margin_fence);
+            }
+            fence_avoidance = true;
+            return true;
+        }
+    }
+    fence_avoidance = false;
 
     if (full_distance < 20) {
         // if we are within 20m, go for it
@@ -694,13 +702,11 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
         Vector2f loc_diff = location_diff(projected_loc, loc_test);
         Vector2f our_velocity = loc_diff / avoid_sec1;
 
-        if (!mission_avoid_fence(loc_test)) {
-            // don't go in a direction that could hit the fence
-            continue;
-        }
         float ex_margin = mission_exclusion_margin(projected_loc, loc_test);
         float obs_margin = mission_avoidance_margin(projected_loc, our_velocity, avoid_sec1);
+        float fence_margin = mission_avoid_fence_margin(projected_loc, loc_test);
         float margin = MIN(ex_margin, obs_margin);
+        margin = MIN(margin, fence_margin);
         if (margin > best_margin) {
             best_margin_bearing = bearing_test;
             best_margin = margin;
@@ -732,12 +738,11 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
                 Vector2f loc_diff2 = location_diff(loc_test, loc_test2);
                 Vector2f our_velocity2 = loc_diff2 / avoid_sec2;
 
-                if (!mission_avoid_fence(loc_test2)) {
-                    continue;
-                }
                 float ex_margin2 = mission_exclusion_margin(loc_test, loc_test2);
                 float obs_margin2 = mission_avoidance_margin(loc_test, our_velocity2, avoid_sec2);
+                float fence_margin2 = mission_avoid_fence_margin(loc_test, loc_test2);
                 float margin2 = MIN(ex_margin2, obs_margin2);
+                margin2 = MIN(margin2, fence_margin2);
                 if (margin2 > 0) {
                     // all good, now project in the chosen direction by the full distance
                     target_loc = location_project(projected_loc, bearing_test, full_distance);
@@ -749,19 +754,46 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
         }
     }
 
+    float chosen_bearing;
     if (have_best_bearing) {
         // none of the directions tested were OK for 2-step checks. Choose the direction
         // that was best for the first step
         debug(2, "bad1: bb=%d bm:%.1f\n", int(best_bearing), best_margin);
-        target_loc = location_project(current_loc, best_bearing, full_distance);
+        chosen_bearing = best_bearing;
     } else {
         // none of the possible paths had a positive margin. Choose
         // the one with the highest margin
         debug(2,"bad2: bmb=%d bm:%.1f\n", int(best_margin_bearing), best_margin);
-        target_loc = location_project(current_loc, best_margin_bearing, full_distance);
+        chosen_bearing = best_margin_bearing;
     }
 
+    // calculate new target based on best effort
+    target_loc = location_project(current_loc, chosen_bearing, full_distance);
+
+
     return true;
+}
+
+/*
+  find the target_loc which best avoids the fence
+ */
+void AP_Avoidance_Plane::fence_best_avoidance(const Location &current_loc, Location &target_loc)
+{
+    const int32_t bearing_inc = 5;
+    float best_dist = -10000;
+    for (uint8_t i=0; i<360 / bearing_inc; i++) {
+        float bearing = i * bearing_inc;
+        Location test_loc = location_project(current_loc, bearing, _margin_fence*0.5);
+        Vector2f diff = location_diff(fence_origin, test_loc);
+        float fence_dist = Polygon_closest_distance_point(fence_points, num_fence_points, diff);
+        if (Polygon_outside(diff, fence_points, num_fence_points)) {
+            fence_dist = -5000 - fence_dist;
+        }
+        if (fence_dist > best_dist) {
+            target_loc = test_loc;
+            best_dist = fence_dist;
+        }
+    }
 }
 
 /*
@@ -793,7 +825,7 @@ void AP_Avoidance_Plane::avoidance_thread(void)
             // give the main thread the avoidance result
             WITH_SEMAPHORE(_rsem);
             avoidance_result.target_loc = target_loc;
-            avoidance_result.new_target_loc = new_target_loc;
+            avoidance_result.new_target_loc = res?new_target_loc:target_loc;
             avoidance_result.result_time_ms = AP_HAL::millis();
             avoidance_result.avoidance_needed = res;
         }

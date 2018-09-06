@@ -45,13 +45,15 @@ private:
     bool update_mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed);
     float mission_avoidance_margin(const Location &our_loc, const Vector2f &our_velocity, float avoid_sec);
     float mission_exclusion_margin(const Location &current_loc, const Location &loc_test);
-    bool mission_avoid_fence(const Location &loc_test);
+    float mission_avoid_fence_margin(const Location &pos1, const Location &pos2);
     void load_exclusion_zones(void);
     void unload_exclusion_zones(void);
     void load_fence_boundary(void);
     float get_avoidance_radius(const class Obstacle &obstacle) const;
     bool within_avoidance_height(const class Obstacle &obstacle, const float margin) const;
     bool have_collided(const Location &loc);
+    void fence_best_avoidance(const Location &current_loc, Location &target_loc);
+    float fence_distance(const Location &current_loc);
 
     bool thread_created;
     void avoidance_thread(void);
@@ -84,16 +86,13 @@ private:
     } *exclusion_zones;
     uint32_t mission_change_ms;
 
-    // georefence, with a inner margin (shrunk from real geofence)
+    // georefence as floats with origin
     uint8_t num_fence_points;
-    Vector2l *fence_points;
+    Location fence_origin;
+    Vector2f *fence_points;
     uint32_t last_fence_change_ms;
+    bool fence_avoidance;
 
-    // grow a polygon by the given number of meters. Used to add a
-    // margin to exclusion zones and the fence. The position change in
-    // points is relative to the average point
-    void grow_polygonl(Vector2l *points, uint8_t num_points, float change_m);
-    
     enum {
         OPTION_IGNORE_HEIGHT=1<<0,
     };
