@@ -131,7 +131,7 @@ bool Polygon_intersects(const Vector2f *V, unsigned N, const Vector2f &p1, const
   return the closest distance that a line from p1 to p2 comes to an
   edge of closed polygon V, defined by N points
  */
-float Polygon_closest_distance(const Vector2f *V, unsigned N, const Vector2f &p1, const Vector2f &p2)
+float Polygon_closest_distance_line(const Vector2f *V, unsigned N, const Vector2f &p1, const Vector2f &p2)
 {
     if (Polygon_intersects(V,N,p1,p2)) {
         return 0;
@@ -142,6 +142,25 @@ float Polygon_closest_distance(const Vector2f *V, unsigned N, const Vector2f &p1
         const Vector2f &v2 = V[i+1];
 
         float dist_sq = Vector2f::closest_distance_between_lines_squared(v1, v2, p1, p2);
+        if (dist_sq < closest_sq) {
+            closest_sq = dist_sq;
+        }
+    }
+    return sqrtf(closest_sq);
+}
+
+/*
+  return the closest distance that point p comes to an edge of closed
+  polygon V, defined by N points
+ */
+float Polygon_closest_distance_point(const Vector2f *V, unsigned N, const Vector2f &p)
+{
+    float closest_sq = FLT_MAX;
+    for (uint8_t i=0; i<N-1; i++) {
+        const Vector2f &v1 = V[i];
+        const Vector2f &v2 = V[i+1];
+
+        float dist_sq = Vector2f::closest_distance_between_line_and_point_squared(v1, v2, p);
         if (dist_sq < closest_sq) {
             closest_sq = dist_sq;
         }
