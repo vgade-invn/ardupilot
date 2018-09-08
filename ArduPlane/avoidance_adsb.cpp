@@ -228,7 +228,7 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
             num_timed_out++;
             continue;
         }
-        if (!within_avoidance_height(obstacle, _margin_height)) {
+        if (!within_avoidance_height(obstacle, _margin_height, avoid_sec)) {
             num_outside_height_range++;
             continue;
         }
@@ -306,7 +306,7 @@ bool AP_Avoidance_Plane::mission_clear(const Location &current_loc, float xy_cle
         if (now - obstacle.timestamp_ms > timeout_ms) {
             continue;
         }
-        if (!within_avoidance_height(obstacle, z_clearance)) {
+        if (!within_avoidance_height(obstacle, z_clearance, time_s)) {
             continue;
         }
 
@@ -348,7 +348,7 @@ bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
         if (now - obstacle.timestamp_ms > timeout_ms) {
             continue;
         }
-        if (!within_avoidance_height(obstacle, 0)) {
+        if (!within_avoidance_height(obstacle, 0, 0)) {
             continue;
         }
 
@@ -486,7 +486,7 @@ float AP_Avoidance_Plane::get_avoidance_radius(const class Obstacle &obstacle) c
 /*
   check if we are within the height range to need to avoid an obstacle
  */
-bool AP_Avoidance_Plane::within_avoidance_height(const class Obstacle &obstacle, const float margin) const
+bool AP_Avoidance_Plane::within_avoidance_height(const class Obstacle &obstacle, const float margin, float deltat) const
 {
     if (_options.get() & OPTION_IGNORE_HEIGHT) {
         return true;
@@ -504,18 +504,19 @@ bool AP_Avoidance_Plane::within_avoidance_height(const class Obstacle &obstacle,
     float alt_min, alt_max;
 
     if (obstacle.src_id < 20000 || (obstacle.src_id >= 30000 && obstacle.src_id < 40000)) {
-        // fixed wing or migrating bird, height range 150m, +10 seconds of height change
+        // fixed wing or migrating bird, height range 150m, deltat seconds of height change
         alt_min = obstacle_alt - (75+margin);
         alt_max = obstacle_alt + (75+margin);
     } else {
         // bird of prey, from location to ground
         alt_max = obstacle_alt + margin;
-        alt_min = 0;
+        alt_min = -10000;
     }
+    // note that velocity is NED
     if (obstacle._velocity.z < 0) {
-        alt_max -= 10 * obstacle._velocity.z;
+        alt_max -= deltat * obstacle._velocity.z;
     } else {
-        alt_min -= 10 * obstacle._velocity.z;
+        alt_min -= deltat * obstacle._velocity.z;
     }
     const Location_Class &myloc = plane.current_loc;
     if (!myloc.get_alt_cm(Location_Class::ALT_FRAME_ABSOLUTE, alt_cm)) {

@@ -103,7 +103,10 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
         break;
 
     case MAV_CMD_NAV_DELAY_AIRSPACE_CLEAR:
-        gcs().send_text(MAV_SEVERITY_INFO, "Waiting for clear airspace");
+        gcs().send_text(MAV_SEVERITY_INFO, "Waiting for airspace xy=%u z=%u t=%u",
+                        cmd.content.nav_delay_airspace.xy,
+                        cmd.content.nav_delay_airspace.z,
+                        cmd.content.nav_delay_airspace.time);
         break;
 
     case MAV_CMD_NAV_DELAY_BUTTON:

@@ -50,7 +50,7 @@ private:
     void unload_exclusion_zones(void);
     void load_fence_boundary(void);
     float get_avoidance_radius(const class Obstacle &obstacle) const;
-    bool within_avoidance_height(const class Obstacle &obstacle, const float margin) const;
+    bool within_avoidance_height(const class Obstacle &obstacle, const float margin, float dt) const;
     bool have_collided(const Location &loc);
     void fence_best_avoidance(const Location &current_loc, Location &target_loc);
     float fence_distance(const Location &current_loc);
