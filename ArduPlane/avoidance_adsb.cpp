@@ -211,7 +211,7 @@ bool AP_Avoidance_Plane::handle_avoidance_horizontal(const AP_Avoidance::Obstacl
 float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, const Vector2f &our_velocity, float avoid_sec)
 {
     const uint32_t timeout_ms = 5000;
-    float margin = _margin_wide;
+    float margin = MAX(_margin_wide, 500);
     uint8_t num_outside_height_range = 0;
     uint8_t num_timed_out = 0;
 
