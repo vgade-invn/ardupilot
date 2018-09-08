@@ -1020,11 +1020,11 @@ void GCS_MAVLINK::send_radio_in()
     }
 
     uint32_t now = AP_HAL::millis();
-    mavlink_status_t *status = mavlink_get_channel_status(chan);
 
     uint16_t values[18] = {};
     rc().get_radio_in(values, ARRAY_SIZE(values));
-
+#if 0
+    mavlink_status_t *status = mavlink_get_channel_status(chan);
     if (status && (status->flags & MAVLINK_STATUS_FLAG_OUT_MAVLINK1)) {
         // for mavlink1 send RC_CHANNELS_RAW, for compatibility with OSD implementations
         mavlink_msg_rc_channels_raw_send(
@@ -1041,6 +1041,7 @@ void GCS_MAVLINK::send_radio_in()
             values[7],
             receiver_rssi);
     }
+#endif
     if (!HAVE_PAYLOAD_SPACE(chan, RC_CHANNELS)) {
         // can't fit RC_CHANNELS
         return;
@@ -3003,7 +3004,9 @@ bool GCS_MAVLINK::try_send_message(const enum ap_message id)
         break;
 
     case MSG_BATTERY_STATUS:
+#if 0
         send_battery_status();
+#endif
         break;
 
     case MSG_BATTERY2:
@@ -3027,8 +3030,11 @@ bool GCS_MAVLINK::try_send_message(const enum ap_message id)
     case MSG_RANGEFINDER:
         CHECK_PAYLOAD_SIZE(RANGEFINDER);
         send_rangefinder_downward();
+        ret = true;
+#if 0
         ret = send_distance_sensor();
         ret = ret && send_proximity();
+#endif
         break;
 
     case MSG_CAMERA_FEEDBACK:
@@ -3064,8 +3070,10 @@ bool GCS_MAVLINK::try_send_message(const enum ap_message id)
         break;
 
     case MSG_LOCAL_POSITION:
+#if 0
         CHECK_PAYLOAD_SIZE(LOCAL_POSITION_NED);
         send_local_position();
+#endif
         break;
 
     case MSG_POSITION_TARGET_GLOBAL_INT:
@@ -3089,8 +3097,10 @@ bool GCS_MAVLINK::try_send_message(const enum ap_message id)
         break;
 
     case MSG_RAW_IMU3:
+#if 0
         CHECK_PAYLOAD_SIZE(SENSOR_OFFSETS);
         send_sensor_offsets();
+#endif
         break;
 
     case MSG_SERVO_OUTPUT_RAW:
@@ -3101,8 +3111,10 @@ bool GCS_MAVLINK::try_send_message(const enum ap_message id)
     case MSG_SIMSTATE:
         CHECK_PAYLOAD_SIZE(SIMSTATE);
         send_simstate();
+#if 0
         CHECK_PAYLOAD_SIZE(AHRS2);
         send_ahrs2();
+#endif
         break;
 
     case MSG_AHRS:
