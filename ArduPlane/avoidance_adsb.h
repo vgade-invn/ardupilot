@@ -55,6 +55,7 @@ private:
     void fence_best_avoidance(const Location &current_loc, Location &target_loc);
     float fence_distance(const Location &current_loc);
     float calc_avoidance_margin(const Location &loc1, const Location &loc2, const Vector2f &our_velocity, float avoid_sec);
+    void log_avoidance(uint8_t result, float bearing_change, float margin1, float margin2);
 
     bool thread_created;
     void avoidance_thread(void);

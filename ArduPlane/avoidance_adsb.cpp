@@ -756,6 +756,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
                     debug(4,"good: i=%d j=%d bt:%d nb:%d m1:%.1f m2:%.1f\n",
                           i, j, int(bearing_test), int(new_bearing), margin, margin2);
                     current_lookahead = MIN(_lookahead, current_lookahead*1.1);
+                    log_avoidance(0, bearing_delta_cd*0.01, margin, margin2);
                     return i != 0 || j != 0;
                 }
             }
@@ -769,12 +770,14 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
         debug(2, "bad1: bb=%d bm:%.1f\n", int(best_bearing), best_margin);
         chosen_bearing = best_bearing;
         current_lookahead = MIN(_lookahead, current_lookahead*1.05);
+        log_avoidance(1, wrap_180(chosen_bearing - (bearing_cd*0.01)), best_margin, -1);
     } else {
         // none of the possible paths had a positive margin. Choose
         // the one with the highest margin
         debug(2,"bad2: bmb=%d bm:%.1f\n", int(best_margin_bearing), best_margin);
         chosen_bearing = best_margin_bearing;
         current_lookahead = MAX(_lookahead*0.5, current_lookahead*0.9);
+        log_avoidance(2, wrap_180(chosen_bearing - (bearing_cd*0.01)), best_margin, -1);
     }
 
     // calculate new target based on best effort
@@ -883,4 +886,11 @@ bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location
     }
 
     return false;
+}
+
+void AP_Avoidance_Plane::log_avoidance(uint8_t result, float bearing_change, float margin1, float margin2)
+{
+    DataFlash_Class::instance()->Log_Write("AVDM", "TimeUS,Res,BCh,M1,M2", "QBfff",
+                                           AP_HAL::micros64(),
+                                           result, bearing_change, margin1, margin2);
 }
