@@ -253,6 +253,7 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
         float position_error = position_lag * obstacle_velocity.length();
 
         float dist = Vector2f::closest_distance_between_radial_and_point(final_pos, obstacle_position) - (radius + position_error);
+        dist -= _margin_dynamic;
         if (dist < margin) {
             margin = dist;
         }
@@ -721,7 +722,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
             best_margin_bearing = bearing_test;
             best_margin = margin;
         }
-        if (margin > 0) {
+        if (margin > _margin_wide) {
             // This bearing will avoid all dynamic and static
             // obstacles for one step of 'distance'. Now check if it
             // will put us in a position where we have a clear path to
@@ -749,7 +750,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
                 Vector2f our_velocity2 = loc_diff2 / avoid_sec2;
 
                 float margin2 = calc_avoidance_margin(loc_test, loc_test2, our_velocity2, avoid_sec2);
-                if (margin2 > 0) {
+                if (margin2 > _margin_wide) {
                     // all good, now project in the chosen direction by the full distance
                     target_loc = location_project(projected_loc, bearing_test, full_distance);
                     debug(4,"good: i=%d j=%d bt:%d nb:%d m1:%.1f m2:%.1f\n",
