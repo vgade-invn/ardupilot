@@ -602,14 +602,27 @@ float AP_Avoidance_Plane::fence_distance(const Location &loc)
     return dist;
 }
 
+float AP_Avoidance_Plane::calc_avoidance_margin(const Location &loc1, const Location &loc2, const Vector2f &our_velocity, float avoid_sec)
+{
+    float ex_margin = mission_exclusion_margin(loc1, loc2);
+    float obs_margin = mission_avoidance_margin(loc1, our_velocity, avoid_sec);
+    float fence_margin = mission_avoid_fence_margin(loc1, loc2);
+    return MIN(MIN(ex_margin, obs_margin), fence_margin);
+}
+
+
 /*
   update waypoint to avoid dynamic obstacles. Return true if doing avoidance
  */
 bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed)
 {
+    current_lookahead = constrain_float(current_lookahead, _lookahead*0.5, _lookahead);
     const float full_distance = get_distance(current_loc, target_loc);
-    const float avoid_step1_m = _lookahead;
-    const float avoid_step2_m = _lookahead*2;
+    /*
+      the distance we look ahead is adjusted dynamically based on avoidance results
+     */
+    const float avoid_step1_m = current_lookahead;
+    const float avoid_step2_m = current_lookahead*2;
     // we test for flying past the waypoint, so if we are close, we
     // have room to dodge after the waypoint
     const float avoid_max = MIN(avoid_step1_m, full_distance+MIN(_margin_fence/2,100));
@@ -702,11 +715,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
         Vector2f loc_diff = location_diff(projected_loc, loc_test);
         Vector2f our_velocity = loc_diff / avoid_sec1;
 
-        float ex_margin = mission_exclusion_margin(projected_loc, loc_test);
-        float obs_margin = mission_avoidance_margin(projected_loc, our_velocity, avoid_sec1);
-        float fence_margin = mission_avoid_fence_margin(projected_loc, loc_test);
-        float margin = MIN(ex_margin, obs_margin);
-        margin = MIN(margin, fence_margin);
+        float margin = calc_avoidance_margin(projected_loc, loc_test, our_velocity, avoid_sec1);
         if (margin > best_margin) {
             best_margin_bearing = bearing_test;
             best_margin = margin;
@@ -738,16 +747,13 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
                 Vector2f loc_diff2 = location_diff(loc_test, loc_test2);
                 Vector2f our_velocity2 = loc_diff2 / avoid_sec2;
 
-                float ex_margin2 = mission_exclusion_margin(loc_test, loc_test2);
-                float obs_margin2 = mission_avoidance_margin(loc_test, our_velocity2, avoid_sec2);
-                float fence_margin2 = mission_avoid_fence_margin(loc_test, loc_test2);
-                float margin2 = MIN(ex_margin2, obs_margin2);
-                margin2 = MIN(margin2, fence_margin2);
+                float margin2 = calc_avoidance_margin(loc_test, loc_test2, our_velocity2, avoid_sec2);
                 if (margin2 > 0) {
                     // all good, now project in the chosen direction by the full distance
                     target_loc = location_project(projected_loc, bearing_test, full_distance);
                     debug(4,"good: i=%d j=%d bt:%d nb:%d m1:%.1f m2:%.1f\n",
                           i, j, int(bearing_test), int(new_bearing), margin, margin2);
+                    current_lookahead = MIN(_lookahead, current_lookahead*1.1);
                     return i != 0 || j != 0;
                 }
             }
@@ -760,11 +766,13 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
         // that was best for the first step
         debug(2, "bad1: bb=%d bm:%.1f\n", int(best_bearing), best_margin);
         chosen_bearing = best_bearing;
+        current_lookahead = MIN(_lookahead, current_lookahead*1.05);
     } else {
         // none of the possible paths had a positive margin. Choose
         // the one with the highest margin
         debug(2,"bad2: bmb=%d bm:%.1f\n", int(best_margin_bearing), best_margin);
         chosen_bearing = best_margin_bearing;
+        current_lookahead = MAX(_lookahead*0.5, current_lookahead*0.9);
     }
 
     // calculate new target based on best effort

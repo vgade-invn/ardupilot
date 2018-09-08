@@ -54,6 +54,7 @@ private:
     bool have_collided(const Location &loc);
     void fence_best_avoidance(const Location &current_loc, Location &target_loc);
     float fence_distance(const Location &current_loc);
+    float calc_avoidance_margin(const Location &loc1, const Location &loc2, const Vector2f &our_velocity, float avoid_sec);
 
     bool thread_created;
     void avoidance_thread(void);
@@ -92,6 +93,7 @@ private:
     Vector2f *fence_points;
     uint32_t last_fence_change_ms;
     bool fence_avoidance;
+    float current_lookahead;
 
     enum {
         OPTION_IGNORE_HEIGHT=1<<0,
