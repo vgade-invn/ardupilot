@@ -1553,7 +1553,7 @@ void QuadPlane::motors_output(void)
     check_throttle_suppression();
     
     motors->output();
-    if (motors->armed()) {
+    if (motors->armed() && motors->get_throttle() > 0) {
         plane.DataFlash.Log_Write_Rate(plane.ahrs, *motors, *attitude_control, *pos_control);
         Log_Write_QControl_Tuning();
         const uint32_t now = AP_HAL::millis();
