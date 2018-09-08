@@ -146,7 +146,9 @@ void GCS_MAVLINK::handle_request_data_stream(mavlink_message_t *msg)
             if (persist_streamrates()) {
                 streamRates[i].set_and_save_ifchanged(freq);
             } else {
-                streamRates[i].set(freq);
+                if (freq != streamRates[i].get()) {
+                    streamRates[i].set_and_notify(freq);
+                }
             }
         }
         break;
@@ -180,7 +182,9 @@ void GCS_MAVLINK::handle_request_data_stream(mavlink_message_t *msg)
         if (persist_streamrates()) {
             rate->set_and_save_ifchanged(freq);
         } else {
-            rate->set(freq);
+            if (freq != rate->get()) {
+                rate->set_and_notify(freq);
+            }
         }
     }
 }
