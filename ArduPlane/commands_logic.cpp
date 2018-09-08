@@ -272,8 +272,8 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
         case CONDITION_TYPE_AIRSPACE_NOT_CLEAR: {
             bool clear = plane.avoidance_adsb.mission_clear(plane.current_loc,
                                                             cmd.content.conditional_jump.p1,
-                                                            cmd.content.conditional_jump.p2,
-                                                            cmd.content.conditional_jump.p3);
+                                                            cmd.content.conditional_jump.p3,
+                                                            cmd.content.conditional_jump.p2);
             if (clear) {
                 gcs().send_text(MAV_SEVERITY_INFO, "Airspace is clear");
             } else {
