@@ -1183,7 +1183,16 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Units: s
     // @User: Advanced
     AP_GROUPINFO("FLTTIME_LIMIT", 13, ParametersG2, flight_time_limit, 0),
-    
+
+    // @Param: THR_SLEW_MANUAL
+    // @DisplayName: Throttle slew rate manual modes
+    // @Description: This parameter sets the slew rate for modes where throttle is manually controlled
+    // @Units: %/s
+    // @Range: -1 127
+    // @Increment: 1
+    // @User: User
+    AP_GROUPINFO("THR_SLEW_MANUAL", 14, ParametersG2, throttle_slewrate_manual, 0),
+
     AP_GROUPEND
 };
 

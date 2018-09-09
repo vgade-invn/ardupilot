@@ -601,6 +601,8 @@ void Plane::set_servos(void)
         /* only do throttle slew limiting in modes where throttle
          *  control is automatic */
         throttle_slew_limit();
+    } else if (g2.throttle_slewrate_manual > 0) {
+        SRV_Channels::limit_slew_rate(SRV_Channel::k_throttle, g2.throttle_slewrate_manual, G_Dt);
     }
 
     if (!arming.is_armed()) {

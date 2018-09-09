@@ -546,6 +546,8 @@ public:
 #endif
 
     AP_Int32 flight_time_limit;
+
+    AP_Int8 throttle_slewrate_manual;
 };
 
 extern const AP_Param::Info var_info[];
