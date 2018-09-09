@@ -458,9 +458,9 @@ void AP_Avoidance::handle_threat_gcs_notify(AP_Avoidance::Obstacle *threat)
     } else {
         _gcs_cleared_messages_first_sent = 0;
     }
-    if (now - threat->last_gcs_report_time > _gcs_notify_interval * 1000) {
+    if (now - last_gcs_report_time > _gcs_notify_interval * 1000) {
         GCS_MAVLINK::send_collision_all(*threat, mav_avoidance_action());
-        threat->last_gcs_report_time = now;
+        last_gcs_report_time = now;
     }
 
 }

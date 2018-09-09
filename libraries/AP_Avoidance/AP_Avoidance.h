@@ -57,7 +57,6 @@ public:
         float closest_approach_z; // metres
         float time_to_closest_approach; // seconds, 3D approach
         float distance_to_closest_approach; // metres, 3D
-        uint32_t last_gcs_report_time; // millis
     };
 
 
@@ -175,6 +174,7 @@ protected:
     uint8_t _obstacle_count;
     int8_t _current_most_serious_threat;
     MAV_COLLISION_ACTION _latest_action = MAV_COLLISION_ACTION_NONE;
+    uint32_t last_gcs_report_time; // millis
 
     // external references
     class AP_ADSB &_adsb;
