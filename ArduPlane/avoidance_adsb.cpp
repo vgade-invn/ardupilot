@@ -272,18 +272,11 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
             WITH_SEMAPHORE(_rsem);
             obstacle = _obstacles[closest_id];
         }
-        int32_t alt1_cm=0;
-        const Location_Class &loc = obstacle._location;
-        loc.get_alt_cm(Location_Class::ALT_FRAME_ABSOLUTE, alt1_cm);
-
-        int32_t alt2_cm=0;
-        const Location_Class &myloc = plane.current_loc;
-        myloc.get_alt_cm(Location_Class::ALT_FRAME_ABSOLUTE, alt2_cm);
         gcs_threat.src_id = obstacle.src_id;
         gcs_threat.threat_level = MAV_COLLISION_THREAT_LEVEL_LOW;
         gcs_threat.time_to_closest_approach = 0;
         gcs_threat.closest_approach_xy = closest_dist + _margin_dynamic;
-        gcs_threat.closest_approach_z = labs(alt2_cm - alt1_cm) * 0.01;
+        gcs_threat.closest_approach_z = obstacle_height_difference(obstacle);
     }
 
     
@@ -351,6 +344,12 @@ bool AP_Avoidance_Plane::mission_clear(const Location &current_loc, float xy_cle
 
         if (closest_xy < xy_clearance + radius) {
             // it could come within the radius in the given time
+            gcs_threat.src_id = obstacle.src_id;
+            gcs_threat.threat_level = MAV_COLLISION_THREAT_LEVEL_HIGH;
+            gcs_threat.time_to_closest_approach = 0;
+            gcs_threat.closest_approach_xy = closest_xy - radius;
+            gcs_threat.closest_approach_z = obstacle_height_difference(obstacle);
+            gcs_action = (MAV_COLLISION_ACTION)1;
             return false;
         }
     }
@@ -956,4 +955,19 @@ MAV_COLLISION_ACTION AP_Avoidance_Plane::mav_avoidance_action()
         return (MAV_COLLISION_ACTION)5;
     }
     return gcs_action;
+}
+
+/*
+  get height difference between an obstacle and our location
+ */
+float AP_Avoidance_Plane::obstacle_height_difference(const Obstacle &obstacle)
+{
+    int32_t alt1_cm=0;
+    const Location_Class &loc = obstacle._location;
+    loc.get_alt_cm(Location_Class::ALT_FRAME_ABSOLUTE, alt1_cm);
+
+    int32_t alt2_cm=0;
+    const Location_Class &myloc = plane.current_loc;
+    myloc.get_alt_cm(Location_Class::ALT_FRAME_ABSOLUTE, alt2_cm);
+    return labs(alt1_cm - alt2_cm) * 0.01;
 }
