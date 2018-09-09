@@ -117,11 +117,11 @@ protected:
 
     void handle_threat_gcs_notify(AP_Avoidance::Obstacle *threat);
 
-    AP_Avoidance::Obstacle *most_serious_threat();
+    virtual AP_Avoidance::Obstacle *most_serious_threat();
 
     // returns an entry from the MAV_COLLISION_ACTION representative
     // of what the current avoidance handler is up to.
-    MAV_COLLISION_ACTION mav_avoidance_action() { return _latest_action; }
+    virtual MAV_COLLISION_ACTION mav_avoidance_action() { return _latest_action; }
 
     // get target destination that best gets vehicle away from the nearest obstacle
     bool get_destination_perpendicular(const AP_Avoidance::Obstacle *obstacle, Vector3f &newdest_neu, const float wp_speed_xy, const float wp_speed_z, const uint8_t _minimum_avoid_height);
