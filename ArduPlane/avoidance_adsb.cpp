@@ -895,6 +895,8 @@ void AP_Avoidance_Plane::avoidance_thread(void)
 bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed)
 {
     if (!_enabled || _warn_action != 2) {
+        memset(&gcs_threat, 0, sizeof(gcs_threat));
+        gcs_action = (MAV_COLLISION_ACTION)0;
         return false;
     }
 
