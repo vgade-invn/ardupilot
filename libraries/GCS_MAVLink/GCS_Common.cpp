@@ -3128,8 +3128,10 @@ bool GCS_MAVLINK::try_send_message(const enum ap_message id)
         break;
 
     case MSG_VIBRATION:
+#if 0
         CHECK_PAYLOAD_SIZE(VIBRATION);
         send_vibration();
+#endif
         break;
 
     case MSG_ESC_TELEMETRY: {
