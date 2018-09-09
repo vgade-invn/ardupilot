@@ -413,6 +413,7 @@ bool Plane::verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
     case MAV_CMD_DO_GRIPPER:
     case MAV_CMD_DO_CONDITION_JUMP:
     case MAV_CMD_COMPONENT_ARM_DISARM:
+    case MAV_CMD_USER_1 ... MAV_CMD_USER_5:
         return true;
 
     default:

@@ -214,6 +214,10 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
     float margin = MAX(_margin_wide, _warn_distance_xy);
     uint8_t num_outside_height_range = 0;
     uint8_t num_timed_out = 0;
+    float closest_dist = 0;
+    uint8_t closest_id = 0;
+
+    gcs_threat.closest_approach_z = 1000;
 
     for (uint8_t i=0; i<_obstacle_count; i++) {
         // obstacles can update via MAVLink while we and calculating
@@ -256,9 +260,33 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
         dist -= _margin_dynamic;
         if (dist < margin) {
             margin = dist;
+            closest_dist = dist;
+            closest_id = i;
         }
     }
 
+    if (closest_dist > 0) {
+        // update threat report for GCS
+        Obstacle obstacle;
+        {
+            WITH_SEMAPHORE(_rsem);
+            obstacle = _obstacles[closest_id];
+        }
+        int32_t alt1_cm=0;
+        const Location_Class &loc = obstacle._location;
+        loc.get_alt_cm(Location_Class::ALT_FRAME_ABSOLUTE, alt1_cm);
+
+        int32_t alt2_cm=0;
+        const Location_Class &myloc = plane.current_loc;
+        myloc.get_alt_cm(Location_Class::ALT_FRAME_ABSOLUTE, alt2_cm);
+        gcs_threat.src_id = obstacle.src_id;
+        gcs_threat.threat_level = MAV_COLLISION_THREAT_LEVEL_LOW;
+        gcs_threat.time_to_closest_approach = 0;
+        gcs_threat.closest_approach_xy = closest_dist + _margin_dynamic;
+        gcs_threat.closest_approach_z = labs(alt2_cm - alt1_cm) * 0.01;
+    }
+
+    
     debug(3, "margin %.1f to:%u oh:%u t:%u\n", margin, num_timed_out, num_outside_height_range, _obstacle_count);
     return margin;
 }
@@ -376,6 +404,8 @@ bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
             ret = true;
         }
     }
+
+    collision_detected = ret;
     
     return ret;
 }
@@ -649,6 +679,12 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
                 debug(2,"Fence avoidance %.0f/%.0f", distance_to_fence, _margin_fence);
             }
             fence_avoidance = true;
+            gcs_action = (MAV_COLLISION_ACTION)4;
+            gcs_threat.src_id = 0;
+            gcs_threat.threat_level = MAV_COLLISION_THREAT_LEVEL_HIGH;
+            gcs_threat.time_to_closest_approach = 0;
+            gcs_threat.closest_approach_xy = distance_to_fence;
+            gcs_threat.closest_approach_z = 0;
             return true;
         }
     }
@@ -757,7 +793,13 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
                           i, j, int(bearing_test), int(new_bearing), margin, margin2);
                     current_lookahead = MIN(_lookahead, current_lookahead*1.1);
                     log_avoidance(0, bearing_delta_cd*0.01, margin, margin2);
-                    return i != 0 || j != 0;
+                    bool ret = (i != 0 || j != 0);
+                    if (!ret) {
+                        gcs_action = (MAV_COLLISION_ACTION)0;
+                    } else {
+                        gcs_action = (MAV_COLLISION_ACTION)1;
+                    }
+                    return ret;
                 }
             }
         }
@@ -770,6 +812,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
         debug(2, "bad1: bb=%d bm:%.1f\n", int(best_bearing), best_margin);
         chosen_bearing = best_bearing;
         current_lookahead = MIN(_lookahead, current_lookahead*1.05);
+        gcs_action = (MAV_COLLISION_ACTION)2;
         log_avoidance(1, wrap_180(chosen_bearing - (bearing_cd*0.01)), best_margin, -1);
     } else {
         // none of the possible paths had a positive margin. Choose
@@ -777,6 +820,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
         debug(2,"bad2: bmb=%d bm:%.1f\n", int(best_margin_bearing), best_margin);
         chosen_bearing = best_margin_bearing;
         current_lookahead = MAX(_lookahead*0.5, current_lookahead*0.9);
+        gcs_action = (MAV_COLLISION_ACTION)3;
         log_avoidance(2, wrap_180(chosen_bearing - (bearing_cd*0.01)), best_margin, -1);
     }
 
@@ -893,4 +937,23 @@ void AP_Avoidance_Plane::log_avoidance(uint8_t result, float bearing_change, flo
     DataFlash_Class::instance()->Log_Write("AVDM", "TimeUS,Res,BCh,M1,M2", "QBfff",
                                            AP_HAL::micros64(),
                                            result, bearing_change, margin1, margin2);
+}
+
+/*
+  return the current threat
+ */
+AP_Avoidance::Obstacle *AP_Avoidance_Plane::most_serious_threat()
+{
+    return &gcs_threat;
+}
+
+/*
+  return current avoidance action
+ */
+MAV_COLLISION_ACTION AP_Avoidance_Plane::mav_avoidance_action()
+{
+    if (collision_detected) {
+        return (MAV_COLLISION_ACTION)5;
+    }
+    return gcs_action;
 }

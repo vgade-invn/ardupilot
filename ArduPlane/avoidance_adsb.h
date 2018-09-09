@@ -38,6 +38,9 @@ protected:
     // horizontal avoidance handler
     bool handle_avoidance_horizontal(const AP_Avoidance::Obstacle *obstacle, bool allow_mode_change);
 
+    Obstacle *most_serious_threat(void) override;
+    MAV_COLLISION_ACTION mav_avoidance_action() override;
+
     // control mode before avoidance began
     FlightMode prev_control_mode = RTL;
 
@@ -95,6 +98,10 @@ private:
     uint32_t last_fence_change_ms;
     bool fence_avoidance;
     float current_lookahead;
+
+    Obstacle gcs_threat;
+    MAV_COLLISION_ACTION gcs_action;
+    bool collision_detected;
 
     enum {
         OPTION_IGNORE_HEIGHT=1<<0,
