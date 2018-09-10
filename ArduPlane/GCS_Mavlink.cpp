@@ -506,8 +506,10 @@ bool GCS_MAVLINK_Plane::try_send_message(enum ap_message id)
         break;
 
     case MSG_ADSB_VEHICLE:
+#if 0
         CHECK_PAYLOAD_SIZE(ADSB_VEHICLE);
         plane.adsb.send_adsb_vehicle(chan);
+#endif
         break;
 
     case MSG_AOA_SSA:
