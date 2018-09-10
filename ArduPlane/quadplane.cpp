@@ -1073,6 +1073,11 @@ float QuadPlane::get_pilot_desired_climb_rate_cms(void)
  */
 void QuadPlane::init_throttle_wait(void)
 {
+    if (plane.control_mode == AUTO &&
+        plane.mission.get_current_nav_cmd().id == MAV_CMD_NAV_DELAY_AIRSPACE_CLEAR) {
+        throttle_wait = true;
+        return;
+    }
     if (plane.channel_throttle->get_control_in() >= 10 ||
         plane.is_flying()) {
         throttle_wait = false;
@@ -1378,7 +1383,14 @@ void QuadPlane::update(void)
     if (!setup()) {
         return;
     }
-    
+
+    if (plane.control_mode == AUTO &&
+        plane.mission.get_current_nav_cmd().id == MAV_CMD_NAV_DELAY_AIRSPACE_CLEAR) {
+        motors->set_desired_spool_state(AP_Motors::DESIRED_SHUT_DOWN);
+        motors->output();
+        return;
+    }
+
     if (plane.afs.should_crash_vehicle()) {
         motors->set_desired_spool_state(AP_Motors::DESIRED_SHUT_DOWN);
         motors->output();
@@ -1706,6 +1718,8 @@ bool QuadPlane::in_vtol_auto(void) const
         return is_vtol_takeoff(id);
     case MAV_CMD_NAV_LAND:
         return is_vtol_land(id);
+    case MAV_CMD_NAV_DELAY_AIRSPACE_CLEAR:
+        return false;
     default:
         return false;
     }

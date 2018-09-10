@@ -103,6 +103,7 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
         break;
 
     case MAV_CMD_NAV_DELAY_AIRSPACE_CLEAR:
+        quadplane.throttle_wait = true;
         gcs().send_text(MAV_SEVERITY_INFO, "Waiting for airspace xy=%u z=%u t=%u",
                         cmd.content.nav_delay_airspace.xy,
                         cmd.content.nav_delay_airspace.z,
@@ -372,6 +373,7 @@ bool Plane::verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
         return verify_nav_delay(cmd);
         
     case MAV_CMD_NAV_DELAY_AIRSPACE_CLEAR:
+        quadplane.throttle_wait = true;
         return verify_airspace_clear(cmd);
 
     case MAV_CMD_NAV_DELAY_BUTTON:
