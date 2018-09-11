@@ -123,6 +123,7 @@ public:
 
     AP_Float drift_speed; // degrees/second/minute
     AP_Float drift_time;  // period in minutes
+    AP_Float motor_mul;  // motor multiplier (all vtol motors)
     AP_Float engine_mul;  // engine multiplier
     AP_Int8  engine_fail; // engine servo to fail (0-7)
     AP_Int8  gps_disable; // disable simulated GPS

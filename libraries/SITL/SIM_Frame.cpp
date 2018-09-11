@@ -208,9 +208,11 @@ void Frame::calculate_forces(const Aircraft &aircraft,
 {
     Vector3f thrust; // newtons
 
+    float motor_mul = AP::sitl()->motor_mul;
+
     for (uint8_t i=0; i<num_motors; i++) {
         Vector3f mraccel, mthrust;
-        motors[i].calculate_forces(input, thrust_scale, motor_offset, mraccel, mthrust);
+        motors[i].calculate_forces(input, thrust_scale*motor_mul, motor_offset, mraccel, mthrust);
         rot_accel += mraccel;
         thrust += mthrust;
     }
