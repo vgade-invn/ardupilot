@@ -827,6 +827,7 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
         break;
 
     case MAV_CMD_NAV_VTOL_TAKEOFF:
+        cmd.p1 = packet.param1;                         // timeout (seconds) for quadplane
         copy_location = true;
         break;
 
@@ -1323,6 +1324,7 @@ bool AP_Mission::mission_cmd_to_mavlink_int(const AP_Mission::Mission_Command& c
         break;
 
     case MAV_CMD_NAV_VTOL_TAKEOFF:
+        packet.param1 = cmd.p1;                         // timeout (seconds) for quadplane
         copy_location = true;
         break;
 
