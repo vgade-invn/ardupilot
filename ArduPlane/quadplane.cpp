@@ -2124,6 +2124,9 @@ bool QuadPlane::do_vtol_takeoff(const AP_Mission::Mission_Command& cmd)
     
     // also update nav_controller for status output
     plane.nav_controller->update_waypoint(plane.prev_WP_loc, plane.next_WP_loc);
+
+    takeoff_start_ms = AP_HAL::millis();
+
     return true;
 }
 
@@ -2167,9 +2170,23 @@ bool QuadPlane::verify_vtol_takeoff(const AP_Mission::Mission_Command &cmd)
     if (!available()) {
         return true;
     }
-    if (plane.current_loc.alt < plane.next_WP_loc.alt) {
+    bool completed = plane.current_loc.alt >= plane.next_WP_loc.alt;
+
+    if (!completed && cmd.content.user.p1 > 0) {
+        int32_t takeoff_start_alt_cm = plane.next_WP_loc.alt - cmd.content.location.alt;
+        int32_t current_height_cm = plane.current_loc.alt - takeoff_start_alt_cm;
+        // implement a timeout if at least half of takeoff done
+        uint32_t now = AP_HAL::millis();
+        if (current_height_cm >= cmd.content.location.alt/2 && now - takeoff_start_ms > 1000U * cmd.content.user.p1) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Takeoff complete %dm %us", (int)(current_height_cm*0.01), (now - takeoff_start_ms)/1000U);
+            completed = true;
+        }
+    }
+
+    if (!completed) {
         return false;
     }
+
     transition_state = is_tailsitter() ? TRANSITION_ANGLE_WAIT_FW : TRANSITION_AIRSPEED_WAIT;
     plane.TECS_controller.set_pitch_max_limit(transition_pitch_max);
     set_alt_target_current();
