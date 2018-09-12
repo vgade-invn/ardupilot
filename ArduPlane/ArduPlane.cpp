@@ -303,6 +303,11 @@ void Plane::one_second_loop()
     update_sensor_status_flags();
 
     flight_time_limit_check();
+
+    if (control_mode != AUTO) {
+        // update GCS clearance status
+        plane.avoidance_adsb.mission_clear(plane.current_loc, 400, 100, 25);
+    }
 }
 
 void Plane::compass_save()

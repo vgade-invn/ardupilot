@@ -218,6 +218,7 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
     uint8_t closest_id = 0;
 
     gcs_threat.closest_approach_z = 1000;
+    uint8_t obs_count = 0;
 
     for (uint8_t i=0; i<_obstacle_count; i++) {
         // obstacles can update via MAVLink while we and calculating
@@ -232,6 +233,9 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
             num_timed_out++;
             continue;
         }
+
+        obs_count++;
+
         if (!within_avoidance_height(obstacle, _margin_height, avoid_sec)) {
             num_outside_height_range++;
             continue;
@@ -265,6 +269,8 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
         }
     }
 
+
+
     if (closest_dist > 0) {
         // update threat report for GCS
         Obstacle obstacle;
@@ -272,6 +278,7 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
             WITH_SEMAPHORE(_rsem);
             obstacle = _obstacles[closest_id];
         }
+        gcs_threat.src = (MAV_COLLISION_SRC)obs_count; // hack
         gcs_threat.src_id = obstacle.src_id;
         gcs_threat.threat_level = MAV_COLLISION_THREAT_LEVEL_LOW;
         gcs_threat.time_to_closest_approach = 0;
@@ -322,12 +329,17 @@ bool AP_Avoidance_Plane::mission_clear(const Location &current_loc, float xy_cle
 
     // assume we are not moving
     Vector3f my_vel;
+    uint8_t obs_count = 0;
+    int16_t closest_idx = -1;
+    float closest_dist = 5000;
+    float closest_radius = 0;
 
     for (uint8_t i=0; i<_obstacle_count; i++) {
         const Obstacle &obstacle = _obstacles[i];
         if (now - obstacle.timestamp_ms > timeout_ms) {
             continue;
         }
+        obs_count++;
         if (!within_avoidance_height(obstacle, z_clearance, time_s)) {
             continue;
         }
@@ -342,16 +354,27 @@ bool AP_Avoidance_Plane::mission_clear(const Location &current_loc, float xy_cle
 
         const float radius = get_avoidance_radius(obstacle);
 
-        if (closest_xy < xy_clearance + radius) {
-            // it could come within the radius in the given time
-            gcs_threat.src_id = obstacle.src_id;
-            gcs_threat.threat_level = MAV_COLLISION_THREAT_LEVEL_HIGH;
-            gcs_threat.time_to_closest_approach = 0;
-            gcs_threat.closest_approach_xy = closest_xy - radius;
-            gcs_threat.closest_approach_z = obstacle_height_difference(obstacle);
-            gcs_action = (MAV_COLLISION_ACTION)1;
-            return false;
+        if (closest_xy < closest_dist) {
+            closest_dist = closest_xy;
+            closest_idx = i;
+            closest_radius = radius;
         }
+    }
+
+    gcs_threat.src = (MAV_COLLISION_SRC)obs_count; // hack
+    gcs_threat.closest_approach_xy = closest_dist - closest_radius;
+    gcs_threat.threat_level = MAV_COLLISION_THREAT_LEVEL_NONE;
+    gcs_action = (MAV_COLLISION_ACTION)0;
+
+    if (closest_dist < xy_clearance + closest_radius) {
+        // it could come within the radius in the given time
+        const Obstacle &obstacle = _obstacles[closest_idx];
+        gcs_threat.src_id = obstacle.src_id;
+        gcs_threat.threat_level = MAV_COLLISION_THREAT_LEVEL_HIGH;
+        gcs_threat.time_to_closest_approach = 0;
+        gcs_threat.closest_approach_z = obstacle_height_difference(obstacle);
+        gcs_action = (MAV_COLLISION_ACTION)1;
+        return false;
     }
 
     // all clear
