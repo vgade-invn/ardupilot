@@ -447,17 +447,6 @@ void AP_Avoidance::handle_threat_gcs_notify(AP_Avoidance::Obstacle *threat)
     }
 
     uint32_t now = AP_HAL::millis();
-    if (threat->threat_level == MAV_COLLISION_THREAT_LEVEL_NONE) {
-        // only send cleared messages for a few seconds:
-        if (_gcs_cleared_messages_first_sent == 0) {
-            _gcs_cleared_messages_first_sent = now;
-        }
-        if (now - _gcs_cleared_messages_first_sent > _gcs_cleared_messages_duration * 1000) {
-            return;
-        }
-    } else {
-        _gcs_cleared_messages_first_sent = 0;
-    }
     if (now - last_gcs_report_time > _gcs_notify_interval * 1000) {
         GCS_MAVLINK::send_collision_all(*threat, mav_avoidance_action());
         last_gcs_report_time = now;
@@ -608,7 +597,7 @@ void AP_Avoidance::handle_msg(const mavlink_message_t &msg)
         // avoidance is not active / allocated
         return;
     }
-
+#if 0
     if (msg.msgid != MAVLINK_MSG_ID_GLOBAL_POSITION_INT) {
         // we only take position from GLOBAL_POSITION_INT
         return;
@@ -635,6 +624,7 @@ void AP_Avoidance::handle_msg(const mavlink_message_t &msg)
                  msg.sysid,
                  loc,
                  vel);
+#endif
 }
 
 // get unit vector away from the nearest obstacle
