@@ -363,6 +363,7 @@ bool AP_Avoidance_Plane::mission_clear(const Location &current_loc, float xy_cle
 
     gcs_threat.src = (MAV_COLLISION_SRC)obs_count; // hack
     gcs_threat.closest_approach_xy = closest_dist - closest_radius;
+    gcs_threat.closest_approach_z = 0;
     gcs_threat.threat_level = MAV_COLLISION_THREAT_LEVEL_NONE;
     gcs_action = (MAV_COLLISION_ACTION)0;
 
