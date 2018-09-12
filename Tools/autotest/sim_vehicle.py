@@ -924,7 +924,8 @@ parser.add_option_group(group)
 cmd_opts, cmd_args = parser.parse_args()
 
 # clean up processes at exit:
-atexit.register(kill_tasks)
+if cmd_opts.instance == 0:
+    atexit.register(kill_tasks)
 
 progress("Start")
 
