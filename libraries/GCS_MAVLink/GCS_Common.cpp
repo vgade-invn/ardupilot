@@ -1730,7 +1730,7 @@ void GCS_MAVLINK::send_collision_all(const AP_Avoidance::Obstacle &threat, MAV_C
             if (comm_get_txspace(chan) >= MAVLINK_NUM_NON_PAYLOAD_BYTES + MAVLINK_MSG_ID_COLLISION) {
                 mavlink_msg_collision_send(
                     chan,
-                    MAV_COLLISION_SRC_ADSB,
+                    threat.src,
                     threat.src_id,
                     behaviour,
                     threat.threat_level,
