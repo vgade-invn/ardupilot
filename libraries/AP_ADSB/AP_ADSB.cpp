@@ -374,6 +374,17 @@ void AP_ADSB::handle_vehicle(const mavlink_message_t* packet)
     const uint16_t required_flags_position = ADSB_FLAGS_VALID_COORDS | ADSB_FLAGS_VALID_ALTITUDE;
     const bool detected_ourself = (out_state.cfg.ICAO_id != 0) && ((uint32_t)out_state.cfg.ICAO_id == vehicle.info.ICAO_address);
 
+    DataFlash_Class::instance()->Log_Write("ADVH", "TimeUS,Id,Lat,Lon,Alt,Hdg,HVel,VVel", "QILLecCc",
+                                           AP_HAL::micros64(),
+                                           vehicle.info.ICAO_address,
+                                           vehicle.info.lat,
+                                           vehicle.info.lon,
+                                           vehicle.info.altitude/10,
+                                           vehicle.info.heading,
+                                           vehicle.info.hor_velocity,
+                                           vehicle.info.ver_velocity);
+
+    
     if (vehicle_loc.is_zero() ||
             out_of_range ||
             detected_ourself ||
