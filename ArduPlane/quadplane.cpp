@@ -2172,12 +2172,12 @@ bool QuadPlane::verify_vtol_takeoff(const AP_Mission::Mission_Command &cmd)
     }
     bool completed = plane.current_loc.alt >= plane.next_WP_loc.alt;
 
-    if (!completed && cmd.content.user.p1 > 0) {
+    if (!completed && cmd.p1 > 0) {
         int32_t takeoff_start_alt_cm = plane.next_WP_loc.alt - cmd.content.location.alt;
         int32_t current_height_cm = plane.current_loc.alt - takeoff_start_alt_cm;
         // implement a timeout if at least half of takeoff done
         uint32_t now = AP_HAL::millis();
-        if (current_height_cm >= cmd.content.location.alt/2 && now - takeoff_start_ms > 1000U * cmd.content.user.p1) {
+        if (current_height_cm >= cmd.content.location.alt/2 && now - takeoff_start_ms > 1000U * cmd.p1) {
             gcs().send_text(MAV_SEVERITY_INFO, "Takeoff complete %dm %us", (int)(current_height_cm*0.01), (now - takeoff_start_ms)/1000U);
             completed = true;
         }
