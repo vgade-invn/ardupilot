@@ -176,6 +176,9 @@ private:
     uint16_t    furthest_vehicle_index;
     float       furthest_vehicle_distance;
 
+    // timestamp in 0.1s in squawk code
+    uint16_t    last_squawk_timestamp;
+
     static const uint8_t max_samples = 30;
     AP_Buffer<adsb_vehicle_t, max_samples> samples;
 

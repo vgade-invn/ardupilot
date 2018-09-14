@@ -361,6 +361,17 @@ void AP_ADSB::handle_vehicle(const mavlink_message_t* packet)
     uint16_t index = in_state.list_size + 1; // initialize with invalid index
     adsb_vehicle_t vehicle {};
     mavlink_msg_adsb_vehicle_decode(packet, &vehicle.info);
+
+    uint16_t squawk_timestamp = vehicle.info.squawk;
+    if (squawk_timestamp < last_squawk_timestamp) {
+        uint16_t delta = last_squawk_timestamp - squawk_timestamp;
+        if (delta > 30 && delta < 30000) {
+            // time has gone backwards by 3s, this is an old packet on a delayed link, discard it
+            return;
+        }
+    }
+    last_squawk_timestamp = squawk_timestamp;
+
     Location_Class vehicle_loc = Location_Class(AP_ADSB::get_location(vehicle));
     bool my_loc_is_zero = _my_loc.is_zero();
     float my_loc_distance_to_vehicle = _my_loc.get_distance(vehicle_loc);
@@ -399,6 +410,14 @@ void AP_ADSB::handle_vehicle(const mavlink_message_t* packet)
         return;
 
     } else if (is_tracked_in_list) {
+
+        if (index < in_state.list_size) {
+            uint16_t vehicle_squawk_timestamp = in_state.vehicle_list[index].info.squawk;
+            if (vehicle_squawk_timestamp >= squawk_timestamp) {
+                // duplicate or time is going backwards for this vehicle, discard
+                return;
+            }
+        }
 
         // found, update it
         set_vehicle(index, vehicle);
