@@ -1598,7 +1598,9 @@ bool GCS_MAVLINK_Plane::accept_packet(const mavlink_status_t &status, mavlink_me
     if (!plane.g2.sysid_enforce) {
         return true;
     }
-    if (msg.msgid == MAVLINK_MSG_ID_RADIO || msg.msgid == MAVLINK_MSG_ID_RADIO_STATUS) {
+    if (msg.msgid == MAVLINK_MSG_ID_RADIO ||
+        msg.msgid == MAVLINK_MSG_ID_RADIO_STATUS ||
+        msg.msgid == MAVLINK_MSG_ID_ADSB_VEHICLE) {
         return true;
     }
     return (msg.sysid == plane.g.sysid_my_gcs);
