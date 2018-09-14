@@ -1509,6 +1509,10 @@ void GCS_MAVLINK_Plane::handleMessage(mavlink_message_t* msg)
     }
 
     case MAVLINK_MSG_ID_ADSB_VEHICLE:
+        // an avoidance msg is considered a heartbeat from the vehicle for failsafe purposes
+        plane.failsafe.last_heartbeat_ms = AP_HAL::millis();
+        FALLTHROUGH;
+
     case MAVLINK_MSG_ID_UAVIONIX_ADSB_OUT_CFG:
     case MAVLINK_MSG_ID_UAVIONIX_ADSB_OUT_DYNAMIC:
     case MAVLINK_MSG_ID_UAVIONIX_ADSB_TRANSCEIVER_HEALTH_REPORT:
