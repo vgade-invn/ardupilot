@@ -689,6 +689,13 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
     // report collisions
     have_collided(current_loc);
 
+    // get our ground course
+    float ground_course_deg;
+    {
+        WITH_SEMAPHORE(plane.ahrs.get_semaphore());
+        ground_course_deg = wrap_180(degrees(plane.ahrs.groundspeed_vector().angle()));
+    }
+
     if (num_fence_points >= 4) {
         float distance_to_fence = fence_distance(current_loc);
         if (distance_to_fence < _margin_fence || (fence_avoidance && distance_to_fence < _margin_fence*1.2)) {
@@ -697,7 +704,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
               flying away from the fence until we are over 1.2 times the
               margin away
             */
-            fence_best_avoidance(current_loc, target_loc);
+            fence_best_avoidance(current_loc, target_loc, ground_course_deg);
             if (!fence_avoidance) {
                 debug(2,"Fence avoidance %.0f/%.0f", distance_to_fence, _margin_fence);
             }
@@ -708,6 +715,10 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
             gcs_threat.time_to_closest_approach = 0;
             gcs_threat.closest_approach_xy = distance_to_fence;
             gcs_threat.closest_approach_z = 0;
+            int32_t avoid_cd = get_bearing_cd(current_loc, target_loc);
+            int32_t gc_cd = ground_course_deg * 100;
+            int32_t bch = wrap_180_cd(avoid_cd - gc_cd);
+            log_avoidance(4, bch, distance_to_fence, _margin_fence);
             return true;
         }
     }
@@ -733,13 +744,6 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
     int32_t best_margin_bearing = best_bearing;
     const float rate_of_turn_dps = degrees(GRAVITY_MSS * tanf(radians(plane.aparm.roll_limit_cd*0.01*0.6))/(groundspeed+0.1));
     
-    // get our ground course
-    float ground_course_deg;
-    {
-        WITH_SEMAPHORE(plane.ahrs.get_semaphore());
-        ground_course_deg = wrap_180(degrees(plane.ahrs.groundspeed_vector().angle()));
-    }
-
     for (uint8_t i=0; i<360 / (bearing_inc_cd/100); i++) {
         int32_t bearing_delta_cd = i*bearing_inc_cd/2;
         if (i & 1) {
@@ -855,17 +859,58 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, L
 }
 
 /*
+  predict the closest we will come to the fence if we try to bank at bank_target for t seconds
+  This does simple modelling at 0.5s intervals, to take account of current bank angle
+ */
+float AP_Avoidance_Plane::predict_closest_fence_distance(const Location &current_loc, float bank_target, float ground_course_deg, float t)
+{
+    const float groundspeed = avoidance_request.groundspeed;
+    float roll = degrees(plane.ahrs.roll);
+    const float dt = 0.5;
+    const float bank_rate_dps = bank_target<0?-60:60;
+    Location loc = current_loc;
+    float total_turn = 0;
+    float closest_dist = fence_distance(current_loc);
+
+    while (t > 0 && fabsf(total_turn) < 140) {
+        // move fwd for dt
+        location_update(loc, ground_course_deg, groundspeed * dt);
+
+        // change bank angle
+        roll += bank_rate_dps * dt;
+        roll = constrain_float(roll, -fabsf(bank_target), fabsf(bank_target));
+
+        // work out turn rate
+        float turn_rate_dps = degrees(GRAVITY_MSS*tanf(radians(roll))/groundspeed);
+        float delta_turn_deg = turn_rate_dps * dt;
+
+        total_turn += delta_turn_deg;
+        ground_course_deg += delta_turn_deg;
+
+        // calculate distance to fence
+        float fence_dist = fence_distance(loc);
+        if (fence_dist < closest_dist) {
+            closest_dist = fence_dist;
+        }
+        t -= dt;
+    }
+    return closest_dist;
+}
+
+/*
   find the target_loc which best avoids the fence
  */
-void AP_Avoidance_Plane::fence_best_avoidance(const Location &current_loc, Location &target_loc)
+void AP_Avoidance_Plane::fence_best_avoidance(const Location &current_loc, Location &target_loc, float ground_course_deg)
 {
     const int32_t bearing_inc = 5;
     float best_dist = -10000;
+    const float proj_distance = _margin_wide + _margin_fence*2;
     for (uint8_t i=0; i<360 / bearing_inc; i++) {
         float bearing = i * bearing_inc;
-        Location test_loc = location_project(current_loc, bearing, _margin_fence*0.5);
+        Location test_loc = location_project(current_loc, bearing, proj_distance);
         Vector2f diff = location_diff(fence_origin, test_loc);
-        float fence_dist = Polygon_closest_distance_point(fence_points, num_fence_points, diff);
+        float fence_dist = fence_distance(test_loc);
+
         if (Polygon_outside(diff, fence_points, num_fence_points)) {
             fence_dist = -5000 - fence_dist;
         }
@@ -874,6 +919,30 @@ void AP_Avoidance_Plane::fence_best_avoidance(const Location &current_loc, Locat
             best_dist = fence_dist;
         }
     }
+
+    int32_t bearing_cd = get_bearing_cd(current_loc, target_loc);
+    int32_t gc_cd = ground_course_deg * 100;
+    int bch = wrap_180_cd(bearing_cd - gc_cd);
+    if (labs(bch) < 14000 || avoidance_request.groundspeed < 3) {
+        // for turns of less than 140 degrees we choose the best target based on distance
+        return;
+    }
+
+    // we are wanting to turn more than 140 degrees. What we need to
+    // check is if a hard left turn or a hard right turn is best, then
+    // we set the target accordingly
+    const float bank_angle = 45;
+    float fence_dist1 = predict_closest_fence_distance(current_loc, -bank_angle, ground_course_deg, 5);
+    float fence_dist2 = predict_closest_fence_distance(current_loc, bank_angle, ground_course_deg, 5);
+    float new_course;
+    if (fence_dist1 > fence_dist2) {
+        // left turn is best
+        new_course = wrap_180(ground_course_deg - 140);
+    } else {
+        // right turn is best
+        new_course = wrap_180(ground_course_deg + 140);
+    }
+    target_loc = location_project(current_loc, new_course, proj_distance);
 }
 
 /*

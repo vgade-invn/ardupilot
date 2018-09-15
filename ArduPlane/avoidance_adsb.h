@@ -55,7 +55,8 @@ private:
     float get_avoidance_radius(const class Obstacle &obstacle) const;
     bool within_avoidance_height(const class Obstacle &obstacle, const float margin, float dt) const;
     bool have_collided(const Location &loc);
-    void fence_best_avoidance(const Location &current_loc, Location &target_loc);
+    void fence_best_avoidance(const Location &current_loc, Location &target_loc, float ground_course_deg);
+    float predict_closest_fence_distance(const Location &current_loc, float bank_target, float ground_course_deg, float t);
     float fence_distance(const Location &current_loc);
     float calc_avoidance_margin(const Location &loc1, const Location &loc2, const Vector2f &our_velocity, float avoid_sec);
     void log_avoidance(uint8_t result, float bearing_change, float margin1, float margin2);
