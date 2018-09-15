@@ -189,6 +189,28 @@ void Plane::update_loiter(uint16_t radius)
             loiter.start_time_ms = 0;
             quadplane.guided_start();
         }
+
+    } else if (avoidance_adsb.mission_avoidance_enabled()) {
+        // do a square loiter so that avoidance code can work
+        Location target_loc = next_WP_loc;
+        float bearing_deg = wrap_360_cd(get_bearing_cd(target_loc, current_loc)) * 0.01;
+        float target_bearing_deg = 0;
+        if (bearing_deg < 45) {
+            target_bearing_deg = 45;
+        } else if (bearing_deg < 135) {
+            target_bearing_deg = 135;
+        } else if (bearing_deg < 225) {
+            target_bearing_deg = 225;
+        } else if (bearing_deg < 315) {
+            target_bearing_deg = 315;
+        } else {
+            target_bearing_deg = 45;
+        }
+        location_update(target_loc, target_bearing_deg, radius);
+
+        avoidance_adsb.mission_avoidance(current_loc, target_loc, ahrs.groundspeed());
+        auto_state.crosstrack = false;
+        nav_controller->update_waypoint(current_loc, target_loc);
     } else if ((loiter.start_time_ms == 0 &&
                 (control_mode == AUTO || control_mode == GUIDED) &&
                 auto_state.crosstrack &&

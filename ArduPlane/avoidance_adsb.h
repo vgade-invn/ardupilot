@@ -21,7 +21,11 @@ public:
 
     // check if we are clear to a good radius for takeoff/landing
     bool mission_clear(const Location &current_loc, float xy_clearance, float z_clearance, float time_s);
-    
+
+    bool mission_avoidance_enabled(void) const {
+        return _enabled && _warn_action == 2;
+    }
+
 protected:
     // override avoidance handler
     MAV_COLLISION_ACTION handle_avoidance(const AP_Avoidance::Obstacle *obstacle, MAV_COLLISION_ACTION requested_action) override;
