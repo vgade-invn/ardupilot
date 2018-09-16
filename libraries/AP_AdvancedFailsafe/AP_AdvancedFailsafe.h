@@ -81,6 +81,9 @@ public:
     // called to set all outputs to termination state
     virtual void terminate_vehicle(void) = 0;
 
+    // enable/disable GCS failsafe (for remote landings)
+    void gcs_failsafe_enable(uint8_t enable);
+
     // for holding parameters
     static const struct AP_Param::GroupInfo var_info[];
         
@@ -138,6 +141,8 @@ protected:
 
     // have the failsafe values been setup?
     bool _failsafe_setup:1;
+
+    bool _gcs_failsafe_disabled;
 
     bool check_altlimit(void);
 };

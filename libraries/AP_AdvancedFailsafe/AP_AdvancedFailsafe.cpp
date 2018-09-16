@@ -205,7 +205,7 @@ AP_AdvancedFailsafe::check(uint32_t last_heartbeat_ms, bool geofence_breached, u
 
     case STATE_AUTO:
         // this is the normal mode. 
-        if (!gcs_link_ok) {
+        if (!gcs_link_ok && !_gcs_failsafe_disabled) {
             gcs().send_text(MAV_SEVERITY_DEBUG, "AFS State: DATA_LINK_LOSS");
             _state = STATE_DATA_LINK_LOSS;
             if (_wp_comms_hold) {
@@ -219,7 +219,7 @@ AP_AdvancedFailsafe::check(uint32_t last_heartbeat_ms, bool geofence_breached, u
             }
             break;
         }
-        if (!gps_lock_ok) {
+        if (!gps_lock_ok && !_gcs_failsafe_disabled) {
             gcs().send_text(MAV_SEVERITY_DEBUG, "AFS State: GPS_LOSS");
             _state = STATE_GPS_LOSS;
             if (_wp_gps_loss) {
@@ -400,4 +400,15 @@ bool AP_AdvancedFailsafe::gcs_terminate(bool should_terminate, const char *reaso
         gcs().send_text(MAV_SEVERITY_INFO, "Unable to terminate, termination is not configured");
     }
     return false;
+}
+
+void AP_AdvancedFailsafe::gcs_failsafe_enable(uint8_t enable)
+{
+    if (enable && _gcs_failsafe_disabled) {
+        gcs().send_text(MAV_SEVERITY_INFO, "AFS: enabling GCS failsafe");
+    }
+    if (!enable && !_gcs_failsafe_disabled) {
+        gcs().send_text(MAV_SEVERITY_INFO, "AFS: disabling GCS failsafe");
+    }
+    _gcs_failsafe_disabled = !enable;
 }
