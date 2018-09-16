@@ -262,9 +262,9 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
         break;
 #endif
 
-    case MAV_CMD_USER_2:
-        // obc-2018 special. Set WP_RADIUS_MAX
-        plane.g.waypoint_max_radius.set_and_notify(cmd.content.user.p1);
+    case MAV_CMD_USER_5:
+        // disable/enable AFS GCS failsafe
+        afs.gcs_failsafe_enable(cmd.content.user.p1);
         break;
 
     case MAV_CMD_DO_CONDITION_JUMP: {
