@@ -138,7 +138,7 @@ const AP_Param::GroupInfo AP_Avoidance::var_info[] = {
     // @DisplayName: fence margin
     // @Description: Avoidance margin for fence
     // @User: Advanced
-    AP_GROUPINFO("MARGIN_FENCE",  15, AP_Avoidance, _margin_fence, 130),
+    AP_GROUPINFO("MARGIN_FENCE",  15, AP_Avoidance, _margin_fence, 150),
 
     // @Param: MARGIN_DYN
     // @DisplayName: dynamic margin
@@ -162,7 +162,7 @@ const AP_Param::GroupInfo AP_Avoidance::var_info[] = {
     // @DisplayName: height avoidance margin
     // @Description: Avoidance margin for height avoidance
     // @User: Advanced
-    AP_GROUPINFO("MARGIN_HGT",  19, AP_Avoidance, _margin_height, 20),
+    AP_GROUPINFO("MARGIN_HGT",  19, AP_Avoidance, _margin_height, 60),
 
     // @Param: LOOKAHEAD
     // @DisplayName: avoidance lookahead distance
