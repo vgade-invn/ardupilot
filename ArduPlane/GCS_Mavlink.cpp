@@ -895,7 +895,7 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_long_packet(const mavlink_command_l
 {
     switch(packet.command) {
 
-    case MAV_CMD_DO_CHANGE_SPEED:
+    case MAV_CMD_DO_CHANGE_SPEED: {
         // if we're in failsafe modes (e.g., RTL, LOITER) or in pilot
         // controlled modes (e.g., MANUAL, TRAINING)
         // this command should be ignored since it comes in from GCS
@@ -911,6 +911,7 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_long_packet(const mavlink_command_l
             return MAV_RESULT_ACCEPTED;
         }
         return MAV_RESULT_FAILED;
+    }
 
     case MAV_CMD_NAV_LOITER_UNLIM:
         plane.set_mode(LOITER, MODE_REASON_GCS_COMMAND);
@@ -1126,6 +1127,20 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_long_packet(const mavlink_command_l
             return MAV_RESULT_FAILED;
         }
         return MAV_RESULT_ACCEPTED;
+
+    case MAV_CMD_USER_2:
+        // recall aircraft
+        if (plane.g2.flight_time_limit > 0 &&
+            int(packet.param1) == 42 &&
+            !plane.flight_time_limit_reached &&
+            plane.control_mode == AUTO &&
+            hal.util->get_soft_armed()) {
+            plane.flight_time_limit_reached = true;
+            gcs().send_text(MAV_SEVERITY_INFO, "Vehicle recalled");
+            plane.set_mode(RTL, MODE_REASON_BATTERY_FAILSAFE);
+            return MAV_RESULT_ACCEPTED;
+        }
+        return MAV_RESULT_FAILED;
 
     default:
         return GCS_MAVLINK::handle_command_long_packet(packet);
