@@ -452,6 +452,7 @@ void AP_Avoidance_Plane::load_exclusion_zones(void)
     if (num_exclusion_zones == 0) {
         return;
     }
+
     exclusion_zones = new struct exclusion_zone [num_exclusion_zones];
     if (!exclusion_zones) {
         goto failed;
@@ -494,6 +495,8 @@ failed:
 
     // set the timestamp so we don't continuously reload
     mission_change_ms = plane.mission.last_change_time_ms();
+
+    unload_exclusion_zones();
 }
 
 /*
@@ -508,7 +511,8 @@ void AP_Avoidance_Plane::unload_exclusion_zones(void)
     for (uint8_t zone=0; zone<num_exclusion_zones; zone++) {
         delete [] exclusion_zones[zone].points;
     }
-    delete exclusion_zones;
+    delete [] exclusion_zones;
+    num_exclusion_zones = 0;
     exclusion_zones = nullptr;
 }
 
