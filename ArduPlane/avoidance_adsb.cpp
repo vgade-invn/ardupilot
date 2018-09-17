@@ -669,13 +669,41 @@ float AP_Avoidance_Plane::calc_avoidance_margin(const Location &loc1, const Loca
     return MIN(MIN(ex_margin, obs_margin), fence_margin);
 }
 
+/*
+  calculate what our ground speed would be in a given direction, using wind estimate
+ */
+float AP_Avoidance_Plane::effective_groundspeed(float airspeed, float bearing_deg, float wind_dir_rad, float wind_speed)
+{
+    airspeed = MAX(airspeed, 1.0);
+    float bearing_rad = radians(bearing_deg);
+
+    float temp = M_PI - (wind_dir_rad - bearing_rad);
+    float dangle = wind_speed*sinf(temp) / airspeed;
+    if (dangle > 1.0 || dangle < -1.0) {
+        return 0;
+    }
+    float alpha = asinf(dangle);
+    float yaw = bearing_rad - alpha;
+    float beta = M_PI - (wind_dir_rad - yaw);
+    float gs2 = sq(airspeed) + sq(wind_speed) - 2*airspeed*wind_speed*cosf(beta);
+    if (gs2 <= 0) {
+        return 0;
+    }
+    float gs = sqrtf(gs2);
+#if 0
+    printf("as:%.1f bear:%.1f wind_dir:%.1f ws:%.1f -> gs:%.1f\n",
+           airspeed, bearing_deg, degrees(wind_dir_rad), wind_speed, gs);
+#endif
+    return gs;
+}
+
 
 /*
   update waypoint to avoid dynamic obstacles. Return true if doing avoidance
  */
 bool AP_Avoidance_Plane::update_mission_avoidance(const avoidance_info &avd, Location &target_loc)
 {
-    float groundspeed = MAX(avd.groundspeed, 0.1);
+    const float airspeed = MAX(avd.airspeed, 1.0);
     const Location &current_loc = avd.current_loc;
     current_lookahead = constrain_float(current_lookahead, _lookahead*0.5, _lookahead);
     const float full_distance = get_distance(current_loc, target_loc);
@@ -687,9 +715,9 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const avoidance_info &avd, Loc
     // we test for flying past the waypoint, so if we are close, we
     // have room to dodge after the waypoint
     const float avoid_max = MIN(avoid_step1_m, full_distance+MIN(_margin_fence/2,100));
-    const float avoid_sec1 = avoid_max / groundspeed;
+    const float avoid_sec1 = avoid_max / airspeed;
     const int32_t bearing_inc_cd = 500;
-    const float distance = groundspeed * avoid_sec1;
+    const float distance = airspeed * avoid_sec1;
     const int32_t bearing_cd = get_bearing_cd(current_loc, target_loc);
 
     // report collisions
@@ -748,7 +776,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const avoidance_info &avd, Loc
     bool have_best_bearing = false;
     float best_margin = -10000;
     int32_t best_margin_bearing = best_bearing;
-    const float rate_of_turn_dps = degrees(GRAVITY_MSS * tanf(radians(plane.aparm.roll_limit_cd*0.01*0.6))/(groundspeed+0.1));
+    const float rate_of_turn_dps = degrees(GRAVITY_MSS * tanf(radians(plane.aparm.roll_limit_cd*0.01*0.6))/(airspeed+0.1));
     
     for (uint8_t i=0; i<360 / (bearing_inc_cd/100); i++) {
         int32_t bearing_delta_cd = i*bearing_inc_cd/2;
@@ -761,6 +789,8 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const avoidance_info &avd, Loc
         const float bearing_test = bearing_test_cd * 0.01;
         const float course_change_deg = wrap_180(bearing_test - ground_course_deg);
 
+        float ground_speed = effective_groundspeed(airspeed, bearing_test, avd.wind_dir_rad, avd.wind_speed);
+
         if (fabsf(course_change_deg) > 170) {
             // don't consider 180 degree turns, as we can't predict which way we will turn
             continue;
@@ -770,13 +800,13 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const avoidance_info &avd, Loc
         float turn_time_s = fabsf(course_change_deg / rate_of_turn_dps);
 
         // approximate a turn by flying forward for turn_time_s/2
-        Location projected_loc = location_project(current_loc, ground_course_deg, groundspeed * turn_time_s*0.5);
+        Location projected_loc = location_project(current_loc, ground_course_deg, ground_speed * turn_time_s*0.5);
 
         // if we're turning by more than 90 degrees then add some sideways movement
         if (fabsf(course_change_deg) > 90) {
             float direction = course_change_deg>0?(ground_course_deg+90):(ground_course_deg-90);
             float proportion = sinf(radians(fabsf(course_change_deg) - 90));
-            projected_loc = location_project(projected_loc, direction, groundspeed * proportion * turn_time_s*0.5);
+            projected_loc = location_project(projected_loc, direction, ground_speed * proportion * turn_time_s*0.5);
         }
         
         // position we will get to
@@ -812,7 +842,7 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const avoidance_info &avd, Loc
                 float new_bearing = target_bearing + test_bearings[j];
                 float target_distance2 = get_distance(loc_test, target_loc);
                 float distance2 = constrain_float(avoid_step2_m, 10, target_distance2);
-                float avoid_sec2 = distance2 / groundspeed;
+                float avoid_sec2 = distance2 / airspeed;
                 Location loc_test2 = location_project(loc_test, new_bearing, distance2);
 
                 Vector2f loc_diff2 = location_diff(loc_test, loc_test2);
@@ -1019,7 +1049,10 @@ bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location
     if (!plane.ahrs.airspeed_estimate(&avoidance_request.airspeed)) {
         avoidance_request.airspeed = groundspeed;
     }
-    avoidance_request.wind = plane.ahrs.wind_estimate();
+    Vector3f wind_3d = plane.ahrs.wind_estimate();
+    Vector2f wind_2d(wind_3d.x, wind_3d.y);
+    avoidance_request.wind_dir_rad = wind_2d.angle();
+    avoidance_request.wind_speed = wind_2d.length();
     avoidance_request.request_time_ms = now;
 
     if (target_loc.lat == avoidance_result.target_loc.lat &&

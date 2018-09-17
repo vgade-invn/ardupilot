@@ -74,11 +74,13 @@ private:
         Location target_loc;
         float groundspeed;
         float airspeed;
-        Vector3f wind;
+        float wind_dir_rad;
+        float wind_speed;
         uint32_t request_time_ms;
     } avoidance_request, avoid_req2;
 
     bool update_mission_avoidance(const avoidance_info &avd, Location &target_loc);
+    float effective_groundspeed(float airspeed, float bearing_deg, float wind_dir_rad, float wind_speed);
 
     // an avoidance result from the avoidance thread
     struct {
