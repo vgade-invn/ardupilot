@@ -265,6 +265,7 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
     case MAV_CMD_USER_5:
         // disable/enable AFS GCS failsafe
         afs.gcs_failsafe_enable(cmd.content.user.p1);
+        plane.disable_home_update = !int(cmd.content.user.p1);
         break;
 
     case MAV_CMD_DO_CONDITION_JUMP: {

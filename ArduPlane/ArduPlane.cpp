@@ -288,7 +288,8 @@ void Plane::one_second_loop()
     // changed. Update every 5s at most
     if (!arming.is_armed() &&
         gps.last_message_time_ms() - last_home_update_ms > 5000 &&
-        gps.status() >= AP_GPS::GPS_OK_FIX_3D) {
+        gps.status() >= AP_GPS::GPS_OK_FIX_3D &&
+        !disable_home_update) {
             last_home_update_ms = gps.last_message_time_ms();
             update_home();
             

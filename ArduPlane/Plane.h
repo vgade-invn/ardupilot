@@ -607,6 +607,8 @@ private:
     // a smoothed airspeed estimate, used for limiting roll angle
     float smoothed_airspeed;
 
+    bool disable_home_update;
+
     // Mission library
     AP_Mission mission{ahrs,
             FUNCTOR_BIND_MEMBER(&Plane::start_command_callback, bool, const AP_Mission::Mission_Command &),
