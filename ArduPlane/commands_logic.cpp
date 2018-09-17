@@ -638,7 +638,7 @@ bool Plane::verify_nav_delay(const AP_Mission::Mission_Command& cmd)
     }
 
     if (now - auto_state.nav_delay_time_print_ms >= 5000) {
-        uint32_t remaining_ms = auto_state.nav_delay_time_max_ms - auto_state.nav_delay_time_start_ms;
+        uint32_t remaining_ms = auto_state.nav_delay_time_max_ms - (now - auto_state.nav_delay_time_start_ms);
         gcs().send_text(MAV_SEVERITY_INFO, "Waiting %u sec", (unsigned)(remaining_ms/1000));
         auto_state.nav_delay_time_print_ms = now;
     }
