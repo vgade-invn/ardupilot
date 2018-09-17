@@ -616,6 +616,7 @@ void Plane::do_loiter_to_alt(const AP_Mission::Mission_Command& cmd)
 void Plane::do_nav_delay(const AP_Mission::Mission_Command& cmd)
 {
     auto_state.nav_delay_time_start_ms = millis();
+    auto_state.nav_delay_time_print_ms = auto_state.nav_delay_time_start_ms;
 
     if (cmd.content.nav_delay.seconds > 0) {
         // relative delay
@@ -630,9 +631,16 @@ void Plane::do_nav_delay(const AP_Mission::Mission_Command& cmd)
 // verify_nav_delay - check if we have waited long enough
 bool Plane::verify_nav_delay(const AP_Mission::Mission_Command& cmd)
 {
-    if (millis() - auto_state.nav_delay_time_start_ms > (uint32_t)MAX(auto_state.nav_delay_time_max_ms,0U)) {
+    uint32_t now = millis();
+    if (now - auto_state.nav_delay_time_start_ms > (uint32_t)MAX(auto_state.nav_delay_time_max_ms,0U)) {
         auto_state.nav_delay_time_max_ms = 0;
         return true;
+    }
+
+    if (now - auto_state.nav_delay_time_print_ms >= 5000) {
+        uint32_t remaining_ms = auto_state.nav_delay_time_max_ms - auto_state.nav_delay_time_start_ms;
+        gcs().send_text(MAV_SEVERITY_INFO, "Waiting %u sec", (unsigned)(remaining_ms/1000));
+        auto_state.nav_delay_time_print_ms = now;
     }
     return false;
 }

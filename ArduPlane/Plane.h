@@ -522,6 +522,7 @@ private:
         // nav_delay handling
         uint32_t nav_delay_time_start_ms;
         uint32_t nav_delay_time_max_ms;
+        uint32_t nav_delay_time_print_ms;
 
         uint32_t verify_button_start_ms;
     } auto_state;
