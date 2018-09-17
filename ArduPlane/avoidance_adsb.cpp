@@ -673,8 +673,10 @@ float AP_Avoidance_Plane::calc_avoidance_margin(const Location &loc1, const Loca
 /*
   update waypoint to avoid dynamic obstacles. Return true if doing avoidance
  */
-bool AP_Avoidance_Plane::update_mission_avoidance(const Location &current_loc, Location &target_loc, float groundspeed)
+bool AP_Avoidance_Plane::update_mission_avoidance(const avoidance_info &avd, Location &target_loc)
 {
+    float groundspeed = MAX(avd.groundspeed, 0.1);
+    const Location &current_loc = avd.current_loc;
     current_lookahead = constrain_float(current_lookahead, _lookahead*0.5, _lookahead);
     const float full_distance = get_distance(current_loc, target_loc);
     /*
@@ -957,10 +959,8 @@ void AP_Avoidance_Plane::avoidance_thread(void)
 {
     while (true) {
         hal.scheduler->delay(100);
-        Location current_loc;
         Location target_loc;
         Location new_target_loc;
-        float groundspeed;
         {
             WITH_SEMAPHORE(_rsem);
             uint32_t now = AP_HAL::millis();
@@ -968,12 +968,11 @@ void AP_Avoidance_Plane::avoidance_thread(void)
                 // this is a very old request, don't process it
                 continue;
             }
-            current_loc = avoidance_request.current_loc;
+            avoid_req2 = avoidance_request;
             target_loc = new_target_loc = avoidance_request.target_loc;
-            groundspeed = avoidance_request.groundspeed;
         }
 
-        bool res = update_mission_avoidance(current_loc, new_target_loc, MAX(groundspeed,0.1));
+        bool res = update_mission_avoidance(avoid_req2, new_target_loc);
         {
             // give the main thread the avoidance result
             WITH_SEMAPHORE(_rsem);
@@ -1017,6 +1016,10 @@ bool AP_Avoidance_Plane::mission_avoidance(const Location &current_loc, Location
     avoidance_request.current_loc = current_loc;
     avoidance_request.target_loc = target_loc;
     avoidance_request.groundspeed = groundspeed;
+    if (!plane.ahrs.airspeed_estimate(&avoidance_request.airspeed)) {
+        avoidance_request.airspeed = groundspeed;
+    }
+    avoidance_request.wind = plane.ahrs.wind_estimate();
     avoidance_request.request_time_ms = now;
 
     if (target_loc.lat == avoidance_result.target_loc.lat &&
