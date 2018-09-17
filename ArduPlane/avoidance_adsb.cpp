@@ -973,7 +973,7 @@ void AP_Avoidance_Plane::avoidance_thread(void)
             groundspeed = avoidance_request.groundspeed;
         }
 
-        bool res = update_mission_avoidance(current_loc, new_target_loc, groundspeed);
+        bool res = update_mission_avoidance(current_loc, new_target_loc, MAX(groundspeed,0.1));
         {
             // give the main thread the avoidance result
             WITH_SEMAPHORE(_rsem);
