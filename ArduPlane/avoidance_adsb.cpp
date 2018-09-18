@@ -300,9 +300,14 @@ float AP_Avoidance_Plane::mission_avoidance_margin(const Location &our_loc, cons
 float AP_Avoidance_Plane::mission_exclusion_margin(const Location &current_loc, const Location &loc_test)
 {
     float margin = MAX(_margin_wide, _warn_distance_xy);
+    // by projecting 1m along the line we avoid a problem with the exclusion avoidance being happy
+    // to skirt along a line parallel to an exclusion zone
+    const float bearing_deg = get_bearing_deg(current_loc, loc_test);
+    Location loc1 = location_project(current_loc, bearing_deg, 1);
+
     for (uint8_t zone=0; zone<num_exclusion_zones; zone++) {
         const struct exclusion_zone &ezone = exclusion_zones[zone];
-        const Vector2f p1 = location_diff(ezone.first_loc, current_loc);
+        const Vector2f p1 = location_diff(ezone.first_loc, loc1);
         const Vector2f p2 = location_diff(ezone.first_loc, loc_test);
         bool inside_p1 = !Polygon_outside(p1, ezone.points, ezone.num_points);
         bool inside_p2 = !Polygon_outside(p2, ezone.points, ezone.num_points);
@@ -930,6 +935,10 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const avoidance_info &avd, Loc
         current_lookahead = MAX(_lookahead*0.5, current_lookahead*0.9);
         gcs_action = (MAV_COLLISION_ACTION)3;
         log_avoidance(2, wrap_180(chosen_bearing - (bearing_cd*0.01)), best_margin, -1);
+    }
+
+    if (exclusion_avoidance) {
+        gcs_action = (MAV_COLLISION_ACTION)6;
     }
 
     // calculate new target based on best effort
