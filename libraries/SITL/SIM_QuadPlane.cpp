@@ -109,6 +109,15 @@ void QuadPlane::update(const struct sitl_input &input)
 
     frame->calculate_forces(*this, input, quad_rot_accel, quad_accel_body);
 
+    float motor_total = 0;
+    for (uint8_t i=frame->motor_offset; i<frame->motor_offset+frame->num_motors; i++) {
+        float m = (input.servos[i] - 1000) * 0.001;
+        motor_total += m;
+    }
+
+    battery_voltage = 25;
+    battery_current = 30 * motor_total;
+
     rot_accel += quad_rot_accel;
     accel_body += quad_accel_body;
 
