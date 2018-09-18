@@ -1129,14 +1129,25 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_long_packet(const mavlink_command_l
         return MAV_RESULT_ACCEPTED;
 
     case MAV_CMD_USER_2:
-        // recall aircraft
+        // release the Kraken!
+        if (plane.g2.flight_time_limit > 0 &&
+            int(packet.param1) == 24 &&
+            !plane.flight_time_limit_reached &&
+            plane.control_mode == AUTO &&
+            plane.mission.get_current_nav_cmd().id == MAV_CMD_NAV_DELAY &&
+            hal.util->get_soft_armed()) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Releasing the Kraken");
+            plane.mission.set_current_cmd(plane.mission.get_current_nav_cmd().index+1);
+            return MAV_RESULT_ACCEPTED;
+        }
+        // recall the Kraken!
         if (plane.g2.flight_time_limit > 0 &&
             int(packet.param1) == 42 &&
             !plane.flight_time_limit_reached &&
             plane.control_mode == AUTO &&
             hal.util->get_soft_armed()) {
             plane.flight_time_limit_reached = true;
-            gcs().send_text(MAV_SEVERITY_INFO, "Vehicle recalled");
+            gcs().send_text(MAV_SEVERITY_INFO, "Kraken recalled");
             plane.set_mode(RTL, MODE_REASON_BATTERY_FAILSAFE);
             return MAV_RESULT_ACCEPTED;
         }
