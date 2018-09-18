@@ -304,7 +304,21 @@ float AP_Avoidance_Plane::mission_exclusion_margin(const Location &current_loc, 
         const struct exclusion_zone &ezone = exclusion_zones[zone];
         const Vector2f p1 = location_diff(ezone.first_loc, current_loc);
         const Vector2f p2 = location_diff(ezone.first_loc, loc_test);
-        float dist = Polygon_closest_distance_line(ezone.points, ezone.num_points, p1, p2) - _margin_exclusion;
+        bool inside_p1 = !Polygon_outside(p1, ezone.points, ezone.num_points);
+        bool inside_p2 = !Polygon_outside(p2, ezone.points, ezone.num_points);
+        float dist;
+        if (inside_p1 && inside_p2) {
+            float dist1 = -Polygon_closest_distance_point(ezone.points, ezone.num_points, p1);
+            float dist2 = -Polygon_closest_distance_point(ezone.points, ezone.num_points, p2);
+            dist = MIN(dist1, dist2);
+        } else if (inside_p1) {
+            dist = -Polygon_closest_distance_point(ezone.points, ezone.num_points, p1);
+        } else if (inside_p2) {
+            dist = -Polygon_closest_distance_point(ezone.points, ezone.num_points, p2);
+        } else {
+            dist = Polygon_closest_distance_line(ezone.points, ezone.num_points, p1, p2);
+        }
+        dist -= _margin_exclusion;
         if (dist < margin) {
             margin = dist;
         }
