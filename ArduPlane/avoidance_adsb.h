@@ -61,6 +61,7 @@ private:
     void fence_best_avoidance(const Location &current_loc, Location &target_loc, float ground_course_deg);
     float predict_closest_fence_distance(const Location &current_loc, float bank_target, float ground_course_deg, float t);
     float fence_distance(const Location &current_loc);
+    float closest_exclusion_zone(const Location &current_loc);
     float calc_avoidance_margin(const Location &loc1, const Location &loc2, const Vector2f &our_velocity, float avoid_sec);
     void log_avoidance(uint8_t result, float bearing_change, float margin1, float margin2);
     float obstacle_height_difference(const Obstacle &obstacle);
@@ -108,6 +109,7 @@ private:
     Vector2f *fence_points;
     uint32_t last_fence_change_ms;
     bool fence_avoidance;
+    bool exclusion_avoidance;
     float current_lookahead;
 
     Obstacle gcs_threat;

@@ -326,6 +326,27 @@ float AP_Avoidance_Plane::mission_exclusion_margin(const Location &current_loc, 
     return margin;
 }
 
+
+/*
+  find the distance to the closest exclusion zone
+ */
+float AP_Avoidance_Plane::closest_exclusion_zone(const Location &current_loc)
+{
+    float margin = MAX(_margin_exclusion, _warn_distance_xy);
+    for (uint8_t zone=0; zone<num_exclusion_zones; zone++) {
+        const struct exclusion_zone &ezone = exclusion_zones[zone];
+        const Vector2f p = location_diff(ezone.first_loc, current_loc);
+        float dist = Polygon_closest_distance_point(ezone.points, ezone.num_points, p);
+        if (!Polygon_outside(p, ezone.points, ezone.num_points)) {
+            dist = -dist;
+        }
+        if (dist < margin) {
+            margin = dist;
+        }
+    }
+    return margin;
+}
+
 /*
   see if we have clear airspace for a given distance and time
  */
@@ -678,7 +699,7 @@ float AP_Avoidance_Plane::fence_distance(const Location &loc)
 float AP_Avoidance_Plane::calc_avoidance_margin(const Location &loc1, const Location &loc2, const Vector2f &our_velocity, float avoid_sec)
 {
     float ex_margin = mission_exclusion_margin(loc1, loc2);
-    float obs_margin = mission_avoidance_margin(loc1, our_velocity, avoid_sec);
+    float obs_margin = exclusion_avoidance?10000:mission_avoidance_margin(loc1, our_velocity, avoid_sec);
     float fence_margin = mission_avoid_fence_margin(loc1, loc2);
     return MIN(MIN(ex_margin, obs_margin), fence_margin);
 }
@@ -782,6 +803,16 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const avoidance_info &avd, Loc
 
     // load exclusion zones from the mission, if any
     load_exclusion_zones();
+
+    // if we come within 80% of the exclusion margin then we stop
+    // avoiding dynamic obstacles. Once we're beyond the exclusion
+    // zone we re-enable dynamic avoidance
+    float exc_zone_dist = closest_exclusion_zone(current_loc);
+    if (exc_zone_dist < 0.8 * _margin_exclusion) {
+        exclusion_avoidance = true;
+    } else if (exc_zone_dist > _margin_exclusion) {
+        exclusion_avoidance = false;
+    }
 
     // try all 5 degree increments around a circle, alternating left
     // and right. For each one check that if we flew in that direction
