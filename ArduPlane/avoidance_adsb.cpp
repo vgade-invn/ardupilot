@@ -730,6 +730,9 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const avoidance_info &avd, Loc
         ground_course_deg = wrap_180(degrees(plane.ahrs.groundspeed_vector().angle()));
     }
 
+    // load inner fence, if any
+    load_fence_boundary();
+
     if (num_fence_points >= 4) {
         float distance_to_fence = fence_distance(current_loc);
         if (distance_to_fence < _margin_fence || (fence_avoidance && distance_to_fence < _margin_fence*1.2)) {
@@ -765,9 +768,6 @@ bool AP_Avoidance_Plane::update_mission_avoidance(const avoidance_info &avd, Loc
 
     // load exclusion zones from the mission, if any
     load_exclusion_zones();
-
-    // load inner fence, if any
-    load_fence_boundary();
 
     // try all 5 degree increments around a circle, alternating left
     // and right. For each one check that if we flew in that direction
@@ -944,12 +944,8 @@ void AP_Avoidance_Plane::fence_best_avoidance(const Location &current_loc, Locat
     for (uint8_t i=0; i<360 / bearing_inc; i++) {
         float bearing = i * bearing_inc;
         Location test_loc = location_project(current_loc, bearing, proj_distance);
-        Vector2f diff = location_diff(fence_origin, test_loc);
         float fence_dist = fence_distance(test_loc);
 
-        if (Polygon_outside(diff, fence_points, num_fence_points)) {
-            fence_dist = -5000 - fence_dist;
-        }
         if (fence_dist > best_dist) {
             target_loc = test_loc;
             best_dist = fence_dist;
