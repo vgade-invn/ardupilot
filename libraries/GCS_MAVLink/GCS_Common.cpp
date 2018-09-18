@@ -600,7 +600,6 @@ void GCS_MAVLINK::handle_mission_write_partial_list(AP_Mission &mission, mavlink
 
     // start waypoint receiving
     if ((unsigned)packet.start_index > mission.num_commands() ||
-        (unsigned)packet.end_index > mission.num_commands() ||
         packet.end_index < packet.start_index) {
         send_text(MAV_SEVERITY_WARNING,"Flight plan update rejected");
         return;
