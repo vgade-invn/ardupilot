@@ -1146,9 +1146,14 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_long_packet(const mavlink_command_l
             !plane.flight_time_limit_reached &&
             plane.control_mode == AUTO &&
             hal.util->get_soft_armed()) {
-            plane.flight_time_limit_reached = true;
-            gcs().send_text(MAV_SEVERITY_INFO, "Kraken recalled");
-            plane.set_mode(RTL, MODE_REASON_BATTERY_FAILSAFE);
+            if (plane.mission.get_current_nav_cmd().id == MAV_CMD_NAV_DELAY) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Kraken cancelled");
+                plane.disarm_motors();
+            } else {
+                plane.flight_time_limit_reached = true;
+                gcs().send_text(MAV_SEVERITY_INFO, "Kraken recalled");
+                plane.set_mode(RTL, MODE_REASON_BATTERY_FAILSAFE);
+            }
             return MAV_RESULT_ACCEPTED;
         }
         return MAV_RESULT_FAILED;
