@@ -229,7 +229,7 @@ int32_t Plane::relative_target_altitude_cm(void)
 
         // we are following terrain, and have terrain data for the
         // current location. Use it.
-        return relative_home_height*100;
+        return relative_home_height*100 + mission_alt_offset()*100 + g.alt_offset*100;
     }
 #endif
     int32_t relative_alt = target_altitude.amsl_cm - home.alt;
@@ -455,6 +455,7 @@ int32_t Plane::adjusted_relative_altitude_cm(void)
  */
 float Plane::mission_alt_offset(void)
 {
+#if 0
     float ret = g.alt_offset;
     if (control_mode == AUTO &&
             (flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND || auto_state.wp_is_land_approach)) {
@@ -463,6 +464,9 @@ float Plane::mission_alt_offset(void)
         ret += landing.alt_offset;
     }
     return ret;
+#else
+    return 0;
+#endif
 }
 
 /*

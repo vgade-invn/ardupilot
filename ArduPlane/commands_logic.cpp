@@ -481,6 +481,12 @@ void Plane::do_takeoff(const AP_Mission::Mission_Command& cmd)
 
 void Plane::do_nav_wp(const AP_Mission::Mission_Command& cmd)
 {
+    static int32_t last_alt;
+    if (last_alt != cmd.content.location.alt && g.alt_offset != 0) {
+        gcs().send_text(MAV_SEVERITY_INFO, "Resetting ALT_OFFSET");
+        g.alt_offset.set_and_notify(0);
+    }
+    last_alt = cmd.content.location.alt;
     set_next_WP(cmd.content.location);
 }
 
