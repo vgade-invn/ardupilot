@@ -219,6 +219,16 @@ AP_AdvancedFailsafe::check(uint32_t last_heartbeat_ms, bool geofence_breached, u
             }
             break;
         }
+        if (!gps_lock_ok && !gcs_link_ok && _gcs_failsafe_disabled) {
+            // this is considered a dual-loss, as we can't recover
+            // with the GCS
+            if (_enable_dual_loss) {
+                if (!_terminate) {
+                    gcs().send_text(MAV_SEVERITY_CRITICAL, "Terminating due to dual loss");
+                    _terminate.set_and_notify(1);
+                }
+            }
+        }
         if (!gps_lock_ok && !_gcs_failsafe_disabled) {
             gcs().send_text(MAV_SEVERITY_DEBUG, "AFS State: GPS_LOSS");
             _state = STATE_GPS_LOSS;
