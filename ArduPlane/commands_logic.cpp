@@ -656,7 +656,7 @@ bool Plane::verify_nav_delay(const AP_Mission::Mission_Command& cmd)
         if (fabsf(ahrs.pitch - nav_delay.pitch) > radians(10)) {
             good_attitude = false;
         }
-        if (wrap_180(degrees(ahrs.yaw - nav_delay.yaw)) > 30) {
+        if (fabsf(wrap_180(degrees(ahrs.yaw - nav_delay.yaw))) > 30) {
             good_attitude = false;
         }
 
