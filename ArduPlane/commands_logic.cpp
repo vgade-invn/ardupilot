@@ -625,6 +625,12 @@ void Plane::do_nav_delay(const AP_Mission::Mission_Command& cmd)
     auto_state.nav_delay_time_start_ms = millis();
     auto_state.nav_delay_time_print_ms = auto_state.nav_delay_time_start_ms;
 
+    nav_delay.roll = ahrs.roll;
+    nav_delay.pitch = ahrs.pitch;
+    nav_delay.yaw = ahrs.yaw;
+    nav_delay.good_attitude_ms = millis();
+    nav_delay.was_good_attitude = true;
+
     if (cmd.content.nav_delay.seconds > 0) {
         // relative delay
         auto_state.nav_delay_time_max_ms = cmd.content.nav_delay.seconds * 1000; // convert seconds to milliseconds
@@ -639,6 +645,35 @@ void Plane::do_nav_delay(const AP_Mission::Mission_Command& cmd)
 bool Plane::verify_nav_delay(const AP_Mission::Mission_Command& cmd)
 {
     uint32_t now = millis();
+
+    if (hal.util->get_soft_armed()) {
+        // don't launch if the roll or pitch has changed by 10 degrees, or
+        // yaw by 30 degrees
+        bool good_attitude = true;
+        if (fabsf(ahrs.roll - nav_delay.roll) > radians(10)) {
+            good_attitude = false;
+        }
+        if (fabsf(ahrs.pitch - nav_delay.pitch) > radians(10)) {
+            good_attitude = false;
+        }
+        if (wrap_180(degrees(ahrs.yaw - nav_delay.yaw)) > 30) {
+            good_attitude = false;
+        }
+
+        if (good_attitude && !nav_delay.was_good_attitude) {
+            nav_delay.good_attitude_ms = now;
+        }
+        nav_delay.was_good_attitude = good_attitude;
+
+        if (!good_attitude || now - nav_delay.good_attitude_ms < 10000) {
+            if (!good_attitude && now - auto_state.nav_delay_time_print_ms >= 5000) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Attitude error wait");
+                auto_state.nav_delay_time_print_ms = now;
+            }
+            return false;
+        }
+    }
+
     if (now - auto_state.nav_delay_time_start_ms > (uint32_t)MAX(auto_state.nav_delay_time_max_ms,0U)) {
         auto_state.nav_delay_time_max_ms = 0;
         return true;

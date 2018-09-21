@@ -1067,6 +1067,12 @@ private:
         Failsafe_Action_Terminate = 3
     };
 
+    struct {
+        float roll, pitch, yaw;
+        uint32_t good_attitude_ms;
+        bool was_good_attitude;
+    } nav_delay;
+
     // list of priorities, highest priority first
     static constexpr int8_t _failsafe_priorities[] = {
                                                       Failsafe_Action_Terminate,

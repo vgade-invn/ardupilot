@@ -1135,6 +1135,7 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_long_packet(const mavlink_command_l
             !plane.flight_time_limit_reached &&
             plane.control_mode == AUTO &&
             plane.mission.get_current_nav_cmd().id == MAV_CMD_NAV_DELAY &&
+            plane.nav_delay.was_good_attitude &&
             hal.util->get_soft_armed()) {
             gcs().send_text(MAV_SEVERITY_INFO, "Releasing the Kraken");
             plane.mission.set_current_cmd(plane.mission.get_current_nav_cmd().index+1);
