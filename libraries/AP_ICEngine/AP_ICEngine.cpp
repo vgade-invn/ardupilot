@@ -261,6 +261,8 @@ void AP_ICEngine::update(void)
             starter_start_time_ms = now;
         }
         starter_last_run_ms = now;
+        // start with higher idle, then let it adjust down
+        idle_adjustment = MAX(idle_adjustment, 2);
         break;
 
     case ICE_RUNNING:
