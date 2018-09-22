@@ -1102,6 +1102,7 @@ void GCS_MAVLINK::send_raw_imu()
         compass.get_count() <= 1) {
         return;
     }
+#if 0
     if (!HAVE_PAYLOAD_SPACE(chan, SCALED_IMU2)) {
         return;
     }
@@ -1151,7 +1152,8 @@ void GCS_MAVLINK::send_raw_imu()
         gyro3.z * 1000.0f,
         mag.x,
         mag.y,
-        mag.z);        
+        mag.z);
+#endif
 }
 
 // sub overrides this to send on-board temperature
@@ -1244,6 +1246,7 @@ void GCS_MAVLINK::send_sensor_offsets()
 
 void GCS_MAVLINK::send_ahrs()
 {
+#if 0
     const AP_AHRS &ahrs = AP::ahrs();
     const Vector3f &omega_I = ahrs.get_gyro_drift();
     mavlink_msg_ahrs_send(
@@ -1255,6 +1258,7 @@ void GCS_MAVLINK::send_ahrs()
         0,
         ahrs.get_error_rp(),
         ahrs.get_error_yaw());
+#endif
 }
 
 /*
