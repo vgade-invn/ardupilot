@@ -64,6 +64,13 @@ const AP_Param::GroupInfo AP_Button::var_info[] = {
     // @Range: 0 3600
     AP_GROUPINFO("REPORT_SEND", 5, AP_Button, report_send_time, 10),
 
+    // @Param: HOLD_MS
+    // @DisplayName: Hold time
+    // @Description: This gives the number of milliseconds that the button has to be held for to trigger
+    // @User: Standard
+    // @Range: 0 10000
+    AP_GROUPINFO("HOLD_MS", 6, AP_Button, hold_ms, 1),
+    
     AP_GROUPEND    
 };
 
@@ -89,21 +96,21 @@ void AP_Button::update(void)
     if (!initialised) {
         initialised = true;
 
-        // get initial mask
-        last_mask = get_mask();
-
         // register 1kHz timer callback
         hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&AP_Button::timer_update, void));        
     }
 
     if (last_change_time_ms != 0 &&
         (AP_HAL::millis() - last_report_ms) > AP_BUTTON_REPORT_PERIOD_MS &&
-        (AP_HAL::millis64() - last_change_time_ms) < report_send_time*1000ULL) {
+        (AP_HAL::millis() - last_change_time_ms) < report_send_time*1000ULL) {
         // send a change report
         last_report_ms = AP_HAL::millis();
 
         // send a report to GCS
         send_report();
+    }
+    if ((AP_HAL::millis() - last_change_time_ms) > report_send_time*1000ULL) {
+        last_change_time_ms = 0;
     }
 }
 
@@ -130,11 +137,37 @@ void AP_Button::timer_update(void)
     if (!enable) {
         return;
     }
-    uint8_t mask = get_mask();
-    if (mask != last_mask) {
-        last_change_mask = (mask ^ last_mask);
-        last_mask = mask;
-        last_change_time_ms = AP_HAL::millis64();
+    uint32_t now = AP_HAL::millis();
+    if (now < 10000) {
+        // not while booting
+        return;
+    }
+    uint8_t triggered_mask = 0;
+    for (uint8_t i=0; i<AP_BUTTON_NUM_PINS; i++) {
+        if (pin[i] == -1) {
+            continue;
+        }
+        uint8_t value = hal.gpio->read(pin[i]);
+        if (value == 1) {
+            // it is not being pulled low by a button
+            if (start_low_ms[i] != 0) {
+                //printf("ended[%u] %u\n", i, now - start_low_ms[i]);
+                start_low_ms[i] = 0;
+                triggered[i] = false;
+            }
+        } else if (start_low_ms[i] == 0) {
+            start_low_ms[i] = now;
+            //printf("start[%u]\n", i);
+        } else if (now - start_low_ms[i] > (unsigned)hold_ms.get() && !triggered[i]) {
+            triggered[i] = true;
+            triggered_ms[i] = now;
+            triggered_mask |= (1U<<i);
+            //printf("triggered[%u]\n", i);
+        }
+    }
+    if (triggered_mask) {
+        last_change_time_ms = now;
+        last_change_mask = triggered_mask;
     }
 }
 
@@ -166,6 +199,7 @@ void AP_Button::send_report(void)
  */
 void AP_Button::setup_pins(void)
 {
+    //printf("setup_pins\n");
     for (uint8_t i=0; i<AP_BUTTON_NUM_PINS; i++) {
         if (pin[i] == -1) {
             continue;
@@ -188,5 +222,5 @@ uint32_t AP_Button::time_mask_changed_delta_ms(uint32_t mask) const
     if (last_change_time_ms == 0) {
         return 0;
     }
-    return AP_HAL::millis64() - last_change_time_ms;
+    return AP_HAL::millis() - last_change_time_ms;
 }

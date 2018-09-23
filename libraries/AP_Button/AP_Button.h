@@ -42,14 +42,18 @@ private:
     // number of seconds to send change notifications
     AP_Int16 report_send_time;
 
-    // last button press mask
-    uint8_t last_mask;
-
-    // last button press change mask
-    uint8_t last_change_mask;
+    // number of milliseconds needed to trigger
+    AP_Int16 hold_ms;
     
-    // when the mask last changed
-    uint64_t last_change_time_ms;
+    // is a button triggered?
+    bool triggered[AP_BUTTON_NUM_PINS];
+
+    // debouncing
+    uint32_t start_low_ms[AP_BUTTON_NUM_PINS];
+    uint32_t triggered_ms[AP_BUTTON_NUM_PINS];
+    uint32_t last_change_time_ms;
+
+    uint32_t last_change_mask;
 
     // time of last report
     uint32_t last_report_ms;
