@@ -193,6 +193,15 @@ AP_AdvancedFailsafe::check(uint32_t last_heartbeat_ms, bool geofence_breached, u
     bool gcs_link_ok = ((now - last_heartbeat_ms) < 10000);
     bool gps_lock_ok = ((now - gps.last_fix_time_ms()) < 3000);
 
+#if 0
+    bool gcs_link_marginal = ((now - last_heartbeat_ms) > 2000);
+    static uint32_t last_print_ms;
+    if (gcs_link_marginal && now - last_print_ms > 1000) {
+        printf("GCS marginal %.1fs\n", (now - last_heartbeat_ms)*0.001);
+        last_print_ms = now;
+    }
+#endif
+
     switch (_state) {
     case STATE_PREFLIGHT:
         // we startup in preflight mode. This mode ends when

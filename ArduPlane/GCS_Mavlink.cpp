@@ -1271,8 +1271,19 @@ void GCS_MAVLINK_Plane::handleMessage(mavlink_message_t* msg)
     {
         // We keep track of the last time we received a heartbeat from
         // our GCS for failsafe purposes
-        if (msg->sysid != plane.g.sysid_my_gcs) break;
+        if (msg->sysid < 250) break;
         plane.failsafe.last_heartbeat_ms = AP_HAL::millis();
+#if 0
+        static uint32_t last_print_ms;
+        static uint32_t hb_count;
+        hb_count++;
+        uint32_t now = AP_HAL::millis();
+        if (now - last_print_ms > 5000) {
+            printf("hbs %.1f\n", hb_count / ((now - last_print_ms)*0.001));
+            hb_count = 0;
+            last_print_ms = now;
+        }
+#endif
         break;
     }
 
@@ -1627,6 +1638,9 @@ void Plane::gcs_retry_deferred(void)
  */
 bool GCS_MAVLINK_Plane::accept_packet(const mavlink_status_t &status, mavlink_message_t &msg)
 {
+    if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid > 250) {
+        return true;
+    }
     if (!plane.g2.sysid_enforce) {
         return true;
     }

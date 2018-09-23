@@ -90,10 +90,17 @@ routing table.
 */
 bool MAVLink_routing::check_and_forward(mavlink_channel_t in_channel, const mavlink_message_t* msg)
 {
+#if 0
+    if (msg->msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+        printf("check hb from %u %u\n", msg->sysid, msg->compid);
+    }
+#endif
+
     // handle the case of loopback of our own messages, due to
     // incorrect serial configuration.
     if (msg->sysid == mavlink_system.sysid && 
         msg->compid == mavlink_system.compid) {
+        //printf("lb pkt from %u %u\n", msg->sysid, msg->compid);
         return true;
     }
 
@@ -109,6 +116,7 @@ bool MAVLink_routing::check_and_forward(mavlink_channel_t in_channel, const mavl
     if (msg->msgid == MAVLINK_MSG_ID_HEARTBEAT) {
         // heartbeat needs special handling
         handle_heartbeat(in_channel, msg);
+        //printf("handle hb pkt from %u %u\n", msg->sysid, msg->compid);
         return true;
     }
 
