@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "Plane.h"
 
+#define EXC_LIMIT_M 2500.0
+
 #define debug(level, fmt, args ...) do { if (_debug.get()>=(level)) { gcs().send_text(MAV_SEVERITY_INFO, "AVD: " fmt, ## args); } } while (0)
 
 void Plane::avoidance_adsb_update(void)
@@ -304,6 +306,9 @@ float AP_Avoidance_Plane::mission_exclusion_margin(const Location &current_loc, 
     for (uint8_t zone=0; zone<num_exclusion_zones; zone++) {
         const struct exclusion_zone &ezone = exclusion_zones[zone];
         const Vector2f p1 = location_diff(ezone.first_loc, current_loc);
+        if (p1.length_squared() > sq(EXC_LIMIT_M)) {
+            continue;
+        }
         const Vector2f p2 = location_diff(ezone.first_loc, loc_test);
         bool inside_p1 = !Polygon_outside(p1, ezone.points, ezone.num_points);
         bool inside_p2 = !Polygon_outside(p2, ezone.points, ezone.num_points);
@@ -337,6 +342,9 @@ float AP_Avoidance_Plane::closest_exclusion_zone(const Location &current_loc)
     for (uint8_t zone=0; zone<num_exclusion_zones; zone++) {
         const struct exclusion_zone &ezone = exclusion_zones[zone];
         const Vector2f p = location_diff(ezone.first_loc, current_loc);
+        if (p.length_squared() > sq(EXC_LIMIT_M)) {
+            continue;
+        }
         float dist = Polygon_closest_distance_point(ezone.points, ezone.num_points, p);
         if (!Polygon_outside(p, ezone.points, ezone.num_points)) {
             dist = -dist;
@@ -458,6 +466,9 @@ bool AP_Avoidance_Plane::have_collided(const Location &current_loc)
     for (uint8_t zone=0; zone<num_exclusion_zones; zone++) {
         const struct exclusion_zone &ezone = exclusion_zones[zone];
         const Vector2f p1 = location_diff(ezone.first_loc, current_loc);
+        if (p1.length_squared() > sq(EXC_LIMIT_M)) {
+            continue;
+        }
         if (!Polygon_outside(p1, ezone.points, ezone.num_points)) {
             debug(1, "Within exclusion wp:%u\n", ezone.first_wp);
             ret = true;
