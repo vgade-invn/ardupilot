@@ -1177,6 +1177,12 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("FLIGHT_OPTIONS", 13, ParametersG2, flight_options, 0),
 
+#if ENABLE_SCRIPTING
+    // @Group: SCRIPT_
+    // @Path: ../libraries/AP_Scripting/AP_Scripting.cpp
+    AP_SUBGROUPINFO(scripting, "SCRIPT_", 14, ParametersG2, AP_Scripting),
+#endif
+
     AP_GROUPEND
 };
 
