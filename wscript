@@ -147,6 +147,10 @@ configuration in order to save typing.
                  default=False,
                  help="Enable SFML graphics library")
 
+    g.add_option('--enable-scripting', action='store_true',
+                 default=False,
+                 help="Enable onboard scripting engine")
+
     g.add_option('--static',
         action='store_true',
         default=False,
