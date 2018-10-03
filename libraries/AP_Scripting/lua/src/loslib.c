@@ -127,7 +127,8 @@ static time_t l_checktime (lua_State *L, int arg) {
 #else				/* }{ */
 
 /* ISO C definitions */
-#define LUA_TMPNAMBUFSIZE	L_tmpnam
+#define LUA_TMPNAMBUFSIZE	12
+//L_tmpnam
 #define lua_tmpnam(b,e)		{ e = (tmpnam(b) == NULL); }
 
 #endif				/* } */
