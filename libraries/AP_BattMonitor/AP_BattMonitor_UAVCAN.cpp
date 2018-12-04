@@ -1,6 +1,6 @@
 #include <AP_HAL/AP_HAL.h>
 
-#if HAL_WITH_UAVCAN
+#if HAL_WITH_UAVCAN && defined(ENABLE_UAVCAN_BATTMON)
 
 #include "AP_BattMonitor.h"
 #include "AP_BattMonitor_UAVCAN.h"

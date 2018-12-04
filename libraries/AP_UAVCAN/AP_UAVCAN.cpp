@@ -328,6 +328,7 @@ static void air_data_st_cb1(const uavcan::ReceivedDataStructure<uavcan::equipmen
 static void (*air_data_st_cb_arr[2])(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature>& msg)
         = { air_data_st_cb0, air_data_st_cb1 };
 
+#if 0
 static void battery_info_st_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo>& msg, uint8_t mgr)
 {
     AP_UAVCAN *ap_uavcan = AP_UAVCAN::get_uavcan(mgr);
@@ -357,6 +358,7 @@ static void battery_info_st_cb1(const uavcan::ReceivedDataStructure<uavcan::equi
 {   battery_info_st_cb(msg, 1); }
 static void (*battery_info_st_cb_arr[2])(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo>& msg)
         = { battery_info_st_cb0, battery_info_st_cb1 };
+#endif
 
 // publisher interfaces
 static uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>* act_out_array[MAX_NUMBER_OF_CAN_DRIVERS];
@@ -402,12 +404,14 @@ AP_UAVCAN::AP_UAVCAN() :
         _mag_listener_sensor_ids[i] = 0;
     }
 
+#if 0
     for (uint8_t i = 0; i < AP_UAVCAN_MAX_BI_NUMBER; i++) {
         _bi_id[i] = UINT8_MAX;
         _bi_id_taken[i] = 0;
         _bi_BM_listener_to_id[i] = UINT8_MAX;
         _bi_BM_listeners[i] = nullptr;
     }
+#endif
 
     SRV_sem = hal.util->new_semaphore();
     _led_out_sem = hal.util->new_semaphore();
@@ -528,7 +532,8 @@ bool AP_UAVCAN::try_init(void)
         debug_uavcan(1, "UAVCAN Temperature subscriber start problem\n\r");
         return false;
     }
-    
+
+#if 0
     uavcan::Subscriber<uavcan::equipment::power::BatteryInfo> *battery_info_st;
     battery_info_st = new uavcan::Subscriber<uavcan::equipment::power::BatteryInfo>(*node);
     const int battery_info_start_res = battery_info_st->start(battery_info_st_cb_arr[_uavcan_i]);
@@ -536,6 +541,7 @@ bool AP_UAVCAN::try_init(void)
         debug_uavcan(1, "UAVCAN BatteryInfo subscriber start problem\n\r");
         return false;
     }
+#endif
 
     act_out_array[_uavcan_i] = new uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>(*node);
     act_out_array[_uavcan_i]->setTxTimeout(uavcan::MonotonicDuration::fromMSec(20));
@@ -1278,6 +1284,7 @@ void AP_UAVCAN::update_mag_state(uint8_t node, uint8_t sensor_id)
     }
 }
 
+#if 0
 uint8_t AP_UAVCAN::register_BM_bi_listener_to_id(AP_BattMonitor_Backend* new_listener, uint8_t id)
 {
     uint8_t sel_place = UINT8_MAX, ret = 0;
@@ -1326,6 +1333,7 @@ void AP_UAVCAN::remove_BM_bi_listener(AP_BattMonitor_Backend* rem_listener)
        _bi_BM_listener_to_id[i] = UINT8_MAX;
     }
 }
+#endif
 
 AP_UAVCAN::BatteryInfo_Info *AP_UAVCAN::find_bi_id(uint8_t id)
 {
@@ -1361,6 +1369,7 @@ uint8_t AP_UAVCAN::find_smallest_free_bi_id()
     return ret;
 }
 
+#if 0
 void AP_UAVCAN::update_bi_state(uint8_t id)
 {
     // Go through all listeners of specified node and call their's update methods
@@ -1376,6 +1385,7 @@ void AP_UAVCAN::update_bi_state(uint8_t id)
         }
     }
 }
+#endif
 
 bool AP_UAVCAN::led_write(uint8_t led_index, uint8_t red, uint8_t green, uint8_t blue) {
     
