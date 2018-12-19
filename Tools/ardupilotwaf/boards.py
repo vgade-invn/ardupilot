@@ -174,9 +174,6 @@ class Board:
             '-Wfatal-errors',
             '-Wno-trigraphs',
         ]
-        env.CFLAGS += [
-            '-std=c99'
-        ]
 
         if 'clang++' in cfg.env.COMPILER_CXX:
             env.CXXFLAGS += [
@@ -462,6 +459,9 @@ class chibios(Board):
         env.CXXFLAGS += env.CFLAGS + [
             '-fno-rtti',
             '-fno-threadsafe-statics',
+        ]
+        env.CFLAGS += [
+            '-std=c99'
         ]
 
         if Utils.unversioned_sys_platform() == 'cygwin':
