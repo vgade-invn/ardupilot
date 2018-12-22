@@ -183,6 +183,15 @@ const AP_Param::GroupInfo AP_MotorsMulticopter::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("BAT_IDX",  39, AP_MotorsMulticopter,  _batt_idx, 0),
 
+    // @Param: YAW_SV_ANGLE
+    // @DisplayName: Yaw Servo Max Lean Angle
+    // @Description: Yaw servo's maximum lean angle
+    // @Range: 5 80
+    // @Units: deg
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("TSIT_SV_ANG", 40, AP_MotorsMulticopter,  _tailsitter_servo_angle_max_deg, 0),
+    
     AP_GROUPEND
 };
 

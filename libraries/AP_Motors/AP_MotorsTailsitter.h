@@ -36,6 +36,7 @@ public:
 protected:
     // calculate motor outputs
     void output_armed_stabilizing() override;
+    void output_armed_stabilizing_old();
 
     // calculated outputs
     float _throttle; // 0..1

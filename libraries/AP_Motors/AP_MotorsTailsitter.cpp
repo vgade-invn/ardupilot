@@ -22,11 +22,11 @@
 #include <AP_Math/AP_Math.h>
 #include "AP_MotorsTailsitter.h"
 #include <GCS_MAVLink/GCS.h>
+#include <DataFlash/DataFlash.h>
 
 extern const AP_HAL::HAL& hal;
 
 #define SERVO_OUTPUT_RANGE  4500
-#define SERVO_OUTPUT_ANGLE  45.0f
 
 // init
 void AP_MotorsTailsitter::init(motor_frame_class frame_class, motor_frame_type frame_type)
@@ -134,9 +134,63 @@ uint16_t AP_MotorsTailsitter::get_motor_mask()
     return motor_mask;
 }
 
+
+// calculate outputs to the motors
+void AP_MotorsTailsitter::output_armed_stabilizing_old()
+{
+    float   roll_thrust;                // roll thrust input value, +/- 1.0
+    float   pitch_thrust;               // pitch thrust input value, +/- 1.0
+    float   yaw_thrust;                 // yaw thrust input value, +/- 1.0
+    float   throttle_thrust;            // throttle thrust input value, 0.0 - 1.0
+    float   thrust_max;                 // highest motor value
+    float   thr_adj = 0.0f;             // the difference between the pilot's desired throttle and throttle_thrust_best_rpy
+
+    // apply voltage and air pressure compensation
+    const float compensation_gain = get_compensation_gain();
+    roll_thrust = _roll_in * compensation_gain;
+    pitch_thrust = _pitch_in * compensation_gain;
+    yaw_thrust = _yaw_in * compensation_gain;
+    throttle_thrust = get_throttle() * compensation_gain;
+
+    // sanity check throttle is above zero and below current limited throttle
+    if (throttle_thrust <= 0.0f) {
+        throttle_thrust = 0.0f;
+        limit.throttle_lower = true;
+    }
+    if (throttle_thrust >= _throttle_thrust_max) {
+        throttle_thrust = _throttle_thrust_max;
+        limit.throttle_upper = true;
+    }
+
+    // calculate left and right throttle outputs
+    _thrust_left  = throttle_thrust + roll_thrust*0.5f;
+    _thrust_right = throttle_thrust - roll_thrust*0.5f;
+
+    // if max thrust is more than one reduce average throttle
+    thrust_max = MAX(_thrust_right,_thrust_left);
+    if (thrust_max > 1.0f) {
+        thr_adj = 1.0f - thrust_max;
+        limit.throttle_upper = true;
+        limit.roll_pitch = true;
+    }
+
+    // Add adjustment to reduce average throttle
+    _thrust_left  = constrain_float(_thrust_left  + thr_adj, 0.0f, 1.0f);
+    _thrust_right = constrain_float(_thrust_right + thr_adj, 0.0f, 1.0f);
+    _throttle = throttle_thrust + thr_adj;
+
+    // thrust vectoring
+    _tilt_left  = pitch_thrust - yaw_thrust;
+    _tilt_right = pitch_thrust + yaw_thrust;
+}
+
 // calculate outputs to the motors
 void AP_MotorsTailsitter::output_armed_stabilizing()
 {
+    if (_tailsitter_servo_angle_max_deg <= 0) {
+        output_armed_stabilizing_old();
+        return;
+    }
     float   roll_thrust;                // roll thrust input value, +/- 1.0
     float   pitch_thrust;               // pitch thrust input value, +/- 1.0
     float   yaw_thrust;                 // yaw thrust input value, +/- 1.0
@@ -144,8 +198,8 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
     float   throttle_avg_max;           // throttle thrust average maximum value, 0.0 - 1.0
     Vector2f thrust_left, thrust_right; // thrust up,back vector
     float   yaw_allowed = 1.0f;         // amount of yaw we can fit in
-    float   thrust_sin = sinf(radians(SERVO_OUTPUT_ANGLE));
-    float   thrust_tan = tanf(radians(SERVO_OUTPUT_ANGLE));
+    float   thrust_sin = sinf(radians(_tailsitter_servo_angle_max_deg));
+    float   thrust_tan = tanf(radians(_tailsitter_servo_angle_max_deg));
     const float compensation_gain = get_compensation_gain(); // voltage and air pressure compensation
     roll_thrust = _roll_in * compensation_gain;
 
@@ -248,13 +302,39 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
     thrust_right *= rpy_scale;
 
     // Add adjustment to reduce average throttle
-    float tilt_left = atan2f(thrust_left.x, thrust_left.y);
-    float tilt_right = atan2f(thrust_right.x, thrust_right.y);
-    _tilt_left  = constrain_float(degrees(tilt_left)/SERVO_OUTPUT_ANGLE, -1.0f, 1.0f);
-    _tilt_right  = constrain_float(degrees(tilt_right)/SERVO_OUTPUT_ANGLE, -1.0f, 1.0f);
+    float tilt_left = atan2f(thrust_left.y, thrust_left.x);
+    float tilt_right = atan2f(thrust_right.y, thrust_right.x);
+
+
+
+    _tilt_left  = constrain_float(degrees(tilt_left)/_tailsitter_servo_angle_max_deg, -1.0f, 1.0f);
+    _tilt_right  = constrain_float(degrees(tilt_right)/_tailsitter_servo_angle_max_deg, -1.0f, 1.0f);
     _thrust_left  = constrain_float(thrust_left.length(), 0.0f, 1.0f);
     _thrust_right = constrain_float(thrust_right.length(), 0.0f, 1.0f);
     _throttle = throttle_thrust_min_rpy;
+
+    DataFlash_Class::instance()->Log_Write(
+        "TS1",
+        "TimeUS,TiL,TiR,ThLx,ThLy,ThRx,ThRy,Thr,RPYs",
+        "Qffffffff",
+        AP_HAL::micros64(),
+        _tilt_left,
+        _tilt_right,
+        thrust_left.x,
+        thrust_left.y,
+        thrust_right.x,
+        thrust_right.y,
+        _throttle,
+        rpy_scale);
+    DataFlash_Class::instance()->Log_Write(
+        "TS2",
+        "TimeUS,ThrMnRPY,ThrMxRPY,PiTh,YaTh",
+        "Qffff",
+        AP_HAL::micros64(),
+        throttle_thrust_min_rpy,
+        throttle_thrust_max_rpy,
+        pitch_thrust,
+        yaw_thrust);
 }
 
 // output_test_seq - spin a motor at the pwm value specified
