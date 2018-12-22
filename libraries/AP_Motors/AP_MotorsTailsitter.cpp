@@ -228,8 +228,8 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
     yaw_thrust = yaw_thrust * thrust_sin * 0.5f;     // input of 1 is full deflection at 50% thrust
 
     // Calculate thrust vectors
-    thrust_left.y = pitch_thrust - yaw_thrust;
-    thrust_right.y = pitch_thrust + yaw_thrust;
+    thrust_left.y = 0.5*constrain_float(pitch_thrust - yaw_thrust, -1, 1);
+    thrust_right.y = 0.5*constrain_float(pitch_thrust + yaw_thrust, -1, 1);
 
     float thrust_left_up_min = thrust_left.y/thrust_tan;
     float thrust_left_up_max = safe_sqrt(1.0f-sq(thrust_left.y));
@@ -335,6 +335,17 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
         throttle_thrust_max_rpy,
         pitch_thrust,
         yaw_thrust);
+    DataFlash_Class::instance()->Log_Write(
+        "TS3",
+        "TimeUS,ThLUpMin,ThLUpMax,ThRUpMin,ThRUpMax,RollThrMax,RollThr",
+        "Qffffff",
+        AP_HAL::micros64(),
+        thrust_left_up_min,
+        thrust_left_up_max,
+        thrust_right_up_min,
+        thrust_right_up_max,
+        roll_thrust_max,
+        roll_thrust);
 }
 
 // output_test_seq - spin a motor at the pwm value specified
