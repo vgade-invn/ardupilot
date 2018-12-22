@@ -26,6 +26,7 @@
 extern const AP_HAL::HAL& hal;
 
 #define SERVO_OUTPUT_RANGE  4500
+#define SERVO_OUTPUT_ANGLE  45.0f
 
 // init
 void AP_MotorsTailsitter::init(motor_frame_class frame_class, motor_frame_type frame_type)
@@ -140,15 +141,75 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
     float   pitch_thrust;               // pitch thrust input value, +/- 1.0
     float   yaw_thrust;                 // yaw thrust input value, +/- 1.0
     float   throttle_thrust;            // throttle thrust input value, 0.0 - 1.0
-    float   thrust_max;                 // highest motor value
-    float   thr_adj = 0.0f;             // the difference between the pilot's desired throttle and throttle_thrust_best_rpy
-
-    // apply voltage and air pressure compensation
-    const float compensation_gain = get_compensation_gain();
+    float   throttle_avg_max;           // throttle thrust average maximum value, 0.0 - 1.0
+    Vector2f thrust_left, thrust_right; // thrust up,back vector
+    float   yaw_allowed = 1.0f;         // amount of yaw we can fit in
+    float   thrust_sin = sinf(radians(SERVO_OUTPUT_ANGLE));
+    float   thrust_tan = tanf(radians(SERVO_OUTPUT_ANGLE));
+    const float compensation_gain = get_compensation_gain(); // voltage and air pressure compensation
     roll_thrust = _roll_in * compensation_gain;
+
+    // Normalised thrust before scaling
     pitch_thrust = _pitch_in * compensation_gain;
     yaw_thrust = _yaw_in * compensation_gain;
+    yaw_allowed = (float)_yaw_headroom / 1000.0f;
+    yaw_allowed = MAX(1.0f - fabs(pitch_thrust), yaw_allowed);
+    if (fabsf(yaw_thrust) > yaw_allowed){
+        // not all commanded yaw can be used
+        yaw_thrust = constrain_float(yaw_thrust, -yaw_allowed, yaw_allowed);
+        limit.yaw = true;
+    }
+
+    float py_sum = fabsf(yaw_thrust) + fabsf(pitch_thrust);
+    if (py_sum > 1.0f){
+        // not all commanded yaw can be used
+        pitch_thrust = pitch_thrust / py_sum;
+        yaw_thrust = yaw_thrust / py_sum;
+        limit.roll_pitch = true;
+        limit.yaw = true;
+    }
+
+    // convert to absolute thrust values
+    pitch_thrust = pitch_thrust * thrust_sin * 0.5f; // input of 1 is full deflection at 50% thrust
+    yaw_thrust = yaw_thrust * thrust_sin * 0.5f;     // input of 1 is full deflection at 50% thrust
+
+    // Calculate thrust vectors
+    thrust_left.y = pitch_thrust - yaw_thrust;
+    thrust_right.y = pitch_thrust + yaw_thrust;
+
+    float thrust_left_up_min = thrust_left.y/thrust_tan;
+    float thrust_left_up_max = safe_sqrt(1.0f-sq(thrust_left.y));
+    float thrust_right_up_min = thrust_right.y/thrust_tan;
+    float thrust_right_up_max = safe_sqrt(1.0f-sq(thrust_right.y));
+    float roll_thrust_max;
+    float throttle_thrust_min_rpy;
+    float throttle_thrust_max_rpy;
+
+    // calculate the highest allowed average thrust that will provide maximum control range
+    if(is_positive(roll_thrust)) {
+        roll_thrust_max = thrust_left_up_max - thrust_right_up_min;
+        if(roll_thrust > roll_thrust_max) {
+            roll_thrust = roll_thrust_max;
+            limit.roll_pitch = true;
+        }
+        throttle_thrust_min_rpy = thrust_right_up_min + roll_thrust_max/2;
+        throttle_thrust_max_rpy = thrust_left_up_max - roll_thrust_max/2;
+    }
+    else if(is_negative(roll_thrust)) {
+        roll_thrust_max = thrust_right_up_max - thrust_left_up_min;
+        if(roll_thrust < roll_thrust_max) {
+            roll_thrust = -roll_thrust_max;
+            limit.roll_pitch = true;
+        }
+        throttle_thrust_min_rpy = thrust_left_up_min - roll_thrust_max/2;
+        throttle_thrust_max_rpy = thrust_right_up_max + roll_thrust_max/2;
+    } else  {
+        throttle_thrust_min_rpy = MIN(thrust_left_up_min, thrust_right_up_min);
+        throttle_thrust_max_rpy = MAX(thrust_left_up_max,thrust_right_up_max);
+    }
+
     throttle_thrust = get_throttle() * compensation_gain;
+    throttle_avg_max = _throttle_avg_max * compensation_gain;
 
     // sanity check throttle is above zero and below current limited throttle
     if (throttle_thrust <= 0.0f) {
@@ -160,26 +221,40 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
         limit.throttle_upper = true;
     }
 
-    // calculate left and right throttle outputs
-    _thrust_left  = throttle_thrust + roll_thrust*0.5f;
-    _thrust_right = throttle_thrust - roll_thrust*0.5f;
-
-    // if max thrust is more than one reduce average throttle
-    thrust_max = MAX(_thrust_right,_thrust_left);
-    if (thrust_max > 1.0f) {
-        thr_adj = 1.0f - thrust_max;
-        limit.throttle_upper = true;
+    // ensure that throttle_avg_max is between the input throttle and the maximum throttle
+    throttle_avg_max = constrain_float(throttle_avg_max, throttle_thrust, _throttle_thrust_max);
+    float rpy_scale = 1.0f;
+    if(throttle_thrust_min_rpy > throttle_avg_max ) {
+        rpy_scale = throttle_avg_max / throttle_thrust_min_rpy;
+        // Full range is being used by roll, pitch, and yaw.
         limit.roll_pitch = true;
+        limit.yaw = true;
+        if (throttle_thrust < throttle_avg_max) {
+            limit.throttle_lower = true;
+        }
+    } else if(throttle_thrust_min_rpy > throttle_thrust ) {
+        limit.throttle_lower = true;
+    } else if(throttle_thrust_max_rpy > throttle_thrust ) {
+        throttle_thrust_min_rpy = throttle_thrust;
+    } else {
+        throttle_thrust_min_rpy = throttle_thrust_max_rpy;
+        limit.throttle_upper = true;
     }
 
-    // Add adjustment to reduce average throttle
-    _thrust_left  = constrain_float(_thrust_left  + thr_adj, 0.0f, 1.0f);
-    _thrust_right = constrain_float(_thrust_right + thr_adj, 0.0f, 1.0f);
-    _throttle = throttle_thrust + thr_adj;
+    thrust_left.x = throttle_thrust_min_rpy + roll_thrust*0.5f;
+    thrust_right.x = throttle_thrust_min_rpy - roll_thrust*0.5f;
 
-    // thrust vectoring
-    _tilt_left  = pitch_thrust - yaw_thrust;
-    _tilt_right = pitch_thrust + yaw_thrust;
+    thrust_left *= rpy_scale;
+    thrust_right *= rpy_scale;
+
+    // Add adjustment to reduce average throttle
+    float tilt_left = atan2f(thrust_left.x, thrust_left.y);
+    float tilt_right = atan2f(thrust_right.x, thrust_right.y);
+    _tilt_left  = constrain_float(degrees(tilt_left)/SERVO_OUTPUT_ANGLE, -1.0f, 1.0f);
+    _tilt_right  = constrain_float(degrees(tilt_right)/SERVO_OUTPUT_ANGLE, -1.0f, 1.0f);
+    _thrust_left  = constrain_float(thrust_left.length(), 0.0f, 1.0f);
+    _thrust_right = constrain_float(thrust_right.length(), 0.0f, 1.0f);
+    _throttle = throttle_thrust_min_rpy;
 }
 
 // output_test_seq - spin a motor at the pwm value specified
