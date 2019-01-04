@@ -112,16 +112,11 @@ static void imuf_reset(bool bootloaderMode)
     }
 
     hal.gpio->write(HAL_IMUF_RESET_PIN, 0);
-
-    for(uint32_t x = 0; x<10; x++) {
-        palToggleLine(HAL_GPIO_PIN_LED0);
-        hal.scheduler->delay(10);
-    }
-    palClearLine(HAL_GPIO_PIN_LED0);
-    
+    hal.scheduler->delay(10);
     hal.gpio->write(HAL_IMUF_RESET_PIN, 1);
+
     printf("RESET COMPLETE!\n");
-    hal.scheduler->delay(100);
+    hal.scheduler->delay(70);
     if(bootloaderMode) {
         hal.gpio->write(HAL_IMUF_READY_PIN, 0);
         hal.gpio->pinMode(HAL_IMUF_READY_PIN, 0);
@@ -248,10 +243,10 @@ bool AP_InertialSensor_IMUF::init()
 {
     struct IMUFCommand cmd {}, reply {};
 
-    for (uint8_t i=0; i<40; i++) {
-        printf("waiting %u\n", i);
-        hal.scheduler->delay(100);
-    }
+    // for (uint8_t i=0; i<40; i++) {
+    //     printf("waiting %u\n", i);
+    //     hal.scheduler->delay(100);
+    // }
 
     //enable CRC
     rccEnableCRC(FALSE);
@@ -261,12 +256,9 @@ bool AP_InertialSensor_IMUF::init()
     for (uint8_t attempt = 0; attempt < IMUF_RESET_ATTEMPTS; attempt++)
     {
         printf("IMU-f Read Attempt %d\n", attempt);
-        if (attempt) //reset IMU-f to known state if first read attempt fails
-        {
-            imuf_reset(false);
-            imuf_reset(false);
-            hal.scheduler->delay(300 * attempt);
-        }
+
+        imuf_reset(false);
+        imuf_reset(false);
 
         //SETUP A COMMAND
         setup_whoami_command(&cmd);
@@ -331,10 +323,9 @@ void AP_InertialSensor_IMUF::read_sensor(void)
 
     if (calcedCRC != data.crc) {
         printf("BAD CRC!!!!!!!!!!! crc2 0x%08x crc 0x%08x\n", calcedCRC, data.crc);
+        printf("IMUF accel %.2f %.2f %.2f\n", data.accel[0], data.accel[1], data.accel[2]);
         return;
     }
-
-    printf("IMUF accel %.2f %.2f %.2f\n", data.accel[0], data.accel[1], data.accel[2]);
 
     //IMU-f outputs DPS, but we need RPS, convert here.
     Vector3f gyro(data.gyro[0]*0.0174533f, data.gyro[1]*0.0174533f, data.gyro[2]*0.0174533f);
