@@ -20,8 +20,9 @@
 #include <stdio.h>
 #include <utility>
 
-#define IMUF_FIRMWARE_MIN_VERSION 106
+#define IMUF_FIRMWARE_MIN_VERSION 1108
 #define IMUF_RESET_ATTEMPTS 10
+#define IMUF_COMM_MODE 48
 
 #define IMUF_BL_ERASE_ALL         22
 #define IMUF_BL_REPORT_INFO       24
@@ -75,7 +76,6 @@ void AP_InertialSensor_IMUF::start()
     printf("IMUF start\n");
     accel_instance = _imu.register_accel(1000, dev->get_bus_id_devtype(DEVTYPE_INS_IMUF));
     gyro_instance = _imu.register_gyro(1000,   dev->get_bus_id_devtype(DEVTYPE_INS_IMUF));
-
     // setup sensor rotations from probe()
     set_gyro_orientation(gyro_instance, rotation);
     set_accel_orientation(accel_instance, rotation);
@@ -108,7 +108,7 @@ static void imuf_reset(bool bootloaderMode)
 
     if(bootloaderMode) {
         hal.gpio->pinMode(HAL_IMUF_READY_PIN, 1);
-        hal.gpio->write(HAL_IMUF_RESET_PIN, 1);
+        hal.gpio->write(HAL_IMUF_READY_PIN, 1);
     }
 
     hal.gpio->write(HAL_IMUF_RESET_PIN, 0);
@@ -121,6 +121,7 @@ static void imuf_reset(bool bootloaderMode)
     
     hal.gpio->write(HAL_IMUF_RESET_PIN, 1);
     printf("RESET COMPLETE!\n");
+    hal.scheduler->delay(100);
     if(bootloaderMode) {
         hal.gpio->write(HAL_IMUF_READY_PIN, 0);
         hal.gpio->pinMode(HAL_IMUF_READY_PIN, 0);
@@ -154,7 +155,7 @@ bool AP_InertialSensor_IMUF::imuf_send_receive(IMUFCommand* cmd, IMUFCommand* re
     cmd->crc = crc_block((const uint32_t *)cmd, 11);
 
     hal.gpio->pinMode(HAL_IMUF_READY_PIN, 0);
-    if (!wait_ready(1000)) {
+    if (!wait_ready(100)) {
         printf("not ready\n");
         hal.scheduler->delay(500);
         return false;
@@ -172,7 +173,7 @@ bool AP_InertialSensor_IMUF::imuf_send_receive(IMUFCommand* cmd, IMUFCommand* re
 
     if ((crcCalc == reply->crc) && ((reply->command == IMUF_COMMAND_LISTENING) || (reply->command == IMUF_BL_LISTENING))) {    //this tells us the IMU was listening for a command, else we need to reset sync
 
-        if (!wait_ready(1000)) {
+        if (!wait_ready(100)) {
             printf("transfer failed\n");
             hal.scheduler->delay(500);
             return false;
@@ -229,53 +230,26 @@ void AP_InertialSensor_IMUF::setup_whoami_command(IMUFCommand* cmd)
 
 void AP_InertialSensor_IMUF::setup_contract(IMUFCommand* cmd, uint32_t imufVersion)
 {
-    if (imufVersion < 107) {
-        //backwards compatibility for Caprica
-        //TODO: WARNING, TEST CODE, MUST BE CHANGED
-        cmd->command = IMUF_COMMAND_SETUP;
-        cmd->param[0] = 32; // gyro+accel+temp+crc
-        cmd->param[1] = (6<<16) | 300; // 1kHz, 300 window
-        cmd->param[2] = (3000<<16) | 3000; // RollQ, PitchQ
-        cmd->param[3] = (3000<<16) | 100; // YawQ, RollGyroLPF
-        cmd->param[4] = (100<<16) | 100; // pitchGyroLPF, YawGyroLPF
-        cmd->param[5] = 0; // unused
-        cmd->param[6] = 0; // unused
-        cmd->param[7] = 0; // RollOrient, Orient
-        cmd->param[8] = 0; // YawOrient, PitchOrient
-        cmd->param[9] = 0; // unknown
-        cmd->crc = crc_block((const uint32_t *)&cmd, 11);
-        // cmd->param2 = ( (uint16_t)(gyroConfig()->imuf_rate+1) << 16 );
-        // cmd->param3 = ( (uint16_t)gyroConfig()->imuf_pitch_q << 16 )            | (uint16_t)constrain(gyroConfig()->imuf_w, 6, 10);
-        // cmd->param4 = ( (uint16_t)gyroConfig()->imuf_roll_q << 16 )             | (uint16_t)constrain(gyroConfig()->imuf_w, 6, 10);
-        // cmd->param5 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16 )              | (uint16_t)constrain(gyroConfig()->imuf_w, 6, 10);
-        // cmd->param6 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_roll_lpf_cutoff_hz;
-        // cmd->param7 = ( (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz << 16)   | (uint16_t)0;
-        // cmd->param8 = ( (int16_t)boardAlignment()->rollDegrees << 16 )          | imufGyroAlignment();
-        // data->param9 = ( (int16_t)boardAlignment()->yawDegrees << 16 )           | (int16_t)boardAlignment()->pitchDegrees;
-    } else {
-        //Odin+ contract. 
-        //TODO: WARNING, TEST CODE, MUST BE CHANGED
-        cmd->command = IMUF_COMMAND_SETUP;
-        cmd->param[0] = 32; // gyro+accel+temp+crc
-        cmd->param[1] = (6<<16) | 300; // 1kHz, 300 window
-        cmd->param[2] = (3000<<16) | 3000; // RollQ, PitchQ
-        cmd->param[3] = (3000<<16) | 100; // YawQ, RollGyroLPF
-        cmd->param[4] = (100<<16) | 100; // pitchGyroLPF, YawGyroLPF
-        cmd->param[5] = 0; // unused
-        cmd->param[6] = 0; // unused
-        cmd->param[7] = 0; // RollOrient, Orient
-        cmd->param[8] = 0; // YawOrient, PitchOrient
-        cmd->param[9] = 0; // unknown
-        cmd->crc = crc_block((const uint32_t *)&cmd, 11);
+    cmd->command  = IMUF_COMMAND_SETUP;
+    cmd->param[0] = IMUF_COMM_MODE; // gyro+accel+temp+crc
+    cmd->param[1] = (5<<16) | 300; // 2kHz, 300 window
+    cmd->param[2] = (3000<<16) | 3000; // RollQ, PitchQ
+    cmd->param[3] = (3000<<16) | 100; // YawQ, RollGyroLPF
+    cmd->param[4] = (100<<16) | 100; // pitchGyroLPF, YawGyroLPF
+    cmd->param[5] = 0; // unused
+    cmd->param[6] = 0; // unused
+    cmd->param[7] = 0; // RollOrient, Orient
+    cmd->param[8] = 0; // YawOrient, PitchOrient
+    cmd->param[9] = 0; // unknown
+    cmd->crc      = crc_block((const uint32_t *)&cmd, 11);
 
-        // data->param2 = ( (uint16_t)(gyroConfig()->imuf_rate+1) << 16)            | (uint16_t)gyroConfig()->imuf_w;
-        // data->param3 = ( (uint16_t)gyroConfig()->imuf_roll_q << 16)              | (uint16_t)gyroConfig()->imuf_pitch_q;
-        // data->param4 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16)               | (uint16_t)gyroConfig()->imuf_roll_lpf_cutoff_hz;
-        // data->param5 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz;
-        // data->param7 = ( (uint16_t)0 << 16)                                      | (uint16_t)0;
-        // data->param8 = ( (int16_t)boardAlignment()->rollDegrees << 16 )          | imufGyroAlignment();
-        // data->param9 = ( (int16_t)boardAlignment()->yawDegrees << 16 )           | (int16_t)boardAlignment()->pitchDegrees;
-    }
+    // data->param2 = ( (uint16_t)(gyroConfig()->imuf_rate+1) << 16)            | (uint16_t)gyroConfig()->imuf_w;
+    // data->param3 = ( (uint16_t)gyroConfig()->imuf_roll_q << 16)              | (uint16_t)gyroConfig()->imuf_pitch_q;
+    // data->param4 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16)               | (uint16_t)gyroConfig()->imuf_roll_lpf_cutoff_hz;
+    // data->param5 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz;
+    // data->param7 = ( (uint16_t)0 << 16)                                      | (uint16_t)0;
+    // data->param8 = ( (int16_t)boardAlignment()->rollDegrees << 16 )          | imufGyroAlignment();
+    // data->param9 = ( (int16_t)boardAlignment()->yawDegrees << 16 )           | (int16_t)boardAlignment()->pitchDegrees;
 }
 
 bool AP_InertialSensor_IMUF::init()
@@ -305,7 +279,7 @@ bool AP_InertialSensor_IMUF::init()
         setup_whoami_command(&cmd);
         if (imuf_send_receive(&cmd, &reply)) //imuf_send_receive returns true is reply is valid
         {
-            if(reply.param[1] > IMUF_FIRMWARE_MIN_VERSION) { //make sure version is compatible. 106 to current (110) is okay to use)
+            if(reply.param[1] >= IMUF_FIRMWARE_MIN_VERSION) { //make sure version is compatible. 106 to current (110) is okay to use)
                 printf("IMU-f version is safe. Version %d Found!\n", reply.param[1]);
                 setup_contract(&cmd, reply.param[1]); //setup and start the IMU-f
                 if (imuf_send_receive(&cmd, &reply))
@@ -327,60 +301,6 @@ bool AP_InertialSensor_IMUF::init()
         hal.scheduler->delay(1000);
     }
     return false;
-
-    // printf("%s(%u)\n", __FILE__, __LINE__); hal.scheduler->delay(500);
-    // bool ret = false;
-    // while (true) {
-    //     printf("%s(%u)\n", __FILE__, __LINE__); hal.scheduler->delay(500);
-    //     cmd.command = IMUF_COMMAND_SETUP;
-    //     cmd.crc = crc_block((const uint32_t *)&cmd, 11);
-
-    //     palToggleLine(HAL_GPIO_PIN_LED0);
-    //     hal.scheduler->delay(50);
-    //     palToggleLine(HAL_GPIO_PIN_LED0);
-
-    //     dev->set_chip_select(true);
-    //     ret = dev->transfer_fullduplex((const uint8_t *)&cmd, sizeof(cmd), (uint8_t *)&reply, sizeof(reply));
-    //     dev->set_chip_select(false);
-    //     if (!ret) {
-    //         printf("transfer failed\n");
-    //         hal.scheduler->delay(500);
-    //         continue;
-    //     }
-    //     uint32_t crc2 = crc_block((const uint32_t *)&reply, 11);
-    //     printf("reply: cmd=%u cmdr=%u crc=0x%08x crc2=0x%08x crcr=0x%08x\n", cmd.command, reply.command, cmd.crc, crc2, reply.crc);
-    //     if (!wait_ready(1000)) {
-    //         printf("not ready\n");
-    //         hal.scheduler->delay(500);
-    //         continue;
-    //     }
-    //     cmd.command = IMUF_COMMAND_NONE;
-    //     cmd.crc = crc_block((const uint32_t *)&cmd, 11);
-    //     dev->set_chip_select(true);
-    //     ret = dev->transfer_fullduplex((const uint8_t *)&cmd, sizeof(cmd), (uint8_t *)&reply, sizeof(reply));
-    //     dev->set_chip_select(false);
-    //     if (!ret) {
-    //         printf("transfer failed\n");
-    //         hal.scheduler->delay(500);
-    //         continue;
-    //     }
-    //     crc2 = crc_block((const uint32_t *)&reply, 11);
-    //     printf("reply2: cmd=%u 0x%08x 0x%08x\n", reply.command, reply.crc, crc2);
-    //     if (crc2 == reply.crc && reply.command == IMUF_COMMAND_SETUP) {
-    //         printf("setup OK\n");
-    //         while (true) {
-    //             palToggleLine(HAL_GPIO_PIN_LED0);
-    //             hal.scheduler->delay(50);
-    //             palToggleLine(HAL_GPIO_PIN_LED0);
-    //             read_sensor();
-    //         }
-    //     }
-    //     ret = false;
-    //     hal.scheduler->delay(100);
-    // }
-    // dev->get_semaphore()->give();
-    // printf("IMUF init done: %u 0x%08x 0x%x 0x%x\n", ret, cmd.crc, reply.command, reply.crc);
-    // return ret;
 }
 
 /*
@@ -388,28 +308,48 @@ bool AP_InertialSensor_IMUF::init()
  */
 void AP_InertialSensor_IMUF::read_sensor(void)
 {
-    struct PACKED {
+    struct PACKED imuCommFrame
+    {
         float gyro[3];
         float accel[3];
         float temp;
+        float quat[4];
         uint32_t crc;
-    } data, command;
+        uint32_t tail;
+    };
 
-    command.gyro[0]=0; //commanded roll, 
-    command.gyro[1]=0; //commanded pitch, 
-    command.gyro[2]=0; //commanded yaw, 
-    command.accel[0]=1; //armed, 
-    command.crc=crc_block((uint32_t *)&command, 7); 
+    struct imuCommFrame data {};
+    struct IMUFCommand command {};
 
-    if (!dev->transfer_fullduplex((uint8_t *)&command, (uint8_t *)&data, sizeof(data))) {
+    //TODO: This needs to be changed to send actual setpoint data in DPS
+    command.command = IMUF_COMMAND_SETPOINT;
+    command.param[0]=0; //commanded roll, 
+    command.param[1]=0; //commanded pitch, 
+    command.param[2]=0; //commanded yaw, 
+    command.param[3]=1; //armed, 
+    command.param[4]=crc_block((uint32_t *)&command, 5); 
+
+    if (!dev->transfer_fullduplex((uint8_t *)&command, (uint8_t *)&data, 50)) {
+        printf("BAD TRANSFER OF IMUF!");
         return;
     }
 
-    Vector3f gyro(data.gyro[0], data.gyro[1], data.gyro[2]);
+    uint32_t calcedCRC = crc_block( (uint32_t *)(&data), (IMUF_COMM_MODE >> 2) - 1);
+
+    if (calcedCRC != data.crc) {
+        printf("BAD CRC!!!!!!!!!!! crc2 0x%08x crc 0x%08x\n", calcedCRC, data.crc);
+        return;
+    }
+
+    printf("IMUF accel %.2f %.2f %.2f\n", data.accel[0], data.accel[1], data.accel[2]);
+
+    //IMU-f outputs DPS, but we need RPS, convert here.
+    Vector3f gyro(data.gyro[0]*0.0174533f, data.gyro[1]*0.0174533f, data.gyro[2]*0.0174533f);
     _rotate_and_correct_gyro(gyro_instance, gyro);
     _notify_new_gyro_raw_sample(gyro_instance, gyro);
 
-    Vector3f accel(data.accel[0], data.accel[1], data.accel[2]);
+    //IMU-f outputs Gees, but we need m/s^2, convert here.
+    Vector3f accel(data.accel[0]*9.807f, data.accel[1]*9.807f, data.accel[2]*9.807f);
     _rotate_and_correct_accel(accel_instance, accel);
     _notify_new_accel_raw_sample(accel_instance, accel);
 
