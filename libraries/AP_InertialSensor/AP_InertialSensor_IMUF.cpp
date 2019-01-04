@@ -113,9 +113,9 @@ static void imuf_reset(bool bootloaderMode)
 
     hal.gpio->write(HAL_IMUF_RESET_PIN, 0);
 
-    for(uint32_t x = 0; x<40; x++) {
+    for(uint32_t x = 0; x<10; x++) {
         palToggleLine(HAL_GPIO_PIN_LED0);
-        hal.scheduler->delay(20);
+        hal.scheduler->delay(10);
     }
     palClearLine(HAL_GPIO_PIN_LED0);
     
@@ -150,21 +150,17 @@ bool AP_InertialSensor_IMUF::imuf_send_receive(IMUFCommand* cmd, IMUFCommand* re
 
     printf("IMUF sending and receiving\n");
 
-    printf("%s(%u)\n", __FILE__, __LINE__); hal.scheduler->delay(500);
-
     cmd->crc = crc_block((const uint32_t *)cmd, 11);
 
     hal.gpio->pinMode(HAL_IMUF_READY_PIN, 0);
     if (!wait_ready(100)) {
         printf("not ready\n");
-        hal.scheduler->delay(500);
         return false;
     }
 
     bool ret = dev->transfer_fullduplex((const uint8_t *)cmd, (uint8_t *)reply, sizeof(IMUFCommand));
     if (!ret) {
         printf("transfer failed\n");
-        hal.scheduler->delay(500);
         return false;
     }
 
@@ -175,7 +171,6 @@ bool AP_InertialSensor_IMUF::imuf_send_receive(IMUFCommand* cmd, IMUFCommand* re
 
         if (!wait_ready(100)) {
             printf("transfer failed\n");
-            hal.scheduler->delay(500);
             return false;
         }
 
@@ -195,7 +190,6 @@ bool AP_InertialSensor_IMUF::imuf_send_receive(IMUFCommand* cmd, IMUFCommand* re
         ret = dev->transfer_fullduplex((const uint8_t *)cmd, (uint8_t *)reply, sizeof(IMUFCommand));
         if (!ret) {
             printf("transfer failed\n");
-            hal.scheduler->delay(500);
             return false;
         }
 
@@ -207,12 +201,10 @@ bool AP_InertialSensor_IMUF::imuf_send_receive(IMUFCommand* cmd, IMUFCommand* re
             return true;
         } else {
             printf("IMU-f crc check on 2 failed\n");
-            hal.scheduler->delay(500);
             return false;
         }
     } else {
         printf("IMU-f crc check on 1 failed\n");
-        hal.scheduler->delay(500);
         return false;
     }
     
@@ -271,6 +263,7 @@ bool AP_InertialSensor_IMUF::init()
         printf("IMU-f Read Attempt %d\n", attempt);
         if (attempt) //reset IMU-f to known state if first read attempt fails
         {
+            imuf_reset(false);
             imuf_reset(false);
             hal.scheduler->delay(300 * attempt);
         }
