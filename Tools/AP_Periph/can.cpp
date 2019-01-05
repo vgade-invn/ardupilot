@@ -2,7 +2,18 @@
 #include <AP_Math/AP_Math.h>
 #include "AP_Periph.h"
 #include "hal.h"
-#include "../../modules/libcanard/canard.h"
+#include <canard.h>
+#include <uavcan/protocol/dynamic_node_id/Allocation.h>
+#include <uavcan/protocol/NodeStatus.h>
+#include <uavcan/protocol/RestartNode.h>
+#include <ardupilot/bus/I2CReqAnnounce.h>
+#include <ardupilot/bus/I2CAnnounce.h>
+#include <ardupilot/bus/I2C.h>
+
+// we don't use the generated code for these ones as it doesn't
+// build as C++ due to void* cast
+//#include <uavcan/protocol/GetNodeInfo.h>
+//#include <uavcan/protocol/file/BeginFirmwareUpdate.h>
 
 extern const AP_HAL::HAL &hal;
 
@@ -43,42 +54,16 @@ static const CANConfig cancfg = {
 
 #define APP_VERSION_MAJOR                                           1
 #define APP_VERSION_MINOR                                           0
-#define APP_NODE_NAME                                               "org.uavcan.libcanard.ap_periph"
-
-/*
- * Some useful constants defined by the UAVCAN specification.
- * Data type signature values can be easily obtained with the script show_data_type_info.py
- */
-#define UAVCAN_NODE_ID_ALLOCATION_DATA_TYPE_ID                      1
-#define UAVCAN_NODE_ID_ALLOCATION_DATA_TYPE_SIGNATURE               0x0b2a812620a11d40
-#define UAVCAN_NODE_ID_ALLOCATION_RANDOM_TIMEOUT_RANGE_USEC         400000UL
-#define UAVCAN_NODE_ID_ALLOCATION_REQUEST_DELAY_OFFSET_USEC         600000UL
-
-#define UAVCAN_NODE_STATUS_MESSAGE_SIZE                             7
-#define UAVCAN_NODE_STATUS_DATA_TYPE_ID                             341
-#define UAVCAN_NODE_STATUS_DATA_TYPE_SIGNATURE                      0x0f0868d0c1a7c6f1
-
-#define UAVCAN_NODE_HEALTH_OK                                       0
-#define UAVCAN_NODE_HEALTH_WARNING                                  1
-#define UAVCAN_NODE_HEALTH_ERROR                                    2
-#define UAVCAN_NODE_HEALTH_CRITICAL                                 3
-
-#define UAVCAN_NODE_MODE_OPERATIONAL                                0
-#define UAVCAN_NODE_MODE_INITIALIZATION                             1
+#define APP_NODE_NAME                                               "org.ardupilot.ap_periph"
 
 #define UAVCAN_GET_NODE_INFO_RESPONSE_MAX_SIZE                      ((3015 + 7) / 8)
 #define UAVCAN_GET_NODE_INFO_DATA_TYPE_SIGNATURE                    0xee468a8121c46a9e
 #define UAVCAN_GET_NODE_INFO_DATA_TYPE_ID                           1
 
-#define UAVCAN_BEGIN_FIRMWARE_UPDATE_DATA_TYPE_ID                   40
-#define UAVCAN_BEGIN_FIRMWARE_UPDATE_DATA_TYPE_SIGNATURE            0xb7d725df72724126
-#define UAVCAN_BEGIN_FIRMWARE_UPDATE_RESPONSE_MAX_SIZE              ((1031+7)/8)
-#define UAVCAN_BEGIN_FIRMWARE_UPDATE_REQUEST_MAX_SIZE               ((1616+7)/8)
-
-#define UAVCAN_RESTART_NODE_DATA_TYPE_ID                            5
-#define UAVCAN_RESTART_NODE_DATA_TYPE_SIGNATURE                     0x569e05394a3017f0
-#define UAVCAN_RESTART_NODE_REQUEST_MAX_SIZE                        ((40+7)/8)
-#define UAVCAN_RESTART_NODE_RESPONSE_MAX_SIZE                       ((1+7)/8)
+#define UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_ID        40
+#define UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_NAME      "uavcan.protocol.file.BeginFirmwareUpdate"
+#define UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_SIGNATURE (0xB7D725DF72724126ULL)
+#define UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_REQUEST_MAX_SIZE ((1616 + 7)/8)
 
 #define UNIQUE_ID_LENGTH_BYTES                                      16
 
@@ -92,8 +77,8 @@ static uint8_t node_id_allocation_unique_id_offset;         ///< Depends on the 
 /*
  * Node status variables
  */
-static uint8_t node_health = UAVCAN_NODE_HEALTH_OK;
-static uint8_t node_mode   = UAVCAN_NODE_MODE_INITIALIZATION;
+static uint8_t node_health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
+static uint8_t node_mode   = UAVCAN_PROTOCOL_NODESTATUS_MODE_INITIALIZATION;
 
 
 static uint64_t getMonotonicTimestampUSec(void)
@@ -122,9 +107,9 @@ static void readUniqueID(uint8_t* out_uid)
 }
 
 
-static void makeNodeStatusMessage(uint8_t buffer[UAVCAN_NODE_STATUS_MESSAGE_SIZE])
+static uint32_t makeNodeStatusMessage(uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE])
 {
-    memset(buffer, 0, UAVCAN_NODE_STATUS_MESSAGE_SIZE);
+    uavcan_protocol_NodeStatus status {};
 
     static uint32_t started_at_sec = 0;
     if (started_at_sec == 0)
@@ -132,15 +117,13 @@ static void makeNodeStatusMessage(uint8_t buffer[UAVCAN_NODE_STATUS_MESSAGE_SIZE
         started_at_sec = (uint32_t)(getMonotonicTimestampUSec() / 1000000U);
     }
 
-    const uint32_t uptime_sec = (uint32_t)((getMonotonicTimestampUSec() / 1000000U) - started_at_sec);
+    status.uptime_sec = (uint32_t)((getMonotonicTimestampUSec() / 1000000U) - started_at_sec);
+    status.health = node_health;
+    status.mode = node_mode;
+    status.sub_mode = 0;
+    status.vendor_specific_status_code = 0;
 
-    /*
-     * Here we're using the helper for demonstrational purposes; in this simple case it could be preferred to
-     * encode the values manually.
-     */
-    canardEncodeScalar(buffer,  0, 32, &uptime_sec);
-    canardEncodeScalar(buffer, 32,  2, &node_health);
-    canardEncodeScalar(buffer, 34,  3, &node_mode);
+    return uavcan_protocol_NodeStatus_encode(&status, buffer);
 }
 
 /*
@@ -198,6 +181,9 @@ static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* 
     NVIC_SystemReset();
 }
 
+static void handle_i2c_req_announce(CanardInstance* ins, CanardRxTransfer* transfer)
+{
+}
 
 /**
  * This callback is invoked by the library when a new message or request or response is received.
@@ -211,12 +197,12 @@ static void onTransferReceived(CanardInstance* ins,
      */
     if ((canardGetLocalNodeID(ins) == CANARD_BROADCAST_NODE_ID) &&
         (transfer->transfer_type == CanardTransferTypeBroadcast) &&
-        (transfer->data_type_id == UAVCAN_NODE_ID_ALLOCATION_DATA_TYPE_ID))
+        (transfer->data_type_id == UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID))
     {
         // Rule C - updating the randomized time interval
         send_next_node_id_allocation_request_at =
-            getMonotonicTimestampUSec() + UAVCAN_NODE_ID_ALLOCATION_REQUEST_DELAY_OFFSET_USEC +
-            (uint64_t)(getRandomFloat() * UAVCAN_NODE_ID_ALLOCATION_RANDOM_TIMEOUT_RANGE_USEC);
+            getMonotonicTimestampUSec() + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS*1000U +
+            (uint64_t)(getRandomFloat() * UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_FOLLOWUP_DELAY_MS*1000U);
 
         if (transfer->source_node_id == CANARD_BROADCAST_NODE_ID)
         {
@@ -248,11 +234,11 @@ static void onTransferReceived(CanardInstance* ins,
             return;         // No match, return
         }
 
-        if (received_unique_id_len < UNIQUE_ID_LENGTH_BYTES)
+        if (received_unique_id_len < UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH)
         {
             // The allocator has confirmed part of unique ID, switching to the next stage and updating the timeout.
             node_id_allocation_unique_id_offset = received_unique_id_len;
-            send_next_node_id_allocation_request_at -= UAVCAN_NODE_ID_ALLOCATION_REQUEST_DELAY_OFFSET_USEC;
+            send_next_node_id_allocation_request_at -= UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS*1000U;
 
             puts("Matching allocation response");
         }
@@ -276,8 +262,13 @@ static void onTransferReceived(CanardInstance* ins,
         handle_get_node_info(ins, transfer);
         break;
 
-    case UAVCAN_BEGIN_FIRMWARE_UPDATE_DATA_TYPE_ID:
+    case UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_ID:
         handle_begin_firmware_update(ins, transfer);
+        break;
+
+    case ARDUPILOT_BUS_I2CREQANNOUNCE_ID:
+        puts("got I2CReqAnnounce");
+        handle_i2c_req_announce(ins, transfer);
         break;
     }
 }
@@ -304,9 +295,9 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
          * If we're in the process of allocation of dynamic node ID, accept only relevant transfers.
          */
         if ((transfer_type == CanardTransferTypeBroadcast) &&
-            (data_type_id == UAVCAN_NODE_ID_ALLOCATION_DATA_TYPE_ID))
+            (data_type_id == UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID))
         {
-            *out_data_type_signature = UAVCAN_NODE_ID_ALLOCATION_DATA_TYPE_SIGNATURE;
+            *out_data_type_signature = UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_SIGNATURE;
             return true;
         }
         return false;
@@ -318,11 +309,17 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
     case UAVCAN_GET_NODE_INFO_DATA_TYPE_ID:
         *out_data_type_signature = UAVCAN_GET_NODE_INFO_DATA_TYPE_SIGNATURE;
         return true;
-    case UAVCAN_BEGIN_FIRMWARE_UPDATE_DATA_TYPE_ID:
-        *out_data_type_signature = UAVCAN_BEGIN_FIRMWARE_UPDATE_DATA_TYPE_SIGNATURE;
+    case UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_ID:
+        *out_data_type_signature = UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_SIGNATURE;
         return true;
-    case UAVCAN_RESTART_NODE_DATA_TYPE_ID:
-        *out_data_type_signature = UAVCAN_RESTART_NODE_DATA_TYPE_SIGNATURE;
+    case UAVCAN_PROTOCOL_RESTARTNODE_ID:
+        *out_data_type_signature = UAVCAN_PROTOCOL_RESTARTNODE_SIGNATURE;
+        return true;
+    case ARDUPILOT_BUS_I2C_ID:
+        *out_data_type_signature = ARDUPILOT_BUS_I2C_SIGNATURE;
+        return true;
+    case ARDUPILOT_BUS_I2CREQANNOUNCE_ID:
+        *out_data_type_signature = ARDUPILOT_BUS_I2CREQANNOUNCE_SIGNATURE;
         return true;
     default:
         break;
@@ -403,19 +400,19 @@ static void process1HzTasks(uint64_t timestamp_usec)
      * Transmitting the node status message periodically.
      */
     {
-        uint8_t buffer[UAVCAN_NODE_STATUS_MESSAGE_SIZE];
-        makeNodeStatusMessage(buffer);
+        uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
+        uint32_t len = makeNodeStatusMessage(buffer);
 
 
         static uint8_t transfer_id;  // Note that the transfer ID variable MUST BE STATIC (or heap-allocated)!
 
         const int16_t bc_res = canardBroadcast(&canard,
-                                               UAVCAN_NODE_STATUS_DATA_TYPE_SIGNATURE,
-                                               UAVCAN_NODE_STATUS_DATA_TYPE_ID,
+                                               UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
+                                               UAVCAN_PROTOCOL_NODESTATUS_ID,
                                                &transfer_id,
                                                CANARD_TRANSFER_PRIORITY_LOW,
                                                buffer,
-                                               UAVCAN_NODE_STATUS_MESSAGE_SIZE);
+                                               len);
         if (bc_res <= 0)
         {
             printf("broadcast fail %d\n", bc_res);
@@ -424,7 +421,7 @@ static void process1HzTasks(uint64_t timestamp_usec)
         }
     }
 
-    node_mode = UAVCAN_NODE_MODE_OPERATIONAL;
+    node_mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
 }
 
 /*
@@ -439,8 +436,8 @@ static void can_wait_node_id(void)
         puts("Waiting for dynamic node ID allocation...");
 
         send_next_node_id_allocation_request_at =
-            getMonotonicTimestampUSec() + UAVCAN_NODE_ID_ALLOCATION_REQUEST_DELAY_OFFSET_USEC +
-            (uint64_t)(getRandomFloat() * UAVCAN_NODE_ID_ALLOCATION_RANDOM_TIMEOUT_RANGE_USEC);
+            getMonotonicTimestampUSec() + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS*1000U +
+            (uint64_t)(getRandomFloat() * UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_FOLLOWUP_DELAY_MS*1000U);
 
         while ((getMonotonicTimestampUSec() < send_next_node_id_allocation_request_at) &&
                (canardGetLocalNodeID(&canard) == CANARD_BROADCAST_NODE_ID))
@@ -485,8 +482,8 @@ static void can_wait_node_id(void)
 
         // Broadcasting the request
         const int16_t bcast_res = canardBroadcast(&canard,
-                                                  UAVCAN_NODE_ID_ALLOCATION_DATA_TYPE_SIGNATURE,
-                                                  UAVCAN_NODE_ID_ALLOCATION_DATA_TYPE_ID,
+                                                  UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_SIGNATURE,
+                                                  UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID,
                                                   &node_id_allocation_transfer_id,
                                                   CANARD_TRANSFER_PRIORITY_LOW,
                                                   &allocation_request[0],
