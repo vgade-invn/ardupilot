@@ -112,7 +112,7 @@ static void imuf_reset(bool bootloaderMode)
     }
 
     hal.gpio->write(HAL_IMUF_RESET_PIN, 0);
-    hal.scheduler->delay(10);
+    hal.scheduler->delay(200);
     hal.gpio->write(HAL_IMUF_RESET_PIN, 1);
 
     printf("RESET COMPLETE!\n");
@@ -259,6 +259,11 @@ bool AP_InertialSensor_IMUF::init()
 
         imuf_reset(false);
         imuf_reset(false);
+        if(attempt)
+        {
+            imuf_reset(false);
+            hal.scheduler->delay(200 * attempt);
+        }
 
         //SETUP A COMMAND
         setup_whoami_command(&cmd);
@@ -283,7 +288,7 @@ bool AP_InertialSensor_IMUF::init()
     {
         printf("IMU-f problem\n");
         palToggleLine(HAL_GPIO_PIN_LED0);
-        hal.scheduler->delay(1000);
+        hal.scheduler->delay(500);
     }
     return false;
 }
