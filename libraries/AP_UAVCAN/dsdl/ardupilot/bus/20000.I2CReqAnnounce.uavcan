@@ -1,0 +1,4 @@
+# This message is broadcast to ask nodes to send a I2CAnnounce message
+# to announce available I2C bus services. Nodes supporting the
+# ardupilot::bus::I2C service should response with an I2CAnnounce message
+
