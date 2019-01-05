@@ -181,8 +181,28 @@ static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* 
     NVIC_SystemReset();
 }
 
+/*
+  we have received a I2CReqAnnounce, which means another node wants us
+  to announce the I2C buses we have available
+ */
 static void handle_i2c_req_announce(CanardInstance* ins, CanardRxTransfer* transfer)
 {
+    ardupilot_bus_I2CAnnounce pkt;
+    uint8_t busnum = 1;
+    pkt.bus_list.len = 1;
+    pkt.bus_list.data = &busnum;
+
+    uint8_t buffer[ARDUPILOT_BUS_I2CANNOUNCE_MAX_SIZE];
+    uint16_t total_size = ardupilot_bus_I2CAnnounce_encode(&pkt, buffer);
+
+    canardBroadcast(ins,
+                    ARDUPILOT_BUS_I2CANNOUNCE_SIGNATURE,
+                    ARDUPILOT_BUS_I2CANNOUNCE_ID,
+                    &transfer->transfer_id,
+                    transfer->priority,
+                    &buffer[0],
+                    total_size);
+    
 }
 
 /**
@@ -254,9 +274,6 @@ static void onTransferReceived(CanardInstance* ins,
         }
     }
 
-    if (transfer->transfer_type != CanardTransferTypeRequest) {
-        return;
-    }
     switch (transfer->data_type_id) {
     case UAVCAN_GET_NODE_INFO_DATA_TYPE_ID:
         handle_get_node_info(ins, transfer);
@@ -302,9 +319,7 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
         }
         return false;
     }
-    if (transfer_type != CanardTransferTypeRequest) {
-        return false;
-    }
+
     switch (data_type_id) {
     case UAVCAN_GET_NODE_INFO_DATA_TYPE_ID:
         *out_data_type_signature = UAVCAN_GET_NODE_INFO_DATA_TYPE_SIGNATURE;
