@@ -59,6 +59,9 @@
 				RegistryBinder(uc, (Registry)ffunc) {} \
 	}
 
+
+class I2CAnnounceCb;
+
 class AP_UAVCAN : public AP_HAL::CANProtocol {
 public:
     AP_UAVCAN();
@@ -190,6 +193,16 @@ private:
     } _led_conf;
 
     HAL_Semaphore _led_out_sem;
+
+    // remote I2C device handling
+    bool remote_i2c_init(uint8_t driver_index);
+    void remote_i2c_update();
+    static void remote_i2c_announce_trampoline(AP_UAVCAN* ap_uavcan, uint8_t node_id, const I2CAnnounceCb &cb);
+    void remote_i2c_announce_callback(uint8_t node_id, const I2CAnnounceCb &cb);
+
+    struct {
+        uint32_t last_discover_ms;
+    } i2c;
 };
 
 #endif /* AP_UAVCAN_H_ */
