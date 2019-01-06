@@ -161,6 +161,43 @@ static void handle_i2c_req_announce(CanardInstance* ins, CanardRxTransfer* trans
     
 }
 
+/*
+  we have received a I2C service request to perform an I2C operation
+ */
+static void handle_i2c_request(CanardInstance* ins, CanardRxTransfer* transfer)
+{
+    ardupilot_bus_I2CRequest req;
+    uint8_t arraybuf[ARDUPILOT_BUS_I2C_REQUEST_BUFFER_MAX_LENGTH];
+    uint8_t *arraybuf_ptr = arraybuf;
+    if (ardupilot_bus_I2CRequest_decode(transfer, transfer->payload_len, &req, &arraybuf_ptr) < 0) {
+        printf("I2C: decode failed\n");
+    }
+
+    uint8_t reply_data[req.numread];
+    // fake reply data
+    for (uint8_t i=0; i<req.numread; i++) {
+        reply_data[i] = i+1;
+    }
+
+    ardupilot_bus_I2CResponse pkt;
+    pkt.result = ARDUPILOT_BUS_I2C_RESPONSE_I2C_OK;
+    pkt.buffer.len = req.numread;
+    pkt.buffer.data = reply_data;
+
+    uint8_t buffer[ARDUPILOT_BUS_I2C_RESPONSE_MAX_SIZE];
+    uint16_t total_size = ardupilot_bus_I2CResponse_encode(&pkt, buffer);
+
+    canardRequestOrRespond(ins,
+                           transfer->source_node_id,
+                           ARDUPILOT_BUS_I2C_SIGNATURE,
+                           ARDUPILOT_BUS_I2C_ID,
+                           &transfer->transfer_id,
+                           transfer->priority,
+                           CanardResponse,
+                           &buffer[0],
+                           total_size);
+}
+
 /**
  * This callback is invoked by the library when a new message or request or response is received.
  */
@@ -242,6 +279,11 @@ static void onTransferReceived(CanardInstance* ins,
     case ARDUPILOT_BUS_I2CREQANNOUNCE_ID:
         puts("got I2CReqAnnounce");
         handle_i2c_req_announce(ins, transfer);
+        break;
+
+    case ARDUPILOT_BUS_I2C_ID:
+        puts("got I2C");
+        handle_i2c_request(ins, transfer);
         break;
     }
 }
