@@ -38,10 +38,6 @@
 
 #include <uavcan/protocol/debug/LogMessage.hpp>
 
-#include <ardupilot/bus/I2CReqAnnounce.hpp>
-#include <ardupilot/bus/I2CAnnounce.hpp>
-#include <ardupilot/bus/I2C.hpp>
-
 #include <AP_Baro/AP_Baro_UAVCAN.h>
 #include <AP_RangeFinder/AP_RangeFinder_UAVCAN.h>
 #include <AP_GPS/AP_GPS_UAVCAN.h>
@@ -104,13 +100,6 @@ const AP_Param::GroupInfo AP_UAVCAN::var_info[] = {
 static uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>* act_out_array[MAX_NUMBER_OF_CAN_DRIVERS];
 static uavcan::Publisher<uavcan::equipment::esc::RawCommand>* esc_raw[MAX_NUMBER_OF_CAN_DRIVERS];
 static uavcan::Publisher<uavcan::equipment::indication::LightsCommand>* rgb_led[MAX_NUMBER_OF_CAN_DRIVERS];
-static uavcan::Publisher<ardupilot::bus::I2CReqAnnounce>* i2c_req_announce[MAX_NUMBER_OF_CAN_DRIVERS];
-
-// service clients
-static uavcan::ServiceClient<ardupilot::bus::I2C> *i2c_client[MAX_NUMBER_OF_CAN_DRIVERS];
-
-// subscribers
-static uavcan::Subscriber<ardupilot::bus::I2CAnnounce, I2CAnnounceCb> *i2c_announce[MAX_NUMBER_OF_CAN_DRIVERS];
 
 AP_UAVCAN::AP_UAVCAN() :
     _node_allocator()
@@ -491,54 +480,6 @@ bool AP_UAVCAN::led_write(uint8_t led_index, uint8_t red, uint8_t green, uint8_t
     }
 
     return true;
-}
-
-
-UC_REGISTRY_BINDER(I2CAnnounceCb, ardupilot::bus::I2CAnnounce);
-
-void AP_UAVCAN::remote_i2c_announce_callback(uint8_t node_id, const I2CAnnounceCb &cb)
-{
-    printf("Got I2CAnnounce from %u\n", node_id);
-}
-
-void AP_UAVCAN::remote_i2c_announce_trampoline(AP_UAVCAN* ap_uavcan, uint8_t node_id, const I2CAnnounceCb &cb)
-{
-    ap_uavcan->remote_i2c_announce_callback(node_id, cb);
-}
-
-bool AP_UAVCAN::remote_i2c_init(uint8_t driver_index)
-{
-    // setup I2C broadcasts and client
-    i2c_req_announce[driver_index] = new uavcan::Publisher<ardupilot::bus::I2CReqAnnounce>(*_node);
-
-    // create i2c service client
-    i2c_client[driver_index] = new uavcan::ServiceClient<ardupilot::bus::I2C>(*_node);
-    if (!i2c_client[driver_index] || i2c_client[driver_index]->init() < 0) {
-        debug_uavcan(1, "UAVCAN: failed to init I2C service\n");
-        return false;
-    }
-    i2c_client[driver_index]->setCallback([](const uavcan::ServiceCallResult<ardupilot::bus::I2C>&call_result) {
-            printf("I2C: %u\n", call_result.isSuccessful());
-        });
-
-    // subscribe to I2CAnnounce messages
-    i2c_announce[driver_index] = new uavcan::Subscriber<ardupilot::bus::I2CAnnounce, I2CAnnounceCb>(*_node);
-    i2c_announce[driver_index]->start(I2CAnnounceCb(this, &remote_i2c_announce_trampoline));
-
-    return true;
-}
-
-/*
-  discover and handle remote I2C devices
- */
-void AP_UAVCAN::remote_i2c_update(void)
-{
-    uint32_t now = AP_HAL::millis();
-    if (now - i2c.last_discover_ms >= 1000) {
-        i2c.last_discover_ms = now;
-        ardupilot::bus::I2CReqAnnounce msg;
-        i2c_req_announce[_driver_index]->broadcast(msg);
-    }
 }
 
 #endif // HAL_WITH_UAVCAN
