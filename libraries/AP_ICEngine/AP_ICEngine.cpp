@@ -91,7 +91,7 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @DisplayName: RPM instance channel to use
     // @Description: This is which of the RPM instances to use for detecting the RPM of the engine
     // @User: Standard
-    // @Values: 0:None,1:RPM1,2:RPM2
+    // @Values: 0:None,1:RPM1,2:RPM2, 3: EFI1
     AP_GROUPINFO("RPM_CHAN",  9, AP_ICEngine, rpm_instance, 0),
 
     // @Param: START_PCT
@@ -106,9 +106,10 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
 
 
 // constructor
-AP_ICEngine::AP_ICEngine(const AP_RPM &_rpm, const AP_AHRS &_ahrs) :
+AP_ICEngine::AP_ICEngine(const AP_RPM &_rpm, const AP_AHRS &_ahrs, const AP_EFI &_efi) :
     rpm(_rpm),
     ahrs(_ahrs),
+    efi(_efi),
     state(ICE_OFF)
 {
     AP_Param::setup_object_defaults(this, var_info);
@@ -186,6 +187,12 @@ void AP_ICEngine::update(void)
         if (!should_run) {
             state = ICE_OFF;
             gcs().send_text(MAV_SEVERITY_INFO, "Stopped engine");
+        } else if (rpm_instance == 3) {
+            if (!efi.is_healthy(ICE_EFI_INSTANCE) ||
+                efi.get_rpm(ICE_EFI_INSTANCE) < rpm_threshold) {
+                // engine has stopped when it should be running
+                state = ICE_START_DELAY;
+            }
         } else if (rpm_instance > 0) {
             // check RPM to see if still running
             if (!rpm.healthy(rpm_instance-1) ||
