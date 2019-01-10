@@ -56,7 +56,12 @@ public:
     // Returns full state of a particular backend instance
     EFI_State* get_state(uint8_t instance) { return &_state[instance]; };
 
-    static bool is_healthy(const EFI_State& state);
+    // Returns the RPM of a particular backend instance
+    uint32_t get_rpm(uint8_t instance) const { return _state[instance].engine_speed_rpm;};
+
+    static bool is_healthy (const EFI_State& state);
+
+    bool is_healthy(uint8_t instance) const { return ((AP_HAL::millis() - _state[instance].last_updated_ms) < HEALTHY_LAST_RECEIVED_MS); };
 
     // Parameter info
     static const struct AP_Param::GroupInfo var_info[];
