@@ -18,7 +18,7 @@
 #include <AP_Math/AP_Math.h>
 #include "Util.h"
 
-#if HAL_USE_I2C == TRUE
+#if HAL_USE_I2C == TRUE && defined(HAL_I2C_DEVICE_LIST)
 
 #include "Scheduler.h"
 #include "hwdef/common/stm32_util.h"

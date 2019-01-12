@@ -53,7 +53,7 @@ static Empty::UARTDriver uartFDriver;
 static Empty::UARTDriver uartGDriver;
 #endif
 
-#if HAL_USE_I2C == TRUE
+#if HAL_USE_I2C == TRUE && defined(HAL_I2C_DEVICE_LIST)
 static ChibiOS::I2CDeviceManager i2cDeviceManager;
 #else
 static Empty::I2CDeviceManager i2cDeviceManager;
