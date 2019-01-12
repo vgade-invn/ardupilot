@@ -4,8 +4,11 @@
 # I2C bus number on the remote node
 uint8 bus
 
-# I2C port number for the request
-uint8 port
+# I2C address
+uint8 address
+
+# I2C register start
+uint8 reg_start
 
 # number of bytes to read
 uint8 numread
