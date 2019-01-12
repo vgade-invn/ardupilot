@@ -1,3 +1,20 @@
+/*
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/*
+  AP_Periph can support
+ */
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
 #include "AP_Periph.h"
@@ -11,30 +28,11 @@
 #include <ardupilot/bus/I2CReqAnnounce.h>
 #include <ardupilot/bus/I2CAnnounce.h>
 #include <ardupilot/bus/I2C.h>
+#include <stdio.h>
+
+#include "i2c.h"
 
 extern const AP_HAL::HAL &hal;
-
-// simple puts() for debugging
-static void puts(const char *str)
-{
-    chnWrite(&SD1, (const uint8_t *)str, strlen(str));
-    chnWrite(&SD1, (const uint8_t *)"\n", 1);
-}
-
-/*
-  simple printf for debugging
- */
-static void printf(const char *fmt, ...)
-{
-    va_list arg_list;
-    va_start(arg_list, fmt);
-    char buf[60];
-    int n = hal.util->vsnprintf(buf, sizeof(buf), fmt, arg_list);
-    va_end(arg_list);
-    if (n > 0) {
-        chnWrite(&SD1, (const uint8_t *)buf, n);
-    }
-}
 
 static CanardInstance canard;
 static uint32_t canard_memory_pool[2048/4];
@@ -167,15 +165,17 @@ static void handle_i2c_request(CanardInstance* ins, CanardRxTransfer* transfer)
         printf("I2C: decode failed\n");
     }
 
-    uint8_t reply_data[req.numread];
-    // fake reply data
-    for (uint8_t i=0; i<req.numread; i++) {
-        reply_data[i] = i+1;
+    uint8_t reply_data[req.numread] {};
+
+    bool ok = false;
+
+    if (req.bus == 0) {
+        ok = i2c_transfer(req.address, req.buffer.data, req.buffer.len, reply_data, req.numread);
     }
 
     ardupilot_bus_I2CResponse pkt;
-    pkt.result = ARDUPILOT_BUS_I2C_RESPONSE_I2C_OK;
-    pkt.buffer.len = req.numread;
+    pkt.result = ok?ARDUPILOT_BUS_I2C_RESPONSE_I2C_OK:ARDUPILOT_BUS_I2C_RESPONSE_I2C_ERR;
+    pkt.buffer.len = ok?req.numread:0;
     pkt.buffer.data = reply_data;
 
     uint8_t buffer[ARDUPILOT_BUS_I2C_RESPONSE_MAX_SIZE];
@@ -201,7 +201,7 @@ static void handle_allocation_response(CanardInstance* ins, CanardRxTransfer* tr
 
     if (transfer->source_node_id == CANARD_BROADCAST_NODE_ID)
     {
-        puts("Allocation request from another allocatee");
+        printf("Allocation request from another allocatee\n");
         node_id_allocation_unique_id_offset = 0;
         return;
     }
@@ -222,7 +222,7 @@ static void handle_allocation_response(CanardInstance* ins, CanardRxTransfer* tr
 
     // Matching the received UID against the local one
     if (memcmp(received_unique_id, my_unique_id, received_unique_id_len) != 0) {
-        puts("Mismatching allocation response");
+        printf("Mismatching allocation response\n");
         node_id_allocation_unique_id_offset = 0;
         return;         // No match, return
     }
@@ -271,12 +271,12 @@ static void onTransferReceived(CanardInstance* ins,
         break;
 
     case ARDUPILOT_BUS_I2CREQANNOUNCE_ID:
-        puts("got I2CReqAnnounce");
+        printf("got I2CReqAnnounce\n");
         handle_i2c_req_announce(ins, transfer);
         break;
 
     case ARDUPILOT_BUS_I2C_ID:
-        puts("got I2C");
+        printf("got I2C\n");
         handle_i2c_request(ins, transfer);
         break;
     }
@@ -376,6 +376,13 @@ static void processRx(void)
     }
 }
 
+static uint16_t pool_peak_percent(void)
+{
+    const CanardPoolAllocatorStatistics stats = canardGetPoolAllocatorStatistics(&canard);
+    const uint16_t peak_percent = (uint16_t)(100U * stats.peak_usage_blocks / stats.capacity_blocks);
+    return peak_percent;
+}
+
 /**
  * This function is called at 1 Hz rate from the main loop.
  */
@@ -390,16 +397,13 @@ static void process1HzTasks(uint64_t timestamp_usec)
      * Printing the memory usage statistics.
      */
     {
-        const CanardPoolAllocatorStatistics stats = canardGetPoolAllocatorStatistics(&canard);
-        const uint16_t peak_percent = (uint16_t)(100U * stats.peak_usage_blocks / stats.capacity_blocks);
-
         /*
          * The recommended way to establish the minimal size of the memory pool is to stress-test the application and
          * record the worst case memory usage.
          */
-        if (peak_percent > 70)
+        if (pool_peak_percent() > 70)
         {
-            puts("WARNING: ENLARGE MEMORY POOL");
+            printf("WARNING: ENLARGE MEMORY POOL\n");
         }
     }
 
@@ -425,7 +429,7 @@ static void process1HzTasks(uint64_t timestamp_usec)
         {
             printf("broadcast fail %d\n", bc_res);
         } else {
-            puts("broadcast node status OK");
+            printf("broadcast node status OK\n");
         }
     }
 
@@ -441,7 +445,7 @@ static void can_wait_node_id(void)
 
     while (canardGetLocalNodeID(&canard) == CANARD_BROADCAST_NODE_ID)
     {
-        puts("Waiting for dynamic node ID allocation...");
+        printf("Waiting for dynamic node ID allocation... (pool %u)\n", pool_peak_percent());
 
         send_next_node_id_allocation_request_at_ms =
             AP_HAL::millis() + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS +
@@ -530,7 +534,7 @@ void AP_Periph_FW::can_update()
     uint32_t now = AP_HAL::millis();
     if (now - last_1Hz_ms >= 1000) {
         last_1Hz_ms = now;
-        process1HzTasks(now * 1000UL);
+        process1HzTasks(AP_HAL::micros64());
     }
     processTx();
     processRx();
