@@ -206,6 +206,8 @@ class generic_pin(object):
                     self.extra.append('FLOATING')
                 elif self.label.endswith(tuple(f1_output_sigs)):
                     self.sig_dir = 'OUTPUT'
+                elif l == 'I2C':
+                    self.sig_dir = 'OUTPUT'
                 else:
                     error("Unknown signal type %s:%s for %s!" % (self.portpin, self.label, mcu_type))
 
@@ -887,10 +889,15 @@ def write_I2C_config(f):
     '''write I2C config defines'''
     if not have_type_prefix('I2C'):
         print("No I2C peripherals")
-        f.write('#define HAL_USE_I2C FALSE\n')
+        f.write('''
+#ifndef HAL_USE_I2C
+#define HAL_USE_I2C FALSE
+#endif
+''')
         return
     if not 'I2C_ORDER' in config:
-        error("Missing I2C_ORDER config")
+        print("Missing I2C_ORDER config")
+        return
     i2c_list = config['I2C_ORDER']
     f.write('// I2C configuration\n')
     if len(i2c_list) == 0:
