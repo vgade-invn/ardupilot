@@ -37,7 +37,7 @@ static void printf(const char *fmt, ...)
 }
 
 static CanardInstance canard;
-static uint32_t canard_memory_pool[1024/4];
+static uint32_t canard_memory_pool[2048/4];
 static const uint8_t PreferredNodeID = CANARD_BROADCAST_NODE_ID;
 
 // can config for 1MBit
@@ -57,19 +57,13 @@ static const CANConfig cancfg = {
  * Variables used for dynamic node ID allocation.
  * RTFM at http://uavcan.org/Specification/6._Application_level_functions/#dynamic-node-id-allocation
  */
-static uint64_t send_next_node_id_allocation_request_at;    ///< When the next node ID allocation request should be sent
+static uint32_t send_next_node_id_allocation_request_at_ms; ///< When the next node ID allocation request should be sent
 static uint8_t node_id_allocation_unique_id_offset;         ///< Depends on the stage of the next request
 
 /*
  * Node status variables
  */
 static uavcan_protocol_NodeStatus node_status;
-
-
-static uint64_t getMonotonicTimestampUSec(void)
-{
-    return AP_HAL::micros64();
-}
 
 
 /**
@@ -126,7 +120,7 @@ static void handle_get_node_info(CanardInstance* ins,
                                                     &buffer[0],
                                                     total_size);
     if (resp_res <= 0) {
-        puts("Could not respond to GetNodeInfo");
+        printf("Could not respond to GetNodeInfo: %d\n", resp_res);
     }
 }
 
@@ -198,6 +192,58 @@ static void handle_i2c_request(CanardInstance* ins, CanardRxTransfer* transfer)
                            total_size);
 }
 
+static void handle_allocation_response(CanardInstance* ins, CanardRxTransfer* transfer)
+{
+    // Rule C - updating the randomized time interval
+    send_next_node_id_allocation_request_at_ms =
+        AP_HAL::millis() + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS +
+        (uint32_t)(getRandomFloat() * UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_FOLLOWUP_DELAY_MS);
+
+    if (transfer->source_node_id == CANARD_BROADCAST_NODE_ID)
+    {
+        puts("Allocation request from another allocatee");
+        node_id_allocation_unique_id_offset = 0;
+        return;
+    }
+
+    // Copying the unique ID from the message
+    static const uint8_t UniqueIDBitOffset = 8;
+    uint8_t received_unique_id[UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH];
+    uint8_t received_unique_id_len = 0;
+    for (; received_unique_id_len < (transfer->payload_len - (UniqueIDBitOffset / 8U)); received_unique_id_len++) {
+        assert(received_unique_id_len < UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH);
+        const uint8_t bit_offset = (uint8_t)(UniqueIDBitOffset + received_unique_id_len * 8U);
+        (void) canardDecodeScalar(transfer, bit_offset, 8, false, &received_unique_id[received_unique_id_len]);
+    }
+
+    // Obtaining the local unique ID
+    uint8_t my_unique_id[UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH];
+    readUniqueID(my_unique_id);
+
+    // Matching the received UID against the local one
+    if (memcmp(received_unique_id, my_unique_id, received_unique_id_len) != 0) {
+        puts("Mismatching allocation response");
+        node_id_allocation_unique_id_offset = 0;
+        return;         // No match, return
+    }
+
+    if (received_unique_id_len < UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH) {
+        // The allocator has confirmed part of unique ID, switching to the next stage and updating the timeout.
+        node_id_allocation_unique_id_offset = received_unique_id_len;
+        send_next_node_id_allocation_request_at_ms -= UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS;
+
+        printf("Matching allocation response: %d\n", received_unique_id_len);
+    } else {
+        // Allocation complete - copying the allocated node ID from the message
+        uint8_t allocated_node_id = 0;
+        (void) canardDecodeScalar(transfer, 0, 7, false, &allocated_node_id);
+        assert(allocated_node_id <= 127);
+
+        canardSetLocalNodeID(ins, allocated_node_id);
+        printf("Node ID allocated: %d\n", allocated_node_id);
+    }
+}
+
 /**
  * This callback is invoked by the library when a new message or request or response is received.
  */
@@ -212,59 +258,7 @@ static void onTransferReceived(CanardInstance* ins,
         (transfer->transfer_type == CanardTransferTypeBroadcast) &&
         (transfer->data_type_id == UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID))
     {
-        // Rule C - updating the randomized time interval
-        send_next_node_id_allocation_request_at =
-            getMonotonicTimestampUSec() + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS*1000U +
-            (uint64_t)(getRandomFloat() * UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_FOLLOWUP_DELAY_MS*1000U);
-
-        if (transfer->source_node_id == CANARD_BROADCAST_NODE_ID)
-        {
-            puts("Allocation request from another allocatee");
-            node_id_allocation_unique_id_offset = 0;
-            return;
-        }
-
-        // Copying the unique ID from the message
-        static const uint8_t UniqueIDBitOffset = 8;
-        uint8_t received_unique_id[UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH];
-        uint8_t received_unique_id_len = 0;
-        for (; received_unique_id_len < (transfer->payload_len - (UniqueIDBitOffset / 8U)); received_unique_id_len++)
-        {
-            assert(received_unique_id_len < UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH);
-            const uint8_t bit_offset = (uint8_t)(UniqueIDBitOffset + received_unique_id_len * 8U);
-            (void) canardDecodeScalar(transfer, bit_offset, 8, false, &received_unique_id[received_unique_id_len]);
-        }
-
-        // Obtaining the local unique ID
-        uint8_t my_unique_id[UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH];
-        readUniqueID(my_unique_id);
-
-        // Matching the received UID against the local one
-        if (memcmp(received_unique_id, my_unique_id, received_unique_id_len) != 0)
-        {
-            puts("Mismatching allocation response");
-            node_id_allocation_unique_id_offset = 0;
-            return;         // No match, return
-        }
-
-        if (received_unique_id_len < UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH)
-        {
-            // The allocator has confirmed part of unique ID, switching to the next stage and updating the timeout.
-            node_id_allocation_unique_id_offset = received_unique_id_len;
-            send_next_node_id_allocation_request_at -= UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS*1000U;
-
-            puts("Matching allocation response");
-        }
-        else
-        {
-            // Allocation complete - copying the allocated node ID from the message
-            uint8_t allocated_node_id = 0;
-            (void) canardDecodeScalar(transfer, 0, 7, false, &allocated_node_id);
-            assert(allocated_node_id <= 127);
-
-            canardSetLocalNodeID(ins, allocated_node_id);
-            puts("Node ID allocated");
-        }
+        handle_allocation_response(ins, transfer);
     }
 
     switch (transfer->data_type_id) {
@@ -449,16 +443,16 @@ static void can_wait_node_id(void)
     {
         puts("Waiting for dynamic node ID allocation...");
 
-        send_next_node_id_allocation_request_at =
-            getMonotonicTimestampUSec() + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS*1000U +
-            (uint64_t)(getRandomFloat() * UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_FOLLOWUP_DELAY_MS*1000U);
+        send_next_node_id_allocation_request_at_ms =
+            AP_HAL::millis() + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS +
+            (uint32_t)(getRandomFloat() * UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_FOLLOWUP_DELAY_MS);
 
-        while ((getMonotonicTimestampUSec() < send_next_node_id_allocation_request_at) &&
+        while ((AP_HAL::millis() < send_next_node_id_allocation_request_at_ms) &&
                (canardGetLocalNodeID(&canard) == CANARD_BROADCAST_NODE_ID))
         {
             processTx();
             processRx();
-            canardCleanupStaleTransfers(&canard, AP_HAL::micros());
+            canardCleanupStaleTransfers(&canard, AP_HAL::micros64());
         }
 
         if (canardGetLocalNodeID(&canard) != CANARD_BROADCAST_NODE_ID)
