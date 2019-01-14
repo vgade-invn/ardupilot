@@ -27,8 +27,8 @@
 #include <uavcan/protocol/file/BeginFirmwareUpdate.h>
 #include <ardupilot/bus/I2CReqAnnounce.h>
 #include <ardupilot/bus/I2CAnnounce.h>
-#include <ardupilot/bus/I2C.h>
 #include <stdio.h>
+#include <ardupilot/bus/I2C.h>
 
 #include "i2c.h"
 
@@ -158,6 +158,7 @@ static void handle_i2c_req_announce(CanardInstance* ins, CanardRxTransfer* trans
  */
 static void handle_i2c_request(CanardInstance* ins, CanardRxTransfer* transfer)
 {
+
     ardupilot_bus_I2CRequest req;
     uint8_t arraybuf[ARDUPILOT_BUS_I2C_REQUEST_BUFFER_MAX_LENGTH];
     uint8_t *arraybuf_ptr = arraybuf;
@@ -170,7 +171,8 @@ static void handle_i2c_request(CanardInstance* ins, CanardRxTransfer* transfer)
     bool ok = false;
 
     if (req.bus == 0) {
-        ok = i2c_transfer(req.address, req.buffer.data, req.buffer.len, reply_data, req.numread);
+        ok = i2c_transfer(req.address, req.buffer.len?req.buffer.data:NULL, req.buffer.len, reply_data, req.numread);
+        //printf("i2c_transfer ad:0x%02x ok=%u len=%u recv_len=%u\n", req.address, ok, req.buffer.len, req.numread);
     }
 
     ardupilot_bus_I2CResponse pkt;
@@ -254,11 +256,12 @@ static void onTransferReceived(CanardInstance* ins,
      * Dynamic node ID allocation protocol.
      * Taking this branch only if we don't have a node ID, ignoring otherwise.
      */
-    if ((canardGetLocalNodeID(ins) == CANARD_BROADCAST_NODE_ID) &&
-        (transfer->transfer_type == CanardTransferTypeBroadcast) &&
-        (transfer->data_type_id == UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID))
-    {
-        handle_allocation_response(ins, transfer);
+    if (canardGetLocalNodeID(ins) == CANARD_BROADCAST_NODE_ID) {
+        if (transfer->transfer_type == CanardTransferTypeBroadcast &&
+            transfer->data_type_id == UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID) {
+            handle_allocation_response(ins, transfer);
+        }
+        return;
     }
 
     switch (transfer->data_type_id) {
@@ -276,7 +279,6 @@ static void onTransferReceived(CanardInstance* ins,
         break;
 
     case ARDUPILOT_BUS_I2C_ID:
-        printf("got I2C\n");
         handle_i2c_request(ins, transfer);
         break;
     }
@@ -401,8 +403,7 @@ static void process1HzTasks(uint64_t timestamp_usec)
          * The recommended way to establish the minimal size of the memory pool is to stress-test the application and
          * record the worst case memory usage.
          */
-        if (pool_peak_percent() > 70)
-        {
+        if (pool_peak_percent() > 70) {
             printf("WARNING: ENLARGE MEMORY POOL\n");
         }
     }
@@ -425,8 +426,7 @@ static void process1HzTasks(uint64_t timestamp_usec)
                                                CANARD_TRANSFER_PRIORITY_LOW,
                                                buffer,
                                                len);
-        if (bc_res <= 0)
-        {
+        if (bc_res <= 0) {
             printf("broadcast fail %d\n", bc_res);
         } else {
             printf("broadcast node status OK\n");

@@ -16,6 +16,7 @@
   AP_Periph i2c support
  */
 #include <AP_HAL/AP_HAL.h>
+#include <AP_Math/AP_Math.h>
 #include "i2c.h"
 
 #define I2C_BUSCLOCK 100000
@@ -36,10 +37,12 @@ bool i2c_transfer(uint8_t address,
 
     i2cStart(&I2CD1, &i2cfg);
 
-    if(send_len == 0) {
-        ret = i2cMasterReceive(&I2CD1, address, recv, recv_len);
+    uint32_t timeout_ms = 4+2*(((8*1000000UL/I2C_BUSCLOCK)*MAX(send_len, recv_len))/1000);
+
+    if (send_len == 0) {
+        ret = i2cMasterReceiveTimeout(&I2CD1, address, recv, recv_len, chTimeMS2I(timeout_ms));
     } else {
-        ret = i2cMasterTransmit(&I2CD1, address, send, send_len, recv, recv_len);
+        ret = i2cMasterTransmitTimeout(&I2CD1, address, send, send_len, recv, recv_len, chTimeMS2I(timeout_ms));
     }
 
     i2cStop(&I2CD1);
