@@ -39,6 +39,8 @@ static uavcan::Publisher<ardupilot::bus::I2CReqAnnounce>* i2c_req_announce[MAX_N
 static uavcan::ServiceClient<ardupilot::bus::I2C> *i2c_client[MAX_NUMBER_OF_CAN_DRIVERS];
 static uavcan::Subscriber<ardupilot::bus::I2CAnnounce, I2CAnnounceCb> *i2c_announce[MAX_NUMBER_OF_CAN_DRIVERS];
 
+AP_UAVCAN::I2C_Recv AP_UAVCAN::i2c_recv;
+
 UC_REGISTRY_BINDER(I2CAnnounceCb, ardupilot::bus::I2CAnnounce);
 
 /*
@@ -47,9 +49,45 @@ UC_REGISTRY_BINDER(I2CAnnounceCb, ardupilot::bus::I2CAnnounce);
 bool AP_UAVCAN::remote_i2c_transfer(uint8_t busnum, uint8_t address, const uint8_t *send, uint32_t send_len,
                                     uint8_t *recv, uint32_t recv_len)
 {
-    debug_uavcan(0, "I2C_transfer bus=%u address=0x%02x send=%u recv=%u\n",
-                 busnum, address, send_len, recv_len);
-    return false;
+    uint8_t node_id = 0;
+
+    for (uint8_t i=0; i<ARRAY_SIZE(i2c.remote_nodes); i++) {
+        if (busnum == i2c.remote_nodes[i].busnum) {
+            node_id = i2c.remote_nodes[i].node_id;
+            break;
+        }
+    }
+    if (node_id == 0) {
+        return false;
+    }
+
+    WITH_SEMAPHORE(i2c.sem);
+
+    ardupilot::bus::I2C::Request req;
+    req.bus = 0;
+    req.address = address;
+    req.numread = recv_len;
+    for (uint8_t i=0; i<send_len; i++) {
+        req.buffer.push_back(send[i]);
+    }
+
+    memset(recv, 0x42, recv_len);
+    i2c_recv.bytes = recv;
+    i2c_recv.len = recv_len;
+    i2c_recv.result = 255;
+
+    int32_t id = i2c_client[_driver_index]->call(node_id, req);
+    if (id < 0) {
+        return false;
+    }
+
+    while (i2c_client[_driver_index]->hasPendingCalls()) {
+        hal.scheduler->delay_microseconds(200);
+    }
+
+    debug_uavcan(2, "I2C_transfer id=%d bus=%u address=0x%02x send=%u sendsize=%u recv=%u\n",
+                 id, busnum, address, send_len, req.buffer.size(), recv_len);
+    return i2c_recv.result == 0;
 }
 
 /*
@@ -94,8 +132,19 @@ bool AP_UAVCAN::remote_i2c_init(uint8_t driver_index)
         debug_uavcan(1, "UAVCAN: failed to init I2C service\n");
         return false;
     }
+    i2c_client[driver_index]->setRequestTimeout(uavcan::MonotonicDuration::fromMSec(20));
     i2c_client[driver_index]->setCallback([](const uavcan::ServiceCallResult<ardupilot::bus::I2C>&call_result) {
-            printf("I2C: %u\n", call_result.isSuccessful());
+            if (!call_result.isSuccessful()) {
+                return;
+            }
+            const ardupilot::bus::I2C::Response &response = call_result.getResponse();
+            if (i2c_recv.len != response.buffer.size()) {
+                return;
+            }
+            for (uint8_t i=0; i<i2c_recv.len; i++) {
+                i2c_recv.bytes[i] = response.buffer[i];
+            }
+            i2c_recv.result = response.result;
         });
 
     // subscribe to I2CAnnounce messages

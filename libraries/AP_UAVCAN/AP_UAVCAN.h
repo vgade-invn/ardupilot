@@ -202,12 +202,22 @@ private:
     bool remote_i2c_transfer(uint8_t bus, uint8_t address, const uint8_t *send, uint32_t send_len, uint8_t *recv, uint32_t recv_len);
 
     struct {
+        HAL_Semaphore sem;
         uint32_t last_discover_ms;
         struct {
             uint8_t node_id;
             uint8_t busnum;
         } remote_nodes[2];
+
     } i2c;
+
+    // structure filled in by i2c service callback. If we can work out
+    // the lambda correctly we can fix this properly
+    static struct I2C_Recv {
+        uint8_t *bytes;
+        uint8_t len;
+        uint8_t result;
+    } i2c_recv;
 };
 
 #endif /* AP_UAVCAN_H_ */
