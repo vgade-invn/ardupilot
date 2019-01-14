@@ -111,6 +111,9 @@ static const uint32_t flash_memmap[STM32_FLASH_NPAGES] = { KB(32), KB(32), KB(32
 #elif defined(STM32H7)
 #define STM32_FLASH_NPAGES  (BOARD_FLASH_SIZE / 128)
 #define STM32_FLASH_FIXED_PAGE_SIZE 128
+#elif defined(STM32F1)
+#define STM32_FLASH_NPAGES BOARD_FLASH_SIZE
+#define STM32_FLASH_FIXED_PAGE_SIZE 1
 #else
 #error "Unsupported processor for flash.c"
 #endif
@@ -123,8 +126,13 @@ static bool flash_pageaddr_initialised;
 
 static bool flash_keep_unlocked;
 
+#ifndef FLASH_KEY1
 #define FLASH_KEY1      0x45670123
+#endif
+#ifndef FLASH_KEY2
 #define FLASH_KEY2      0xCDEF89AB
+#endif
+
 /* Some compiler options will convert short loads and stores into byte loads
  * and stores.  We don't want this to happen for IO reads and writes!
  */
@@ -325,6 +333,13 @@ bool stm32_flash_erasepage(uint32_t page)
     stm32_flash_wait_idle();
     stm32_flash_unlock();
 
+#if defined(STM32F1)
+    FLASH->CR |= FLASH_CR_PER;
+    FLASH->AR = page;
+    FLASH->CR |= FLASH_CR_STRT;
+    stm32_flash_wait_idle();
+    FLASH->CR &= ~FLASH_CR_PER;
+#else
     // clear any previous errors
     stm32_flash_clear_errors();
 
@@ -412,7 +427,7 @@ static bool stm32h7_flash_write32(uint32_t addr, const void *buf)
     return true;
 }
 
-bool stm32_flash_write(uint32_t addr, const void *buf, uint32_t count)
+static bool stm32_flash_write_h7(uint32_t addr, const void *buf, uint32_t count)
 {
     uint8_t *b = (uint8_t *)buf;
 
@@ -438,9 +453,10 @@ bool stm32_flash_write(uint32_t addr, const void *buf, uint32_t count)
     return true;
 }
 
-#else // not STM32H7
+#endif // STM32H7
 
-bool stm32_flash_write(uint32_t addr, const void *buf, uint32_t count)
+#if defined(STM32F4) || defined(STM32F7)
+static bool stm32_flash_write_f4f7(uint32_t addr, const void *buf, uint32_t count)
 {
     uint8_t *b = (uint8_t *)buf;
 
@@ -531,7 +547,79 @@ failed:
 #endif
     return false;
 }
-#endif // not STM32H7
+
+#endif // STM32F4 || STM32F7
+
+
+#if defined(STM32F1)
+static bool stm32_flash_write_f1(uint32_t addr, const void *buf, uint32_t count)
+{
+    uint8_t *b = (uint8_t *)buf;
+    uint32_t written = count;
+
+    /* STM32 requires half-word access */
+    if (count & 1) {
+        return false;
+    }
+
+    if ((addr+count) >= STM32_FLASH_BASE+STM32_FLASH_SIZE) {
+        return false;
+    }
+
+#if STM32_FLASH_DISABLE_ISR
+    syssts_t sts = chSysGetStatusAndLockX();
+#endif
+    
+    stm32_flash_unlock();
+
+    stm32_flash_wait_idle();
+
+    // program in 16 bit steps
+    while (count >= 2) {
+        FLASH->CR |= FLASH_CR_PG;
+
+        putreg16(*(uint16_t *)b, addr);
+
+        stm32_flash_wait_idle();
+
+        FLASH->CR &= ~FLASH_CR_PG;
+
+        if (getreg16(addr) != *(uint16_t *)b) {
+            goto failed;
+        }
+
+        count -= 2;
+        b += 2;
+        addr += 2;
+    }
+
+    stm32_flash_lock();
+#if STM32_FLASH_DISABLE_ISR
+    chSysRestoreStatusX(sts);
+#endif
+    return true;
+
+failed:
+    stm32_flash_lock();
+#if STM32_FLASH_DISABLE_ISR
+    chSysRestoreStatusX(sts);
+#endif
+    return false;
+}
+#endif // STM32F1
+
+bool stm32_flash_write(uint32_t addr, const void *buf, uint32_t count)
+{
+#if defined(STM32F1)
+    return stm32_flash_write_f1(addr, buf, count);
+#elif defined(STM32F4) || defined(STM32F7)
+    return stm32_flash_write_f4f7(addr, buf, count);
+#elif defined(STM32H7)
+    return stm32_flash_write_h7(addr, buf, count);
+#else
+#error "Unsupported MCU"
+#endif
+}
 
 void stm32_flash_keep_unlocked(bool set)
 {
