@@ -199,9 +199,14 @@ private:
     void remote_i2c_update();
     static void remote_i2c_announce_trampoline(AP_UAVCAN* ap_uavcan, uint8_t node_id, const I2CAnnounceCb &cb);
     void remote_i2c_announce_callback(uint8_t node_id, const I2CAnnounceCb &cb);
+    bool remote_i2c_transfer(uint8_t bus, uint8_t address, const uint8_t *send, uint32_t send_len, uint8_t *recv, uint32_t recv_len);
 
     struct {
         uint32_t last_discover_ms;
+        struct {
+            uint8_t node_id;
+            uint8_t busnum;
+        } remote_nodes[2];
     } i2c;
 };
 

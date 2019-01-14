@@ -18,6 +18,7 @@
 
 #if HAL_WITH_UAVCAN
 #include "AP_UAVCAN.h"
+#include <AP_HAL/I2CDevice.h>
 #include <GCS_MAVLink/GCS.h>
 
 #include <AP_BoardConfig/AP_BoardConfig.h>
@@ -40,9 +41,41 @@ static uavcan::Subscriber<ardupilot::bus::I2CAnnounce, I2CAnnounceCb> *i2c_annou
 
 UC_REGISTRY_BINDER(I2CAnnounceCb, ardupilot::bus::I2CAnnounce);
 
+/*
+  perform a remote I2C transfer. This is a blocking call.
+ */
+bool AP_UAVCAN::remote_i2c_transfer(uint8_t busnum, uint8_t address, const uint8_t *send, uint32_t send_len,
+                                    uint8_t *recv, uint32_t recv_len)
+{
+    debug_uavcan(0, "I2C_transfer bus=%u address=0x%02x send=%u recv=%u\n",
+                 busnum, address, send_len, recv_len);
+    return false;
+}
+
+/*
+  handle announce of new I2C server node
+ */
 void AP_UAVCAN::remote_i2c_announce_callback(uint8_t node_id, const I2CAnnounceCb &cb)
 {
-    printf("Got I2CAnnounce from %u\n", node_id);
+    for (uint8_t i=0; i<ARRAY_SIZE(i2c.remote_nodes); i++) {
+        if (node_id == i2c.remote_nodes[i].node_id) {
+            // already have it
+            break;
+        }
+        if (i2c.remote_nodes[i].node_id == 0) {
+            if (hal.i2c_mgr->register_i2c_bus(FUNCTOR_BIND_MEMBER(&AP_UAVCAN::remote_i2c_transfer,
+                                                                  bool, uint8_t, uint8_t,
+                                                                  const uint8_t *, uint32_t,
+                                                                  uint8_t *, uint32_t),
+                                              i2c.remote_nodes[i].busnum)) {
+                i2c.remote_nodes[i].node_id = node_id;
+                debug_uavcan(0, "UAVCAN: registered I2C bus %u to node %u\n",
+                             i2c.remote_nodes[i].busnum,
+                             i2c.remote_nodes[i].node_id);
+                break;
+            }
+        }
+    }
 }
 
 void AP_UAVCAN::remote_i2c_announce_trampoline(AP_UAVCAN* ap_uavcan, uint8_t node_id, const I2CAnnounceCb &cb)
