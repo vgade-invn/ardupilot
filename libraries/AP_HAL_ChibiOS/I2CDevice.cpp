@@ -34,6 +34,10 @@ static const struct I2CInfo {
     ioline_t sda_line;
 } I2CD[] = { HAL_I2C_DEVICE_LIST };
 
+// support for remote I2C buses
+#define I2C_MAX_REMOTE_BUS 2
+static AP_HAL::I2CDeviceManager::i2c_transfer_fn_t i2c_remote_bus[I2C_MAX_REMOTE_BUS];
+
 using namespace ChibiOS;
 extern const AP_HAL::HAL& hal;
 
@@ -321,8 +325,15 @@ I2CDeviceManager::get_device(uint8_t bus, uint8_t address,
                              uint32_t timeout_ms)
 {
     bus -= HAL_I2C_BUS_BASE;
-    if (bus >= ARRAY_SIZE(I2CD)) {
+    if (bus >= ARRAY_SIZE(I2CD)+I2C_MAX_REMOTE_BUS) {
         return AP_HAL::OwnPtr<AP_HAL::I2CDevice>(nullptr);
+    }
+    if (bus >= ARRAY_SIZE(I2CD)) {
+        if (i2c_remote_bus[bus-I2C_MAX_REMOTE_BUS] == nullptr) {
+            return AP_HAL::OwnPtr<AP_HAL::I2CDevice>(nullptr);
+        }
+        auto dev = AP_HAL::OwnPtr<AP_HAL::I2CDevice>(new I2CDeviceRemote(bus, address, i2c_remote_bus[bus-I2C_MAX_REMOTE_BUS]));
+        return dev;
     }
     auto dev = AP_HAL::OwnPtr<AP_HAL::I2CDevice>(new I2CDevice(bus, address, bus_clock, use_smbus, timeout_ms));
     return dev;
@@ -333,7 +344,7 @@ I2CDeviceManager::get_device(uint8_t bus, uint8_t address,
 */
 uint32_t I2CDeviceManager::get_bus_mask(void) const
 {
-    return ((1U << ARRAY_SIZE(I2CD)) - 1) << HAL_I2C_BUS_BASE;
+    return ((1U << (ARRAY_SIZE(I2CD)+I2C_MAX_REMOTE_BUS)) - 1) << HAL_I2C_BUS_BASE;
 }
 
 /*
@@ -352,6 +363,96 @@ uint32_t I2CDeviceManager::get_bus_mask_external(void) const
 {
     // assume first bus is internal
     return get_bus_mask() & ~HAL_I2C_INTERNAL_MASK;
+}
+
+
+I2CDeviceRemote::I2CDeviceRemote(uint8_t busnum, uint8_t address, AP_HAL::I2CDeviceManager::i2c_transfer_fn_t transfer_fn) :
+    _busnum(busnum),
+    _address(address),
+    _transfer_fn(transfer_fn)
+{
+    set_device_bus(busnum+HAL_I2C_BUS_BASE);
+    set_device_address(address);
+    asprintf(&pname, "I2C:%u:%02x",
+             (unsigned)busnum, (unsigned)address);
+}
+
+I2CDeviceRemote::~I2CDeviceRemote()
+{
+    free(pname);
+}
+
+bool I2CDeviceRemote::transfer(const uint8_t *send, uint32_t send_len,
+                         uint8_t *recv, uint32_t recv_len)
+{
+    if (!bus.semaphore.check_owner()) {
+        hal.console->printf("I2C: not owner of 0x%x\n", (unsigned)get_bus_id());
+        return false;
+    }
+    
+    if (_split_transfers) {
+        /*
+          splitting the transfer() into two pieces avoids a stop condition
+          with SCL low which is not supported on some devices (such as
+          LidarLite blue label)
+        */
+        if (send && send_len) {
+            if (!_transfer(send, send_len, nullptr, 0)) {
+                return false;
+            }
+        }
+        if (recv && recv_len) {
+            if (!_transfer(nullptr, 0, recv, recv_len)) {
+                return false;
+            }
+        }
+    } else {
+        // combined transfer
+        if (!_transfer(send, send_len, recv, recv_len)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool I2CDeviceRemote::_transfer(const uint8_t *send, uint32_t send_len,
+                                uint8_t *recv, uint32_t recv_len)
+{
+    return _transfer_fn(_busnum, _address, send, send_len, recv, recv_len);
+}
+
+/*
+  register a periodic callback
+*/
+AP_HAL::Device::PeriodicHandle I2CDeviceRemote::register_periodic_callback(uint32_t period_usec, AP_HAL::Device::PeriodicCb cb)
+{
+    return bus.register_periodic_callback(period_usec, cb, this);
+}
+    
+
+/*
+  adjust a periodic callback
+*/
+bool I2CDeviceRemote::adjust_periodic_callback(AP_HAL::Device::PeriodicHandle h, uint32_t period_usec)
+{
+    return bus.adjust_timer(h, period_usec);
+}
+
+/*
+  register a new bus, allowing for remoting a I2C bus over another
+  transport, such as CAN
+*/
+bool I2CDeviceManager::register_i2c_bus(AP_HAL::I2CDeviceManager::i2c_transfer_fn_t fn, uint8_t &bus)
+{
+    for (uint8_t i=0; i<I2C_MAX_REMOTE_BUS; i++) {
+        if (i2c_remote_bus[i] == nullptr) {
+            i2c_remote_bus[i] = fn;
+            bus = i + ARRAY_SIZE(I2CD);
+            return true;
+        }
+    }
+    return false;
 }
 
 #endif // HAL_USE_I2C

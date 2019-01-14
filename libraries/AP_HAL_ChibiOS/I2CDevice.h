@@ -110,6 +110,55 @@ private:
     uint32_t _timeout_ms;
 };
 
+
+class I2CDeviceRemote : public AP_HAL::I2CDevice {
+public:
+    I2CDeviceRemote(uint8_t bus, uint8_t address, AP_HAL::I2CDeviceManager::i2c_transfer_fn_t transfer_fn);
+    ~I2CDeviceRemote();
+
+    /* See AP_HAL::I2CDevice::set_address() */
+    void set_address(uint8_t address) override { _address = address; }
+
+    /* See AP_HAL::Device::set_speed(): Empty implementation, not supported. */
+    bool set_speed(enum Device::Speed speed) override { return true; }
+
+    /* See AP_HAL::Device::transfer() */
+    bool transfer(const uint8_t *send, uint32_t send_len,
+                  uint8_t *recv, uint32_t recv_len) override;
+
+    bool read_registers_multiple(uint8_t first_reg, uint8_t *recv,
+                                 uint32_t recv_len, uint8_t times) override {
+        return false;
+    }
+
+    /* See AP_HAL::Device::register_periodic_callback() */
+    AP_HAL::Device::PeriodicHandle register_periodic_callback(
+        uint32_t period_usec, AP_HAL::Device::PeriodicCb) override;
+
+    /* See AP_HAL::Device::adjust_periodic_callback() */
+    bool adjust_periodic_callback(AP_HAL::Device::PeriodicHandle h, uint32_t period_usec) override;
+
+    AP_HAL::Semaphore* get_semaphore() override {
+        // if asking for invalid bus number use bus 0 semaphore
+        return &bus.semaphore;
+    }
+
+    void set_split_transfers(bool set) override {
+        _split_transfers = set;
+    }
+    
+private:
+    bool _transfer(const uint8_t *send, uint32_t send_len,
+                   uint8_t *recv, uint32_t recv_len);
+
+    DeviceBus bus;
+    AP_HAL::I2CDeviceManager::i2c_transfer_fn_t _transfer_fn;
+    uint8_t _busnum;
+    uint8_t _address;
+    bool _split_transfers;
+    char *pname;
+};
+    
 class I2CDeviceManager : public AP_HAL::I2CDeviceManager {
 public:
     friend class I2CDevice;
@@ -143,6 +192,12 @@ public:
       get mask of bus numbers for all configured internal I2C buses
      */
     uint32_t get_bus_mask_internal(void) const override;
+
+    /*
+      register a new bus, allowing for remoting a I2C bus over another
+      transport, such as CAN
+     */
+    bool register_i2c_bus(AP_HAL::I2CDeviceManager::i2c_transfer_fn_t fn, uint8_t &bus) override;
 };
 }
 
