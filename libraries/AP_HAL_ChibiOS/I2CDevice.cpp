@@ -197,7 +197,7 @@ bool I2CDevice::transfer(const uint8_t *send, uint32_t send_len,
                          uint8_t *recv, uint32_t recv_len)
 {
     if (!bus.semaphore.check_owner()) {
-        hal.console->printf("I2C: not owner of 0x%x\n", (unsigned)get_bus_id());
+        hal.console->printf("I2C: not owner of 0x%x for addr 0x%02x\n", (unsigned)get_bus_id(), _address);
         return false;
     }
     
@@ -385,11 +385,6 @@ I2CDeviceRemote::~I2CDeviceRemote()
 bool I2CDeviceRemote::transfer(const uint8_t *send, uint32_t send_len,
                          uint8_t *recv, uint32_t recv_len)
 {
-    if (!bus.semaphore.check_owner()) {
-        hal.console->printf("I2C: not owner of 0x%x\n", (unsigned)get_bus_id());
-        return false;
-    }
-    
     if (_split_transfers) {
         /*
           splitting the transfer() into two pieces avoids a stop condition
