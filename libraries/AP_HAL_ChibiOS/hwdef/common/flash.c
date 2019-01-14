@@ -334,11 +334,10 @@ bool stm32_flash_erasepage(uint32_t page)
     stm32_flash_unlock();
 
 #if defined(STM32F1)
-    FLASH->CR |= FLASH_CR_PER;
-    FLASH->AR = page;
+    FLASH->CR = FLASH_CR_PER;
+    FLASH->AR = stm32_flash_getpageaddr(page);
     FLASH->CR |= FLASH_CR_STRT;
     stm32_flash_wait_idle();
-    FLASH->CR &= ~FLASH_CR_PER;
 #else
     // clear any previous errors
     stm32_flash_clear_errors();
@@ -576,13 +575,13 @@ static bool stm32_flash_write_f1(uint32_t addr, const void *buf, uint32_t count)
 
     // program in 16 bit steps
     while (count >= 2) {
-        FLASH->CR |= FLASH_CR_PG;
+        FLASH->CR = FLASH_CR_PG;
 
         putreg16(*(uint16_t *)b, addr);
 
         stm32_flash_wait_idle();
 
-        FLASH->CR &= ~FLASH_CR_PG;
+        FLASH->CR = 0;
 
         if (getreg16(addr) != *(uint16_t *)b) {
             goto failed;
