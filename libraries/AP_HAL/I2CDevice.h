@@ -104,6 +104,18 @@ public:
       get mask of bus numbers for all configured internal I2C buses
      */
     virtual uint32_t get_bus_mask_internal(void) const { return 0x01; }
+
+    /*
+      i2c transfer function for a bus
+     */
+    FUNCTOR_TYPEDEF(i2c_transfer_fn_t, bool, uint8_t, uint8_t,
+                    const uint8_t *, uint32_t, uint8_t *, uint32_t);
+
+    /*
+      register a new bus, allowing for remoting a I2C bus over another
+      transport, such as CAN
+     */
+    virtual bool register_i2c_bus(i2c_transfer_fn_t fn, uint8_t &bus) { return false; }
 };
 
 /*
