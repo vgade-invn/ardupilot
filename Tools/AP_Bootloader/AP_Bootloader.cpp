@@ -53,6 +53,7 @@ int main(void)
     bool try_boot = false;
     uint32_t timeout = HAL_BOOTLOADER_TIMEOUT;
 
+#ifndef NO_FASTBOOT
     enum rtc_boot_magic m = check_fast_reboot();
     if (stm32_was_watchdog_reset()) {
         try_boot = true;
@@ -67,6 +68,7 @@ int main(void)
     // if we fail to boot properly we want to pause in bootloader to give
     // a chance to load new app code
     set_fast_reboot(RTC_BOOT_OFF);
+#endif
 
     if (try_boot) {
         jump_to_app();
