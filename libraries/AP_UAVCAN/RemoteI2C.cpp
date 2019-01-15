@@ -160,7 +160,9 @@ bool AP_UAVCAN::remote_i2c_init(uint8_t driver_index)
 void AP_UAVCAN::remote_i2c_update(void)
 {
     uint32_t now = AP_HAL::millis();
-    if (now - i2c.last_discover_ms >= 1000) {
+    // for the first 60s we request I2C service announcements every
+    // 500ms to discover all the remote I2C services
+    if (now < 60000 && now - i2c.last_discover_ms >= 500) {
         i2c.last_discover_ms = now;
         ardupilot::bus::I2CReqAnnounce msg;
         i2c_req_announce[_driver_index]->broadcast(msg);
