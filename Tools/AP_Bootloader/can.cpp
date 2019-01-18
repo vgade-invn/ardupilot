@@ -56,6 +56,7 @@ static uint8_t node_id_allocation_transfer_id;
 static uavcan_protocol_NodeStatus node_status;
 static uint32_t send_next_node_id_allocation_request_at_ms;
 static uint8_t node_id_allocation_unique_id_offset;
+static uint32_t app_first_word = 0xFFFFFFFF;
 
 static struct {
     uint64_t ofs;
@@ -186,10 +187,6 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
         offset += 8;
     }
 
-    if (len < UAVCAN_PROTOCOL_FILE_READ_RESPONSE_DATA_MAX_LENGTH) {
-        fw_update.node_id = 0;
-    }
-
     const uint32_t sector_size = flash_func_sector_size(fw_update.sector);
 
     if (fw_update.sector_ofs == 0) {
@@ -199,7 +196,12 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
         flash_func_erase_sector(fw_update.sector+1);
     }
     for (uint16_t i=0; i<len/4; i++) {
-        flash_func_write_word(fw_update.ofs+i*4, buf32[i]);
+        if (i == 0 && fw_update.sector == 0 && fw_update.ofs == 0) {
+            // keep first word aside, to be flashed last
+            app_first_word = buf32[0];
+        } else {
+            flash_func_write_word(fw_update.ofs+i*4, buf32[i]);
+        }
     }
     fw_update.ofs += len;
     fw_update.sector_ofs += len;
@@ -207,6 +209,14 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
         fw_update.sector++;
         fw_update.sector_ofs -= sector_size;
     }
+    if (len < UAVCAN_PROTOCOL_FILE_READ_RESPONSE_DATA_MAX_LENGTH) {
+        fw_update.node_id = 0;
+        // now flash the first word
+        flash_func_write_word(0, app_first_word);
+    }
+
+    // show offset number we are flashing in kbyte as crude progress indicator
+    node_status.vendor_specific_status_code = 1 + (fw_update.ofs / 1024U);
 }
 
 /*
@@ -406,7 +416,7 @@ static void processRx(void)
     while (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE) == MSG_OK) {
         CanardCANFrame rx_frame {};
 
-        palToggleLine(HAL_GPIO_PIN_LED);
+        palToggleLine(HAL_GPIO_PIN_LED_BOOTLOADER);
 
         const uint64_t timestamp = AP_HAL::micros64();
         memcpy(rx_frame.data, rxmsg.data8, 8);
