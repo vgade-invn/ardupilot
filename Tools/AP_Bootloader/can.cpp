@@ -177,7 +177,6 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
     int16_t error = 0;
     canardDecodeScalar(transfer, 0, 16, true, (void*)&error);
     uint16_t len = transfer->payload_len - 2;
-    uprintf("read %u at %u\n", len, (unsigned)fw_update.ofs);
 
     uint32_t offset = 16;
     uint32_t buf32[(len+3)/4];
@@ -194,17 +193,14 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
     const uint32_t sector_size = flash_func_sector_size(fw_update.sector);
 
     if (fw_update.sector_ofs == 0) {
-        uprintf("Erasing %u\n", fw_update.sector);
         flash_func_erase_sector(fw_update.sector);
     }
     if (fw_update.sector_ofs+len > sector_size) {
-        uprintf("Erasing %u\n", fw_update.sector+1);
         flash_func_erase_sector(fw_update.sector+1);
     }
     for (uint16_t i=0; i<len/4; i++) {
         flash_func_write_word(fw_update.ofs+i*4, buf32[i]);
     }
-    uprintf("Flashed %u bytes at %u err=%d\n", len, (uint32_t)fw_update.ofs, error);
     fw_update.ofs += len;
     fw_update.sector_ofs += len;
     if (fw_update.sector_ofs >= flash_func_sector_size(fw_update.sector)) {
@@ -483,16 +479,13 @@ static void send_node_status(void)
 
     static uint8_t transfer_id;  // Note that the transfer ID variable MUST BE STATIC (or heap-allocated)!
 
-    const int16_t bc_res = canardBroadcast(&canard,
-                                           UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
-                                           UAVCAN_PROTOCOL_NODESTATUS_ID,
-                                           &transfer_id,
-                                           CANARD_TRANSFER_PRIORITY_LOW,
-                                           buffer,
-                                           len);
-    if (bc_res >= 0) {
-        uprintf("node status OK\n");
-    }
+    canardBroadcast(&canard,
+                    UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
+                    UAVCAN_PROTOCOL_NODESTATUS_ID,
+                    &transfer_id,
+                    CANARD_TRANSFER_PRIORITY_LOW,
+                    buffer,
+                    len);
 }
 
 
@@ -506,8 +499,6 @@ static void process1HzTasks(uint64_t timestamp_usec)
     if (canardGetLocalNodeID(&canard) != CANARD_BROADCAST_NODE_ID) {
         node_status.mode = fw_update.node_id?UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
         send_node_status();
-    } else {
-        uprintf("Waiting for node ID\n");
     }
 }
 
