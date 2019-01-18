@@ -65,6 +65,12 @@ int main(void)
         try_boot = true;
         timeout = 0;
     }
+#if HAL_USE_CAN == TRUE
+    else if ((m & 0xFFFFFF00) == RTC_BOOT_CANBL) {
+        try_boot = false;
+        can_set_node_id(m & 0xFF);
+    }
+#endif
     
     // if we fail to boot properly we want to pause in bootloader to give
     // a chance to load new app code
@@ -76,9 +82,11 @@ int main(void)
     }
 
     init_uarts();
+#if HAL_USE_CAN == TRUE
     can_start();
+#endif
     flash_init();
-    
+
     while (true) {
         bootloader(timeout);
         jump_to_app();

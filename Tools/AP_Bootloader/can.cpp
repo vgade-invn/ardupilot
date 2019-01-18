@@ -16,6 +16,8 @@
   CAN bootloader support
  */
 #include <AP_HAL/AP_HAL.h>
+
+#if HAL_USE_CAN == TRUE
 #include <AP_Math/AP_Math.h>
 #include <canard.h>
 #include "support.h"
@@ -31,7 +33,7 @@
 
 static CanardInstance canard;
 static uint32_t canard_memory_pool[4096/4];
-static const uint8_t PreferredNodeID = CANARD_BROADCAST_NODE_ID;
+static uint8_t initial_node_id = CANARD_BROADCAST_NODE_ID;
 
 // can config for 1MBit
 static uint32_t baudrate = 1000000U;
@@ -291,8 +293,6 @@ static void handle_allocation_response(CanardInstance* ins, CanardRxTransfer* tr
         // The allocator has confirmed part of unique ID, switching to the next stage and updating the timeout.
         node_id_allocation_unique_id_offset = received_unique_id_len;
         send_next_node_id_allocation_request_at_ms -= UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS;
-
-        uprintf("Matching allocation response: %d\n", received_unique_id_len);
     } else {
         // Allocation complete - copying the allocated node ID from the message
         uint8_t allocated_node_id = 0;
@@ -300,7 +300,7 @@ static void handle_allocation_response(CanardInstance* ins, CanardRxTransfer* tr
         assert(allocated_node_id <= 127);
 
         canardSetLocalNodeID(ins, allocated_node_id);
-        uprintf("Node ID allocated: %d\n", allocated_node_id);
+        uprintf("Node ID %d\n", allocated_node_id);
     }
 }
 
@@ -444,7 +444,7 @@ static void can_handle_DNA(void)
     // Structure of the request is documented in the DSDL definition
     // See http://uavcan.org/Specification/6._Application_level_functions/#dynamic-node-id-allocation
     uint8_t allocation_request[CANARD_CAN_FRAME_MAX_DATA_LEN - 1];
-    allocation_request[0] = (uint8_t)(PreferredNodeID << 1U);
+    allocation_request[0] = (uint8_t)(CANARD_BROADCAST_NODE_ID << 1U);
 
     if (node_id_allocation_unique_id_offset == 0) {
         allocation_request[0] |= 1;     // First part of unique ID
@@ -491,7 +491,7 @@ static void send_node_status(void)
                                            buffer,
                                            len);
     if (bc_res >= 0) {
-        uprintf("broadcast node status OK\n");
+        uprintf("node status OK\n");
     }
 }
 
@@ -511,14 +511,21 @@ static void process1HzTasks(uint64_t timestamp_usec)
     }
 }
 
+void can_set_node_id(uint8_t node_id)
+{
+    initial_node_id = node_id;
+}
 
 void can_start()
 {
-    uprintf("can_start\n");
     canStart(&CAND1, &cancfg);
 
     canardInit(&canard, (uint8_t *)canard_memory_pool, sizeof(canard_memory_pool),
                onTransferReceived, shouldAcceptTransfer, NULL);
+
+    if (initial_node_id != CANARD_BROADCAST_NODE_ID) {
+        canardSetLocalNodeID(&canard, initial_node_id);
+    }
 
     send_next_node_id_allocation_request_at_ms =
         AP_HAL::millis() + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS +
@@ -528,7 +535,8 @@ void can_start()
 
 void can_update()
 {
-    //uprintf("can_update\n");
+    // do one loop of CAN support. If we are doing a few update then
+    // loop until it is finished
     do {
         processTx();
         processRx();
@@ -544,3 +552,5 @@ void can_update()
         }
     } while (fw_update.node_id != 0);
 }
+
+#endif // HAL_USE_CAN
