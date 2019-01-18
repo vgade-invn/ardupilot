@@ -64,7 +64,7 @@ int cin_word(uint32_t *wp, unsigned timeout_ms)
 
 void cout(uint8_t *data, uint32_t len)
 {
-    chnWriteTimeout(uarts[last_uart], data, len, chTimeMS2I(100));
+    //chnWriteTimeout(uarts[last_uart], data, len, chTimeMS2I(100));
 }
 
 static uint32_t flash_base_page;

@@ -30,6 +30,7 @@
 #include <AP_HAL_ChibiOS/hwdef/common/watchdog.h>
 #include "support.h"
 #include "bl_protocol.h"
+#include "can.h"
 
 extern "C" {
     int main(void);
@@ -75,6 +76,7 @@ int main(void)
     }
 
     init_uarts();
+    can_start();
     flash_init();
     
     while (true) {

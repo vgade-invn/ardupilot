@@ -47,6 +47,7 @@
 
 #include "bl_protocol.h"
 #include "support.h"
+#include "can.h"
 
 // #pragma GCC optimize("O0")
 
@@ -498,6 +499,9 @@ bootloader(unsigned timeout)
 
             /* try to get a byte from the host */
             c = cin(0);
+            if (c < 0) {
+                can_update();
+            }
 
         } while (c < 0);
 
