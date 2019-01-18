@@ -29,6 +29,7 @@
 #include <ardupilot/bus/I2CAnnounce.h>
 #include <stdio.h>
 #include <ardupilot/bus/I2C.h>
+#include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
 
 #include "i2c.h"
 
@@ -125,7 +126,10 @@ static void handle_get_node_info(CanardInstance* ins,
 
 static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* transfer)
 {
-    // instant reboot for now
+    // instant reboot, with backup register used to give bootloader
+    // the node_id we rely on the caller re-sending the firmware
+    // update request to the bootloader
+    set_fast_reboot((rtc_boot_magic)(RTC_BOOT_CANBL | canardGetLocalNodeID(ins)));
     NVIC_SystemReset();
 }
 
