@@ -68,6 +68,7 @@ int main(void)
 #if HAL_USE_CAN == TRUE
     else if ((m & 0xFFFFFF00) == RTC_BOOT_CANBL) {
         try_boot = false;
+        timeout = 10000;
         can_set_node_id(m & 0xFF);
     }
 #endif
@@ -75,6 +76,14 @@ int main(void)
     // if we fail to boot properly we want to pause in bootloader to give
     // a chance to load new app code
     set_fast_reboot(RTC_BOOT_OFF);
+#endif
+
+#ifdef HAL_GPIO_PIN_STAY_IN_BOOTLOADER
+    // optional "stay in bootloader" pin
+    if (palReadLine(HAL_GPIO_PIN_STAY_IN_BOOTLOADER) == 0) {
+        try_boot = false;
+        timeout = 0;
+    }
 #endif
 
     if (try_boot) {
