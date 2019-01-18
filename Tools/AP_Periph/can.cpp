@@ -355,12 +355,9 @@ static void processTx(void)
     }
 }
 
-CANRxFrame *last_rxmsg;
-
 static void processRx(void)
 {
     CANRxFrame rxmsg {};
-    last_rxmsg = &rxmsg;
     while (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE) == MSG_OK) {
         CanardCANFrame rx_frame {};
 
