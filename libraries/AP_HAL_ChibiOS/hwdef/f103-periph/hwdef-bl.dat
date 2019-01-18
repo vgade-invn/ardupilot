@@ -90,3 +90,9 @@ define BOOTLOADER_BAUDRATE 57600
 # use a small bootloader timeout
 define HAL_BOOTLOADER_TIMEOUT 1000
 
+# use PB6 (normally I2C1_SCL) as "hold in bootloader" pin
+# this has a hw pullup, so if we set it as input floating
+# and look for it low then we know user has pulled it down and
+# want to stay in the bootloader
+PB6 STAY_IN_BOOTLOADER INPUT FLOATING
+
