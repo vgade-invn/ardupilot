@@ -217,6 +217,8 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
 
     // show offset number we are flashing in kbyte as crude progress indicator
     node_status.vendor_specific_status_code = 1 + (fw_update.ofs / 1024U);
+
+    fw_update.last_ms = 0;
 }
 
 /*
