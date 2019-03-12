@@ -3,6 +3,8 @@
 #include "AP_BattMonitor_SMBus.h"
 #include "AP_BattMonitor_Bebop.h"
 #include "AP_BattMonitor_BLHeliESC.h"
+#include "AP_BattMonitor_FuelFlow.h"
+
 #if HAL_WITH_UAVCAN
 #include "AP_BattMonitor_UAVCAN.h"
 #endif
@@ -105,6 +107,14 @@ AP_BattMonitor::init()
                 _num_instances++;
 #endif
                 break;
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
+            case AP_BattMonitor_Params::BattMonitor_TYPE_FuelFlow:
+                drivers[instance] = new AP_BattMonitor_FuelFlow(*this, state[instance], _params[instance]);
+                _num_instances++;
+                break;
+#endif
+
             case AP_BattMonitor_Params::BattMonitor_TYPE_NONE:
             default:
                 break;
