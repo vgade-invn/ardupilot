@@ -758,9 +758,10 @@ bool GCS_MAVLINK_Plane::should_disable_overrides_on_reboot() const
     return (plane.quadplane.enable != 0);
 }
 
-
 MAV_RESULT GCS_MAVLINK_Plane::handle_command_int_packet(const mavlink_command_int_t &packet)
 {
+    plane.Log_Write_MavCmdI(packet);
+
     switch(packet.command) {
 
     case MAV_CMD_DO_SET_HOME:
@@ -864,6 +865,140 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_int_packet(const mavlink_command_in
         return MAV_RESULT_FAILED;
     }
 
+#if OFFBOARD_GUIDED == ENABLED
+    case MAV_CMD_GUIDED_CHANGE_SPEED: {
+        // command is only valid in guided
+        if (plane.control_mode != GUIDED) {
+            return MAV_RESULT_TEMPORARILY_REJECTED;
+        }
+
+        // only airspeed commands are supported
+        if (packet.param1 != SPEED_TYPE_AIRSPEED) {
+            return MAV_RESULT_UNSUPPORTED;
+        }
+
+        // reject airspeeds that are outside of the tuning envelope
+        if (packet.param2 > plane.aparm.airspeed_max || packet.param2 < plane.aparm.airspeed_min) {
+            return MAV_RESULT_FAILED;
+        }
+
+        // reject duplicate airspeeds
+        float new_target_airspeed_cm = packet.param2 * 100;
+        if (new_target_airspeed_cm == plane.guided_state.target_airspeed_cm) {
+            gcs().send_text(MAV_SEVERITY_INFO,"dup arspd request");
+            return MAV_RESULT_TEMPORARILY_REJECTED;
+        }
+        plane.guided_state.target_airspeed_cm = new_target_airspeed_cm;
+        plane.guided_state.target_airspeed_time_ms = AP_HAL::millis();
+
+        if (is_zero(packet.param3)) {
+            // the user wanted /maximum acceleration, pick a large value as close enough
+            plane.guided_state.target_airspeed_accel = 1000.0f;
+        } else {
+            plane.guided_state.target_airspeed_accel = fabsf(packet.param3);
+        }
+
+        // assign an acceleration direction
+        if (plane.guided_state.target_airspeed_cm < plane.target_airspeed_cm) {
+            plane.guided_state.target_airspeed_accel *= -1.0f;
+        }
+
+        return MAV_RESULT_ACCEPTED;
+    }
+
+    case MAV_CMD_GUIDED_CHANGE_ALTITUDE: {
+        // command is only valid in guided
+        if (plane.control_mode != GUIDED) {
+            return MAV_RESULT_TEMPORARILY_REJECTED;
+        }
+
+        // the requested alt data might be relative or absolute
+        float new_target_alt = packet.z * 100;
+        float new_target_alt_rel = packet.z * 100 + plane.home.alt;
+
+        // only global/relative/terrain frames are supported
+        switch(packet.frame) {
+        case MAV_FRAME_GLOBAL_RELATIVE_ALT: {
+            if (plane.guided_state.target_alt == new_target_alt_rel ) {
+                // reject duplicate altitude change requests
+                gcs().send_text(MAV_SEVERITY_INFO,"dup rel-alt request");
+                return MAV_RESULT_TEMPORARILY_REJECTED;
+            }
+            plane.guided_state.target_alt = packet.z * 100 + plane.home.alt;
+            break;
+        }
+        case MAV_FRAME_GLOBAL: {
+            if (plane.guided_state.target_alt == new_target_alt ) {
+                // reject duplicate altitude change requests
+                gcs().send_text(MAV_SEVERITY_INFO,"dup abs-alt request");
+                return MAV_RESULT_TEMPORARILY_REJECTED;
+            }
+            plane.guided_state.target_alt = packet.z * 100;
+            break;
+        }
+        default:
+            // this wasn't a mission_item, so no forms of frame nacks are supported, MAV_RESULT_UNSUPPORED is the best we can do
+            return MAV_RESULT_UNSUPPORTED;
+        }
+
+        plane.guided_state.target_alt_frame = packet.frame;
+        plane.guided_state.last_target_alt = plane.current_loc.alt; // FIXME: Reference frame is not corrected for here
+        plane.guided_state.target_alt_time_ms = AP_HAL::millis();
+
+        if (is_zero(packet.param3)) {
+            // the user wanted /maximum acceleration, pick a large value as close enough
+            plane.guided_state.target_alt_accel = 1000.0;
+        } else {
+            plane.guided_state.target_alt_accel = fabsf(packet.param3);
+        }
+
+        // assign an acceleration direction
+        if (plane.guided_state.target_alt < plane.current_loc.alt) {
+            plane.guided_state.target_alt_accel *= -1.0f;
+        }
+
+        return MAV_RESULT_ACCEPTED;
+    }
+
+    case MAV_CMD_GUIDED_CHANGE_HEADING: {
+        // command is only valid in guided
+        if (plane.control_mode != GUIDED) {
+            return MAV_RESULT_TEMPORARILY_REJECTED;
+        }
+
+        // don't accept packets out a [0-360) degree range
+        if (packet.param2 < 0.0f || packet.param2 >= 360.0f) {
+            return MAV_RESULT_TEMPORARILY_REJECTED;
+        }
+
+        float new_target_heading = radians(wrap_180(packet.param2));
+
+        // reject duplicate heading requests
+        if (new_target_heading == plane.guided_state.target_heading) {
+            gcs().send_text(MAV_SEVERITY_INFO,"dup heading request");
+            return MAV_RESULT_TEMPORARILY_REJECTED;
+        }
+
+        if (packet.param1 == HEADING_TYPE_COURSE_OVER_GROUND) {
+            plane.guided_state.target_heading_type = GUIDED_HEADING_COG;
+            plane.prev_WP_loc = plane.current_loc;
+        }
+        else if (packet.param1 == HEADING_TYPE_HEADING) {
+            plane.guided_state.target_heading_type = GUIDED_HEADING_HEADING;
+        } else {
+            // unknown heading track type
+            return MAV_RESULT_TEMPORARILY_REJECTED;
+        }
+
+        plane.g2.guidedHeading.reset_I();
+
+        plane.guided_state.target_heading = new_target_heading;
+        plane.guided_state.target_heading_accel_limit = MAX(packet.param3, 0.05f);
+        plane.guided_state.target_heading_time_ms = AP_HAL::millis();
+        return MAV_RESULT_ACCEPTED;
+    }
+#endif // OFFBOARD_GUIDED == ENABLED
+    
     default:
         return GCS_MAVLINK::handle_command_int_packet(packet);
     }

@@ -378,3 +378,8 @@
  #define OSD_ENABLED DISABLED
 #endif
 
+#ifndef OFFBOARD_GUIDED
+ #define OFFBOARD_GUIDED !HAL_MINIMIZE_FEATURES
+#endif
+
+

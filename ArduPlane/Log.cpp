@@ -88,6 +88,18 @@ struct PACKED log_Control_Tuning {
     float airspeed_estimate;
 };
 
+struct PACKED log_Guided {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float target_airspeed_cm;
+    float target_airspeed_accel;
+    float target_alt;
+    float target_alt_accel;
+    uint8_t target_alt_frame;
+    float target_heading;
+    float target_heading_limit;
+};
+
 // Write a control tuning packet. Total length : 22 bytes
 void Plane::Log_Write_Control_Tuning()
 {
@@ -122,6 +134,7 @@ struct PACKED log_Nav_Tuning {
     int32_t target_lat;
     int32_t target_lng;
     int32_t target_alt;
+    float   target_airspeed;
 };
 
 // Write a navigation tuning packet
@@ -140,6 +153,7 @@ void Plane::Log_Write_Nav_Tuning()
         target_lat          : next_WP_loc.lat,
         target_lng          : next_WP_loc.lng,
         target_alt          : next_WP_loc.alt,
+        target_airspeed     : (float)(target_airspeed_cm * 0.01f),
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
@@ -291,6 +305,31 @@ void Plane::Log_Write_RC(void)
     Log_Write_AETR();
 }
 
+void Plane::Log_Write_Guided(void)
+{
+#if OFFBOARD_GUIDED == ENABLED
+    if (control_mode != GUIDED) {
+        return;
+    }
+
+    if (guided_state.target_heading_time_ms != 0) {
+        DataFlash.Log_Write_PID(LOG_PIDG_MSG, g2.guidedHeading.get_pid_info());
+    }
+
+    if (guided_state.target_alt != 0 || guided_state.target_airspeed_cm) {
+        DataFlash_Class::instance()->Log_Write("OFG", "TimeUS,Arsp,ArspA,Alt,AltA,AltF,Hdg,HdgA", "QffffBff",
+                                               AP_HAL::micros64(),
+                                               guided_state.target_airspeed_cm*0.01,
+                                               guided_state.target_airspeed_accel,
+                                               guided_state.target_alt,
+                                               guided_state.target_alt_accel,
+                                               guided_state.target_alt_frame,
+                                               guided_state.target_heading,
+                                               guided_state.target_heading_accel_limit);
+    }
+#endif // OFFBOARD_GUIDED == ENABLED
+}
+
 // type and unit information can be found in
 // libraries/DataFlash/Logstructure.h; search for "log_Units" for
 // units and "Format characters" for field type information
@@ -301,8 +340,8 @@ const struct LogStructure Plane::log_structure[] = {
     { LOG_CTUN_MSG, sizeof(log_Control_Tuning),     
       "CTUN", "Qcccchhhf",    "TimeUS,NavRoll,Roll,NavPitch,Pitch,ThrOut,RdrOut,ThrDem,Aspd", "sdddd---n", "FBBBB---0" },
     { LOG_NTUN_MSG, sizeof(log_Nav_Tuning),         
-      "NTUN", "QfcccfffLLi",  "TimeUS,WpDist,TBrg,NavBrg,AltErr,XT,XTi,ArspdErr,TLat,TLng,TAlt", "smddmmmnDUm", "F0BBB0B0GGB" },
-    { LOG_SONAR_MSG, sizeof(log_Sonar),             
+      "NTUN", "QfcccfffLLif",  "TimeUS,WpDist,TBrg,NavBrg,AltErr,XT,XTi,AsErr,TLat,TLng,TAlt,TAs", "smddmmmnDUmm", "F0BBB0B0GGB0" },
+    { LOG_SONAR_MSG, sizeof(log_Sonar),
       "SONR", "QffBf",   "TimeUS,Dist,Volt,Cnt,Corr", "smv--", "FB0--" },
     { LOG_ARM_DISARM_MSG, sizeof(log_Arm_Disarm),
       "ARM", "QBH", "TimeUS,ArmState,ArmChecks", "s--", "F--" },
@@ -318,15 +357,17 @@ const struct LogStructure Plane::log_structure[] = {
     { LOG_OPTFLOW_MSG, sizeof(log_Optflow),
       "OF",   "QBffff",   "TimeUS,Qual,flowX,flowY,bodyX,bodyY", "s-EEEE", "F-0000" },
 #endif
-    { LOG_PIQR_MSG, sizeof(log_PID), \
-      "PIQR", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS },  \
-    { LOG_PIQP_MSG, sizeof(log_PID), \
-      "PIQP", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS }, \
-    { LOG_PIQY_MSG, sizeof(log_PID), \
-      "PIQY", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS }, \
-    { LOG_PIQA_MSG, sizeof(log_PID), \
-      "PIQA", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS }, \
-    { LOG_AETR_MSG, sizeof(log_AETR), \
+    { LOG_PIQR_MSG, sizeof(log_PID),
+      "PIQR", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS },
+    { LOG_PIQP_MSG, sizeof(log_PID),
+      "PIQP", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS },
+    { LOG_PIQY_MSG, sizeof(log_PID),
+      "PIQY", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS },
+    { LOG_PIQA_MSG, sizeof(log_PID),
+      "PIQA", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS },
+    { LOG_PIDG_MSG, sizeof(log_PID),
+      "PIDG", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS },
+    { LOG_AETR_MSG, sizeof(log_AETR),
       "AETR", "Qhhhhh",  "TimeUS,Ail,Elev,Thr,Rudd,Flap", "s-----", "F-----" },  \
 };
 
@@ -338,6 +379,36 @@ void Plane::Log_Write_Vehicle_Startup_Messages()
     DataFlash.Log_Write_Rally(rally);
     ahrs.Log_Write_Home_And_Origin();
     gps.Write_DataFlash_Log_Startup_messages();
+}
+
+/*
+  log a COMMAND_INT message
+ */
+void Plane::Log_Write_MavCmdI(const mavlink_command_int_t &mav_cmd)
+{
+    const char *name = "CMDI";
+    if (mav_cmd.command == MAV_CMD_GUIDED_CHANGE_SPEED) {
+        name = "CMIS";
+    } else if (mav_cmd.command == MAV_CMD_GUIDED_CHANGE_ALTITUDE) {
+        name = "CMIA";
+    } else if (mav_cmd.command == MAV_CMD_GUIDED_CHANGE_HEADING) {
+        name = "CMIH";
+    }
+    DataFlash_Class::instance()->Log_Write(name, "TimeUS,CId,TSys,TCmp,cur,cont,Prm1,Prm2,Prm3,Prm4,Lat,Lng,Alt,F", "QHBBBBffffiifB",
+                                           AP_HAL::micros64(),
+                                           mav_cmd.command,
+                                           mav_cmd.target_system,
+                                           mav_cmd.target_component,
+                                           mav_cmd.current,
+                                           mav_cmd.autocontinue,
+                                           mav_cmd.param1,
+                                           mav_cmd.param2,
+                                           mav_cmd.param3,
+                                           mav_cmd.param4,
+                                           mav_cmd.x,
+                                           mav_cmd.y,
+                                           mav_cmd.z,
+                                           mav_cmd.frame);
 }
 
 /*
@@ -358,6 +429,7 @@ void Plane::Log_Write_Control_Tuning() {}
 void Plane::Log_Write_Nav_Tuning() {}
 void Plane::Log_Write_Status() {}
 void Plane::Log_Write_Sonar() {}
+void Plane::Log_Write_Guided(void) {}
 
  #if OPTFLOW == ENABLED
 void Plane::Log_Write_Optflow() {}
