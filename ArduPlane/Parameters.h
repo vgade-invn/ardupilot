@@ -542,6 +542,11 @@ public:
     // Payload Gripper
     AP_Gripper gripper;
 #endif
+
+#if OFFBOARD_GUIDED == ENABLED
+    // guided yaw heading PID
+    AC_PID guidedHeading{5000.0, 0.0, 0.0, 10.0, 5.0, 0.2};
+#endif
 };
 
 extern const AP_Param::Info var_info[];

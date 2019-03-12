@@ -148,6 +148,7 @@ enum log_messages {
     LOG_PIQP_MSG,
     LOG_PIQY_MSG,
     LOG_PIQA_MSG,
+    LOG_PIDG_MSG,
     LOG_AETR_MSG,
 };
 
@@ -196,4 +197,10 @@ enum {
     USE_REVERSE_THRUST_CRUISE                   = (1<<8),
     USE_REVERSE_THRUST_FBWB                     = (1<<9),
     USE_REVERSE_THRUST_GUIDED                   = (1<<10),
+};
+
+enum guided_heading_type_t {
+    GUIDED_HEADING_NONE = 0, // no heading track
+    GUIDED_HEADING_COG,      // maintain ground track
+    GUIDED_HEADING_HEADING,  // maintain a heading
 };
