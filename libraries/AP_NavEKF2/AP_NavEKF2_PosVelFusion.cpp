@@ -201,7 +201,7 @@ void NavEKF2_core::ResetHeight(void)
 
 // Zero the EKF height datum
 // Return true if the height datum reset has been performed
-bool NavEKF2_core::resetHeightDatum(void)
+bool NavEKF2_core::resetHeightDatum(float alt_m)
 {
     if (activeHgtSource == HGT_SOURCE_RNG || !onGround) {
         // only allow resets when on the ground.
@@ -212,9 +212,9 @@ bool NavEKF2_core::resetHeightDatum(void)
     // record the old height estimate
     float oldHgt = -stateStruct.position.z;
     // reset the barometer so that it reads zero at the current height
-    AP::baro().update_calibration();
+    AP::baro().update_calibration(alt_m);
     // reset the height state
-    stateStruct.position.z = 0.0f;
+    stateStruct.position.z = -alt_m;
     // adjust the height of the EKF origin so that the origin plus baro height before and after the reset is the same
 
     if (validOrigin) {
@@ -228,14 +228,14 @@ bool NavEKF2_core::resetHeightDatum(void)
             // altitude. This ensures the reported AMSL alt from
             // getLLH() is equal to GPS altitude, while also ensuring
             // that the relative alt is zero
-            EKF_origin.alt = AP::gps().location().alt;
+            EKF_origin.alt = AP::gps().location().alt - alt_m * 100;
         }
         ekfGpsRefHgt = (double)0.01 * (double)EKF_origin.alt;
     }
 
     // set the terrain state to zero (on ground). The adjustment for
     // frame height will get added in the later constraints
-    terrainState = 0;
+    terrainState = alt_m;
     return true;
 }
 
