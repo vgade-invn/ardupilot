@@ -453,6 +453,18 @@ void Copter::one_hz_loop()
     // indicates that the sensor or subsystem is present but not
     // functioning correctly
     update_sensor_status_flags();
+
+    uint64_t utc_usec;
+    if (!AP::rtc().get_utc_usec(utc_usec)) {
+        return;
+    }
+    time_t utc_sec = utc_usec / 1000000UL;
+    struct tm *tm = gmtime(&utc_sec);
+    if (tm) {
+        char tbuf[50] {};
+        strftime(tbuf, sizeof(tbuf), "%Y/%m/%d-%H:%M:%S", tm);
+        hal.console->printf("Time: %s\n", tbuf);
+    }
 }
 
 // called at 50hz
