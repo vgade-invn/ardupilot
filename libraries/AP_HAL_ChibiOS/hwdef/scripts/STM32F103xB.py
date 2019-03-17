@@ -25,12 +25,9 @@ mcu = {
     # location of MCU serial number
     'UDID_START' : 0x1FFFF7E8,
 
-    # base address of main memory
-    'RAM_BASE_ADDRESS' : 0x20000000,
-
-    # size of main memory
-    'RAM_SIZE_KB' : 20,
-    
+    'RAM_MAP' : [
+        (0x20000000, 20, 1), # main memory, DMA safe
+    ]
 }
 
 ADC1_map = {
