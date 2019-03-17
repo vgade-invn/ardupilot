@@ -333,12 +333,6 @@ bool stm32_flash_erasepage(uint32_t page)
     stm32_flash_wait_idle();
     stm32_flash_unlock();
 
-#if defined(STM32F1)
-    FLASH->CR = FLASH_CR_PER;
-    FLASH->AR = stm32_flash_getpageaddr(page);
-    FLASH->CR |= FLASH_CR_STRT;
-    stm32_flash_wait_idle();
-#else
     // clear any previous errors
     stm32_flash_clear_errors();
 
@@ -368,15 +362,19 @@ bool stm32_flash_erasepage(uint32_t page)
         FLASH->CR2 |= FLASH_CR_START;
         while (FLASH->SR2 & FLASH_SR_QW) ;
     }
-#else
-    stm32_flash_wait_idle();
-
+#elif defined(STM32F1)
+    FLASH->CR = FLASH_CR_PER;
+    FLASH->AR = stm32_flash_getpageaddr(page);
+    FLASH->CR |= FLASH_CR_STRT;
+#elif defined(STM32F4) || defined(STM32F7)
     // the snb mask is not contiguous, calculate the mask for the page
     uint8_t snb = (((page % 12) << 3) | ((page / 12) << 7));
 
     // use 32 bit operations
     FLASH->CR = FLASH_CR_PSIZE_1 | snb | FLASH_CR_SER;
     FLASH->CR |= FLASH_CR_STRT;
+#else
+#error "Unsupported MCU"
 #endif
 
     stm32_flash_wait_idle();
