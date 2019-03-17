@@ -552,7 +552,6 @@ failed:
 static bool stm32_flash_write_f1(uint32_t addr, const void *buf, uint32_t count)
 {
     uint8_t *b = (uint8_t *)buf;
-    uint32_t written = count;
 
     /* STM32 requires half-word access */
     if (count & 1) {
