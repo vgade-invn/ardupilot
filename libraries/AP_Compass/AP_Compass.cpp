@@ -435,9 +435,11 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("OFFS_MAX", 31, Compass, _offset_max, AP_COMPASS_OFFSETS_MAX_DEFAULT),
 
+#if COMPASS_MOT_ENABLED
     // @Group: PMOT
     // @Path: Compass_PerMotor.cpp
     AP_SUBGROUPINFO(_per_motor, "PMOT", 32, Compass, Compass_PerMotor),
+#endif
 
     // @Param: TYPEMASK
     // @DisplayName: Compass disable driver type mask
@@ -932,6 +934,11 @@ void Compass::_detect_backends(void)
                                                            true, HAL_COMPASS_QMC5883L_ORIENTATION_EXTERNAL));
     ADD_BACKEND(DRIVER_QMC5883, AP_Compass_QMC5883L::probe(GET_I2C_DEVICE(0, HAL_COMPASS_QMC5883L_I2C_ADDR),
                                                            false, HAL_COMPASS_QMC5883L_ORIENTATION_INTERNAL));
+#elif HAL_COMPASS_DEFAULT == HAL_COMPASS_LIS3MDL_I2C
+    FOREACH_I2C(i) {
+        ADD_BACKEND(DRIVER_LIS3MDL, AP_Compass_LIS3MDL::probe(GET_I2C_DEVICE(i, HAL_COMPASS_LIS3MDL_I2C_ADDR2), true, ROTATION_NONE));
+        ADD_BACKEND(DRIVER_LIS3MDL, AP_Compass_LIS3MDL::probe(GET_I2C_DEVICE(i, HAL_COMPASS_LIS3MDL_I2C_ADDR2), true, ROTATION_NONE));
+    }
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX && CONFIG_HAL_BOARD_SUBTYPE != HAL_BOARD_SUBTYPE_LINUX_NONE
     ADD_BACKEND(DRIVER_HMC5883, AP_Compass_HMC5843::probe(GET_I2C_DEVICE(HAL_COMPASS_HMC5843_I2C_BUS, HAL_COMPASS_HMC5843_I2C_ADDR)));
     ADD_BACKEND(DRIVER_AK8963, AP_Compass_AK8963::probe_mpu9250(0));
@@ -976,6 +983,7 @@ Compass::read(void)
     for (uint8_t i=0; i < COMPASS_MAX_INSTANCES; i++) {
         _state[i].healthy = (time - _state[i].last_update_ms < 500);
     }
+#if COMPASS_LEARN_ENABLED
     if (_learn == LEARN_INFLIGHT && !learn_allocated) {
         learn_allocated = true;
         learn = new CompassLearn(*this);
@@ -988,6 +996,9 @@ Compass::read(void)
         AP::logger().Write_Compass();
     }
     return ret;
+#else
+    return healthy();
+#endif
 }
 
 uint8_t
