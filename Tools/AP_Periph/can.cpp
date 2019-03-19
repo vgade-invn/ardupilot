@@ -285,6 +285,12 @@ static void onTransferReceived(CanardInstance* ins,
     case ARDUPILOT_BUS_I2C_ID:
         handle_i2c_request(ins, transfer);
         break;
+
+    case UAVCAN_PROTOCOL_RESTARTNODE_ID:
+        printf("RestartNode\n");
+        hal.scheduler->delay(10);
+        NVIC_SystemReset();
+        break;
     }
 }
 
