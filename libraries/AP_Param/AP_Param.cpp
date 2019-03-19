@@ -44,6 +44,12 @@ extern const AP_HAL::HAL &hal;
  # define Debug(fmt, args ...)
 #endif
 
+#ifdef HAL_NO_GCS
+#define GCS_SEND_PARAM(name, type, v)
+#else
+#define GCS_SEND_PARAM(name, type, v) gcs().send_parameter_value(name, type, v)
+#endif
+
 // Note about AP_Vector3f handling.
 // The code has special cases for AP_Vector3f to allow it to be viewed
 // as both a single 3 element vector and as a set of 3 AP_Float
@@ -1051,7 +1057,7 @@ void AP_Param::save_sync(bool force_save)
             v2 = get_default_value(this, &info->def_value);
         }
         if (is_equal(v1,v2) && !force_save) {
-            gcs().send_parameter_value(name, (enum ap_var_type)info->type, v2);
+            GCS_SEND_PARAM(name, (enum ap_var_type)info->type, v2);
             return;
         }
         if (!force_save &&
@@ -1059,7 +1065,7 @@ void AP_Param::save_sync(bool force_save)
              (fabsf(v1-v2) < 0.0001f*fabsf(v1)))) {
             // for other than 32 bit integers, we accept values within
             // 0.01 percent of the current value as being the same
-            gcs().send_parameter_value(name, (enum ap_var_type)info->type, v2);
+            GCS_SEND_PARAM(name, (enum ap_var_type)info->type, v2);
             return;
         }
     }
@@ -2123,7 +2129,7 @@ void AP_Param::send_parameter(const char *name, enum ap_var_type var_type, uint8
     }
     if (var_type != AP_PARAM_VECTOR3F) {
         // nice and simple for scalar types
-        gcs().send_parameter_value(name, var_type, cast_to_float(var_type));
+        GCS_SEND_PARAM(name, var_type, cast_to_float(var_type));
         return;
     }
 
@@ -2131,6 +2137,7 @@ void AP_Param::send_parameter(const char *name, enum ap_var_type var_type, uint8
     // of a set of the first element of a AP_Vector3f. This happens as the ap->save() call can't
     // distinguish between a vector and scalar save. It means that setting first element of a vector
     // via MAVLink results in sending all 3 elements to the GCS
+#ifndef HAL_NO_GCS
     const Vector3f &v = ((AP_Vector3f *)this)->get();
     char name2[AP_MAX_NAME_SIZE+1];
     strncpy(name2, name, AP_MAX_NAME_SIZE);
@@ -2138,11 +2145,12 @@ void AP_Param::send_parameter(const char *name, enum ap_var_type var_type, uint8
     char &name_axis = name2[strlen(name)-1];
     
     name_axis = 'X';
-    gcs().send_parameter_value(name2, AP_PARAM_FLOAT, v.x);
+    GCS_SEND_PARAM(name2, AP_PARAM_FLOAT, v.x);
     name_axis = 'Y';
-    gcs().send_parameter_value(name2, AP_PARAM_FLOAT, v.y);
+    GCS_SEND_PARAM(name2, AP_PARAM_FLOAT, v.y);
     name_axis = 'Z';
-    gcs().send_parameter_value(name2, AP_PARAM_FLOAT, v.z);
+    GCS_SEND_PARAM(name2, AP_PARAM_FLOAT, v.z);
+#endif // HAL_NO_GCS
 }
 
 /*
