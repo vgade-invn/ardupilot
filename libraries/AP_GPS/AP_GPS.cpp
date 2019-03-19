@@ -456,6 +456,7 @@ void AP_GPS::detect_instance(uint8_t instance)
     // the correct baud rate, and should have the selected baud broadcast
     dstate->auto_detected_baud = true;
 
+#ifndef HAL_BUILD_AP_PERIPH
     switch (_type[instance]) {
     // by default the sbf/trimble gps outputs no data on its port, until configured.
     case GPS_TYPE_SBF:
@@ -473,6 +474,7 @@ void AP_GPS::detect_instance(uint8_t instance)
     default:
         break;
     }
+#endif // HAL_BUILD_AP_PERIPH
 
     if (now - dstate->last_baud_change_ms > GPS_BAUD_TIME_MS) {
         // try the next baud rate
@@ -523,6 +525,7 @@ void AP_GPS::detect_instance(uint8_t instance)
             new_gps = new AP_GPS_MTK(*this, state[instance], _port[instance]);
         }
 #endif
+#ifndef HAL_BUILD_AP_PERIPH
         else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_SBP) &&
                  AP_GPS_SBP2::_detect(dstate->sbp2_detect_state, data)) {
             new_gps = new AP_GPS_SBP2(*this, state[instance], _port[instance]);
@@ -544,6 +547,7 @@ void AP_GPS::detect_instance(uint8_t instance)
                    AP_GPS_NMEA::_detect(dstate->nmea_detect_state, data)) {
             new_gps = new AP_GPS_NMEA(*this, state[instance], _port[instance]);
         }
+#endif // HAL_BUILD_AP_PERIPH
     }
 
 found_gps:
@@ -566,6 +570,7 @@ AP_GPS::GPS_Status AP_GPS::highest_supported_status(uint8_t instance) const
 
 bool AP_GPS::should_log() const
 {
+#ifndef HAL_BUILD_AP_PERIPH
     AP_Logger *logger = AP_Logger::get_singleton();
     if (logger == nullptr) {
         return false;
@@ -577,6 +582,9 @@ bool AP_GPS::should_log() const
         return false;
     }
     return true;
+#else
+    return false;
+#endif
 }
 
 
@@ -659,6 +667,7 @@ void AP_GPS::update_instance(uint8_t instance)
         data_should_be_logged = true;
     }
 
+#ifndef HAL_BUILD_AP_PERIPH
     if (data_should_be_logged &&
         should_log() &&
         !AP::ahrs().have_ekf_logging()) {
@@ -669,6 +678,9 @@ void AP_GPS::update_instance(uint8_t instance)
         const uint64_t now = time_epoch_usec(instance);
         AP::rtc().set_utc_usec(now, AP_RTC::SOURCE_GPS);
     }
+#else
+    (void)data_should_be_logged;
+#endif
 }
 
 /*
@@ -770,10 +782,11 @@ void AP_GPS::update(void)
         _blended_antenna_offset = _antenna_offset[primary_instance];
     }
 
+#ifndef HAL_BUILD_AP_PERIPH
     // update notify with gps status. We always base this on the primary_instance
     AP_Notify::flags.gps_status = state[primary_instance].status;
     AP_Notify::flags.gps_num_sats = state[primary_instance].num_sats;
-
+#endif
 }
 
 void AP_GPS::handle_gps_inject(const mavlink_message_t *msg)
