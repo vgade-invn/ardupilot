@@ -28,6 +28,7 @@
 #include <ardupilot/bus/I2CReqAnnounce.h>
 #include <ardupilot/bus/I2CAnnounce.h>
 #include <uavcan/equipment/ahrs/MagneticFieldStrength2.h>
+#include <uavcan/equipment/gnss/Fix.h>
 #include <stdio.h>
 #include <ardupilot/bus/I2C.h>
 #include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
@@ -590,6 +591,37 @@ void AP_Periph_FW::can_mag_update(void)
 void AP_Periph_FW::can_gps_update(void)
 {
     gps.update();
+    compass.read();
+    if (last_gps_update_ms == gps.last_message_time_ms()) {
+        return;
+    }
+    last_gps_update_ms = gps.last_message_time_ms();
+    uavcan_equipment_gnss_Fix pkt {};
+    const Location &loc = gps.location();
+    const Vector3f &vel = gps.velocity();
 
+    pkt.timestamp.usec = AP_HAL::micros64();
+    pkt.gnss_timestamp.usec = gps.time_epoch_usec();
+    pkt.longitude_deg_1e8 = loc.lng * 10;
+    pkt.latitude_deg_1e8 = loc.lat * 10;
+    pkt.height_ellipsoid_mm = loc.alt * 10;
+    pkt.height_msl_mm = loc.alt * 10;
+    for (uint8_t i=0; i<3; i++) {
+        // the canard dsdl compiler doesn't understand float16
+        *(uint16_t *)&pkt.ned_velocity[i] = canardConvertNativeFloatToFloat16(vel[i]);
+    }
+    pkt.sats_used = gps.num_sats();
+    pkt.status = gps.status();
+
+    uint8_t buffer[UAVCAN_EQUIPMENT_GNSS_FIX_MAX_SIZE];
+    uint16_t total_size = uavcan_equipment_gnss_Fix_encode(&pkt, buffer);
+
+    canardBroadcast(&canard,
+                    UAVCAN_EQUIPMENT_GNSS_FIX_SIGNATURE,
+                    UAVCAN_EQUIPMENT_GNSS_FIX_ID,
+                    &transfer_id,
+                    CANARD_TRANSFER_PRIORITY_LOW,
+                    &buffer[0],
+                    total_size);
 }
 
