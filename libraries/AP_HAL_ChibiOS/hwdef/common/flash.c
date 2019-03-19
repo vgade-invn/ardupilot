@@ -547,6 +547,10 @@ failed:
 
 #endif // STM32F4 || STM32F7
 
+uint32_t _flash_fail_line;
+uint32_t _flash_fail_addr;
+uint32_t _flash_fail_count;
+uint8_t *_flash_fail_buf;
 
 #if defined(STM32F1)
 static bool stm32_flash_write_f1(uint32_t addr, const void *buf, uint32_t count)
@@ -555,10 +559,12 @@ static bool stm32_flash_write_f1(uint32_t addr, const void *buf, uint32_t count)
 
     /* STM32 requires half-word access */
     if (count & 1) {
+        _flash_fail_line = __LINE__;
         return false;
     }
 
     if ((addr+count) >= STM32_FLASH_BASE+STM32_FLASH_SIZE) {
+        _flash_fail_line = __LINE__;
         return false;
     }
 
@@ -581,6 +587,10 @@ static bool stm32_flash_write_f1(uint32_t addr, const void *buf, uint32_t count)
         FLASH->CR = 0;
 
         if (getreg16(addr) != *(uint16_t *)b) {
+            _flash_fail_line = __LINE__;
+            _flash_fail_addr = addr;
+            _flash_fail_count = count;
+            _flash_fail_buf = b;
             goto failed;
         }
 

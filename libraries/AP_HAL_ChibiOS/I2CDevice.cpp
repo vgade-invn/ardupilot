@@ -88,6 +88,7 @@ void I2CBus::clear_all()
  */
 void I2CBus::clear_bus(uint8_t busidx)
 {
+#if HAL_I2C_CLEAR_ON_TIMEOUT
     const struct I2CInfo &info = I2CD[busidx];
     const iomode_t mode_saved = palReadLineMode(info.scl_line);
     palSetLineMode(info.scl_line, PAL_MODE_OUTPUT_PUSHPULL);
@@ -96,8 +97,10 @@ void I2CBus::clear_bus(uint8_t busidx)
         hal.scheduler->delay_microseconds(10);
     }
     palSetLineMode(info.scl_line, mode_saved);
+#endif
 }
 
+#if HAL_I2C_CLEAR_ON_TIMEOUT
 /*
   read SDA on a bus, to check if it may be stuck
  */
@@ -110,6 +113,7 @@ uint8_t I2CBus::read_sda(uint8_t busidx)
     palSetLineMode(info.sda_line, mode_saved);
     return ret;
 }
+#endif
 
 // setup I2C buses
 I2CDeviceManager::I2CDeviceManager(void)
