@@ -23,10 +23,12 @@
 #include <AP_HAL/AP_HAL.h>
 #include "AP_Periph.h"
 #include "hal.h"
+#include <stdio.h>
+#include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
 
 extern const AP_HAL::HAL &hal;
 
-static AP_Periph_FW periph;
+AP_Periph_FW periph;
 
 void setup();
 void loop();
@@ -43,33 +45,19 @@ void loop(void)
     periph.update();
 }
 
-// usart1 configuration
-static const SerialConfig uart1_cfg = {
-    57600,   // speed
-    0,        // cr1
-    0,        // cr2
-    0,        // cr3
-    nullptr,  // irq_cb
-    nullptr,  // ctx
-};
-
-// usart2 configuration
-static const SerialConfig uart2_cfg = {
-    57600,   // speed
-    0,        // cr1
-    0,        // cr2
-    0,        // cr3
-    nullptr,  // irq_cb
-    nullptr,  // ctx
-};
-
 void AP_Periph_FW::init()
 {
-    sdStart(&SD1, &uart1_cfg);
-    sdStart(&SD2, &uart2_cfg);
-    can_start();
-}
+    hal.console->begin(115200, 32, 128);
+    hal.uartB->begin(115200, 32, 128);
 
+    load_parameters();
+    can_start();
+
+    serial_manager.init();
+
+    gps.init(serial_manager);
+    compass.init();
+}
 
 void AP_Periph_FW::update()
 {
@@ -78,9 +66,17 @@ void AP_Periph_FW::update()
     if (now - last_led_ms > 1000) {
         last_led_ms = now;
         palToggleLine(HAL_GPIO_PIN_LED);
-        chnWrite(&SD2, (const uint8_t *)"uart2", 5);
+        printf("uartA %u\n", now);
+        printf("GPS status: %u\n", (unsigned)gps.status());
+        const Vector3f &field = compass.get_field();
+        printf("MAG (%d,%d,%d)\n", int(field.x), int(field.y), int(field.z));
+        hal.scheduler->delay(1);
+        show_stack_usage();
     }
+    gps.update();
+    compass.read();
     can_update();
+    hal.scheduler->delay(2);
 }
 
 AP_HAL_MAIN();

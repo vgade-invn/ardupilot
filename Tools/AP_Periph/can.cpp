@@ -37,7 +37,7 @@ extern const AP_HAL::HAL &hal;
 
 static CanardInstance canard;
 static uint32_t canard_memory_pool[2048/4];
-static const uint8_t PreferredNodeID = CANARD_BROADCAST_NODE_ID;
+static const uint8_t PreferredNodeID = 7; // CANARD_BROADCAST_NODE_ID;
 
 // can config for 1MBit
 static uint32_t baudrate = 1000000U;
@@ -416,6 +416,8 @@ static void process1HzTasks(uint64_t timestamp_usec)
         uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
         node_status.uptime_sec = AP_HAL::millis() / 1000U;
 
+        node_status.vendor_specific_status_code = hal.util->available_memory();
+
         uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer);
 
         static uint8_t transfer_id;  // Note that the transfer ID variable MUST BE STATIC (or heap-allocated)!
@@ -430,7 +432,7 @@ static void process1HzTasks(uint64_t timestamp_usec)
         if (bc_res <= 0) {
             printf("broadcast fail %d\n", bc_res);
         } else {
-            printf("broadcast node status OK\n");
+            //printf("broadcast node status OK\n");
         }
     }
 
@@ -523,6 +525,8 @@ void AP_Periph_FW::can_start()
 
     canardInit(&canard, (uint8_t *)canard_memory_pool, sizeof(canard_memory_pool),
                onTransferReceived, shouldAcceptTransfer, NULL);
+
+    canardSetLocalNodeID(&canard, PreferredNodeID);
 
     // wait for dynamic node ID allocation
     can_wait_node_id();
