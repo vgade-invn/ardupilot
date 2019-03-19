@@ -13,6 +13,8 @@ public:
 private:
     void can_start();
     void can_update();
+    void can_mag_update();
+    void can_gps_update();
 
     void load_parameters();
 
@@ -26,6 +28,9 @@ private:
     AP_Param param_loader{var_info};
 
     static const AP_Param::Info var_info[];
+
+    uint32_t last_mag_update_ms;
+    uint32_t last_gps_update_ms;
 };
 
 extern AP_Periph_FW periph;

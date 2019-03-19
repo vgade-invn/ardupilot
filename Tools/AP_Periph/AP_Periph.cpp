@@ -73,8 +73,6 @@ void AP_Periph_FW::update()
         hal.scheduler->delay(1);
         show_stack_usage();
     }
-    gps.update();
-    compass.read();
     can_update();
     hal.scheduler->delay(2);
 }

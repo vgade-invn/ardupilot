@@ -27,6 +27,7 @@
 #include <uavcan/protocol/file/BeginFirmwareUpdate.h>
 #include <ardupilot/bus/I2CReqAnnounce.h>
 #include <ardupilot/bus/I2CAnnounce.h>
+#include <uavcan/equipment/ahrs/MagneticFieldStrength2.h>
 #include <stdio.h>
 #include <ardupilot/bus/I2C.h>
 #include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
@@ -38,6 +39,7 @@ extern const AP_HAL::HAL &hal;
 static CanardInstance canard;
 static uint32_t canard_memory_pool[2048/4];
 static const uint8_t PreferredNodeID = 7; // CANARD_BROADCAST_NODE_ID;
+static uint8_t transfer_id;
 
 // can config for 1MBit
 static uint32_t baudrate = 1000000U;
@@ -426,8 +428,6 @@ static void process1HzTasks(uint64_t timestamp_usec)
 
         uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer);
 
-        static uint8_t transfer_id;  // Note that the transfer ID variable MUST BE STATIC (or heap-allocated)!
-
         const int16_t bc_res = canardBroadcast(&canard,
                                                UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
                                                UAVCAN_PROTOCOL_NODESTATUS_ID,
@@ -547,6 +547,49 @@ void AP_Periph_FW::can_update()
         last_1Hz_ms = now;
         process1HzTasks(AP_HAL::micros64());
     }
+    can_mag_update();
+    can_gps_update();
     processTx();
     processRx();
 }
+
+/*
+  update CAN magnetometer
+ */
+void AP_Periph_FW::can_mag_update(void)
+{
+    compass.read();
+    if (last_mag_update_ms == compass.last_update_ms()) {
+        return;
+    }
+    last_mag_update_ms = compass.last_update_ms();
+    const Vector3f &field = compass.get_field();
+    uavcan_equipment_ahrs_MagneticFieldStrength2 pkt {};
+    pkt.sensor_id = 0;
+
+    // the canard dsdl compiler doesn't understand float16
+    *(uint16_t *)&pkt.magnetic_field_ga[0] = canardConvertNativeFloatToFloat16(field.x * 0.001);
+    *(uint16_t *)&pkt.magnetic_field_ga[1] = canardConvertNativeFloatToFloat16(field.y * 0.001);
+    *(uint16_t *)&pkt.magnetic_field_ga[2] = canardConvertNativeFloatToFloat16(field.z * 0.001);
+
+    uint8_t buffer[UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_MAX_SIZE];
+    uint16_t total_size = uavcan_equipment_ahrs_MagneticFieldStrength2_encode(&pkt, buffer);
+
+    canardBroadcast(&canard,
+                    UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_SIGNATURE,
+                    UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_ID,
+                    &transfer_id,
+                    CANARD_TRANSFER_PRIORITY_LOW,
+                    &buffer[0],
+                    total_size);
+}
+
+/*
+  update CAN GPS
+ */
+void AP_Periph_FW::can_gps_update(void)
+{
+    gps.update();
+
+}
+
