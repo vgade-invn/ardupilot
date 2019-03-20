@@ -97,6 +97,9 @@ bool AP_Compass_RM3100::init()
         return false;
     }
 
+    // read has high bit set for SPI
+    dev->set_read_flag(0x80);
+
     // high retries for init
     dev->set_retries(10);
 
