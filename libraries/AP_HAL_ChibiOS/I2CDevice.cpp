@@ -35,7 +35,9 @@ static const struct I2CInfo {
 } I2CD[] = { HAL_I2C_DEVICE_LIST };
 
 // support for remote I2C buses
-#define I2C_MAX_REMOTE_BUS 2
+#ifndef I2C_MAX_REMOTE_BUS
+#define I2C_MAX_REMOTE_BUS 0
+#endif
 static AP_HAL::I2CDeviceManager::i2c_transfer_fn_t i2c_remote_bus[I2C_MAX_REMOTE_BUS];
 
 using namespace ChibiOS;
@@ -444,6 +446,7 @@ bool I2CDeviceRemote::adjust_periodic_callback(AP_HAL::Device::PeriodicHandle h,
 */
 bool I2CDeviceManager::register_i2c_bus(AP_HAL::I2CDeviceManager::i2c_transfer_fn_t fn, uint8_t &bus)
 {
+#if I2C_MAX_REMOTE_BUS > 0
     for (uint8_t i=0; i<I2C_MAX_REMOTE_BUS; i++) {
         if (i2c_remote_bus[i] == nullptr) {
             i2c_remote_bus[i] = fn;
@@ -451,6 +454,7 @@ bool I2CDeviceManager::register_i2c_bus(AP_HAL::I2CDeviceManager::i2c_transfer_f
             return true;
         }
     }
+#endif
     return false;
 }
 
