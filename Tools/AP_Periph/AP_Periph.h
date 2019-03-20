@@ -34,3 +34,8 @@ private:
 };
 
 extern AP_Periph_FW periph;
+
+extern "C" {
+void can_printf(const char *fmt, ...);
+}
+

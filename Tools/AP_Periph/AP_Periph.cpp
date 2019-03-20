@@ -47,7 +47,7 @@ void loop(void)
 
 void AP_Periph_FW::init()
 {
-    hal.console->begin(115200, 32, 128);
+    hal.uartA->begin(115200, 32, 128);
     hal.uartB->begin(115200, 32, 128);
 
     load_parameters();
@@ -66,10 +66,10 @@ void AP_Periph_FW::update()
     if (now - last_led_ms > 1000) {
         last_led_ms = now;
         palToggleLine(HAL_GPIO_PIN_LED);
-        printf("uartA %u\n", now);
-        printf("GPS status: %u\n", (unsigned)gps.status());
+        can_printf("uartA %u\n", now);
+        can_printf("GPS status: %u\n", (unsigned)gps.status());
         const Vector3f &field = compass.get_field();
-        printf("MAG (%d,%d,%d)\n", int(field.x), int(field.y), int(field.z));
+        can_printf("MAG (%d,%d,%d)\n", int(field.x), int(field.y), int(field.z));
         hal.scheduler->delay(1);
         show_stack_usage();
     }

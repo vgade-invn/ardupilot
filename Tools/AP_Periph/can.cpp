@@ -29,6 +29,7 @@
 #include <ardupilot/bus/I2CAnnounce.h>
 #include <uavcan/equipment/ahrs/MagneticFieldStrength2.h>
 #include <uavcan/equipment/gnss/Fix.h>
+#include <uavcan/protocol/debug/LogMessage.h>
 #include <stdio.h>
 #include <ardupilot/bus/I2C.h>
 #include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
@@ -374,7 +375,7 @@ static void processRx(void)
     while (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE) == MSG_OK) {
         CanardCANFrame rx_frame {};
 
-        palToggleLine(HAL_GPIO_PIN_LED);
+        //palToggleLine(HAL_GPIO_PIN_LED);
 
         const uint64_t timestamp = AP_HAL::micros64();
         memcpy(rx_frame.data, rxmsg.data8, 8);
@@ -560,9 +561,20 @@ void AP_Periph_FW::can_update()
 void AP_Periph_FW::can_mag_update(void)
 {
     compass.read();
+    if (compass.get_count() == 0) {
+        static uint32_t last_probe_ms;
+        uint32_t now = AP_HAL::millis();
+        if (now - last_probe_ms >= 1000) {
+            last_probe_ms = now;
+            can_printf("Compass init");
+            compass.init();
+        }
+    }
+
     if (last_mag_update_ms == compass.last_update_ms()) {
         return;
     }
+
     last_mag_update_ms = compass.last_update_ms();
     const Vector3f &field = compass.get_field();
     uavcan_equipment_ahrs_MagneticFieldStrength2 pkt {};
@@ -602,8 +614,8 @@ void AP_Periph_FW::can_gps_update(void)
 
     pkt.timestamp.usec = AP_HAL::micros64();
     pkt.gnss_timestamp.usec = gps.time_epoch_usec();
-    pkt.longitude_deg_1e8 = loc.lng * 10;
-    pkt.latitude_deg_1e8 = loc.lat * 10;
+    pkt.longitude_deg_1e8 = uint64_t(loc.lng) * 10ULL;
+    pkt.latitude_deg_1e8 = uint64_t(loc.lat) * 10ULL;
     pkt.height_ellipsoid_mm = loc.alt * 10;
     pkt.height_msl_mm = loc.alt * 10;
     for (uint8_t i=0; i<3; i++) {
@@ -625,3 +637,27 @@ void AP_Periph_FW::can_gps_update(void)
                     total_size);
 }
 
+// printf to CAN LogMessage for debugging
+void can_printf(const char *fmt, ...)
+{
+    uavcan_protocol_debug_LogMessage pkt {};
+    uint8_t buffer[UAVCAN_PROTOCOL_DEBUG_LOGMESSAGE_MAX_SIZE];
+    char tbuf[100];
+    va_list ap;
+    va_start(ap, fmt);
+    uint32_t n = vsnprintf(tbuf, sizeof(tbuf), fmt, ap);
+    va_end(ap);
+    pkt.text.len = n;
+    pkt.text.data = (uint8_t *)&tbuf[0];
+
+    uint32_t len = uavcan_protocol_debug_LogMessage_encode(&pkt, buffer);
+
+    canardBroadcast(&canard,
+                    UAVCAN_PROTOCOL_DEBUG_LOGMESSAGE_SIGNATURE,
+                    UAVCAN_PROTOCOL_DEBUG_LOGMESSAGE_ID,
+                    &transfer_id,
+                    CANARD_TRANSFER_PRIORITY_LOW,
+                    buffer,
+                    len);
+
+}
