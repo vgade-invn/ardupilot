@@ -316,9 +316,10 @@ class sitl(Board):
             AP_SCRIPTING_CHECKS = 1, # SITL should always do runtime scripting checks
         )
 
-        env.CXXFLAGS += [
-            '-Werror=float-equal'
-        ]
+        if not cfg.options.enable_eigen:
+            env.CXXFLAGS += [
+                '-Werror=float-equal'
+            ]
 
         if not cfg.env.DEBUG:
             env.CXXFLAGS += [
