@@ -81,6 +81,7 @@ bool AP_Param::registered_save_handler;
 // we need a dummy object for the parameter save callback
 static AP_Param save_dummy;
 
+#if AP_PARAM_MAX_EMBEDDED_PARAM > 0
 /*
   this holds default parameters in the normal NAME=value form for a
   parameter file. It can be manipulated by apj_tool.py to change the
@@ -92,6 +93,7 @@ const AP_Param::param_defaults_struct AP_Param::param_defaults_data = {
     AP_PARAM_MAX_EMBEDDED_PARAM,
     0
 };
+#endif
 
 // storage object
 StorageAccess AP_Param::_storage(StorageManager::StorageParam);
@@ -1370,10 +1372,12 @@ bool AP_Param::load_all()
  */
 void AP_Param::reload_defaults_file(bool last_pass)
 {
+#if AP_PARAM_MAX_EMBEDDED_PARAM > 0
     if (param_defaults_data.length != 0) {
         load_embedded_param_defaults(last_pass);
         return;
     }
+#endif
 
 #if HAL_OS_POSIX_IO == 1
     /*
@@ -1979,6 +1983,7 @@ bool AP_Param::load_defaults_file(const char *filename, bool last_pass)
 
 #endif // HAL_OS_POSIX_IO
 
+#if AP_PARAM_MAX_EMBEDDED_PARAM > 0
 /*
   count the number of embedded parameter defaults
  */
@@ -2103,6 +2108,7 @@ void AP_Param::load_embedded_param_defaults(bool last_pass)
     }
     num_param_overrides = num_defaults;
 }
+#endif // AP_PARAM_MAX_EMBEDDED_PARAM > 0
 
 /* 
    find a default value given a pointer to a default value in flash
