@@ -346,6 +346,10 @@ class sitl(Board):
                 if fnmatch.fnmatch(f, "font*bin"):
                     env.ROMFS_FILES += [(f,'libraries/AP_OSD/fonts/'+f)]
 
+        if cfg.options.enable_eigen:
+            print("Adding eigen")
+            env.INCLUDES += [ '/usr/include/eigen3' ]
+
         if cfg.options.sitl_flash_storage:
             env.CXXFLAGS += ['-DSTORAGE_USE_FLASH=1']
 
