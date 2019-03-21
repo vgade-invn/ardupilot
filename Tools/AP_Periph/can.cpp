@@ -570,15 +570,16 @@ static void fix_float16(float &f)
 void AP_Periph_FW::can_mag_update(void)
 {
     compass.read();
+#if 0
     if (compass.get_count() == 0) {
         static uint32_t last_probe_ms;
         uint32_t now = AP_HAL::millis();
         if (now - last_probe_ms >= 1000) {
             last_probe_ms = now;
-            can_printf("Compass init");
             compass.init();
         }
     }
+#endif
 
     if (last_mag_update_ms == compass.last_update_ms()) {
         return;

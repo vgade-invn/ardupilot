@@ -66,12 +66,13 @@ void AP_Periph_FW::update()
     if (now - last_led_ms > 1000) {
         last_led_ms = now;
         palToggleLine(HAL_GPIO_PIN_LED);
-        can_printf("uartA %u\n", now);
+#if 0
         can_printf("GPS status: %u\n", (unsigned)gps.status());
         const Vector3f &field = compass.get_field();
         can_printf("MAG (%d,%d,%d)\n", int(field.x), int(field.y), int(field.z));
         hal.scheduler->delay(1);
         show_stack_usage();
+#endif
     }
     can_update();
     hal.scheduler->delay(2);
