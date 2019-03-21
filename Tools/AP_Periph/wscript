@@ -2,6 +2,9 @@
 # encoding: utf-8
 
 def build(bld):
+    if not bld.env.BOARD in ['f103-periph']:
+        return
+
     bld.ap_stlib(
         name= 'AP_Periph_libs',
         ap_vehicle='AP_Periph',
