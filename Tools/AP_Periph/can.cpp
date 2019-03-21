@@ -29,6 +29,7 @@
 #include <ardupilot/bus/I2CAnnounce.h>
 #include <uavcan/equipment/ahrs/MagneticFieldStrength2.h>
 #include <uavcan/equipment/gnss/Fix.h>
+#include <uavcan/equipment/gnss/Auxiliary.h>
 #include <uavcan/protocol/debug/LogMessage.h>
 #include <stdio.h>
 #include <ardupilot/bus/I2C.h>
@@ -556,6 +557,14 @@ void AP_Periph_FW::can_update()
 }
 
 /*
+  fix value of a float for canard float16 format
+ */
+static void fix_float16(float &f)
+{
+    *(uint16_t *)&f = canardConvertNativeFloatToFloat16(f);
+}
+
+/*
   update CAN magnetometer
  */
 void AP_Periph_FW::can_mag_update(void)
@@ -581,9 +590,10 @@ void AP_Periph_FW::can_mag_update(void)
     pkt.sensor_id = 0;
 
     // the canard dsdl compiler doesn't understand float16
-    *(uint16_t *)&pkt.magnetic_field_ga[0] = canardConvertNativeFloatToFloat16(field.x * 0.001);
-    *(uint16_t *)&pkt.magnetic_field_ga[1] = canardConvertNativeFloatToFloat16(field.y * 0.001);
-    *(uint16_t *)&pkt.magnetic_field_ga[2] = canardConvertNativeFloatToFloat16(field.z * 0.001);
+    for (uint8_t i=0; i<3; i++) {
+        pkt.magnetic_field_ga[i] = field[i] * 0.001;
+        fix_float16(pkt.magnetic_field_ga[i]);
+    }
 
     uint8_t buffer[UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_MAX_SIZE];
     uint16_t total_size = uavcan_equipment_ahrs_MagneticFieldStrength2_encode(&pkt, buffer);
@@ -608,33 +618,99 @@ void AP_Periph_FW::can_gps_update(void)
         return;
     }
     last_gps_update_ms = gps.last_message_time_ms();
+
+    /*
+      send Fix packet
+     */
     uavcan_equipment_gnss_Fix pkt {};
     const Location &loc = gps.location();
     const Vector3f &vel = gps.velocity();
 
     pkt.timestamp.usec = AP_HAL::micros64();
     pkt.gnss_timestamp.usec = gps.time_epoch_usec();
+    pkt.gnss_time_standard = UAVCAN_EQUIPMENT_GNSS_FIX_GNSS_TIME_STANDARD_UTC;
     pkt.longitude_deg_1e8 = uint64_t(loc.lng) * 10ULL;
     pkt.latitude_deg_1e8 = uint64_t(loc.lat) * 10ULL;
     pkt.height_ellipsoid_mm = loc.alt * 10;
     pkt.height_msl_mm = loc.alt * 10;
     for (uint8_t i=0; i<3; i++) {
         // the canard dsdl compiler doesn't understand float16
-        *(uint16_t *)&pkt.ned_velocity[i] = canardConvertNativeFloatToFloat16(vel[i]);
+        pkt.ned_velocity[i] = vel[i];
+        fix_float16(pkt.ned_velocity[i]);
     }
     pkt.sats_used = gps.num_sats();
-    pkt.status = gps.status();
+    switch (gps.status()) {
+    case AP_GPS::GPS_Status::NO_GPS:
+    case AP_GPS::GPS_Status::NO_FIX:
+        pkt.status = UAVCAN_EQUIPMENT_GNSS_FIX_STATUS_NO_FIX;
+        break;
+    case AP_GPS::GPS_Status::GPS_OK_FIX_2D:
+        pkt.status = UAVCAN_EQUIPMENT_GNSS_FIX_STATUS_2D_FIX;
+        break;
+    case AP_GPS::GPS_Status::GPS_OK_FIX_3D:
+    case AP_GPS::GPS_Status::GPS_OK_FIX_3D_DGPS:
+    case AP_GPS::GPS_Status::GPS_OK_FIX_3D_RTK_FLOAT:
+    case AP_GPS::GPS_Status::GPS_OK_FIX_3D_RTK_FIXED:
+        pkt.status = UAVCAN_EQUIPMENT_GNSS_FIX_STATUS_3D_FIX;
+        break;
+    }
 
-    uint8_t buffer[UAVCAN_EQUIPMENT_GNSS_FIX_MAX_SIZE];
-    uint16_t total_size = uavcan_equipment_gnss_Fix_encode(&pkt, buffer);
+    float pos_cov[9] {};
+    pkt.position_covariance.data = &pos_cov[0];
+    pkt.position_covariance.len = 9;
 
-    canardBroadcast(&canard,
-                    UAVCAN_EQUIPMENT_GNSS_FIX_SIGNATURE,
-                    UAVCAN_EQUIPMENT_GNSS_FIX_ID,
-                    &transfer_id,
-                    CANARD_TRANSFER_PRIORITY_LOW,
-                    &buffer[0],
-                    total_size);
+    float hacc;
+    if (gps.horizontal_accuracy(hacc)) {
+        pos_cov[8] = sq(hacc);
+        fix_float16(pos_cov[8]);
+    }
+
+    float vel_cov[9] {};
+    pkt.velocity_covariance.data = &pos_cov[0];
+    pkt.velocity_covariance.len = 9;
+
+    float sacc;
+    if (gps.speed_accuracy(sacc)) {
+        float vc3 = sq(sacc/3.0);
+        vel_cov[0] = vel_cov[4] = vel_cov[8] = vc3;
+        fix_float16(vel_cov[0]);
+        fix_float16(vel_cov[4]);
+        fix_float16(vel_cov[8]);
+    }
+
+    {
+        uint8_t buffer[UAVCAN_EQUIPMENT_GNSS_FIX_MAX_SIZE];
+        uint16_t total_size = uavcan_equipment_gnss_Fix_encode(&pkt, buffer);
+
+        canardBroadcast(&canard,
+                        UAVCAN_EQUIPMENT_GNSS_FIX_SIGNATURE,
+                        UAVCAN_EQUIPMENT_GNSS_FIX_ID,
+                        &transfer_id,
+                        CANARD_TRANSFER_PRIORITY_LOW,
+                        &buffer[0],
+                        total_size);
+    }
+
+    /*
+      send aux packet
+     */
+    {
+        uavcan_equipment_gnss_Auxiliary aux {};
+        aux.hdop = gps.get_hdop() * 0.01;
+        aux.vdop = gps.get_vdop() * 0.01;
+        fix_float16(aux.hdop);
+        fix_float16(aux.vdop);
+
+        uint8_t buffer[UAVCAN_EQUIPMENT_GNSS_AUXILIARY_MAX_SIZE];
+        uint16_t total_size = uavcan_equipment_gnss_Auxiliary_encode(&aux, buffer);
+        canardBroadcast(&canard,
+                        UAVCAN_EQUIPMENT_GNSS_AUXILIARY_SIGNATURE,
+                        UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID,
+                        &transfer_id,
+                        CANARD_TRANSFER_PRIORITY_LOW,
+                        &buffer[0],
+                        total_size);
+    }
 }
 
 // printf to CAN LogMessage for debugging
