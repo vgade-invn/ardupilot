@@ -660,12 +660,19 @@ void AP_Periph_FW::can_gps_update(void)
     pkt.position_covariance.data = &pos_cov[0];
     pkt.position_covariance.len = 9;
 
-    float hacc;
-    if (gps.horizontal_accuracy(hacc)) {
-        pos_cov[8] = sq(hacc);
+    float vacc;
+    if (gps.vertical_accuracy(vacc)) {
+        pos_cov[8] = sq(vacc);
         fix_float16(pos_cov[8]);
     }
 
+    float hacc;
+    if (gps.horizontal_accuracy(hacc)) {
+        pos_cov[0] = pos_cov[4] = sq(hacc);
+        fix_float16(pos_cov[0]);
+        fix_float16(pos_cov[4]);
+    }
+    
     float vel_cov[9] {};
     pkt.velocity_covariance.data = &pos_cov[0];
     pkt.velocity_covariance.len = 9;
