@@ -82,7 +82,7 @@ int main(void)
     // optional "stay in bootloader" pin
     if (palReadLine(HAL_GPIO_PIN_STAY_IN_BOOTLOADER) == 0) {
         try_boot = false;
-        timeout = 0;
+        timeout = 10000;
     }
 #endif
 
