@@ -29,6 +29,7 @@
 #include <uavcan/protocol/RestartNode.h>
 #include <uavcan/protocol/GetNodeInfo.h>
 #include "can.h"
+#include "bl_protocol.h"
 
 
 static CanardInstance canard;
@@ -213,6 +214,8 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
         fw_update.node_id = 0;
         // now flash the first word
         flash_func_write_word(0, app_first_word);
+        uprintf("upload finished - rebooting");
+        jump_to_app();
     }
 
     // show offset number we are flashing in kbyte as crude progress indicator
