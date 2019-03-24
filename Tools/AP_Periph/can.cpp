@@ -27,7 +27,7 @@
 #include <uavcan/protocol/file/BeginFirmwareUpdate.h>
 #include <ardupilot/bus/I2CReqAnnounce.h>
 #include <ardupilot/bus/I2CAnnounce.h>
-#include <uavcan/equipment/ahrs/MagneticFieldStrength2.h>
+#include <uavcan/equipment/ahrs/MagneticFieldStrength.h>
 #include <uavcan/equipment/gnss/Fix.h>
 #include <uavcan/equipment/gnss/Auxiliary.h>
 #include <uavcan/protocol/debug/LogMessage.h>
@@ -587,8 +587,7 @@ void AP_Periph_FW::can_mag_update(void)
 
     last_mag_update_ms = compass.last_update_ms();
     const Vector3f &field = compass.get_field();
-    uavcan_equipment_ahrs_MagneticFieldStrength2 pkt {};
-    pkt.sensor_id = 0;
+    uavcan_equipment_ahrs_MagneticFieldStrength pkt {};
 
     // the canard dsdl compiler doesn't understand float16
     for (uint8_t i=0; i<3; i++) {
@@ -596,12 +595,12 @@ void AP_Periph_FW::can_mag_update(void)
         fix_float16(pkt.magnetic_field_ga[i]);
     }
 
-    uint8_t buffer[UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_MAX_SIZE];
-    uint16_t total_size = uavcan_equipment_ahrs_MagneticFieldStrength2_encode(&pkt, buffer);
+    uint8_t buffer[UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH_MAX_SIZE];
+    uint16_t total_size = uavcan_equipment_ahrs_MagneticFieldStrength_encode(&pkt, buffer);
 
     canardBroadcast(&canard,
-                    UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_SIGNATURE,
-                    UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_ID,
+                    UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH_SIGNATURE,
+                    UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH_ID,
                     &transfer_id,
                     CANARD_TRANSFER_PRIORITY_LOW,
                     &buffer[0],
