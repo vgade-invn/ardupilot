@@ -345,6 +345,11 @@ static void onTransferReceived(CanardInstance* ins,
     case UAVCAN_PROTOCOL_FILE_READ_ID:
         handle_file_read_response(ins, transfer);
         break;
+
+    case UAVCAN_PROTOCOL_RESTARTNODE_ID:
+        uprintf("RestartNode\n");
+        NVIC_SystemReset();
+        break;
     }
 }
 
