@@ -35,6 +35,18 @@
 #define STM32_HSE_ENABLED                   TRUE
 #define STM32_LSE_ENABLED                   FALSE
 
+#if STM32_HSECLK == 8000000U
+#define STM32_SW                            STM32_SW_PLL
+#define STM32_PLLSRC                        STM32_PLLSRC_HSE
+#define STM32_PLLXTPRE                      STM32_PLLXTPRE_DIV1
+#define STM32_PLLMUL_VALUE                  9
+#define STM32_PPRE1                         STM32_PPRE1_DIV2
+#define STM32_PPRE2                         STM32_PPRE2_DIV2
+#define STM32_ADCPRE                        STM32_ADCPRE_DIV4
+#else
+#error "Unsupported STM32F1xx clock frequency"
+#endif
+
 #ifndef STM32_SW
 #define STM32_SW                            STM32_SW_HSE
 #endif
