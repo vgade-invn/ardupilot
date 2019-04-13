@@ -208,7 +208,7 @@ void AP_UAVCAN::init(uint8_t driver_index, bool enable_filters)
 
     act_out_array[driver_index] = new uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>(*_node);
     act_out_array[driver_index]->setTxTimeout(uavcan::MonotonicDuration::fromMSec(2));
-    act_out_array[driver_index]->setPriority(uavcan::TransferPriority::OneLowerThanHighest);
+    act_out_array[driver_index]->setPriority(0x18);
 
     esc_raw[driver_index] = new uavcan::Publisher<uavcan::equipment::esc::RawCommand>(*_node);
     esc_raw[driver_index]->setTxTimeout(uavcan::MonotonicDuration::fromMSec(2));
@@ -295,52 +295,34 @@ void AP_UAVCAN::loop(void)
 
 void AP_UAVCAN::SRV_send_actuator(void)
 {
-    uint8_t starting_servo = 0;
-    bool repeat_send;
-
     WITH_SEMAPHORE(SRV_sem);
 
-    do {
-        repeat_send = false;
-        uavcan::equipment::actuator::ArrayCommand msg;
+    for (uint8_t i = 0; i<UAVCAN_SRV_NUMBER; i++) {
+        /*
+         * Servo output uses a range of 1000-2000 PWM for scaling.
+         * This converts output PWM from [1000:2000] range to [-1:1] range that
+         * is passed to servo as unitless type via UAVCAN.
+         * This approach allows for MIN/TRIM/MAX values to be used fully on
+         * autopilot side and for servo it should have the setup to provide maximum
+         * physically possible throws at [-1:1] limits.
+         */
 
-        uint8_t i;
-        // UAVCAN can hold maximum of 15 commands in one frame
-        for (i = 0; starting_servo < UAVCAN_SRV_NUMBER && i < 15; starting_servo++) {
+        if (_SRV_conf[i].servo_pending && ((1U << i) & _servo_bm)) {
+            uavcan::equipment::actuator::ArrayCommand msg;
             uavcan::equipment::actuator::Command cmd;
+            cmd.actuator_id = i + 1;
 
-            /*
-             * Servo output uses a range of 1000-2000 PWM for scaling.
-             * This converts output PWM from [1000:2000] range to [-1:1] range that
-             * is passed to servo as unitless type via UAVCAN.
-             * This approach allows for MIN/TRIM/MAX values to be used fully on
-             * autopilot side and for servo it should have the setup to provide maximum
-             * physically possible throws at [-1:1] limits.
-             */
+            // TODO: other types
+            cmd.command_type = uavcan::equipment::actuator::Command::COMMAND_TYPE_UNITLESS;
 
-            if (_SRV_conf[starting_servo].servo_pending && ((((uint32_t) 1) << starting_servo) & _servo_bm)) {
-                cmd.actuator_id = starting_servo + 1;
+            // TODO: failsafe, safety
+            cmd.command_value = constrain_float(((float) _SRV_conf[i].pulse - 1000.0) / 500.0 - 1.0, -1.0, 1.0);
 
-                // TODO: other types
-                cmd.command_type = uavcan::equipment::actuator::Command::COMMAND_TYPE_UNITLESS;
+            msg.commands.push_back(cmd);
 
-                // TODO: failsafe, safety
-                cmd.command_value = constrain_float(((float) _SRV_conf[starting_servo].pulse - 1000.0) / 500.0 - 1.0, -1.0, 1.0);
-
-                msg.commands.push_back(cmd);
-
-                i++;
-            }
-        }
-
-        if (i > 0) {
             act_out_array[_driver_index]->broadcast(msg);
-
-            if (i == 15) {
-                repeat_send = true;
-            }
         }
-    } while (repeat_send);
+    }
 }
 
 void AP_UAVCAN::SRV_send_esc(void)
