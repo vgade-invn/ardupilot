@@ -366,7 +366,7 @@ PE6 SPI4_MOSI SPI4
 # This is the pin to enable the sensors rail. It can be used to power
 # cycle sensors to recover them in case there are problems with power on
 # timing affecting sensor stability. We pull it high by default.
-PE3 VDD_3V3_SENSORS_EN OUTPUT HIGH
+PE3 VDD_3V3_SENSORS_EN OUTPUT HIGH GPIO(75)
 
 # UART7 maps to uartF in the HAL (serial5 in SERIALn_ parameters).
 PE7 UART7_RX UART7
