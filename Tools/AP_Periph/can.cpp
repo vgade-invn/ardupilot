@@ -41,7 +41,7 @@ extern const AP_HAL::HAL &hal;
 
 static CanardInstance canard;
 static uint32_t canard_memory_pool[2048/4];
-static const uint8_t PreferredNodeID = 7; // CANARD_BROADCAST_NODE_ID;
+static const uint8_t PreferredNodeID = CANARD_BROADCAST_NODE_ID;
 static uint8_t transfer_id;
 
 // can config for 1MBit
@@ -535,7 +535,9 @@ void AP_Periph_FW::can_start()
     canardInit(&canard, (uint8_t *)canard_memory_pool, sizeof(canard_memory_pool),
                onTransferReceived, shouldAcceptTransfer, NULL);
 
-    canardSetLocalNodeID(&canard, PreferredNodeID);
+    if (PreferredNodeID != CANARD_BROADCAST_NODE_ID) {
+        canardSetLocalNodeID(&canard, PreferredNodeID);
+    }
 
     // wait for dynamic node ID allocation
     can_wait_node_id();
