@@ -700,7 +700,7 @@ void Plane::update_navigation()
         break;
             
     case RTL:
-        if (quadplane.available() && quadplane.rtl_mode == 1 &&
+        if (g.rtl_autoland = 0 && quadplane.available() && quadplane.rtl_mode == 1 &&
             (nav_controller->reached_loiter_target() ||
              location_passed_point(current_loc, prev_WP_loc, next_WP_loc) ||
              auto_state.wp_distance < MAX(qrtl_radius, quadplane.stopping_distance())) &&
@@ -738,6 +738,39 @@ void Plane::update_navigation()
             // on every loop
             auto_state.checked_for_autoland = true;
         }
+		
+		else if (g.rtl_autoland == 3 &&
+            !auto_state.checked_for_autoland&&
+            reached_loiter_target() && 
+            labs(altitude_error_cm) < 1000){
+            // Go directly to the landing sequence
+			auto_state.checked_for_autoland = true;	
+            if (mission.jump_to_landing_sequence()) {
+                // switch from RTL -> AUTO
+                set_mode(AUTO, MODE_REASON_UNKNOWN);
+			}
+			else if(ahrs.home_is_set()) {
+				plane.do_force_home();
+				FORCED_HOME = true;				
+			}
+		}
+			else if (g.rtl_autoland == 3 && FORCED_HOME && auto_state.checked_for_autoland){
+					
+			 if (quadplane.available() && quadplane.rtl_mode == 2 &&
+            (nav_controller->reached_loiter_target() ||
+             location_passed_point(current_loc, prev_WP_loc, next_WP_loc) ||
+             auto_state.wp_distance < MAX(qrtl_radius, quadplane.stopping_distance())) &&
+            AP_HAL::millis() - last_mode_change_ms > 1000) {
+            /*
+              for a quadplane in RTL mode we switch to QRTL when we
+              are within the maximum of the stopping distance and the
+              RTL_RADIUS
+             */
+            set_mode(QRTL, MODE_REASON_UNKNOWN);
+            break;
+        }
+			
+		}
         radius = abs(g.rtl_radius);
         if (radius > 0) {
             loiter.direction = (g.rtl_radius < 0) ? -1 : 1;

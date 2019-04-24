@@ -248,6 +248,8 @@ private:
         int16_t rudder;   // value for rudder
     } steering_control;
 
+	bool FORCED_HOME;
+
     // should throttle be pass-thru in guided?
     bool guided_throttle_passthru;
 
@@ -837,6 +839,7 @@ private:
     // set home location:
     void set_home(const Location &loc);
     void do_RTL(int32_t alt);
+	void do_force_home();
     bool verify_takeoff();
     bool verify_loiter_unlim();
     bool verify_loiter_time();
