@@ -748,6 +748,7 @@ void Plane::update_navigation()
             if (mission.jump_to_landing_sequence()) {
                 // switch from RTL -> AUTO
                 set_mode(AUTO, MODE_REASON_UNKNOWN);
+				FORCED_HOME = false;
 			}
 			else if(ahrs.home_is_set()) {
 				plane.do_force_home();
