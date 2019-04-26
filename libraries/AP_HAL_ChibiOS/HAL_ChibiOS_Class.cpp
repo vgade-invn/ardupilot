@@ -91,6 +91,7 @@ static ChibiOS::Flash flashDriver;
 static Empty::Flash flashDriver;
 #endif
 
+#define RC_LOCKUP_CHANNEL 9
 
 #if HAL_WITH_IO_MCU
 HAL_UART_IO_DRIVER;
@@ -223,6 +224,17 @@ static THD_FUNCTION(main_loop,arg)
         if (!done_pause && AP_HAL::millis() > 20000) {
             done_pause = true;
             while (AP_HAL::millis() < 22200) ;
+        }
+#endif
+
+#if RC_LOCKUP_CHANNEL > 0
+        if (AP_HAL::millis() > 30000 &&
+            hal.rcin->num_channels() >= RC_LOCKUP_CHANNEL)  {
+            uint16_t v = hal.rcin->read(RC_LOCKUP_CHANNEL-1);
+            while (v > 1800) {
+                hal.scheduler->delay(1);
+                v = hal.rcin->read(RC_LOCKUP_CHANNEL-1);
+            }
         }
 #endif
 
