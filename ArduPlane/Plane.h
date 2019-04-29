@@ -248,7 +248,7 @@ private:
         int16_t rudder;   // value for rudder
     } steering_control;
 
-	bool FORCED_HOME;
+	bool FORCED_HOME = false;
 
     // should throttle be pass-thru in guided?
     bool guided_throttle_passthru;
