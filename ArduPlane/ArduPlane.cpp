@@ -698,8 +698,8 @@ void Plane::update_navigation()
             mission.update();
         }
         break;
-            	//( (auto_state.checked_for_autoland && quadplane.rtl_mode == 1) || (g.rtl_autoland == 0 && quadplane.rtl_mode == 1 ))
-    case RTL:					
+
+		case RTL:					
 			if (g.rtl_autoland == 1 &&
             !auto_state.checked_for_autoland &&
             reached_loiter_target() && 
