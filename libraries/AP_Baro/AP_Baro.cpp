@@ -33,6 +33,7 @@
 #include "AP_Baro_SITL.h"
 #include "AP_Baro_BMP085.h"
 #include "AP_Baro_BMP280.h"
+#include "AP_Baro_BME280.h"
 #include "AP_Baro_HIL.h"
 #include "AP_Baro_KellerLD.h"
 #include "AP_Baro_MS5611.h"
@@ -424,6 +425,7 @@ void AP_Baro::init(void)
     } while (added);
 #endif
 
+
 #if AP_FEATURE_BOARD_DETECT
     switch (AP_BoardConfig::get_board_type()) {
     case AP_BoardConfig::PX4_BOARD_PX4V1:
@@ -440,10 +442,18 @@ void AP_Baro::init(void)
     case AP_BoardConfig::PX4_BOARD_PIXHAWK_PRO:
         ADD_BACKEND(AP_Baro_MS56XX::probe(*this,
                                           std::move(hal.spi->get_device(HAL_BARO_MS5611_NAME))));
+	 #if defined(BOARD_I2C_BUS_EXT)
+		ADD_BACKEND(AP_Baro_BME280::probe(*this,
+                                          std::move(hal.i2c_mgr->get_device(BOARD_I2C_BUS_EXT, ))));	
+	 #endif
         break;
 
-    case AP_BoardConfig::PX4_BOARD_PIXHAWK2:
+    case AP_BoardConfig::PX4_BOARD_PIXHAWK2:		
     case AP_BoardConfig::PX4_BOARD_SP01:
+		 #if defined(BOARD_I2C_BUS_EXT)
+		ADD_BACKEND(AP_Baro_BME280::probe(*this,
+                                          std::move(hal.i2c_mgr->get_device(BOARD_I2C_BUS_EXT, ))));	
+	 #endif
         ADD_BACKEND(AP_Baro_MS56XX::probe(*this,
                                           std::move(hal.spi->get_device(HAL_BARO_MS5611_SPI_EXT_NAME))));
         ADD_BACKEND(AP_Baro_MS56XX::probe(*this,
@@ -568,7 +578,7 @@ void AP_Baro::init(void)
   #endif
 
     ADD_BACKEND(AP_Baro_BMP085::probe(*this,
-                                          std::move(hal.i2c_mgr->get_device(BOARD_I2C_BUS_EXT, HAL_BARO_BMP085_I2C_ADDR))));
+                                          std::move(hal.i2c_mgr->get_device(BOARD_I2C_BUS_EXT, HAL_BARO_BMP085_I2C_ADDR))));								  
 #endif
 
     // can optionally have baro on I2C too
@@ -582,7 +592,9 @@ void AP_Baro::init(void)
 #else
         ADD_BACKEND(AP_Baro_MS56XX::probe(*this,
                                           std::move(hal.i2c_mgr->get_device(_ext_bus, HAL_BARO_MS5611_I2C_ADDR))));
-
+										  			ADD_BACKEND(AP_Baro_BME280::probe(*this,
+                                          std::move(hal.i2c_mgr->get_device(_ext_bus, HAL_BARO_BME280_I2C_ADDR))));
+										 
  #if CONFIG_HAL_BOARD == HAL_BOARD_F4LIGHT // we don't know which baro user will solder
 
         ADD_BACKEND(AP_Baro_BMP280::probe(*this,
@@ -603,6 +615,7 @@ void AP_Baro::init(void)
         AP_BoardConfig::sensor_config_error("Baro: unable to initialise driver");
     }
 #endif
+
 }
 
 bool AP_Baro::should_df_log() const
