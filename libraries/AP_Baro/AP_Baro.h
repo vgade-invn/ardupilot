@@ -58,7 +58,10 @@ public:
     // pressure in Pascal. Divide by 100 for millibars or hectopascals
     float get_pressure(void) const { return get_pressure(_primary); }
     float get_pressure(uint8_t instance) const { return sensors[instance].pressure; }
-
+	
+    float get_humidity(void) const { return get_humidity(_primary); }
+    float get_humidity(uint8_t instance) const { return sensors[instance].humidity; }
+	
     // temperature in degrees C
     float get_temperature(void) const { return get_temperature(_primary); }
     float get_temperature(uint8_t instance) const { return sensors[instance].temperature; }
@@ -142,6 +145,7 @@ public:
     struct {
         float pressure;
         float temperature;
+	    float humidity;
         float altitude;
         float climb_rate;
         uint32_t last_update_ms;
@@ -206,6 +210,7 @@ private:
         bool calibrated:1;              // true if calculated calibrated successfully
         float pressure;                 // pressure in Pascal
         float temperature;              // temperature in degrees C
+	    float humidity = 0;
         float altitude;                 // calculated altitude
         AP_Float ground_pressure;
         float p_correction;

@@ -36,6 +36,7 @@ extern const AP_HAL::HAL &hal;
 #define BME280_REG_CALIB     0x88
 #define BME280_REG_ID        0xD0
 #define BME280_REG_RESET     0xE0
+#define BME_CTRL_HUM_ADDR 0xF2
 #define BME280_REG_STATUS    0xF3
 #define BME280_REG_CTRL_MEAS 0xF4
 #define BME280_REG_CONFIG    0xF5
@@ -81,7 +82,7 @@ bool AP_Baro_BME280::_init()
     }
 
     // read the calibration data
-    uint8_t buf[32];
+    uint8_t buf[26];
     _dev->read_registers(BME280_REG_CALIB, buf, sizeof(buf));
 
     _t1 = ((int16_t)buf[1] << 8) | buf[0];
@@ -96,12 +97,15 @@ bool AP_Baro_BME280::_init()
     _p7 = ((int16_t)buf[19] << 8) | buf[18];
     _p8 = ((int16_t)buf[21] << 8) | buf[20];
     _p9 = ((int16_t)buf[23] << 8) | buf[22];
-    _h1 = (uint8_t) buf[24];
-    _h2 = ((int16_t) buf[26] << 8) | buf[25];
-    _h3 = (uint8_t) buf[27];
-    _h4 = ((int16_t) buf[28] << 4) | (0x0F & buf[29]); 
-    _h5 = ((int16_t) buf[30] << 4) | ((buf[29] >> 4) & 0x0F);
-    _h6 = (int8_t) buf[31];
+	
+	_dev->read_registers(0xE1, buf, sizeof(buf));
+	    uint8_t buf2[8];
+    _h1 = (uint8_t) buf2[0];
+    _h2 = ((int16_t) buf2[2] << 8) | buf[1];
+    _h3 = (uint8_t) buf2[3];
+    _h4 = ((int16_t) buf2[4] << 4) | (buf[5] & 0xF); 
+    _h5 = ((int16_t) buf2[6] << 4) | ((buf[5] >> 4) );
+    _h6 = (int8_t) buf2[7];
     
     // SPI write needs bit mask
     uint8_t mask = 0xFF;
@@ -110,7 +114,7 @@ bool AP_Baro_BME280::_init()
     }
 
     _dev->setup_checked_registers(2, 20);
-    
+    _dev->write_register(BME_CTRL_HUM_ADDR ,4,true);
     _dev->write_register((BME280_REG_CTRL_MEAS & mask), (BME280_OVERSAMPLING_T << 5) |
                          (BME280_OVERSAMPLING_P << 2) | BME280_MODE, true);
 
@@ -131,11 +135,16 @@ bool AP_Baro_BME280::_init()
 //  acumulate a new sensor reading
 void AP_Baro_BME280::_timer(void)
 {
-    uint8_t buf[6];
+    uint8_t buf[9];
 
     _dev->read_registers(BME280_REG_DATA, buf, sizeof(buf));
-
     _update_temperature((buf[3] << 12) | (buf[4] << 4) | (buf[5] >> 4));
+
+	uint32_t data_msb;
+	uint32_t data_lsb;
+	data_lsb = (uint32_t) buf[6] << 8;
+	 data_msb = (uint32_t) buf[7];
+	_update_humidity(data_msb | data_lsb);
     _update_pressure((buf[0] << 12) | (buf[1] << 4) | (buf[2] >> 4));
 
 }
@@ -149,7 +158,7 @@ void AP_Baro_BME280::update(void)
             return;
         }
 
-        _copy_to_frontend(_instance, _pressure, _temperature);
+        _copy_to_frontend_humidity(_instance, _pressure, _temperature, _humidity);
         _has_sample = false;
         _sem->give();
     }
@@ -213,9 +222,10 @@ void AP_Baro_BME280::_update_pressure(int32_t press_raw)
 // calculate pressure
 void AP_Baro_BME280::_update_humidity(int32_t hum_raw)
 {
+	
     int32_t var1, h;
     
-    var1 = (_temperature - ((int32_t)76800));
+    var1 = (_t_fine - ((int32_t)76800));
     var1 = (((((hum_raw << 14) - (((int32_t)_h4) << 20) - (((int32_t)_h5) * var1)) +
     ((int32_t)16384)) >> 15) * (((((((var1 * ((int32_t)_h6)) >> 10) * (((var1 *
     ((int32_t)_h3)) >> 11) + ((int32_t)32768))) >> 10) + ((int32_t)2097152)) *
@@ -223,13 +233,15 @@ void AP_Baro_BME280::_update_humidity(int32_t hum_raw)
     var1 = (var1 - (((((var1 >> 15) * (var1 >> 15)) >> 7) * ((int32_t)_h1)) >> 4));
     var1 = (var1 < 0 ? 0 : var1);
     var1 = (var1 > 419430400 ? 419430400 : var1);
-    h = ((int32_t)(var1 >> 12));
+    h = ((var1 >> 12));
     
-    const float hum = (float)h / 1024.0f;
-    
+     float hum = (float)h / 1024.0f;
+    //hum = hum +1;
+	
     if (_sem->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
         _humidity = hum;
-        _has_sample = true;
         _sem->give();
     }
+	
+	
 }

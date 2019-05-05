@@ -31,7 +31,8 @@ protected:
     AP_Baro &_frontend;
 
     void _copy_to_frontend(uint8_t instance, float pressure, float temperature);
-
+	
+    void _copy_to_frontend_humidity(uint8_t instance, float pressure, float temperature,float humidity);
     // semaphore for access to shared frontend data
     AP_HAL::Semaphore *_sem;    
 

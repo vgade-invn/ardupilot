@@ -1134,6 +1134,20 @@ void GCS_MAVLINK::send_raw_imu()
         mag.z);        
 }
 
+void GCS_MAVLINK::send_humidity(float humidity){
+
+	
+	    if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
+        return;
+    }
+	
+	mavlink_msg_raw_humidity_send(
+		chan,
+        AP_HAL::millis(),
+        humidity);
+		
+}
+
 // sub overrides this to send on-board temperature
 void GCS_MAVLINK::send_scaled_pressure3()
 {
@@ -1153,6 +1167,12 @@ void GCS_MAVLINK::send_scaled_pressure3()
         pressure*0.01f, // hectopascal
         (pressure - barometer.get_ground_pressure(2))*0.01f, // hectopascal
         barometer.get_temperature(2)*100); // 0.01 degrees C
+		
+		if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
+		return;}
+		if (barometer.get_humidity(2) > 0){
+			send_humidity(barometer.get_humidity(2));
+		}		
 }
 
 void GCS_MAVLINK::send_scaled_pressure()
@@ -1161,7 +1181,7 @@ void GCS_MAVLINK::send_scaled_pressure()
     const AP_Baro &barometer = AP::baro();
     float pressure = barometer.get_pressure(0);
     float diff_pressure = 0; // pascal
-
+		
     AP_Airspeed *airspeed = AP_Airspeed::get_singleton();
     if (airspeed != nullptr) {
         diff_pressure = airspeed->get_differential_pressure();
@@ -1173,6 +1193,12 @@ void GCS_MAVLINK::send_scaled_pressure()
         pressure*0.01f, // hectopascal
         diff_pressure*0.01f, // hectopascal
         barometer.get_temperature(0)*100); // 0.01 degrees C
+		
+	if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
+		return;}
+	if (barometer.get_humidity(0) > 0){
+			send_humidity(barometer.get_humidity(0));
+		}
 
     if (barometer.num_instances() > 1 &&
         HAVE_PAYLOAD_SPACE(chan, SCALED_PRESSURE2)) {
@@ -1182,7 +1208,13 @@ void GCS_MAVLINK::send_scaled_pressure()
             now,
             pressure*0.01f, // hectopascal
             (pressure - barometer.get_ground_pressure(1))*0.01f, // hectopascal
-            barometer.get_temperature(1)*100); // 0.01 degrees C        
+            barometer.get_temperature(1)*100); // 0.01 degrees C     
+					if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
+		return;}
+		if (barometer.get_humidity(1) > 0){
+			send_humidity(barometer.get_humidity(1));
+		}
+			 		
     }
 
     send_scaled_pressure3();

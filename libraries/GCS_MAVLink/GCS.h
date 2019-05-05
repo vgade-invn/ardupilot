@@ -83,6 +83,7 @@ enum ap_message : uint8_t {
     MSG_LANDING,
     MSG_ESC_TELEMETRY,
     MSG_NAMED_FLOAT,
+    MSG_RAW_HUMIDITY,
     MSG_LAST // MSG_LAST must be the last entry in this enum
 };
 
@@ -177,6 +178,7 @@ public:
     void send_radio_in();
     void send_raw_imu();
     virtual void send_scaled_pressure3(); // allow sub to override this
+    void send_humidity(float humidity);
     void send_scaled_pressure();
     void send_sensor_offsets();
     virtual void send_simstate() const;
