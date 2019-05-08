@@ -700,7 +700,8 @@ void Plane::update_navigation()
         break;
 
 		case RTL:					
-			if (g.rtl_autoland == 1 &&
+		if (waitUpdate == false){
+		if (g.rtl_autoland == 1 &&
             !auto_state.checked_for_autoland &&
             reached_loiter_target() && 
             labs(altitude_error_cm) < 1000) {
@@ -740,7 +741,8 @@ void Plane::update_navigation()
 				FORCED_HOME = false;
 			}
 			else if(ahrs.home_is_set()) {
-				plane.do_force_home();
+				
+				plane.do_force_home(plane.get_RTL_altitude());
 				FORCED_HOME = true;				
 			}
 		}
@@ -759,17 +761,21 @@ void Plane::update_navigation()
             break;
         }		
 		
+	}
+		
+		waitUpdate = false;
 		
         radius = abs(g.rtl_radius);
         if (radius > 0) {
             loiter.direction = (g.rtl_radius < 0) ? -1 : 1;
         }
         // fall through to LOITER
-        FALLTHROUGH;
-
+        update_loiter(radius);
+		break;
     case LOITER:
     case AVOID_ADSB:
     case GUIDED:
+	    waitUpdate = true;
         update_loiter(radius);
         break;
 

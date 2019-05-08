@@ -354,6 +354,7 @@ private:
         return failsafe.state != FAILSAFE_NONE || battery.has_failsafed() || failsafe.adsb;
     }
 
+	bool waitUpdate = false;
     // A counter used to count down valid gps fixes to allow the gps estimate to settle
     // before recording our home position (and executing a ground start if we booted with an air start)
     uint8_t ground_start_count = 5;
@@ -839,7 +840,7 @@ private:
     // set home location:
     void set_home(const Location &loc);
     void do_RTL(int32_t alt);
-	void do_force_home();
+	void do_force_home(int32_t alt);
     bool verify_takeoff();
     bool verify_loiter_unlim();
     bool verify_loiter_time();

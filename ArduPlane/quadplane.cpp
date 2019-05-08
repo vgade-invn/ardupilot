@@ -2113,7 +2113,7 @@ if (!plane.FORCED_HOME){
     plane.do_RTL(plane.home.alt + qrtl_alt*100UL);
 }
 else{
-	plane.do_force_home();
+	plane.do_force_home(plane.home.alt + qrtl_alt*100UL);
 	plane.FORCED_HOME = false;
 }
     plane.prev_WP_loc = plane.current_loc;

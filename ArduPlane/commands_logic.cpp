@@ -381,14 +381,14 @@ void Plane::do_RTL(int32_t rtl_altitude)
     DataFlash.Log_Write_Mode(control_mode, control_mode_reason);
 }
 
-void Plane::do_force_home(){
+void Plane::do_force_home(int32_t rtl_altitude){
 				//get reference to home
 				const struct Location &home_loc = AP::ahrs().get_home();				
 				//create copy of home
 				Location returnloc = {};				
 				returnloc = home_loc;
 				//update altitude of copy
-				returnloc.alt = plane.get_RTL_altitude();
+				returnloc.alt = rtl_altitude;
 				returnloc.flags.relative_alt= false;
 				//update previous and current waypoint locations
 				prev_WP_loc = current_loc;
