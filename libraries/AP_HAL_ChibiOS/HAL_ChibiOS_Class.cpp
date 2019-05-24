@@ -209,6 +209,7 @@ static void main_loop()
         stm32_watchdog_init();
     }
 
+#ifndef HAL_NO_LOGGING
     if (hal.util->was_watchdog_reset()) {
         AP::internalerror().error(AP_InternalError::error_t::watchdog_reset);
         const AP_HAL::Util::PersistentData &pd = hal.util->persistent_data;
@@ -221,6 +222,7 @@ static void main_loop()
                                    pd.last_mavlink_cmd,
                                    pd.semaphore_line);
     }
+#endif
 #endif
 
     schedulerInstance.watchdog_pat();
