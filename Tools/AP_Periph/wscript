@@ -22,6 +22,7 @@ def build(bld):
         'AP_SerialManager',
         'AP_RTC',
         'AP_Compass',
+        'AP_InternalError',
         ],
         exclude_src=[
             'libraries/AP_HAL_ChibiOS/Storage.cpp'
