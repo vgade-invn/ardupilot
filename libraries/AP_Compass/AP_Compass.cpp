@@ -537,11 +537,15 @@ void Compass::init()
     if (!read()) {
         _enabled = false;
         hal.console->printf("Compass initialisation failed\n");
+#ifndef HAL_NO_LOGGING
         AP::logger().Write_Error(LogErrorSubsystem::COMPASS, LogErrorCode::FAILED_TO_INITIALISE);
+#endif
         return;
     }
 
+#ifndef HAL_BUILD_AP_PERIPH
     AP::ahrs().set_compass(this);
+#endif
 }
 
 //  Register a new compass instance
