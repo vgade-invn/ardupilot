@@ -1,5 +1,7 @@
 #include "AP_Periph.h"
 
+extern const AP_HAL::HAL &hal;
+
 /*
  *  AP_Periph parameter definitions
  *
@@ -39,16 +41,18 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
 
 void AP_Periph_FW::load_parameters(void)
 {
+    if (!AP_Param::check_var_info()) {
+        hal.console->printf("Bad parameter table\n");
+        AP_HAL::panic("Bad parameter table");
+    }
     if (!g.format_version.load() ||
         g.format_version != Parameters::k_format_version) {
-        can_printf("PARAM reset %u\n", g.format_version);
         // erase all parameters
         StorageManager::erase();
         AP_Param::erase_all();
 
         // save the current format version
         g.format_version.set_and_save(Parameters::k_format_version);
-        can_printf("PARAM reset2 %u\n", g.format_version);
     }
 
     // Load all auto-loaded EEPROM variables
