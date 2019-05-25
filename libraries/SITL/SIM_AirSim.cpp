@@ -105,13 +105,10 @@ void AirSim::recv_fdm(const struct sitl_input &input)
     gyro = Vector3f(pkt.rollRate, pkt.pitchRate, pkt.yawRate);
     velocity_ef = Vector3f(pkt.speedN, pkt.speedE, pkt.speedD);
 
-    Location loc1, loc2;
-    loc2.lat = pkt.latitude * 1.0e7;
-    loc2.lng = pkt.longitude * 1.0e7;
-    const Vector2f posdelta = loc1.get_distance_NE(loc2);
-    position.x = posdelta.x;
-    position.y = posdelta.y;
-    position.z = pkt.altitude;
+    location.lat = pkt.latitude * 1.0e7;
+    location.lng = pkt.longitude * 1.0e7;
+    location.alt = pkt.altitude * 100.0f;
+    // printf("Location: %d, %d, %d\n", location.lat, location.lng, location.alt);
 
     // position.x = pkt.latitude;
     // position.y = pkt.longitude;
@@ -143,7 +140,6 @@ void AirSim::update(const struct sitl_input &input)
 	
 	send_servos(input);
     recv_fdm(input);
-    update_position();
     time_advance();
 
     // update magnetic field
