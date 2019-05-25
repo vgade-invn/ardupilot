@@ -21,15 +21,17 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     // GPS driver
     // @Group: GPS_
     // @Path: ../libraries/AP_GPS/AP_GPS.cpp
-    GOBJECT(gps, "GPS_", AP_GPS),
+    //GOBJECT(gps, "GPS_", AP_GPS),
 
     // @Group: SERIAL
     // @Path: ../libraries/AP_SerialManager/AP_SerialManager.cpp
-    GOBJECT(serial_manager,  "SERIAL",   AP_SerialManager),
+    //GOBJECT(serial_manager,  "SERIAL",   AP_SerialManager),
 
     // @Group: COMPASS_
     // @Path: ../libraries/AP_Compass/AP_Compass.cpp
-    GOBJECT(compass,         "COMPASS_",     Compass),
+    //GOBJECT(compass,         "COMPASS_",     Compass),
+
+    GSCALAR(test_param,         "TEST_PARAM", 3),
     
     AP_VAREND
 };
@@ -39,13 +41,14 @@ void AP_Periph_FW::load_parameters(void)
 {
     if (!g.format_version.load() ||
         g.format_version != Parameters::k_format_version) {
-
+        can_printf("PARAM reset %u\n", g.format_version);
         // erase all parameters
         StorageManager::erase();
         AP_Param::erase_all();
 
         // save the current format version
         g.format_version.set_and_save(Parameters::k_format_version);
+        can_printf("PARAM reset2 %u\n", g.format_version);
     }
 
     // Load all auto-loaded EEPROM variables

@@ -15,9 +15,11 @@ public:
         k_param_gps,
         k_param_serial_manager,
         k_param_compass,
+        k_param_test_param,
     };
 
     AP_Int16 format_version;
+    AP_Int16 test_param;
 
     Parameters() {}
 };
