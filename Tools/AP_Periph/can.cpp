@@ -25,6 +25,7 @@
 #include <uavcan/protocol/RestartNode.h>
 #include <uavcan/protocol/GetNodeInfo.h>
 #include <uavcan/protocol/file/BeginFirmwareUpdate.h>
+#include <uavcan/protocol/param/GetSet.h>
 #include <ardupilot/bus/I2CReqAnnounce.h>
 #include <ardupilot/bus/I2CAnnounce.h>
 #include <uavcan/equipment/ahrs/MagneticFieldStrength.h>
@@ -128,6 +129,104 @@ static void handle_get_node_info(CanardInstance* ins,
     }
 }
 
+/*
+  handle parameter GetSet request
+ */
+static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
+{
+    uavcan_protocol_param_GetSetRequest req;
+    uint8_t arraybuf[UAVCAN_PROTOCOL_PARAM_GETSET_REQUEST_NAME_MAX_LENGTH];
+    uint8_t *arraybuf_ptr = arraybuf;
+    if (uavcan_protocol_param_GetSetRequest_decode(transfer, transfer->payload_len, &req, &arraybuf_ptr) < 0) {
+        return;
+    }
+
+    uavcan_protocol_param_GetSetResponse pkt {};
+    uint8_t name[AP_MAX_NAME_SIZE+1];
+    AP_Param *vp;
+    enum ap_var_type ptype;
+
+    if (req.name.len != 0) {
+        strncpy((char *)name, (char *)req.name.data, AP_MAX_NAME_SIZE);
+        vp = AP_Param::find((char *)name, &ptype);
+        can_printf("FIND: '%s' %s\n", name, vp?"OK":"FAIL");
+    } else {
+        AP_Param::ParamToken token;
+        vp = AP_Param::find_by_index(req.index, &ptype, &token);
+        if (vp != nullptr) {
+            vp->copy_name_token(token, (char *)name, AP_MAX_NAME_SIZE+1, true);
+        }
+    }
+    if (vp != nullptr && req.name.len != 0) {
+        // param set
+        switch (ptype) {
+        case AP_PARAM_INT8:
+            if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE) {
+                return;
+            }
+            ((AP_Int8 *)vp)->set_and_save_ifchanged(req.value.integer_value);
+            break;
+        case AP_PARAM_INT16:
+            if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE) {
+                return;
+            }
+            ((AP_Int16 *)vp)->set_and_save_ifchanged(req.value.integer_value);
+            break;
+        case AP_PARAM_INT32:
+            if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE) {
+                return;
+            }
+            ((AP_Int32 *)vp)->set_and_save_ifchanged(req.value.integer_value);
+            break;
+        case AP_PARAM_FLOAT:
+            if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE) {
+                return;
+            }
+            ((AP_Float *)vp)->set_and_save_ifchanged(req.value.real_value);
+            break;
+        default:
+            return;
+        }
+    }
+    if (vp != nullptr) {
+        switch (ptype) {
+        case AP_PARAM_INT8:
+            pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
+            pkt.value.integer_value = ((AP_Int8 *)vp)->get();
+            break;
+        case AP_PARAM_INT16:
+            pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
+            pkt.value.integer_value = ((AP_Int16 *)vp)->get();
+            break;
+        case AP_PARAM_INT32:
+            pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
+            pkt.value.integer_value = ((AP_Int32 *)vp)->get();
+            break;
+        case AP_PARAM_FLOAT:
+            pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE;
+            pkt.value.real_value = ((AP_Float *)vp)->get();
+            break;
+        default:
+            return;
+        }
+        pkt.name.len = strlen((char *)name);
+        pkt.name.data = name;
+    }
+
+    uint8_t buffer[UAVCAN_PROTOCOL_PARAM_GETSET_RESPONSE_MAX_SIZE];
+    uint16_t total_size = uavcan_protocol_param_GetSetResponse_encode(&pkt, buffer);
+
+    canardRequestOrRespond(ins,
+                           transfer->source_node_id,
+                           UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE,
+                           UAVCAN_PROTOCOL_PARAM_GETSET_ID,
+                           &transfer->transfer_id,
+                           transfer->priority,
+                           CanardResponse,
+                           &buffer[0],
+                           total_size);
+
+}
 
 static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* transfer)
 {
@@ -296,6 +395,10 @@ static void onTransferReceived(CanardInstance* ins,
         hal.scheduler->delay(10);
         NVIC_SystemReset();
         break;
+
+    case UAVCAN_PROTOCOL_PARAM_GETSET_ID:
+        handle_param_getset(ins, transfer);
+        break;
     }
 }
 
@@ -344,6 +447,9 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
         return true;
     case ARDUPILOT_BUS_I2CREQANNOUNCE_ID:
         *out_data_type_signature = ARDUPILOT_BUS_I2CREQANNOUNCE_SIGNATURE;
+        return true;
+    case UAVCAN_PROTOCOL_PARAM_GETSET_ID:
+        *out_data_type_signature = UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE;
         return true;
     default:
         break;
@@ -586,6 +692,11 @@ void AP_Periph_FW::can_mag_update(void)
     if (last_mag_update_ms == compass.last_update_ms()) {
         return;
     }
+    static uint8_t counter;
+    if (counter++ != 100) {
+        return;
+    }
+    counter = 0;
 
     last_mag_update_ms = compass.last_update_ms();
     const Vector3f &field = compass.get_field();
