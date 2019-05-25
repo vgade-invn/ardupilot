@@ -122,9 +122,9 @@ private:
         SECTOR_STATE_IN_USE    = 0xFE,
         SECTOR_STATE_FULL      = 0xFC
 #else
-        SECTOR_STATE_AVAILABLE = 0xFFFFFF,
-        SECTOR_STATE_IN_USE    = 0xFFFFF1,
-        SECTOR_STATE_FULL      = 0xF1FFF1,
+        SECTOR_STATE_AVAILABLE = 0xFFFFFFFF,
+        SECTOR_STATE_IN_USE    = 0xFFFFFFF1,
+        SECTOR_STATE_FULL      = 0xFFF2FFF1,
 #endif
     };
 
@@ -134,8 +134,8 @@ private:
         uint32_t state:8;
         uint32_t signature:24;
 #else
-        uint32_t state:24;
-        uint32_t signature:8;
+        uint32_t state:32;
+        uint32_t signature:16;
 #endif
     };
 
