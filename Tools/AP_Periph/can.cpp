@@ -149,7 +149,6 @@ static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
     if (req.name.len != 0) {
         strncpy((char *)name, (char *)req.name.data, AP_MAX_NAME_SIZE);
         vp = AP_Param::find((char *)name, &ptype);
-        can_printf("FIND: '%s' %s\n", name, vp?"OK":"FAIL");
     } else {
         AP_Param::ParamToken token;
         vp = AP_Param::find_by_index(req.index, &ptype, &token);
