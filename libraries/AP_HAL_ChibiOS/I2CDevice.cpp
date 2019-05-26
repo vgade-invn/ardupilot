@@ -250,6 +250,12 @@ bool I2CDevice::transfer(const uint8_t *send, uint32_t send_len,
 bool I2CDevice::_transfer(const uint8_t *send, uint32_t send_len,
                          uint8_t *recv, uint32_t recv_len)
 {
+#if defined(STM32F1)
+    if (recv_len == 1) {
+        // STM32F1XX can't receive one byte
+        return false;
+    }
+#endif
     i2cAcquireBus(I2CD[bus.busnum].i2c);
 
     bus.bouncebuffer_setup(send, send_len, recv, recv_len);
