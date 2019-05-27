@@ -535,8 +535,10 @@ void Compass::init()
     // check that we are actually working before passing the compass
     // through to ARHS to use.
     if (!read()) {
+#ifndef HAL_BUILD_AP_PERIPH
         _enabled = false;
         hal.console->printf("Compass initialisation failed\n");
+#endif
 #ifndef HAL_NO_LOGGING
         AP::logger().Write_Error(LogErrorSubsystem::COMPASS, LogErrorCode::FAILED_TO_INITIALISE);
 #endif
