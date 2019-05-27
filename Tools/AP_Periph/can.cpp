@@ -41,7 +41,7 @@
 extern const AP_HAL::HAL &hal;
 
 static CanardInstance canard;
-static uint32_t canard_memory_pool[2048/4];
+static uint32_t canard_memory_pool[1024/4];
 static const uint8_t PreferredNodeID = CANARD_BROADCAST_NODE_ID;
 static uint8_t transfer_id;
 
@@ -677,7 +677,7 @@ static void fix_float16(float &f)
 void AP_Periph_FW::can_mag_update(void)
 {
     compass.read();
-#if 0
+#if 1
     if (compass.get_count() == 0) {
         static uint32_t last_probe_ms;
         uint32_t now = AP_HAL::millis();
@@ -725,7 +725,6 @@ void AP_Periph_FW::can_mag_update(void)
 void AP_Periph_FW::can_gps_update(void)
 {
     gps.update();
-    compass.read();
     if (last_gps_update_ms == gps.last_message_time_ms()) {
         return;
     }
