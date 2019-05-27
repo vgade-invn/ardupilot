@@ -77,6 +77,7 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("TYPE",    0, AP_GPS, _type[0], HAL_GPS_TYPE_DEFAULT),
 
+#if GPS_MAX_RECEIVERS > 1
     // @Param: TYPE2
     // @DisplayName: 2nd GPS type
     // @Description: GPS type of 2nd GPS
@@ -84,6 +85,7 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @RebootRequired: True
     // @User: Advanced
     AP_GROUPINFO("TYPE2",   1, AP_GPS, _type[1], 0),
+#endif
 
     // @Param: NAVFILTER
     // @DisplayName: Navigation filter setting
@@ -92,12 +94,14 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("NAVFILTER", 2, AP_GPS, _navfilter, GPS_ENGINE_AIRBORNE_4G),
 
+#if GPS_MAX_RECEIVERS > 1
     // @Param: AUTO_SWITCH
     // @DisplayName: Automatic Switchover Setting
     // @Description: Automatic switchover to GPS reporting best lock
     // @Values: 0:Disabled,1:UseBest,2:Blend,3:UseSecond
     // @User: Advanced
     AP_GROUPINFO("AUTO_SWITCH", 3, AP_GPS, _auto_switch, 1),
+#endif
 
     // @Param: MIN_DGPS
     // @DisplayName: Minimum Lock Type Accepted for DGPS
@@ -159,6 +163,7 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("SAVE_CFG", 11, AP_GPS, _save_config, 2),
 
+#if GPS_MAX_RECEIVERS > 1
     // @Param: GNSS_MODE2
     // @DisplayName: GNSS system configuration
     // @Description: Bitmask for what GNSS system to use on the second GPS (all unchecked or zero to leave GPS as configured)
@@ -166,6 +171,7 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @Bitmask: 0:GPS,1:SBAS,2:Galileo,3:Beidou,4:IMES,5:QZSS,6:GLOSNASS
     // @User: Advanced
     AP_GROUPINFO("GNSS_MODE2", 12, AP_GPS, _gnss_mode[1], 0),
+#endif
 
     // @Param: AUTO_CONFIG
     // @DisplayName: Automatic GPS configuration
@@ -183,6 +189,7 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("RATE_MS", 14, AP_GPS, _rate_ms[0], 200),
 
+#if GPS_MAX_RECEIVERS > 1
     // @Param: RATE_MS2
     // @DisplayName: GPS 2 update rate in milliseconds
     // @Description: Controls how often the GPS should provide a position update. Lowering below 5Hz is not allowed
@@ -191,6 +198,7 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @Range: 50 200
     // @User: Advanced
     AP_GROUPINFO("RATE_MS2", 15, AP_GPS, _rate_ms[1], 200),
+#endif
 
     // @Param: POS1_X
     // @DisplayName: Antenna X position offset
@@ -228,6 +236,7 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @Range: -10 10
     // @User: Advanced
 
+#if GPS_MAX_RECEIVERS > 1
     // @Param: POS2_Z
     // @DisplayName: Antenna Z position offset
     // @Description: Z position of the second GPS antenna in body frame. Positive Z is down from the origin. Use antenna phase centroid location if provided by the manufacturer.
@@ -235,6 +244,7 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @Range: -10 10
     // @User: Advanced
     AP_GROUPINFO("POS2", 17, AP_GPS, _antenna_offset[1], 0.0f),
+#endif
 
     // @Param: DELAY_MS
     // @DisplayName: GPS delay in milliseconds
@@ -245,6 +255,7 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @RebootRequired: True
     AP_GROUPINFO("DELAY_MS", 18, AP_GPS, _delay_ms[0], 0),
 
+#if GPS_MAX_RECEIVERS > 1
     // @Param: DELAY_MS2
     // @DisplayName: GPS 2 delay in milliseconds
     // @Description: Controls the amount of GPS  measurement delay that the autopilot compensates for. Set to zero to use the default delay for the detected GPS type.
@@ -253,7 +264,9 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @User: Advanced
     // @RebootRequired: True
     AP_GROUPINFO("DELAY_MS2", 19, AP_GPS, _delay_ms[1], 0),
+#endif
 
+#if defined(GPS_BLENDED_INSTANCE)
     // @Param: BLEND_MASK
     // @DisplayName: Multi GPS Blending Mask
     // @Description: Determines which of the accuracy measures Horizontal position, Vertical Position and Speed are used to calculate the weighting on each GPS receiver when soft switching has been selected by setting GPS_AUTO_SWITCH to 2
@@ -268,6 +281,7 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @Range: 5.0 30.0
     // @User: Advanced
     AP_GROUPINFO("BLEND_TC", 21, AP_GPS, _blend_tc, 10.0f),
+#endif
 
     AP_GROUPEND
 };
