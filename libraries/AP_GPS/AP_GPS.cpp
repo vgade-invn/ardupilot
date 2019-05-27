@@ -292,8 +292,9 @@ void AP_GPS::init(const AP_SerialManager& serial_manager)
     primary_instance = 0;
 
     // search for serial ports with gps protocol
-    _port[0] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_GPS, 0);
-    _port[1] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_GPS, 1);
+    for (uint8_t i=0; i<GPS_MAX_RECEIVERS; i++) {
+        _port[i] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_GPS, i);
+    }
     _last_instance_swap_ms = 0;
 
     // Initialise class variables used to do GPS blending
@@ -550,6 +551,9 @@ void AP_GPS::detect_instance(uint8_t instance)
             new_gps = new AP_GPS_NMEA(*this, state[instance], _port[instance]);
         }
 #endif // HAL_BUILD_AP_PERIPH
+        if (new_gps) {
+            goto found_gps;
+        }
     }
 
 found_gps:
@@ -701,6 +705,7 @@ void AP_GPS::update(void)
         }
     }
 
+#if defined(GPS_BLENDED_INSTANCE)
     // if blending is requested, attempt to calculate weighting for each GPS
     if (_auto_switch == 2) {
         _output_is_blended = calc_blend_weights();
@@ -783,6 +788,7 @@ void AP_GPS::update(void)
         state[GPS_BLENDED_INSTANCE] = state[primary_instance];
         _blended_antenna_offset = _antenna_offset[primary_instance];
     }
+#endif // GPS_BLENDED_INSTANCE
 
 #ifndef HAL_BUILD_AP_PERIPH
     // update notify with gps status. We always base this on the primary_instance
@@ -955,6 +961,7 @@ void AP_GPS::send_mavlink_gps_raw(mavlink_channel_t chan)
         0);                   // TODO one-sigma heading accuracy standard deviation
 }
 
+#if GPS_MAX_RECEIVERS > 1
 void AP_GPS::send_mavlink_gps2_raw(mavlink_channel_t chan)
 {
     static uint32_t last_send_time_ms[MAVLINK_COMM_NUM_BUFFERS];
@@ -983,6 +990,7 @@ void AP_GPS::send_mavlink_gps2_raw(mavlink_channel_t chan)
         state[1].rtk_num_sats,
         state[1].rtk_age_ms);
 }
+#endif // GPS_MAX_RECEIVERS
 
 void AP_GPS::send_mavlink_gps_rtk(mavlink_channel_t chan, uint8_t inst)
 {
@@ -1129,12 +1137,14 @@ bool AP_GPS::get_lag(uint8_t instance, float &lag_sec) const
         return false;
     }
 
+#if defined(GPS_BLENDED_INSTANCE)
     // return lag of blended GPS
     if (instance == GPS_BLENDED_INSTANCE) {
         lag_sec = _blended_lag_sec;
         // auto switching uses all GPS receivers, so all must be configured
         return all_configured();
     }
+#endif
 
     if (_delay_ms[instance] > 0) {
         // if the user has specified a non zero time delay, always return that value
@@ -1162,10 +1172,12 @@ const Vector3f &AP_GPS::get_antenna_offset(uint8_t instance) const
         return _antenna_offset[0];
     }
 
+#if defined(GPS_BLENDED_INSTANCE)
     if (instance == GPS_BLENDED_INSTANCE) {
         // return an offset for the blended GPS solution
         return _blended_antenna_offset;
     }
+#endif
 
     return _antenna_offset[instance];
 }
@@ -1185,6 +1197,7 @@ uint16_t AP_GPS::get_rate_ms(uint8_t instance) const
     return MIN(_rate_ms[instance], GPS_MAX_RATE_MS);
 }
 
+#if defined(GPS_BLENDED_INSTANCE)
 /*
  calculate the weightings used to blend GPSs location and velocity data
 */
@@ -1554,6 +1567,7 @@ void AP_GPS::calc_blended_state(void)
     timing[GPS_BLENDED_INSTANCE].last_fix_time_ms = (uint32_t)temp_time_1;
     timing[GPS_BLENDED_INSTANCE].last_message_time_ms = (uint32_t)temp_time_2;
 }
+#endif // GPS_BLENDED_INSTANCE
 
 bool AP_GPS::is_healthy(uint8_t instance) const
 {
@@ -1565,9 +1579,11 @@ bool AP_GPS::is_healthy(uint8_t instance) const
 
     bool last_msg_valid = last_message_delta_time_ms(instance) < gps_max_delta_ms;
 
+#if defined(GPS_BLENDED_INSTANCE)
     if (instance == GPS_BLENDED_INSTANCE) {
         return last_msg_valid && blend_health_check();
     }
+#endif
 
     return last_msg_valid &&
            drivers[instance] != nullptr &&
