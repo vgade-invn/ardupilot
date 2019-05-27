@@ -459,6 +459,7 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
 
 static void processTx(void)
 {
+    static uint8_t fail_count;
     for (const CanardCANFrame* txf = NULL; (txf = canardPeekTxQueue(&canard)) != NULL;) {
         CANTxFrame txmsg {};
         txmsg.DLC = txf->data_len;
@@ -468,8 +469,15 @@ static void processTx(void)
         txmsg.RTR = 0;
         if (canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE) == MSG_OK) {
             canardPopTxQueue(&canard);
+            fail_count = 0;
         } else {
-            // Timeout - just exit and try again later
+            // just exit and try again later. If we fail 8 times in a row
+            // then start discarding to prevent the pool filling up
+            if (fail_count < 8) {
+                fail_count++;
+            } else {
+                canardPopTxQueue(&canard);
+            }
             return;
         }
     }
