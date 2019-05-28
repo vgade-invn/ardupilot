@@ -84,8 +84,9 @@ void AirSim::recv_fdm(const struct sitl_input &input)
 {
 	// Resend servo packet every 0.1 second till we get data
 	// We do get the timestamp in the packet, sync can be achieved in a similar manner as JSBSim
-	fdm_packet pkt{0};
-	ssize_t recv_ret = sock.recv(&pkt, sizeof(pkt), 100);
+    fdm_packet pkt{0};
+
+    ssize_t recv_ret = sock.recv(&pkt, sizeof(pkt), 100);
 	
 	while (recv_ret != sizeof(pkt)) {
 		if (recv_ret <= 0) {
@@ -102,7 +103,7 @@ void AirSim::recv_fdm(const struct sitl_input &input)
 
 	// Taken from CRRCSim.cpp
 	accel_body = Vector3f(pkt.xAccel, pkt.yAccel, pkt.zAccel);
-    gyro = Vector3f(pkt.rollRate, pkt.pitchRate, pkt.yawRate);
+    gyro = Vector3f(radians(pkt.rollRate), radians(pkt.pitchRate), radians(pkt.yawRate));
     velocity_ef = Vector3f(pkt.speedN, pkt.speedE, pkt.speedD);
 
     location.lat = pkt.latitude * 1.0e7;
@@ -117,10 +118,43 @@ void AirSim::recv_fdm(const struct sitl_input &input)
     airspeed = pkt.airspeed;
     airspeed_pitot = pkt.airspeed;
 
-    dcm.from_euler(pkt.rollDeg, pkt.pitchDeg, pkt.yawDeg);
+    dcm.from_euler(radians(pkt.rollDeg), radians(pkt.pitchDeg), radians(pkt.yawDeg));
 
     // Airsim is taking 3ms between each message
-    time_now_us += 3000;
+    if (last_pkt.timestamp) {
+        time_now_us += pkt.timestamp - last_pkt.timestamp;
+    }
+
+    AP::logger().Write("ASM1", "TimeUS,TUS,R,P,Y,GX,GY,GZ",
+                       "QQffffff",
+                       AP_HAL::micros64(),
+                       pkt.timestamp,
+                       pkt.rollDeg,
+                       pkt.pitchDeg,
+                       pkt.yawDeg,
+                       degrees(gyro.x),
+                       degrees(gyro.y),
+                       degrees(gyro.z));
+
+    Vector3f velocity_bf = dcm.transposed() * velocity_ef;
+    position = home.get_distance_NED(location);
+
+    AP::logger().Write("ASM2", "TimeUS,AX,AY,AZ,VX,VY,VZ,PX,PY,PZ,Alt,SD",
+                       "Qfffffffffff",
+                       AP_HAL::micros64(),
+                       accel_body.x,
+                       accel_body.y,
+                       accel_body.z,
+                       velocity_bf.x,
+                       velocity_bf.y,
+                       velocity_bf.z,
+                       position.x,
+                       position.y,
+                       position.z,
+                       pkt.altitude,
+                       pkt.speedD);
+
+    last_pkt = pkt;
 }
 
 /*

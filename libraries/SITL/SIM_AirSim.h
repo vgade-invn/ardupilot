@@ -79,6 +79,8 @@ private:
 	bool opened_socket;
 	double last_timestamp;
 
+    fdm_packet last_pkt;
+
 	bool bind_socket(void);
 	void send_servos(const struct sitl_input &input);
 	void recv_fdm(const struct sitl_input &input);
