@@ -119,14 +119,8 @@ void AirSim::recv_fdm(const struct sitl_input &input)
 
     dcm.from_euler(pkt.rollDeg, pkt.pitchDeg, pkt.yawDeg);
 
-    // auto-adjust to frame rate
-    double deltat = pkt.timestamp - last_timestamp;
-    time_now_us += deltat * 1.0e6;
-
-    if (deltat < 0.01 && deltat > 0) {
-        adjust_frame_time(1.0/deltat);
-    }
-    last_timestamp = pkt.timestamp;
+    // Airsim is taking 3ms between each message
+    time_now_us += 3000;
 }
 
 /*
@@ -140,6 +134,7 @@ void AirSim::update(const struct sitl_input &input)
 	
 	send_servos(input);
     recv_fdm(input);
+    adjust_frame_time(1.0e6/3000);
     time_advance();
 
     // update magnetic field
