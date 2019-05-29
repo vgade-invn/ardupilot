@@ -22,6 +22,11 @@ AirSim::AirSim(const char *home_str, const char *frame_str) :
 {
 	printf("Starting SITL Airsim\n");
 
+    const char *colon = strchr(frame_str, ':');
+    if (colon) {
+        airsim_ip = colon+1;
+    }
+    
 	AP_Param::set_default_by_name("AHRS_EKF_TYPE", 10);
     AP_Param::set_default_by_name("INS_GYR_CAL", 0);
 }
@@ -35,7 +40,7 @@ bool AirSim::bind_socket(void)
 		return true;
 	}
 
-	if (!sock.bind("0.0.0.0", airsim_sensor_port)) {
+    if (!sock.bind("0.0.0.0", airsim_sensor_port)) {
 		printf("Unable to bind Airsim sensor in socket at port %u - Error: %s\n",
 				 airsim_sensor_port, strerror(errno));
 		return false;
