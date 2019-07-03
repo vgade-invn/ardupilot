@@ -16,9 +16,11 @@ cd /cygdrive/c/work
     export CXX=i686-pc-cygwin-g++.exe
     export CC=i686-pc-cygwin-gcc
 
-    ./waf configure --board sitl
+    /usr/bin/python2.7 -m pip install future
 
-    /usr/bin/python waf -j4 copter plane rover heli sub
+    /usr/bin/python2.7 waf configure --board sitl
+
+    /usr/bin/python2.7 waf -j4 copter plane rover heli sub
 
     # map to the names that MissionPlanner expects
     cp /cygdrive/c/work/build/sitl/bin/ardurover.exe /cygdrive/c/work/sitl/APMrover2.elf
