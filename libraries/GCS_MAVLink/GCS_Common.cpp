@@ -1134,10 +1134,10 @@ void GCS_MAVLINK::send_raw_imu()
         mag.z);        
 }
 
-void GCS_MAVLINK::send_humidity(float humidity){
-
-	
-	    if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
+void GCS_MAVLINK::send_humidity(float humidity)
+{
+#ifdef MAVLINK_MSG_ID_RAW_HUMIDITY_LEN
+    if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
         return;
     }
 	
@@ -1145,7 +1145,7 @@ void GCS_MAVLINK::send_humidity(float humidity){
 		chan,
         AP_HAL::millis(),
         humidity);
-		
+#endif
 }
 
 // sub overrides this to send on-board temperature
@@ -1168,11 +1168,14 @@ void GCS_MAVLINK::send_scaled_pressure3()
         (pressure - barometer.get_ground_pressure(2))*0.01f, // hectopascal
         barometer.get_temperature(2)*100); // 0.01 degrees C
 		
-		if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
-		return;}
+#ifdef MAVLINK_MSG_ID_RAW_HUMIDITY_LEN
+        if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
+            return;
+        }
 		if (barometer.get_humidity(2) > 0){
 			send_humidity(barometer.get_humidity(2));
-		}		
+        }
+#endif
 }
 
 void GCS_MAVLINK::send_scaled_pressure()
@@ -1194,11 +1197,14 @@ void GCS_MAVLINK::send_scaled_pressure()
         diff_pressure*0.01f, // hectopascal
         barometer.get_temperature(0)*100); // 0.01 degrees C
 		
-	if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
-		return;}
-	if (barometer.get_humidity(0) > 0){
+#ifdef MAVLINK_MSG_ID_RAW_HUMIDITY_LEN
+    if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
+        return;
+    }
+    if (barometer.get_humidity(0) > 0) {
 			send_humidity(barometer.get_humidity(0));
-		}
+    }
+#endif
 
     if (barometer.num_instances() > 1 &&
         HAVE_PAYLOAD_SPACE(chan, SCALED_PRESSURE2)) {
@@ -1209,12 +1215,14 @@ void GCS_MAVLINK::send_scaled_pressure()
             pressure*0.01f, // hectopascal
             (pressure - barometer.get_ground_pressure(1))*0.01f, // hectopascal
             barometer.get_temperature(1)*100); // 0.01 degrees C     
-					if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
-		return;}
+#ifdef MAVLINK_MSG_ID_RAW_HUMIDITY_LEN
+        if (!HAVE_PAYLOAD_SPACE(chan, RAW_HUMIDITY)) {
+            return;
+        }
 		if (barometer.get_humidity(1) > 0){
 			send_humidity(barometer.get_humidity(1));
 		}
-			 		
+#endif
     }
 
     send_scaled_pressure3();
