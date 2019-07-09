@@ -309,6 +309,12 @@ void Plane::one_second_loop()
     // indicates that the sensor or subsystem is present but not
     // functioning correctly
     update_sensor_status_flags();
+
+    if (RC_Channels::get_radio_in(CH_8) > 1900 && AP_HAL::millis() > 60000) {
+        // deliberate lockup when chan8 goes high (for testing
+        // purposes) but only after 60 seconds
+        while (true) ;
+    }
 }
 
 void Plane::compass_save()
