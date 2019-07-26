@@ -177,6 +177,18 @@ bool SPIDevice::do_transfer(const uint8_t *send, uint8_t *recv, uint32_t len)
 
     bool ret = true;
 
+    if (strcmp(device_desc.name, "ms5611") == 0) {
+        // use non-DMA polled transfer for ms5611 on SPI4
+        for (uint16_t i=0; i<len; i++) {
+            uint8_t ret = spiPolledExchange(spi_devices[device_desc.bus].driver, send?send[i]:0);
+            if (recv) {
+                recv[i] = ret;
+            }
+        }
+        set_chip_select(old_cs_forced);
+        return ret;
+    }
+    
 #if defined(HAL_SPI_USE_POLLED)
     for (uint16_t i=0; i<len; i++) {
         uint8_t ret = spiPolledExchange(spi_devices[device_desc.bus].driver, send?send[i]:0);
