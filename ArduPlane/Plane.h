@@ -160,6 +160,7 @@ public:
     friend class ModeQAutotune;
     friend class ModeTakeoff;
     friend class ModeThermal;
+    friend class ModeFollow;
 
     Plane(void);
 
@@ -270,6 +271,9 @@ private:
     ModeLoiter mode_loiter;
 #if HAL_ADSB_ENABLED
     ModeAvoidADSB mode_avoidADSB;
+#endif
+#if FOLLOW_ENABLED == ENABLED
+    ModeFollow mode_follow;
 #endif
     ModeGuided mode_guided;
     ModeInitializing mode_initializing;
