@@ -17,7 +17,7 @@ class AC_Circle
 public:
 
     /// Constructor
-    AC_Circle(const AP_InertialNav& inav, const AP_AHRS_View& ahrs, AC_PosControl& pos_control);
+    AC_Circle(const AP_InertialNav& inav, const AP_AHRS_View& ahrs, AC_PosControl& pos_control, const AC_AttitudeControl& attitude_control);
 
     /// init - initialise circle controller setting center specifically
     ///     caller should set the position controller's x,y and z speeds and accelerations before calling this
@@ -99,18 +99,24 @@ private:
     const AP_InertialNav&       _inav;
     const AP_AHRS_View&         _ahrs;
     AC_PosControl&              _pos_control;
+    const AC_AttitudeControl& _attitude_control;
 
     // parameters
-    AP_Float    _radius;        // maximum horizontal speed in cm/s during missions
+    AP_Float    _radius;        // radius in cm/s
     AP_Float    _rate;          // rotation speed in deg/sec
     AP_Int16    _control;       // stick control enable/disable
 
     // internal variables
-    Vector3f    _center;        // center of circle in cm from home
-    float       _yaw;           // yaw heading (normally towards circle center)
-    float       _angle;         // current angular position around circle in radians (0=directly north of the center of the circle)
-    float       _angle_total;   // total angle traveled in radians
-    float       _angular_vel;   // angular velocity in radians/sec
+    Vector3f    _center;            // center of circle in cm from home
+    float       _yaw;               // yaw heading (normally towards circle center)
+    float       _angle;             // current angular position around circle in radians (0 = directly north of the center of the circle)
+    float       _angle_total;       // total angle traveled in radians
+    float       _angular_vel;       // angular velocity in radians/sec
     float       _angular_vel_max;   // maximum velocity in radians/sec
-    float       _angular_accel; // angular acceleration in radians/sec/sec
+    float       _angular_accel;     // angular acceleration in radians/sec/sec
+    float       _velocity_cross;    // maximum horizontal speed in cm/s during missions
+    float       _velocity_max;
+    float       _accel_cross;
+    float       _accel_max;
+    float       _jerk_max;
 };
