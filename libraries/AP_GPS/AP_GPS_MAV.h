@@ -40,5 +40,6 @@ public:
 private:
     bool _new_data;
     uint32_t first_week;
+    uint32_t last_yaw_ms;
     JitterCorrection jitter{2000};
 };
