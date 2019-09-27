@@ -37,7 +37,7 @@ MultiCopter::MultiCopter(const char *frame_str) :
     // initial mass is passed through to Frame for it to calculate a
     // hover thrust requirement.
     if (strstr(frame_str, "-fast")) {
-        frame->init(gross_mass(), 0.5, 85, 4*radians(360));
+        frame->init(gross_mass(), 0.20, 85, 4*radians(360));
     } else {
         frame->init(gross_mass(), 0.51, 15, 4*radians(360));
     }
