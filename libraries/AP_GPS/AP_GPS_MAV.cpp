@@ -17,6 +17,7 @@
 //  MAVLINK GPS driver
 //
 #include "AP_GPS_MAV.h"
+#include <GCS_MAVLink/GCS.h>
 #include <stdint.h>
 
 AP_GPS_MAV::AP_GPS_MAV(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::UARTDriver *_port) :
@@ -105,6 +106,11 @@ void AP_GPS_MAV::handle_msg(const mavlink_message_t &msg)
             }
 
             if (have_yaw) {
+                uint32_t now = AP_HAL::millis();
+                if (now - last_yaw_ms > 5000) {
+                    gcs().send_text(MAV_SEVERITY_INFO, "GPS: have yaw");
+                }
+                last_yaw_ms = now;
                 state.gps_yaw = wrap_360(packet.yaw*0.01);
                 state.have_gps_yaw = true;
             }
