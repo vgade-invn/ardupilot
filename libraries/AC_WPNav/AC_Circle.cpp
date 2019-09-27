@@ -1,6 +1,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include "AC_Circle.h"
 #include <AP_Math/AP_Math.h>
+#include <GCS_MAVLink/GCS.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -258,9 +259,13 @@ void AC_Circle::calc_velocities(bool init_velocity)
     // if we are doing a panorama set the circle_angle to the current heading
 
     // circle mode angular velocity
-    _angular_vel_max = ToRad(_rate);
+    _angular_vel_max = radians(_rate);
     // limit to max slew rate angular velocity
-    _angular_vel_max = MIN(_angular_vel_max, _attitude_control.get_slew_yaw_rads());
+    const float yaw_slew_limit = _attitude_control.get_slew_yaw_rads();
+    if (yaw_slew_limit < _angular_vel_max) {
+        _angular_vel_max = yaw_slew_limit;
+        gcs().send_text(MAV_SEVERITY_INFO, "Circle: limited yaw rate to %.1fdps", degrees(yaw_slew_limit));
+    }
 
     if (_radius <= 0) {
         _angular_accel = MAX(fabsf(_angular_vel_max), 0.25f * _attitude_control.get_accel_yaw_max_radss());
@@ -270,17 +275,42 @@ void AC_Circle::calc_velocities(bool init_velocity)
         // maximum velocity to achieve angular velocity
         _velocity_max = _angular_vel_max * _radius;
         // limit velocity by maximum allowable velocity
-        _velocity_max = MIN(_velocity_max, _pos_control.get_max_speed_xy());
+        const float max_speed_xy = _pos_control.get_max_speed_xy();
+        if (max_speed_xy < _velocity_max) {
+            _velocity_max = max_speed_xy;
+            gcs().send_text(MAV_SEVERITY_INFO, "Circle: xy speed to %.1fcm/s", max_speed_xy);
+        }
+
         // limit velocity by maximum allowable radial acceleration
-        _velocity_max = MIN(_velocity_max, safe_sqrt(_accel_max*_radius));
+        const float vel_limit = safe_sqrt(_accel_max*_radius);
+        if (vel_limit < _velocity_max) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Circle: vel limited to %.1fcm/s", vel_limit);
+            _velocity_max = vel_limit;
+        }
+
         // maximum jerk based on 50% roll or pitch angular acceleration
-        _jerk_max = 0.5f * MIN(_attitude_control.get_accel_roll_max_radss(), _attitude_control.get_accel_pitch_max_radss()) * GRAVITY_MSS * 100.0f; // cm/s/s
+        const float accel_roll_limit = _attitude_control.get_accel_roll_max_radss();
+        const float accel_pitch_limit = _attitude_control.get_accel_pitch_max_radss();
+        const float accel_yaw_limit = _attitude_control.get_accel_yaw_max_radss();
+
+        _jerk_max = 0.5f * MIN(accel_roll_limit, accel_pitch_limit) * GRAVITY_MSS * 100.0f; // cm/s/s
+
         // limit maximum acceleration by maximum radial jerk
-        _accel_max = MIN(_accel_max, _jerk_max * _radius / _velocity_max);
+        const float accel_limit = _jerk_max * _radius / _velocity_max;
+        if (accel_limit < _accel_max) {
+            _accel_max = accel_limit;
+            gcs().send_text(MAV_SEVERITY_INFO, "Circle: accel limited to %.1fm/s/s", _accel_max);
+        }
+
         // limit jerk to ensure maximum acceleration is not exceeded
         _jerk_max = MIN(_jerk_max, sq(_accel_max)/_velocity_max);
+
         // limit jerk by maximum yaw angular acceleration
-        _jerk_max = MIN(_jerk_max, 0.25f * _attitude_control.get_accel_yaw_max_radss() * _radius);
+        _jerk_max = MIN(_jerk_max, 0.25f * accel_yaw_limit * _radius);
+
+        gcs().send_text(MAV_SEVERITY_INFO, "Circle: r=%.1fm rate=%.1fdeg/s vel=%.1fm/s accel=%.1fm/s/s",
+                        _radius.get(), degrees(_angular_vel_max), _velocity_max*0.01, _accel_max*0.01);
+
     }
 
     // initialise angular velocity
