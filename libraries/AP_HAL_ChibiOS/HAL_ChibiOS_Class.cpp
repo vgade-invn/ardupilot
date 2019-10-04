@@ -161,14 +161,14 @@ static AP_HAL::HAL::Callbacks* g_callbacks;
 
 static AP_HAL::Util::PersistentData last_persistent_data;
 
-#if 0
+#if 1
 volatile uint32_t ccc;
 
 static void send_bit(ioline_t line, uint8_t b)
 {
     palWriteLine(line, b);
-    for (uint32_t i=0; i<100; i++) {
-        ccc++;
+    for (uint32_t i=0; i<1000; i++) {
+        palWriteLine(line, b);
     }
 }
 
@@ -194,35 +194,39 @@ static void debug_probe(void)
     }
     last_probe_ms = now;
     const ioline_t lines[] = {
-        HAL_GPIO_PIN_DEBUG_B12,
+        HAL_GPIO_PIN_DEBUG_A0,
+        HAL_GPIO_PIN_DEBUG_A1,
+        HAL_GPIO_PIN_DEBUG_A2,
+        HAL_GPIO_PIN_DEBUG_A4,
+        HAL_GPIO_PIN_DEBUG_A5,
+//        HAL_GPIO_PIN_DEBUG_A6, // TIM3_CH1 ?
+//        HAL_GPIO_PIN_DEBUG_A7, // TIM3_CH2 ?
+        HAL_GPIO_PIN_DEBUG_A9,
+        HAL_GPIO_PIN_DEBUG_A10,
+        HAL_GPIO_PIN_DEBUG_A13,
+        HAL_GPIO_PIN_DEBUG_A14,
+        HAL_GPIO_PIN_DEBUG_A15,
+//        HAL_GPIO_PIN_DEBUG_B0, // TIM3_CH3 ?
+//        HAL_GPIO_PIN_DEBUG_B1, // TIM3_CH4
+        HAL_GPIO_PIN_DEBUG_B2,
+        HAL_GPIO_PIN_DEBUG_B3,
+        HAL_GPIO_PIN_DEBUG_B4,
+        HAL_GPIO_PIN_DEBUG_B5, //
+        HAL_GPIO_PIN_DEBUG_B6,
+        HAL_GPIO_PIN_DEBUG_B7,
+//        HAL_GPIO_PIN_DEBUG_B10, // I2C2?
+//        HAL_GPIO_PIN_DEBUG_B11, // I2C2?
+        HAL_GPIO_PIN_DEBUG_B12, //
         HAL_GPIO_PIN_DEBUG_C0,
         HAL_GPIO_PIN_DEBUG_C1,
         HAL_GPIO_PIN_DEBUG_C2,
         HAL_GPIO_PIN_DEBUG_C3,
-        HAL_GPIO_PIN_DEBUG_C8,
-        HAL_GPIO_PIN_DEBUG_C9,
-        HAL_GPIO_PIN_DEBUG_C10,
-        HAL_GPIO_PIN_DEBUG_C11,
-        HAL_GPIO_PIN_DEBUG_C12,
         HAL_GPIO_PIN_DEBUG_C13,
         HAL_GPIO_PIN_DEBUG_C14,
         HAL_GPIO_PIN_DEBUG_C15,
-        HAL_GPIO_PIN_DEBUG_D0,
-        HAL_GPIO_PIN_DEBUG_D1,
         HAL_GPIO_PIN_DEBUG_D2,
-        HAL_GPIO_PIN_DEBUG_D3,
-        HAL_GPIO_PIN_DEBUG_D4,
-        HAL_GPIO_PIN_DEBUG_D5,
-        HAL_GPIO_PIN_DEBUG_D6,
-        HAL_GPIO_PIN_DEBUG_D7,
-        HAL_GPIO_PIN_DEBUG_D8,
-        HAL_GPIO_PIN_DEBUG_D9,
-        HAL_GPIO_PIN_DEBUG_D10,
-        HAL_GPIO_PIN_DEBUG_D11,
-        HAL_GPIO_PIN_DEBUG_D12,
-        HAL_GPIO_PIN_DEBUG_D13,
-        HAL_GPIO_PIN_DEBUG_D14,
-        HAL_GPIO_PIN_DEBUG_D15,
+        HAL_GPIO_PIN_DEBUG_PH0,
+        HAL_GPIO_PIN_DEBUG_PH1,
     };
     for (uint8_t i=0; i<ARRAY_SIZE(lines); i++) {
         void *istate = hal.scheduler->disable_interrupts_save();
@@ -337,7 +341,7 @@ static void main_loop()
         }
 #endif
         schedulerInstance.watchdog_pat();
-        //debug_probe();
+        // debug_probe();
     }
     thread_running = false;
 }
