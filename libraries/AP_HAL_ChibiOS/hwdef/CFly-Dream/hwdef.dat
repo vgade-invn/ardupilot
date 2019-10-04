@@ -1,0 +1,106 @@
+# hardware definition file for CFly Dream
+
+# MCU class and specific type
+MCU STM32F4xx STM32F405xx
+
+# board ID for firmware load
+APJ_BOARD_ID 11
+
+# crystal frequency
+OSCILLATOR_HZ 24000000
+
+# use timer 5 for main clock
+define STM32_ST_USE_TIMER 5
+define CH_CFG_ST_RESOLUTION 32
+
+# 1M flash available
+FLASH_SIZE_KB 1024
+
+# board voltage
+STM32_VDD 330U
+
+# UART order: USB GPS WiFi Flow
+UART_ORDER OTG1 USART6 USART2 USART3
+
+# enable USB support
+PA11 OTG_FS_DM OTG1
+PA12 OTG_FS_DP OTG1
+
+# guess for battery voltage
+PA0 BATT_VOLTAGE_SENS ADC1 SCALE(1)
+
+# USART6 for GPS
+PC6 USART6_TX USART6 NODMA
+PC7 USART6_RX USART6 NODMA
+
+# USART3 for flow
+PC11 USART3_RX USART3
+PC10 USART3_TX USART3
+
+# USART2 to WiFi
+PA3 USART2_RX USART2
+PA2 USART2_TX USART2
+
+# SPI bus for IMU, baro and ramtron
+PB13 SPI2_SCK SPI2
+PB14 SPI2_MISO SPI2
+PB15 SPI2_MOSI SPI2
+
+# I2C1 for compass
+PB8 I2C1_SCL I2C1
+PB9 I2C1_SDA I2C1
+
+# one I2C bus (for compass)
+I2C_ORDER I2C1
+
+# SPI chip select pins
+PC4 BARO_CS CS
+PC5 IMU_CS CS
+PA8 FLASH_CS CS
+
+# SPI devices
+SPIDEV icm20689 SPI2 DEVID1 IMU_CS  MODE3 1*MHZ 8*MHZ
+SPIDEV dps280   SPI2 DEVID2 BARO_CS MODE3 1*MHZ 8*MHZ
+SPIDEV dataflash SPI2 DEVID1 FLASH_CS MODE3 32*MHZ 32*MHZ
+
+# LEDs
+PB12 LED_BLUE  OUTPUT LOW GPIO(0)
+PB10 LED_GREEN OUTPUT LOW GPIO(1)
+PA7  LED_RED   OUTPUT LOW GPIO(2)
+
+PC13 LED_FRONT OUTPUT LOW GPIO(3)
+
+# setup for RGB LED pattern with standard scheme on 3 LEDs
+define HAL_GPIO_A_LED_PIN 0
+define HAL_GPIO_B_LED_PIN 1
+define HAL_GPIO_C_LED_PIN 2
+
+define HAL_HAVE_PIXRACER_LED
+
+# GPIOs
+PA1  V33_ENABLE OUTPUT LOW  GPIO(80)
+PC14 TAKE_PHOTO OUTPUT LOW  GPIO(81)
+
+# one DPS280 baro. This is confirmed working
+BARO DPS280 SPI:dps280
+
+# one icm20689 IMU. This is confirmed working
+IMU Invensense SPI:icm20689 ROTATION_YAW_90
+
+# compass seems to be MMC5983 on I2C1. We will need to write a driver
+# COMPASS MMC5983 I2C:0:0x30 false ROTATION_NONE
+
+
+# enable logging to dataflash
+define HAL_LOGGING_DATAFLASH
+
+
+# Enable SST25VF010A serial storage
+define HAL_STORAGE_SIZE 16384
+define HAL_WITH_RAMTRON 1
+
+# PWM control of motors
+PA6 TIM3_CH1 TIM3 PWM(1) GPIO(50)
+PB5 TIM3_CH2 TIM3 PWM(2) GPIO(51)
+PB0 TIM3_CH3 TIM3 PWM(3) GPIO(52)
+PB1 TIM3_CH4 TIM3 PWM(4) GPIO(53)
