@@ -161,6 +161,78 @@ static AP_HAL::HAL::Callbacks* g_callbacks;
 
 static AP_HAL::Util::PersistentData last_persistent_data;
 
+#if 0
+volatile uint32_t ccc;
+
+static void send_bit(ioline_t line, uint8_t b)
+{
+    palWriteLine(line, b);
+    for (uint32_t i=0; i<100; i++) {
+        ccc++;
+    }
+}
+
+/*
+  call process_pulse() for a byte of input
+ */
+static void send_byte(ioline_t line, uint8_t b)
+{
+    send_bit(line, 0); // start bit
+    for (uint8_t i=0; i<8; i++) {
+        uint8_t bit = (b & (1U<<i))?1:0;
+        send_bit(line, bit);
+    }
+    send_bit(line, 1); // stop bit
+}
+
+static void debug_probe(void)
+{
+    static uint32_t last_probe_ms;
+    uint32_t now = AP_HAL::millis();
+    if (now - last_probe_ms < 100) {
+        return;
+    }
+    last_probe_ms = now;
+    const ioline_t lines[] = {
+        HAL_GPIO_PIN_DEBUG_B12,
+        HAL_GPIO_PIN_DEBUG_C0,
+        HAL_GPIO_PIN_DEBUG_C1,
+        HAL_GPIO_PIN_DEBUG_C2,
+        HAL_GPIO_PIN_DEBUG_C3,
+        HAL_GPIO_PIN_DEBUG_C8,
+        HAL_GPIO_PIN_DEBUG_C9,
+        HAL_GPIO_PIN_DEBUG_C10,
+        HAL_GPIO_PIN_DEBUG_C11,
+        HAL_GPIO_PIN_DEBUG_C12,
+        HAL_GPIO_PIN_DEBUG_C13,
+        HAL_GPIO_PIN_DEBUG_C14,
+        HAL_GPIO_PIN_DEBUG_C15,
+        HAL_GPIO_PIN_DEBUG_D0,
+        HAL_GPIO_PIN_DEBUG_D1,
+        HAL_GPIO_PIN_DEBUG_D2,
+        HAL_GPIO_PIN_DEBUG_D3,
+        HAL_GPIO_PIN_DEBUG_D4,
+        HAL_GPIO_PIN_DEBUG_D5,
+        HAL_GPIO_PIN_DEBUG_D6,
+        HAL_GPIO_PIN_DEBUG_D7,
+        HAL_GPIO_PIN_DEBUG_D8,
+        HAL_GPIO_PIN_DEBUG_D9,
+        HAL_GPIO_PIN_DEBUG_D10,
+        HAL_GPIO_PIN_DEBUG_D11,
+        HAL_GPIO_PIN_DEBUG_D12,
+        HAL_GPIO_PIN_DEBUG_D13,
+        HAL_GPIO_PIN_DEBUG_D14,
+        HAL_GPIO_PIN_DEBUG_D15,
+    };
+    for (uint8_t i=0; i<ARRAY_SIZE(lines); i++) {
+        void *istate = hal.scheduler->disable_interrupts_save();
+        send_byte(lines[i], i);
+        hal.scheduler->restore_interrupts(istate);
+        hal.scheduler->delay_microseconds(20);
+    }
+}
+#endif
+
 static void main_loop()
 {
     daemon_task = chThdGetSelfX();
@@ -265,6 +337,7 @@ static void main_loop()
         }
 #endif
         schedulerInstance.watchdog_pat();
+        //debug_probe();
     }
     thread_running = false;
 }
