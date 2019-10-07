@@ -451,6 +451,8 @@ void Copter::one_hz_loop()
 #endif
 
     AP_Notify::flags.flying = !ap.land_complete;
+
+    gcs().send_text(MAV_SEVERITY_INFO, "peak: %.1fg", ins.get_peak_accel() / GRAVITY_MSS);
 }
 
 // called at 50hz

@@ -328,6 +328,8 @@ void AP_InertialSensor_Backend::_notify_new_accel_raw_sample(uint8_t instance,
     }
     float dt;
 
+    float alen = accel.length();
+
     _update_sensor_rate(_imu._sample_accel_count[instance], _imu._sample_accel_start_us[instance],
                         _imu._accel_raw_sample_rates[instance]);
 
@@ -363,6 +365,10 @@ void AP_InertialSensor_Backend::_notify_new_accel_raw_sample(uint8_t instance,
 
     {
         WITH_SEMAPHORE(_sem);
+
+        if (alen > _imu.peak_accel) {
+            _imu.peak_accel = alen;
+        }
 
         uint64_t now = AP_HAL::micros64();
 

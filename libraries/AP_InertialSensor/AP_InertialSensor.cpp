@@ -2067,6 +2067,13 @@ void AP_InertialSensor::kill_imu(uint8_t imu_idx, bool kill_it)
 }
 #endif // HAL_MINIMIZE_FEATURES
 
+float AP_InertialSensor::get_peak_accel(void)
+{
+    float ret = peak_accel;
+    peak_accel = 0;
+    return ret;
+}
+
 
 namespace AP {
 

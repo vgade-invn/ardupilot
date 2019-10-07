@@ -92,6 +92,8 @@ public:
     ///
     void init_gyro(void);
 
+    float get_peak_accel(void);
+
     /// Fetch the current gyro values
     ///
     /// @returns	vector of rotational rates in radians/sec
@@ -608,6 +610,8 @@ private:
     uint32_t _startup_ms;
 
     uint8_t imu_kill_mask;
+
+    float peak_accel;
 };
 
 namespace AP {
