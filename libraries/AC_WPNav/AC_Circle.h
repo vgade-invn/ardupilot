@@ -93,6 +93,7 @@ private:
     // parameters
     AP_Float    _radius;        // radius in cm/s
     AP_Float    _rate;          // rotation speed in deg/sec
+    AP_Int8     _rate_chan;     // rate control channel
     AP_Int8     _path_type;     // PathType selection
 
     // internal variables

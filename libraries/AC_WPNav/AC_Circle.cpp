@@ -31,6 +31,12 @@ const AP_Param::GroupInfo AC_Circle::var_info[] = {
     // @Values: 0:Circle
     // @User: Standard
     AP_GROUPINFO("PATH_TYPE",  2, AC_Circle, _path_type, int(PathType::CIRCLE)),
+
+    // @Param: RATE_CHAN
+    // @DisplayName: RC rate channel
+    // @Description: RC channel number that scales rate value
+    // @User: Standard
+    AP_GROUPINFO("RATE_CHAN",  3, AC_Circle, _rate_chan, 0),
     
     AP_GROUPEND
 };
@@ -184,8 +190,18 @@ void AC_Circle::update()
     // calculate dt
     float dt = _loop_time;
 
-    if (_rate > _rate_now + 0.5 || _rate < _rate_now - 0.5) {
-        _rate_now += (_rate - _rate_now) * 0.0005;
+    float rate = _rate;
+
+    if (_rate_chan > 0) {
+        // apply channel scaling
+        RC_Channel *rate_chan = RC_Channels::rc_channel(_rate_chan-1);
+        if (rate_chan != nullptr) {
+            rate *= rate_chan->percent_input() * 0.01;
+        }
+    }
+
+    if (rate > _rate_now + 0.5 || rate < _rate_now - 0.5) {
+        _rate_now += (rate - _rate_now) * 0.001;
     }
 
     const float rate_scale = _rate_now/360.0;
@@ -211,16 +227,20 @@ void AC_Circle::update()
     pos.y += relpos.y;
     pos.z = _pos_control.get_alt_target();
 
-    Vector2f vel = dpos / dt;
+    Vector2f vel, accel;
 
-    // smooth velocity so that we don't introduce as much
-    // accel noise with the numerical derivative
-    vel = _last_vel * 0.8 + vel * 0.2;
+    if (is_positive(dt)) {
+        vel = dpos / dt;
 
-    Vector2f accel = (vel - _last_vel) / dt;
+        // smooth velocity so that we don't introduce as much
+        // accel noise with the numerical derivative
+        vel = _last_vel * 0.8 + vel * 0.2;
 
-    // smooth acceleration
-    accel = _last_accel * 0.8 + accel * 0.2;
+        accel = (vel - _last_vel) / dt;
+
+        // smooth acceleration
+        accel = _last_accel * 0.8 + accel * 0.2;
+    }
 
     // update position controller target
     _pos_control.set_xy_target(pos.x, pos.y);
