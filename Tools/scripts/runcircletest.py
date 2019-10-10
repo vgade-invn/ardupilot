@@ -35,7 +35,7 @@ def wait_time(mav, simtime):
         if t2 - t1 > simtime:
             break
 
-cmd = '../../Tools/autotest/sim_vehicle.py -D'
+cmd = '../../Tools/autotest/sim_vehicle.py -D -L CMAC_East'
 mavproxy = pexpect.spawn(cmd, logfile=sys.stdout, timeout=30)
 mavproxy.expect("Received")
 mavproxy.send('speedup 20\n')
@@ -52,7 +52,8 @@ wait_time(mav, 5)
 mavproxy.send('rc 3 1500\n')
 mavproxy.send('speedup 1\n')
 mavproxy.send('param set CIRCLE_PATH_TYPE 2\n')
-mavproxy.send('param set CIRCLE_RATE 40\n')
+mavproxy.send('param set CIRCLE_RATE 15\n')
+mavproxy.send('param set CIRCLE_RADIUS 200\n')
 mavproxy.send('module load console\n')
 mavproxy.send('module load map\n')
 wait_time(mav, 2)
