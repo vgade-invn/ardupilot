@@ -313,6 +313,9 @@ public:
     // Return the yaw slew rate limit in radians/s
     float get_slew_yaw_rads() const { return radians(_slew_yaw * 0.01f); }
 
+    // return yaw controller time constant in seconds
+    float get_yaw_time_constant() const { return 1.0 / _p_angle_yaw.kP(); }
+
 protected:
 
     // Update rate_target_ang_vel using attitude_error_rot_vec_rad
