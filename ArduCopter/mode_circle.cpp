@@ -18,9 +18,7 @@ bool ModeCircle::init(bool ignore_checks)
     pos_control->set_max_accel_z(g.pilot_accel_z);
 
     // initialise circle controller including setting the circle center based on vehicle speed
-    copter.circle_nav->init();
-
-    return true;
+    return copter.circle_nav->init();
 }
 
 // circle_run - runs the circle flight mode
@@ -65,12 +63,9 @@ void ModeCircle::run()
                                                                       copter.circle_nav->get_pitch(),
                                                                       target_yaw_rate);
     } else {
-//        attitude_control->input_euler_angle_roll_pitch_yaw(copter.circle_nav->get_roll(),
-//                                                           copter.circle_nav->get_pitch(),
-//                                                           copter.circle_nav->get_yaw(), true);
-        attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(copter.circle_nav->get_roll(),
-                                                                      copter.circle_nav->get_pitch(),
-                                                                      copter.circle_nav->get_yaw());
+        attitude_control->input_euler_angle_roll_pitch_yaw(copter.circle_nav->get_roll(),
+                                                           copter.circle_nav->get_pitch(),
+                                                           copter.circle_nav->get_yaw(), true);
     }
 
     // update altitude target and call position controller
