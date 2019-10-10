@@ -55,7 +55,7 @@ AC_Circle::AC_Circle(const AP_InertialNav& inav, const AP_AHRS_View& ahrs, AC_Po
  */
 Vector2f AC_Circle::PathFunction::get_relpos_rotated(float t, float yaw_rad) const
 {
-    Vector2f v = get_relpos(t);
+    Vector2f v = get_relpos(t) * radius;
     Vector2f v2;
     const float cos_yaw = cosf(yaw_rad);
     const float sin_yaw = sinf(yaw_rad);
@@ -119,15 +119,15 @@ bool AC_Circle::init(const Vector3f& center)
 
     switch ((PathType)_path_type.get()) {
     case PathType::CIRCLE:
-        path_function = new PathCircle;
+        path_function = new PathCircle(_radius.get());
         break;
 
     case PathType::FIGURE_EIGHT:
-        path_function = new PathFigureEight;
+        path_function = new PathFigureEight(_radius.get());
         break;
 
     case PathType::FIGURE_LISSAJOUS:
-        path_function = new PathLissajous;
+        path_function = new PathLissajous(_radius.get());
         break;
         
     default:
@@ -136,9 +136,10 @@ bool AC_Circle::init(const Vector3f& center)
 
     _time_s = 0;
     _rate_now = 0;
-    _last_relpos.zero();
+    _last_vel.zero();
     _initial_yaw = _ahrs.yaw;
     _first_pos = path_function->get_relpos_rotated(0, _initial_yaw);
+    _last_pos = _first_pos;
 
     // calculate velocities
     calc_velocities(true);
@@ -182,16 +183,19 @@ void AC_Circle::update()
     }
 
     _rate_now += (_rate - _rate_now) * 0.001;
-    _time_s += dt * (_rate_now/360.0);
+    float dt_scaled = dt * (_rate_now/360.0);
 
-    Vector2f relpos_rot = path_function->get_relpos_rotated(_time_s, _initial_yaw);
-    Vector2f relpos = (relpos_rot - _first_pos) * _radius;
-    Vector2f dpos = relpos - _last_relpos;
+    _time_s += dt_scaled;
+
+    Vector2f pos1 = _last_pos;
+    Vector2f pos2 = path_function->get_relpos_rotated(_time_s + dt_scaled, _initial_yaw);
+    Vector2f relpos = (pos1 - _first_pos);
+    Vector2f dpos = pos2 - pos1;
 
     // calculate target position
-    Vector3f pos;
-    pos.x = _center.x + relpos.x;
-    pos.y = _center.y + relpos.y;
+    Vector3f pos = _center;
+    pos.x += relpos.x;
+    pos.y += relpos.y;
     pos.z = _pos_control.get_alt_target();
 
     Vector2f vel = dpos / dt;
@@ -207,7 +211,7 @@ void AC_Circle::update()
     // update position controller
     _pos_control.update_xy_controller();
 
-    _last_relpos = relpos;
+    _last_pos = pos2;
     _last_vel = vel;
 }
 
