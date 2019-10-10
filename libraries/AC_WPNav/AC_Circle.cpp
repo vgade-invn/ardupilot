@@ -133,17 +133,18 @@ bool AC_Circle::init(const Vector3f& center)
 
     _initial_yaw = _ahrs.yaw;
 
+    const float radius_m = _radius.get() * 0.01;
     switch ((PathType)_path_type.get()) {
     case PathType::CIRCLE:
-        path_function = new PathCircle(_radius.get(), _initial_yaw);
+        path_function = new PathCircle(radius_m, _initial_yaw);
         break;
 
     case PathType::FIGURE_EIGHT:
-        path_function = new PathFigureEight(_radius.get(), _initial_yaw);
+        path_function = new PathFigureEight(radius_m, _initial_yaw);
         break;
 
     case PathType::FIGURE_LISSAJOUS:
-        path_function = new PathLissajous(_radius.get(), _initial_yaw);
+        path_function = new PathLissajous(radius_m, _initial_yaw);
         break;
         
     default:
@@ -176,8 +177,8 @@ bool AC_Circle::init()
     _pos_control.set_target_to_stopping_point_xy();
     _pos_control.set_target_to_stopping_point_z();
 
-    // get stopping point
-    _center = _pos_control.get_pos_target();
+    // get stopping point in meters
+    _center = _pos_control.get_pos_target() * 0.01;
 
     return init(_center);
 }
@@ -202,6 +203,7 @@ void AC_Circle::set_radius(float radius_cm)
 void AC_Circle::update()
 {
     // calculate dt
+    _loop_time = AP::scheduler().get_filtered_loop_time();
     float dt = _loop_time;
 
     float rate = _rate;
@@ -239,7 +241,7 @@ void AC_Circle::update()
     Vector3f pos = _center;
     pos.x += relpos.x;
     pos.y += relpos.y;
-    pos.z = _pos_control.get_alt_target();
+    pos.z = _pos_control.get_alt_target() * 0.01;
 
     Vector2f vel, accel;
 
@@ -256,10 +258,10 @@ void AC_Circle::update()
         accel = _last_accel * 0.8 + accel * 0.2;
     }
 
-    // update position controller target
-    _pos_control.set_xy_target(pos.x, pos.y);
-    _pos_control.set_desired_velocity_xy(vel.x, vel.y);
-    _pos_control.set_desired_accel_xy(accel.x, accel.y);
+    // update position controller targets (using cm)
+    _pos_control.set_xy_target(pos.x*100, pos.y*100);
+    _pos_control.set_desired_velocity_xy(vel.x*100, vel.y*100);
+    _pos_control.set_desired_accel_xy(accel.x*100, accel.y*100);
 
     AP::logger().Write("CIRC", "TimeUS,PX,PY,VX,VY,AX,AY,dt", "Qfffffff",
                        AP_HAL::micros64(),
