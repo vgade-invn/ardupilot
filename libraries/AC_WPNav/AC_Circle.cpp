@@ -2,6 +2,7 @@
 #include "AC_Circle.h"
 #include <AP_Math/AP_Math.h>
 #include <GCS_MAVLink/GCS.h>
+#include <AP_Scheduler/AP_Scheduler.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -124,17 +125,19 @@ bool AC_Circle::init(const Vector3f& center)
         path_function = nullptr;
     }
 
+    _initial_yaw = _ahrs.yaw;
+
     switch ((PathType)_path_type.get()) {
     case PathType::CIRCLE:
-        path_function = new PathCircle(_radius.get());
+        path_function = new PathCircle(_radius.get(), _initial_yaw);
         break;
 
     case PathType::FIGURE_EIGHT:
-        path_function = new PathFigureEight(_radius.get());
+        path_function = new PathFigureEight(_radius.get(), _initial_yaw);
         break;
 
     case PathType::FIGURE_LISSAJOUS:
-        path_function = new PathLissajous(_radius.get());
+        path_function = new PathLissajous(_radius.get(), _initial_yaw);
         break;
         
     default:
@@ -144,9 +147,11 @@ bool AC_Circle::init(const Vector3f& center)
     _time_s = 0;
     _rate_now = 0;
     _last_vel.zero();
-    _initial_yaw = _ahrs.yaw;
     _first_pos = path_function->get_relpos_rotated(0, _initial_yaw);
-    _last_pos = _first_pos;
+    for (uint8_t i=0; i<ARRAY_SIZE(_last_pos); i++) {
+        _last_pos[i] = _first_pos;
+    }
+    _loop_time = AP::scheduler().get_filtered_loop_time();
 
     // calculate velocities
     calc_velocities(true);
@@ -191,21 +196,28 @@ void AC_Circle::set_radius(float radius_cm)
 void AC_Circle::update()
 {
     // calculate dt
-    float dt = _pos_control.time_since_last_xy_update();
-    if (dt >= 0.2f) {
-        dt = 0.0f;
+    float dt = _loop_time;
+
+    if (_rate > _rate_now + 0.5 || _rate < _rate_now - 0.5) {
+        _rate_now += (_rate - _rate_now) * 0.0005;
     }
 
-    _rate_now += (_rate - _rate_now) * 0.001;
-    const float rate_scale = (_rate_now/360.0);
+    const float rate_scale = _rate_now/360.0;
     float dt_scaled = dt * rate_scale;
 
     _time_s += dt_scaled;
 
-    Vector2f pos1 = _last_pos;
-    Vector2f pos2 = path_function->get_relpos_rotated(_time_s + dt_scaled, _initial_yaw);
+    // we use a multi-element delay line, to allow the velocity and
+    // acceleration to be computed ahead of the current point in time,
+    // which allows for them to be smoothed
+    Vector2f pos1 = _last_pos[0];
+    const uint8_t alen = ARRAY_SIZE(_last_pos);
+    for (uint8_t i=0; i<alen-1; i++) {
+        _last_pos[i] = _last_pos[i+1];
+    }
+    _last_pos[alen-1] = path_function->get_relpos_rotated(_time_s + dt_scaled*alen, _initial_yaw);
     Vector2f relpos = (pos1 - _first_pos);
-    Vector2f dpos = pos2 - pos1;
+    Vector2f dpos = _last_pos[alen-1] - _last_pos[alen-2];
 
     // calculate target position
     Vector3f pos = _center;
@@ -214,12 +226,27 @@ void AC_Circle::update()
     pos.z = _pos_control.get_alt_target();
 
     Vector2f vel = dpos / dt;
+
+    // smooth velocity so that we don't introduce as much
+    // accel noise with the numerical derivative
+    vel = _last_vel * 0.8 + vel * 0.2;
+
     Vector2f accel = (vel - _last_vel) / dt;
+
+    // smooth acceleration
+    accel = _last_accel * 0.8 + accel * 0.2;
 
     // update position controller target
     _pos_control.set_xy_target(pos.x, pos.y);
     _pos_control.set_desired_velocity_xy(vel.x, vel.y);
     _pos_control.set_desired_accel_xy(accel.x, accel.y);
+
+    AP::logger().Write("CIRC", "TimeUS,PX,PY,VX,VY,AX,AY,dt", "Qfffffff",
+                       AP_HAL::micros64(),
+                       pos.x, pos.y,
+                       vel.x, vel.y,
+                       accel.x, accel.y,
+                       dt);
 
     const float yaw_lag = _attitude_control.get_yaw_time_constant() * rate_scale * 0.3;
     _yaw = degrees(path_function->get_yaw(_time_s + yaw_lag)) * 100;
@@ -227,8 +254,8 @@ void AC_Circle::update()
     // update position controller
     _pos_control.update_xy_controller();
 
-    _last_pos = pos2;
     _last_vel = vel;
+    _last_accel = accel;
 }
 
 // get_closest_point_on_circle - returns closest point on the circle
