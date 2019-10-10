@@ -183,7 +183,8 @@ void AC_Circle::update()
     }
 
     _rate_now += (_rate - _rate_now) * 0.001;
-    float dt_scaled = dt * (_rate_now/360.0);
+    const float rate_scale = (_rate_now/360.0);
+    float dt_scaled = dt * rate_scale;
 
     _time_s += dt_scaled;
 
@@ -206,7 +207,8 @@ void AC_Circle::update()
     _pos_control.set_desired_velocity_xy(vel.x, vel.y);
     _pos_control.set_desired_accel_xy(accel.x, accel.y);
 
-    _yaw = degrees(path_function->get_yaw(_time_s)) * 100;
+    const float yaw_lag = _attitude_control.get_yaw_time_constant() * rate_scale * 0.3;
+    _yaw = degrees(path_function->get_yaw(_time_s + yaw_lag)) * 100;
 
     // update position controller
     _pos_control.update_xy_controller();
