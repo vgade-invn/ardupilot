@@ -20,6 +20,11 @@ class VehicleInfo(object):
                 "waf_target": "bin/arducopter",
                 "default_params_filename": "default_params/copter.parm",
             },
+            "quad-fast": {
+                "model": "+",
+                "waf_target": "bin/arducopter",
+                "default_params_filename": "default_params/copter.parm",
+            },
             "X": {
                 "waf_target": "bin/arducopter",
                 "default_params_filename": "default_params/copter.parm",
