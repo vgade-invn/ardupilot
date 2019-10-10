@@ -121,7 +121,7 @@ private:
     float       _rate_now;
     float       _time_s;
     float       _initial_yaw;
-    Vector2f    _last_relpos;
+    Vector2f    _last_pos;
     Vector2f    _last_vel;
     Vector2f    _first_pos;
 
@@ -133,25 +133,31 @@ private:
 
     class PathFunction {
     public:
+        PathFunction(float _radius) : radius(_radius) {}
         virtual ~PathFunction() {}
         virtual Vector2f get_relpos(float t) const = 0;
         virtual float get_yaw(float t) const = 0;
         Vector2f get_relpos_rotated(float t, float yaw_rad) const;
+    private:
+        const float radius;
     };
 
     PathFunction *path_function;
 
     class PathCircle: public PathFunction {
+        using PathFunction::PathFunction;
         Vector2f get_relpos(float t) const override;
         float get_yaw(float t) const override;
     };
 
     class PathFigureEight: public PathFunction {
+        using PathFunction::PathFunction;
         Vector2f get_relpos(float t) const override;
         float get_yaw(float t) const override { return 0; }
     };
 
     class PathLissajous: public PathFunction {
+        using PathFunction::PathFunction;
         Vector2f get_relpos(float t) const override;
         float get_yaw(float t) const override { return 0; }
     };
