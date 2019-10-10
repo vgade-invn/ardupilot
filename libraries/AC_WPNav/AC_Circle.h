@@ -109,9 +109,11 @@ private:
     float       _rate_now;
     float       _time_s;
     float       _initial_yaw;
-    Vector2f    _last_pos;
+    Vector2f    _last_pos[4];
     Vector2f    _last_vel;
+    Vector2f    _last_accel;
     Vector2f    _first_pos;
+    float       _loop_time;
 
     enum class PathType {
         CIRCLE=0,
@@ -121,13 +123,15 @@ private:
 
     class PathFunction {
     public:
-        PathFunction(float _radius) : radius(_radius) {}
+        PathFunction(float _radius, float _initial_yaw) :
+            radius(_radius), initial_yaw(_initial_yaw) {}
         virtual ~PathFunction() {}
         virtual Vector2f get_relpos(float t) const = 0;
         virtual float get_yaw(float t) const = 0;
         Vector2f get_relpos_rotated(float t, float yaw_rad) const;
-    private:
+    protected:
         const float radius;
+        const float initial_yaw;
     };
 
     PathFunction *path_function;
@@ -141,12 +145,12 @@ private:
     class PathFigureEight: public PathFunction {
         using PathFunction::PathFunction;
         Vector2f get_relpos(float t) const override;
-        float get_yaw(float t) const override { return 0; }
+        float get_yaw(float t) const override { return initial_yaw; }
     };
 
     class PathLissajous: public PathFunction {
         using PathFunction::PathFunction;
         Vector2f get_relpos(float t) const override;
-        float get_yaw(float t) const override { return 0; }
+        float get_yaw(float t) const override { return initial_yaw; }
     };
 };
