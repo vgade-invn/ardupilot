@@ -31,6 +31,13 @@ const AP_Param::GroupInfo AC_Circle::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("CONTROL", 2, AC_Circle, _control, 1),
 
+    // @Param: PATH_TYPE
+    // @DisplayName: Type of path to follow
+    // @Description: Selects what type of path to follow
+    // @Values: 0:Circle
+    // @User: Standard
+    AP_GROUPINFO("PATH_TYPE", 3, AC_Circle, _path_type, int(PathType::CIRCLE)),
+    
     AP_GROUPEND
 };
 
@@ -42,13 +49,7 @@ AC_Circle::AC_Circle(const AP_InertialNav& inav, const AP_AHRS_View& ahrs, AC_Po
     _inav(inav),
     _ahrs(ahrs),
     _pos_control(pos_control),
-    _attitude_control(attitude_control),
-    _yaw(0.0f),
-    _angle(0.0f),
-    _angle_total(0.0f),
-    _angular_vel(0.0f),
-    _angular_vel_max(0.0f),
-    _angular_accel(0.0f)
+    _attitude_control(attitude_control)
 {
     AP_Param::setup_object_defaults(this, var_info);
 
@@ -56,9 +57,52 @@ AC_Circle::AC_Circle(const AP_InertialNav& inav, const AP_AHRS_View& ahrs, AC_Po
     _flags.panorama = false;
 }
 
+/*
+  get path position rotated by a yaw
+ */
+Vector2f AC_Circle::PathFunction::get_relpos_rotated(float t, float yaw_rad) const
+{
+    Vector2f v = get_relpos(t);
+    Vector2f v2;
+    const float cos_yaw = cosf(yaw_rad);
+    const float sin_yaw = sinf(yaw_rad);
+    v2.x = v.x * cos_yaw - v.y * sin_yaw;
+    v2.y = v.x * sin_yaw + v.y * cos_yaw;
+    return v2;
+}
+
+// equation for a circle
+Vector2f AC_Circle::PathCircle::get_relpos(float t) const
+{
+    t *= M_PI * 2;
+    return Vector2f(-cosf(t), -sinf(t));
+}
+
+// yaw for a circle
+float AC_Circle::PathCircle::get_yaw(float t) const
+{
+    t *= M_PI * 2;
+    return wrap_PI(t);
+}
+
+// equation for a figure 8
+Vector2f AC_Circle::PathFigureEight::get_relpos(float t) const
+{
+    t *= M_PI * 2;
+    return Vector2f(sinf(t), sinf(t)*cosf(t));
+}
+
+// equation for a Lissajour curve (ABC logo)
+Vector2f AC_Circle::PathLissajous::get_relpos(float t) const
+{
+    // with thanks to https://www.grant-trebbin.com/2017/10/abc-logo-lissajous-curve.html
+    t *= M_PI * 2;
+    return -Vector2f(cosf(t), cosf(3*t + M_PI*0.5));
+}
+
 /// init - initialise circle controller setting center specifically
 ///     caller should set the position controller's x,y and z speeds and accelerations before calling this
-void AC_Circle::init(const Vector3f& center)
+bool AC_Circle::init(const Vector3f& center)
 {
     _center = center;
 
@@ -71,39 +115,59 @@ void AC_Circle::init(const Vector3f& center)
     _pos_control.set_target_to_stopping_point_xy();
     _pos_control.set_target_to_stopping_point_z();
 
+    if (!is_positive(_radius)) {
+        return false;
+    }
+
+    if (path_function) {
+        delete path_function;
+        path_function = nullptr;
+    }
+
+    switch ((PathType)_path_type.get()) {
+    case PathType::CIRCLE:
+        path_function = new PathCircle;
+        break;
+
+    case PathType::FIGURE_EIGHT:
+        path_function = new PathFigureEight;
+        break;
+
+    case PathType::FIGURE_LISSAJOUS:
+        path_function = new PathLissajous;
+        break;
+        
+    default:
+        return false;
+    }
+
+    _time_s = 0;
+    _rate_now = 0;
+    _last_relpos.zero();
+    _initial_yaw = _ahrs.yaw;
+    _first_pos = path_function->get_relpos_rotated(0, _initial_yaw);
+
     // calculate velocities
     calc_velocities(true);
 
     // set start angle from position
     init_start_angle(false);
+
+    return true;
 }
 
 /// init - initialise circle controller setting center using stopping point and projecting out based on the copter's heading
 ///     caller should set the position controller's x,y and z speeds and accelerations before calling this
-void AC_Circle::init()
+bool AC_Circle::init()
 {
-    // initialise position controller (sets target roll angle, pitch angle and I terms based on vehicle current lean angles)
-    _pos_control.set_desired_accel_xy(0.0f,0.0f);
-    _pos_control.set_desired_velocity_xy(0.0f,0.0f);
-    _pos_control.init_xy_controller();
-
     // set initial position target to reasonable stopping point
     _pos_control.set_target_to_stopping_point_xy();
     _pos_control.set_target_to_stopping_point_z();
 
     // get stopping point
-    const Vector3f& stopping_point = _pos_control.get_pos_target();
+    _center = _pos_control.get_pos_target();
 
-    // set circle center to circle_radius ahead of stopping point
-    _center.x = stopping_point.x + _radius * _ahrs.cos_yaw();
-    _center.y = stopping_point.y + _radius * _ahrs.sin_yaw();
-    _center.z = stopping_point.z;
-
-    // calculate velocities
-    calc_velocities(true);
-
-    // set starting angle from vehicle heading
-    init_start_angle(true);
+    return init(_center);
 }
 
 /// set_circle_rate - set circle rate in degrees per second
@@ -131,87 +195,34 @@ void AC_Circle::update()
         dt = 0.0f;
     }
 
-    if (_velocity_cross < 0.5f * _velocity_max) {
-        // jerk limited increase in acceleration
-        float time = safe_sqrt(2.0f * _velocity_cross / _jerk_max);
-        _velocity_cross = 0.5f * _jerk_max * sq(time + dt);
-        _accel_cross = _jerk_max * (time + dt);
-    } else if (_accel_cross > 0.0f && _velocity_cross < _velocity_max) {
-        // jerk limited decrease in acceleration
-        float time = safe_sqrt(2.0f * (_velocity_max - _velocity_cross) / _jerk_max);
-        _velocity_cross = _velocity_max - 0.5f * _jerk_max * sq(time - dt);
-        _accel_cross = _jerk_max * (time - dt);
-    } else {
-        // constant velocity
-        _velocity_cross = _velocity_max;
-        _accel_cross = 0.0f;
-    }
+    _rate_now += (_rate - _rate_now) * 0.001;
+    _time_s += dt * (_rate_now/360.0);
 
-    _angular_vel = _velocity_cross / _radius;
+    Vector2f relpos_rot = path_function->get_relpos_rotated(_time_s, _initial_yaw);
+    Vector2f relpos = (relpos_rot - _first_pos) * _radius;
+    Vector2f dpos = relpos - _last_relpos;
 
-    // update the target angle and total angle traveled
-    float angle_change = _angular_vel * dt;
-    _angle += angle_change;
-    _angle = wrap_PI(_angle);
-    _angle_total += angle_change;
+    // calculate target position
+    Vector3f pos;
+    pos.x = _center.x + relpos.x;
+    pos.y = _center.y + relpos.y;
+    pos.z = _pos_control.get_alt_target();
 
-    float cos_angle = cosf(_angle);
-    float sin_angle = sinf(_angle);
-    float accel_rad = sq(_angular_vel) * _radius;
+    Vector2f vel = dpos / dt;
+    Vector2f accel = (vel - _last_vel) / dt;
 
-    // if the circle_radius is zero we are doing panorama so no need to update loiter target
-    if (!is_zero(_radius)) {
-        // calculate target position
-        Vector3f pos;
-        pos.x = _center.x + _radius * cos_angle;
-        pos.y = _center.y + _radius * sin_angle;
-        pos.z = _pos_control.get_alt_target();
+    // update position controller target
+    _pos_control.set_xy_target(pos.x, pos.y);
+    _pos_control.set_desired_velocity_xy(vel.x, vel.y);
+    _pos_control.set_desired_accel_xy(accel.x, accel.y);
 
-        Vector3f vel;
-        vel.x = - _velocity_cross * sin_angle;
-        vel.y = _velocity_cross * cos_angle;
-        vel.z = 0.0f;
-
-        Vector3f accel;
-        accel.x = - accel_rad * cos_angle - _accel_cross * sin_angle;
-        accel.y = - accel_rad * sin_angle + _accel_cross * cos_angle;
-        accel.z = 0.0f;
-
-        // update position controller target
-        _pos_control.set_xy_target(pos.x, pos.y);
-        _pos_control.set_desired_velocity_xy(vel.x, vel.y);
-        _pos_control.set_desired_accel_xy(accel.x, accel.y);
-
-        // heading is from vehicle to center of circle
-//        _yaw = get_bearing_cd(_inav.get_position(), _center);
-        _yaw = ToDeg(_angular_vel)*100.0f;
-
-        // write log - save the data.
-        AP::logger().Write("LEN2", "TimeUS,vm,vc,am,ac,ar,y,yd", "Qfffffff",
-                                               AP_HAL::micros64(),
-                                               (double)_velocity_max,
-                                               (double)_velocity_cross,
-                                               (double)_accel_max,
-                                               (double)_accel_cross,
-                                               (double)accel_rad,
-                                               (double)ToDeg(_ahrs.yaw),
-                                               (double)ToDeg(wrap_PI(_angle+M_PI)));
-    } else {
-        // set target position to center
-        Vector3f target;
-        target.x = _center.x;
-        target.y = _center.y;
-        target.z = _pos_control.get_alt_target();
-
-        // update position controller target
-        _pos_control.set_xy_target(target.x, target.y);
-
-        // heading is same as _angle but converted to centi-degrees
-        _yaw = _angle * DEGX100;
-    }
+    _yaw = degrees(path_function->get_yaw(_time_s)) * 100;
 
     // update position controller
     _pos_control.update_xy_controller();
+
+    _last_relpos = relpos;
+    _last_vel = vel;
 }
 
 // get_closest_point_on_circle - returns closest point on the circle
@@ -267,58 +278,54 @@ void AC_Circle::calc_velocities(bool init_velocity)
         gcs().send_text(MAV_SEVERITY_INFO, "Circle: limited yaw rate to %.1fdps", degrees(yaw_slew_limit));
     }
 
-    if (_radius <= 0) {
-        _angular_accel = MAX(fabsf(_angular_vel_max), 0.25f * _attitude_control.get_accel_yaw_max_radss());
-    }else{
-        // maximum acceleration set to leave 25% for corrections
-        _accel_max = 0.75 * _pos_control.get_max_accel_xy();
-        // maximum velocity to achieve angular velocity
-        _velocity_max = _angular_vel_max * _radius;
-        // limit velocity by maximum allowable velocity
-        const float max_speed_xy = _pos_control.get_max_speed_xy();
-        if (max_speed_xy < _velocity_max) {
-            _velocity_max = max_speed_xy;
-            gcs().send_text(MAV_SEVERITY_INFO, "Circle: xy speed to %.1fcm/s", max_speed_xy);
-        }
+    // maximum acceleration set to leave 25% for corrections
+    _accel_max = 0.75 * _pos_control.get_max_accel_xy();
 
-        // limit velocity by maximum allowable radial acceleration
-        const float vel_limit = safe_sqrt(_accel_max*_radius);
-        if (vel_limit < _velocity_max) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Circle: vel limited to %.1fcm/s", vel_limit);
-            _velocity_max = vel_limit;
-        }
+    // maximum velocity to achieve angular velocity
+    float _velocity_max = _angular_vel_max * _radius;
 
-        // maximum jerk based on 50% roll or pitch angular acceleration
-        const float accel_roll_limit = _attitude_control.get_accel_roll_max_radss();
-        const float accel_pitch_limit = _attitude_control.get_accel_pitch_max_radss();
-        const float accel_yaw_limit = _attitude_control.get_accel_yaw_max_radss();
-
-        _jerk_max = 0.5f * MIN(accel_roll_limit, accel_pitch_limit) * GRAVITY_MSS * 100.0f; // cm/s/s
-
-        // limit maximum acceleration by maximum radial jerk
-        const float accel_limit = _jerk_max * _radius / _velocity_max;
-        if (accel_limit < _accel_max) {
-            _accel_max = accel_limit;
-            gcs().send_text(MAV_SEVERITY_INFO, "Circle: accel limited to %.1fm/s/s", _accel_max);
-        }
-
-        // limit jerk to ensure maximum acceleration is not exceeded
-        _jerk_max = MIN(_jerk_max, sq(_accel_max)/_velocity_max);
-
-        // limit jerk by maximum yaw angular acceleration
-        _jerk_max = MIN(_jerk_max, 0.25f * accel_yaw_limit * _radius);
-
-        gcs().send_text(MAV_SEVERITY_INFO, "Circle: r=%.1fm rate=%.1fdeg/s vel=%.1fm/s accel=%.1fm/s/s",
-                        _radius.get(), degrees(_angular_vel_max), _velocity_max*0.01, _accel_max*0.01);
-
+    // limit velocity by maximum allowable velocity
+    const float max_speed_xy = _pos_control.get_max_speed_xy();
+    if (max_speed_xy < _velocity_max) {
+        _velocity_max = max_speed_xy;
+        gcs().send_text(MAV_SEVERITY_INFO, "Circle: xy speed to %.1fcm/s", max_speed_xy);
     }
+
+    // limit velocity by maximum allowable radial acceleration
+    const float vel_limit = safe_sqrt(_accel_max*_radius);
+    if (vel_limit < _velocity_max) {
+        gcs().send_text(MAV_SEVERITY_INFO, "Circle: vel limited to %.1fcm/s", vel_limit);
+        _velocity_max = vel_limit;
+    }
+
+    // maximum jerk based on 50% roll or pitch angular acceleration
+    const float accel_roll_limit = _attitude_control.get_accel_roll_max_radss();
+    const float accel_pitch_limit = _attitude_control.get_accel_pitch_max_radss();
+    const float accel_yaw_limit = _attitude_control.get_accel_yaw_max_radss();
+
+    _jerk_max = 0.5f * MIN(accel_roll_limit, accel_pitch_limit) * GRAVITY_MSS * 100.0f; // cm/s/s
+
+    // limit maximum acceleration by maximum radial jerk
+    const float accel_limit = _jerk_max * _radius / _velocity_max;
+    if (accel_limit < _accel_max) {
+        _accel_max = accel_limit;
+        gcs().send_text(MAV_SEVERITY_INFO, "Circle: accel limited to %.1fm/s/s", _accel_max);
+    }
+
+    // limit jerk to ensure maximum acceleration is not exceeded
+    _jerk_max = MIN(_jerk_max, sq(_accel_max)/_velocity_max);
+
+    // limit jerk by maximum yaw angular acceleration
+    _jerk_max = MIN(_jerk_max, 0.25f * accel_yaw_limit * _radius);
+
+    gcs().send_text(MAV_SEVERITY_INFO, "Circle: r=%.1fm rate=%.1fdeg/s vel=%.1fm/s accel=%.1fm/s/s",
+                    _radius.get(), degrees(_angular_vel_max), _velocity_max*0.01, _accel_max*0.01);
+
 
     // initialise angular velocity
     if (init_velocity) {
         _angular_vel = 0.0f;
     }
-    _velocity_cross = 0.0f;
-    _accel_cross = 0.0f;
 }
 
 // init_start_angle - sets the starting angle around the circle and initialises the angle_total

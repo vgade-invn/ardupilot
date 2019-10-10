@@ -21,11 +21,11 @@ public:
 
     /// init - initialise circle controller setting center specifically
     ///     caller should set the position controller's x,y and z speeds and accelerations before calling this
-    void init(const Vector3f& center);
+    bool init(const Vector3f& center);
 
     /// init - initialise circle controller setting center using stopping point and projecting out based on the copter's heading
     ///     caller should set the position controller's x,y and z speeds and accelerations before calling this
-    void init();
+    bool init();
 
     /// set_circle_center in cm from home
     void set_center(const Vector3f& center) { _center = center; }
@@ -105,6 +105,7 @@ private:
     AP_Float    _radius;        // radius in cm/s
     AP_Float    _rate;          // rotation speed in deg/sec
     AP_Int16    _control;       // stick control enable/disable
+    AP_Int8     _path_type;     // PathType selection
 
     // internal variables
     Vector3f    _center;            // center of circle in cm from home
@@ -114,9 +115,44 @@ private:
     float       _angular_vel;       // angular velocity in radians/sec
     float       _angular_vel_max;   // maximum velocity in radians/sec
     float       _angular_accel;     // angular acceleration in radians/sec/sec
-    float       _velocity_cross;    // maximum horizontal speed in cm/s during missions
-    float       _velocity_max;
-    float       _accel_cross;
     float       _accel_max;
     float       _jerk_max;
+
+    float       _rate_now;
+    float       _time_s;
+    float       _initial_yaw;
+    Vector2f    _last_relpos;
+    Vector2f    _last_vel;
+    Vector2f    _first_pos;
+
+    enum class PathType {
+        CIRCLE=0,
+        FIGURE_EIGHT=1,
+        FIGURE_LISSAJOUS=2,
+    };
+
+    class PathFunction {
+    public:
+        virtual ~PathFunction() {}
+        virtual Vector2f get_relpos(float t) const = 0;
+        virtual float get_yaw(float t) const = 0;
+        Vector2f get_relpos_rotated(float t, float yaw_rad) const;
+    };
+
+    PathFunction *path_function;
+
+    class PathCircle: public PathFunction {
+        Vector2f get_relpos(float t) const override;
+        float get_yaw(float t) const override;
+    };
+
+    class PathFigureEight: public PathFunction {
+        Vector2f get_relpos(float t) const override;
+        float get_yaw(float t) const override { return 0; }
+    };
+
+    class PathLissajous: public PathFunction {
+        Vector2f get_relpos(float t) const override;
+        float get_yaw(float t) const override { return 0; }
+    };
 };
