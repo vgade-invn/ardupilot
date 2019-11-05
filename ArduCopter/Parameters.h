@@ -615,6 +615,10 @@ public:
 
     // Failsafe options bitmask #36
     AP_Int32 fs_options;
+
+#if MODE_AUTOROTATE_ENABLED == ENABLED
+    AC_Autorotation arot;
+#endif
 };
 
 extern const AP_Param::Info        var_info[];
