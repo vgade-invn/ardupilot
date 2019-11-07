@@ -315,10 +315,7 @@ bool Plane::geofence_prearm_check(void)
         // must have position
         return false;
     }
-    Vector2l location;
-    location.x = loc.lat;
-    location.y = loc.lng;
-    bool outside = Polygon_outside(location, &geofence_state->boundary[1], geofence_state->num_points-1);
+    bool outside = geofence_GPS_check_outside();
     if (outside) {
         gcs().send_text(MAV_SEVERITY_WARNING, "PreArm: outside fence");
         return false;
@@ -326,6 +323,27 @@ bool Plane::geofence_prearm_check(void)
     return true;
 }
 
+/*
+  return true if either no GPS module has a 2D or 3D fix, or all GPS
+  modules that have a fix are outside the geofence polygon
+ */
+bool Plane::geofence_GPS_check_outside(void)
+{
+    for (uint8_t i=0; i< plane.gps.num_sensors(); i++) {
+        if (plane.gps.status() < AP_GPS::GPS_OK_FIX_3D) {
+            continue;
+        }
+        const Location &gps_loc = plane.gps.location(i);
+        Vector2l location;
+        location.x = gps_loc.lat;
+        location.y = gps_loc.lng;
+        if (!Polygon_outside(location, &geofence_state->boundary[1], geofence_state->num_points-1)) {
+            // this one is OK
+            return false;
+        }
+    }
+    return true;
+}
 
 /*
  *  check if we have breached the geo-fence
@@ -374,10 +392,7 @@ void Plane::geofence_check(bool altitude_check_only)
         outside = true;
         breach_type = FENCE_BREACH_MAXALT;
     } else if (!altitude_check_only && ahrs.get_position(loc)) {
-        Vector2l location;
-        location.x = loc.lat;
-        location.y = loc.lng;
-        outside = Polygon_outside(location, &geofence_state->boundary[1], geofence_state->num_points-1);
+        outside = geofence_GPS_check_outside();
         if (outside) {
             breach_type = FENCE_BREACH_BOUNDARY;
         }
