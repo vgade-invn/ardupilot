@@ -711,15 +711,40 @@ def write_ldscript(fname):
     ram0_start += ram_reserve_start
     ram0_len -= ram_reserve_start
 
-    f.write('''/* generated ldscript.ld */
+    # optional flash gap for parameter storage
+    flash_gap_start_kb = get_config('FLASH_GAP_START_KB', default=0, type=int)
+    flash_gap_size_kb = get_config('FLASH_GAP_SIZE_KB', default=0, type=int)
+
+    f.write('''/* generated ldscript.ld */\n''')
+
+    if flash_gap_size_kb > 0:
+        f.write('''
+MEMORY
+{
+    flash0   : org = 0x%08x, len = %uK
+    flashgap : org = 0x%08x, len = %uK
+    flash    : org = 0x%08x, len = %uK
+''' % (flash_base, flash_gap_start_kb,
+       flash_base + flash_gap_start_kb*1024, flash_gap_size_kb,
+       flash_base + (flash_gap_start_kb+flash_gap_size_kb)*1024, flash_length-flash_gap_size_kb))
+    else:
+        f.write('''
 MEMORY
 {
     flash : org = 0x%08x, len = %uK
-    ram0  : org = 0x%08x, len = %u
-}
+''' % (flash_base, flash_length))
 
-INCLUDE common.ld
-''' % (flash_base, flash_length, ram0_start, ram0_len))
+    # add in ram and finish file
+    f.write('''    ram0 : org = 0x%08x, len = %u
+}
+''' % (ram0_start, ram0_len))
+
+    if flash_gap_size_kb > 0:
+        f.write('''REGION_ALIAS("FLASH0", flash0);\n''')
+    else:
+        f.write('''REGION_ALIAS("FLASH0", flash);\n''')
+
+    f.write('''INCLUDE common.ld\n''')
 
 def copy_common_linkerscript(outdir, hwdef):
     dirpath = os.path.dirname(hwdef)

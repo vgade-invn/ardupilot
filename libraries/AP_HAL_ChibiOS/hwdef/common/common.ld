@@ -50,7 +50,7 @@ SECTIONS
     startup : ALIGN(16) SUBALIGN(16)
     {
         KEEP(*(.vectors))
-    } > flash
+    } > FLASH0
 
     constructors : ALIGN(4) SUBALIGN(4)
     {
@@ -58,7 +58,7 @@ SECTIONS
         KEEP(*(SORT(.init_array.*)))
         KEEP(*(.init_array))
         __init_array_end = .;
-    } > flash
+    } > FLASH0
 
     destructors : ALIGN(4) SUBALIGN(4)
     {
@@ -66,7 +66,7 @@ SECTIONS
         KEEP(*(.fini_array))
         KEEP(*(SORT(.fini_array.*)))
         __fini_array_end = .;
-    } > flash
+    } > FLASH0
 
     .text : ALIGN(4) SUBALIGN(4)
     {
