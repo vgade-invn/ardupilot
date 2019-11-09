@@ -92,6 +92,7 @@
 #include <AP_ADSB/AP_ADSB.h>
 #include <AP_Button/AP_Button.h>
 #include <AP_ICEngine/AP_ICEngine.h>
+#include <AP_EFI/AP_EFI.h>
 #include <AP_Gripper/AP_Gripper.h>
 #include <AP_Landing/AP_Landing.h>
 #include <AP_LandingGear/AP_LandingGear.h>     // Landing Gear library
@@ -947,6 +948,7 @@ private:
     void read_rangefinder(void);
     void read_airspeed(void);
     void rpm_update(void);
+    void efi_update(void);
     void init_ardupilot();
     void startup_ground(void);
     bool set_mode(Mode& new_mode, const mode_reason_t reason);
