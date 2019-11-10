@@ -21,6 +21,9 @@
 
 #include <AP_Common/AP_Common.h>
 #include <AP_HAL/AP_HAL.h>
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+
 #include <GCS_MAVLink/GCS_MAVLink.h>
 #include <AP_Logger/AP_Logger.h>
 
@@ -189,6 +192,8 @@ const AP_Param::GroupInfo SITL::var_info2[] = {
     // extra delay per main loop
     AP_GROUPINFO("LOOP_DELAY",  55, SITL,  loop_delay, 0),
 
+    AP_GROUPINFO("EFI_TYPE",    56, SITL,  efi_type,  SITL::EFI_TYPE_NONE),
+
     AP_GROUPEND
 
 };
@@ -304,3 +309,5 @@ SITL::SITL *sitl()
 }
 
 };
+
+#endif // CONFIG_HAL_BOARD

@@ -1,5 +1,9 @@
 #pragma once
 
+#include <AP_HAL/AP_HAL.h>
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+
 #include <AP_Math/AP_Math.h>
 #include <GCS_MAVLink/GCS_MAVLink.h>
 #include <AP_Common/Location.h>
@@ -9,6 +13,7 @@
 #include "SIM_Gripper_EPM.h"
 #include "SIM_Parachute.h"
 #include "SIM_Precland.h"
+#include "SIM_EFI_MegaSquirt.h"
 
 namespace SITL {
 
@@ -178,6 +183,14 @@ public:
     AP_Int8 gps_hdg_enabled; // enable the output of a NMEA heading HDT sentence
     AP_Int32 loop_delay; // extra delay to add to every loop
 
+    // EFI type
+    enum EFIType {
+        EFI_TYPE_NONE = 0,
+        EFI_TYPE_MS = 1,
+    };
+    
+    AP_Int8  efi_type;
+
     // wind control
     enum WindType {
         WIND_TYPE_SQRT = 0,
@@ -298,6 +311,8 @@ public:
 
     Parachute parachute_sim;
     SIM_Precland precland_sim;
+
+    EFI_MegaSquirt efi_ms;
 };
 
 } // namespace SITL
@@ -306,3 +321,5 @@ public:
 namespace AP {
     SITL::SITL *sitl();
 };
+
+#endif // CONFIG_HAL_BOARD
