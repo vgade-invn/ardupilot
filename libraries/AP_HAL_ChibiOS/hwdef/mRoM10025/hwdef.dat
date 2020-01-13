@@ -3,7 +3,7 @@ include ../f303-periph/hwdef.dat
 # start with a fixed node ID so the board is usable without DNA
 define HAL_CAN_DEFAULT_NODE_ID 117
 
-define CAN_APP_NODE_NAME "org.ardupilot.ap_periph_gps"
+define CAN_APP_NODE_NAME "org.ardupilot.mro_m10025"
 
 # added rm3100 mag on SPI
 SPIDEV rm3100 SPI1 DEVID1 MAG_CS MODE0 1*MHZ 1*MHZ
