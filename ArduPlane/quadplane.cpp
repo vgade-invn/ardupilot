@@ -492,11 +492,11 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
 
     AP_GROUPINFO("BL_FAIL_TIME", 21, QuadPlane, bl_fail_time, 2000),
 
-    AP_GROUPINFO("SWOOP_OPTION", 21, QuadPlane, swoop_options, 0),
+    AP_GROUPINFO("SWOOP_OPTION", 22, QuadPlane, swoop_options, 0),
 
-    AP_GROUPINFO("M_FAIL_RANGE", 22, QuadPlane, motor_fail_rtl_range, 200),
+    AP_GROUPINFO("M_FAIL_RANGE", 23, QuadPlane, motor_fail_rtl_range, 200),
 
-    AP_GROUPINFO("BL_F_TH_MIN", 23, QuadPlane, bl_fwd_throttle_min_percent, 8),
+    AP_GROUPINFO("BL_F_TH_MIN", 24, QuadPlane, bl_fwd_throttle_min_percent, 8),
 
     AP_GROUPEND
 };
