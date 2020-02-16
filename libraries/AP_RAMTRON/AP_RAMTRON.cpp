@@ -5,6 +5,7 @@
  */
 
 #include "AP_RAMTRON.h"
+#include <AP_Math/crc.h>
 
 extern const AP_HAL::HAL &hal;
 
@@ -14,6 +15,9 @@ extern const AP_HAL::HAL &hal;
 #define RAMTRON_RDSR      0x05
 #define RAMTRON_WREN      0x06
 #define RAMTRON_WRITE     0x02
+
+#define RAMTRON_RETRIES     10
+#define RAMTRON_DELAY_MS    10
 
 /*
   list of supported devices. Thanks to NuttX ramtron driver
@@ -41,7 +45,6 @@ bool AP_RAMTRON::init(void)
     if (!dev) {
         return false;
     }
-    WITH_SEMAPHORE(dev->get_semaphore());
 
     struct rdid {
         uint8_t manufacturer[6];
@@ -49,15 +52,23 @@ bool AP_RAMTRON::init(void)
         uint8_t id1;
         uint8_t id2;
     } rdid;
-    if (!dev->read_registers(RAMTRON_RDID, (uint8_t *)&rdid, sizeof(rdid))) {
-        return false;
-    }
 
-    for (uint8_t i=0; i<ARRAY_SIZE(ramtron_ids); i++) {
-        if (ramtron_ids[i].id1 == rdid.id1 &&
-            ramtron_ids[i].id2 == rdid.id2) {
-            id = i;
-            return true;
+    for (uint8_t r=0; r<RAMTRON_RETRIES; r++) {
+        if (r != 0) {
+            hal.scheduler->delay(RAMTRON_DELAY_MS);
+        }
+
+        WITH_SEMAPHORE(dev->get_semaphore());
+        if (!dev->read_registers(RAMTRON_RDID, (uint8_t *)&rdid, sizeof(rdid))) {
+            continue;
+        }
+
+        for (uint8_t i=0; i<ARRAY_SIZE(ramtron_ids); i++) {
+            if (ramtron_ids[i].id1 == rdid.id1 &&
+                ramtron_ids[i].id2 == rdid.id2) {
+                id = i;
+                return true;
+            }
         }
     }
     hal.console->printf("Unknown RAMTRON manufacturer=%02x memory=%02x id1=%02x id2=%02x\n",
@@ -92,18 +103,40 @@ bool AP_RAMTRON::read(uint32_t offset, uint8_t *buf, uint32_t size)
         size -= maxread;
     }
 
-    WITH_SEMAPHORE(dev->get_semaphore());
+    for (uint8_t r=0; r<RAMTRON_RETRIES; r++) {
+        if (r != 0) {
+            hal.scheduler->delay(RAMTRON_DELAY_MS);
+        }
+        /*
+          transfer each block twice and compare with a crc. This is to
+          prevent transient errors from causing parameter corruption
+         */
+        {
+            WITH_SEMAPHORE(dev->get_semaphore());
+            dev->set_chip_select(true);
+            send_offset(RAMTRON_READ, offset);
+            dev->transfer(nullptr, 0, buf, size);
+            dev->set_chip_select(false);
+        }
 
-    dev->set_chip_select(true);
+        uint32_t crc1 = crc_crc32(0, buf, size);
 
-    send_offset(RAMTRON_READ, offset);
-    
-    // get data
-    dev->transfer(nullptr, 0, buf, size);
+        {
+            WITH_SEMAPHORE(dev->get_semaphore());
+            dev->set_chip_select(true);
+            send_offset(RAMTRON_READ, offset);
+            dev->transfer(nullptr, 0, buf, size);
+            dev->set_chip_select(false);
+        }
+        uint32_t crc2 = crc_crc32(0, buf, size);
 
-    dev->set_chip_select(false);
+        if (crc1 == crc2) {
+            // all good
+            return true;
+        }
+    }
 
-    return true;
+    return false;
 }
 
 // write to device
