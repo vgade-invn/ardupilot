@@ -72,7 +72,7 @@ void Storage::_storage_open(void)
 #ifdef STORAGE_FLASH_PAGE
     // load from storage backend
     _flash_load();
-#elif defined(USE_POSIX)
+#elif defined(USE_POSIX) && !defined(HAL_WITH_RAMTRON)
     // allow for fallback to microSD based storage
     sdcard_retry();
 
