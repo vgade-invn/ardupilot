@@ -360,7 +360,8 @@ void NavEKF2_core::InitialiseVariablesMag()
     inhibitMagStates = true;
 
     if (_ahrs->get_compass()) {
-        magSelectIndex = _ahrs->get_compass()->get_primary();
+        magPrimary = _ahrs->get_compass()->get_primary();
+        magSelectIndex = magPrimary;
     }
     lastMagOffsetsValid = false;
     magStateResetRequest = false;
@@ -549,6 +550,21 @@ void NavEKF2_core::UpdateFilter(bool predict)
     hal.util->perf_begin(_perf_UpdateFilter);
 
     fill_scratch_variables();
+
+    if (magPrimary != _ahrs->get_compass()->get_primary()) {
+        // request to change mag
+        magPrimary = _ahrs->get_compass()->get_primary();
+        magSelectIndex = magPrimary;
+        magTimeout = false;
+        lastHealthyMagTime_ms = imuSampleTime_ms;
+        stateStruct.body_magfield.zero();
+        storedMag.reset();
+        magDataToFuse = false;
+        magStateResetRequest = true;
+        magFieldLearned = false;
+        yawAlignComplete = false;
+        gcs().send_text(MAV_SEVERITY_INFO, "EKF2 IMU%u mag primary %u",(unsigned)imu_index,magSelectIndex);
+    }
 
     // TODO - in-flight restart method
 

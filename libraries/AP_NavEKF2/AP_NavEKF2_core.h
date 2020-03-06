@@ -930,6 +930,7 @@ private:
     uint8_t fusionHorizonOffset;    // number of IMU samples that the fusion time horizon  has been shifted to prevent multiple EKF instances fusing data at the same time
     float hgtInnovFiltState;        // state used for fitering of the height innovations used for pre-flight checks
     uint8_t magSelectIndex;         // Index of the magnetometer that is being used by the EKF
+    uint8_t magPrimary;
     bool runUpdates;                // boolean true when the EKF updates can be run
     uint32_t framesSincePredict;    // number of frames lapsed since EKF instance did a state prediction
     bool startPredictEnabled;       // boolean true when the frontend has given permission to start a new state prediciton cycele
