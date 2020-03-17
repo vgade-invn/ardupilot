@@ -197,6 +197,8 @@ public:
     AP_Int32 mag_devid[MAX_CONNECTED_MAGS]; // Mag devid
     AP_Float buoyancy; // submarine buoyancy in Newtons
     AP_Int16 loop_rate_hz;
+    AP_Float ground_movement_speed;  // movement of the ground (for ship takeoff/landing)
+    AP_Float ground_movement_direction;  // direction of ground movement
 
     // EFI type
     enum EFIType {

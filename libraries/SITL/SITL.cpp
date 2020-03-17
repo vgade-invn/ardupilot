@@ -272,6 +272,8 @@ const AP_Param::GroupInfo SITL::var_info3[] = {
     AP_GROUPINFO("MAG3_ODI",     29, SITL,  mag_offdiag[2], 0),
     AP_GROUPINFO("MAG3_ORIENT",  30, SITL,  mag_orient[2], 0),
 #endif
+    AP_GROUPINFO("GNDMOVE_SPD",   31, SITL, ground_movement_speed, 0),
+    AP_GROUPINFO("GNDMOVE_DIR",   32, SITL, ground_movement_direction, 0),
 
     AP_GROUPEND
 

@@ -532,6 +532,10 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
         }
         position.z = -(ground_level + frame_height - home.alt * 0.01f + ground_height_difference());
 
+        // get speed of ground movement (for ship takeoff/landing)
+        const Vector3f gnd_movement(cosf(radians(sitl->ground_movement_direction)) * sitl->ground_movement_speed,
+                                    sinf(radians(sitl->ground_movement_direction)) * sitl->ground_movement_speed, 0);
+        
         switch (ground_behavior) {
         case GROUND_BEHAVIOR_NONE:
             break;
@@ -540,9 +544,9 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
             float r, p, y;
             dcm.to_euler(&r, &p, &y);
             dcm.from_euler(0.0f, 0.0f, y);
-            // no X or Y movement
-            velocity_ef.x = 0.0f;
-            velocity_ef.y = 0.0f;
+            // X, Y movement tracks ground movement
+            velocity_ef.x = gnd_movement.x;
+            velocity_ef.y = gnd_movement.y;
             if (velocity_ef.z > 0.0f) {
                 velocity_ef.z = 0.0f;
             }
@@ -568,6 +572,15 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
             if (v_bf.x < 0.0f) {
                 v_bf.x = 0.0f;
             }
+
+            Vector3f gnd_movement_bf = dcm.transposed() * gnd_movement;
+
+            // lateral speed equals ground movement
+            v_bf.y = gnd_movement_bf.y;
+
+            // fwd speed slowly approaches ground movement
+            v_bf.x = (0.999 * v_bf.x + 0.001 * gnd_movement.x);
+
             velocity_ef = dcm * v_bf;
             if (velocity_ef.z > 0.0f) {
                 velocity_ef.z = 0.0f;
@@ -585,6 +598,9 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
             if (accel_earth.z > -1.1*GRAVITY_MSS) {
                 velocity_ef.zero();
             }
+            // X, Y movement tracks ground movement
+            velocity_ef.x = gnd_movement.x;
+            velocity_ef.y = gnd_movement.y;
             gyro.zero();
             use_smoothing = true;
             break;
