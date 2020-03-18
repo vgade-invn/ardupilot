@@ -53,6 +53,9 @@ void __cxa_pure_virtual() { while (1); } //TODO: Handle properly, maybe generate
 void NMI_Handler(void);
 void NMI_Handler(void) { while (1); }
 
+int16_t exline1;
+int16_t exline2;
+
 /*
   save watchdog data for a hard fault
  */
@@ -67,6 +70,8 @@ static void save_fault_watchdog(uint16_t line, FaultType fault_type, uint32_t fa
         pd.fault_addr = fault_addr;
         pd.fault_thd_prio = chThdGetPriorityX();
         pd.fault_icsr = SCB->ICSR;
+        pd.exline1 = exline1;
+        pd.exline2 = exline2;
         stm32_watchdog_save((uint32_t *)&hal.util->persistent_data, (sizeof(hal.util->persistent_data)+3)/4);
     }
 #endif

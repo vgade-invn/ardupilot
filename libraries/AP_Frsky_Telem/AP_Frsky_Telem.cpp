@@ -39,6 +39,9 @@ extern const AP_HAL::HAL& hal;
 
 AP_Frsky_Telem *AP_Frsky_Telem::singleton;
 
+extern int16_t exline1;
+extern int16_t exline2;
+
 AP_Frsky_Telem::AP_Frsky_Telem(bool _external_data) :
     use_external_data(_external_data)
 {
@@ -138,6 +141,7 @@ void AP_Frsky_Telem::update_avg_packet_rate()
  */
 void AP_Frsky_Telem::passthrough_wfq_adaptive_scheduler(void)
 {
+    exline2 = __LINE__;
     update_avg_packet_rate();
 
     uint32_t now = AP_HAL::millis();
@@ -148,8 +152,10 @@ void AP_Frsky_Telem::passthrough_wfq_adaptive_scheduler(void)
     bool packet_ready = false;
 
     // build message queue for sensor_status_flags
+    exline2 = __LINE__;
     check_sensor_status_flags();
     // build message queue for ekf_status
+    exline2 = __LINE__;
     check_ekf_status();
     
     // dynamic priorities
@@ -158,6 +164,7 @@ void AP_Frsky_Telem::passthrough_wfq_adaptive_scheduler(void)
         WITH_SEMAPHORE(_statustext.sem);
         queue_empty = !_statustext.available && _statustext.queue.empty();
     }
+    exline2 = __LINE__;
     if (!queue_empty) {
         _passthrough.packet_weight[0] = 45;     // messages
         _passthrough.packet_weight[1] = 80;     // attitude
@@ -166,6 +173,7 @@ void AP_Frsky_Telem::passthrough_wfq_adaptive_scheduler(void)
         _passthrough.packet_weight[1] = 45;     // attitude
     }
     
+    exline2 = __LINE__;
     // search the packet with the longest delay after the scheduled time
     for (int i=0;i<TIME_SLOT_MAX;i++) {
         //normalize packet delay relative to packet weight
@@ -182,6 +190,7 @@ void AP_Frsky_Telem::passthrough_wfq_adaptive_scheduler(void)
                     packet_ready = gcs().vehicle_initialised();
                     break;
                 case 8:
+                    exline2 = __LINE__;
                     packet_ready = AP::battery().num_instances() > 1;
                     break;
                 default:
@@ -195,6 +204,7 @@ void AP_Frsky_Telem::passthrough_wfq_adaptive_scheduler(void)
             }
         }
     }
+    exline2 = __LINE__;
     _passthrough.packet_timer[max_delay_idx] = AP_HAL::millis();
     // send packet
     switch (max_delay_idx) {
@@ -239,7 +249,11 @@ void AP_Frsky_Telem::passthrough_wfq_adaptive_scheduler(void)
         case 10: // 0x5007 parameters
             send_uint32(SPORT_DATA_FRAME, DIY_FIRST_ID+7, calc_param());
             break;
+    default:
+        exline2 = __LINE__;
+        break;
     }
+    exline2 = __LINE__;
 }
 
 /*
@@ -1155,14 +1169,19 @@ uint32_t AP_Frsky_Telem::sensor_status_flags() const
  */
 bool AP_Frsky_Telem::_get_telem_data(uint8_t &frame, uint16_t &appid, uint32_t &data)
 {
+    exline2 = __LINE__;
     passthrough_wfq_adaptive_scheduler();
+    exline2 = __LINE__;
     if (!external_data.pending) {
+        exline2 = __LINE__;
         return false;
     }
+    exline2 = __LINE__;
     frame = external_data.frame;
     appid = external_data.appid;
     data = external_data.data;
     external_data.pending = false;
+    exline2 = __LINE__;
     return true;
 }
 
@@ -1171,11 +1190,13 @@ bool AP_Frsky_Telem::_get_telem_data(uint8_t &frame, uint16_t &appid, uint32_t &
  */
 bool AP_Frsky_Telem::get_telem_data(uint8_t &frame, uint16_t &appid, uint32_t &data)
 {
+    exline2 = __LINE__;
     if (!singleton && !hal.util->get_soft_armed()) {
         // if telem data is requested when we are disarmed and don't
         // yet have a AP_Frsky_Telem object then try to allocate one
         new AP_Frsky_Telem(true);
         // initialize the passthrough scheduler
+        exline2 = __LINE__;
         if (singleton) {
             singleton->setup_passthrough();
         }
@@ -1183,7 +1204,10 @@ bool AP_Frsky_Telem::get_telem_data(uint8_t &frame, uint16_t &appid, uint32_t &d
     if (!singleton) {
         return false;
     }
-    return singleton->_get_telem_data(frame, appid, data);
+    exline2 = __LINE__;
+    bool ret = singleton->_get_telem_data(frame, appid, data);
+    exline2 = -1;
+    return ret;
 }
 
 namespace AP {

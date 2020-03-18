@@ -316,19 +316,29 @@ void Copter::throttle_loop()
     update_dynamic_notch();
 }
 
+extern int16_t exline1;
+extern int16_t exline2;
+
 // update_batt_compass - read battery and compass
 // should be called at 10hz
 void Copter::update_batt_compass(void)
 {
+    exline1 = __LINE__;
     // read battery before compass because it may be used for motor interference compensation
     battery.read();
+    exline1 = __LINE__;
 
     if(AP::compass().enabled()) {
+    exline1 = __LINE__;
         // update compass with throttle value - used for compassmot
         compass.set_throttle(motors->get_throttle());
+        exline1 = __LINE__;
         compass.set_voltage(battery.voltage());
+        exline1 = __LINE__;
         compass.read();
+        exline1 = __LINE__;
     }
+    exline1 = -1;
 }
 
 // Full rate logging of attitude, rate and pid loops

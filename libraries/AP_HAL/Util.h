@@ -72,6 +72,8 @@ public:
         uint8_t fault_thd_prio;
         uint32_t fault_addr;
         uint32_t fault_icsr;
+        int16_t exline1;
+        int16_t exline2;
     };
     struct PersistentData persistent_data;
 

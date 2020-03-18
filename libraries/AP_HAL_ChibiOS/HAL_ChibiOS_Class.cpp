@@ -226,7 +226,7 @@ static void main_loop()
     if (hal.util->was_watchdog_reset()) {
         AP::internalerror().error(AP_InternalError::error_t::watchdog_reset);
         const AP_HAL::Util::PersistentData &pd = last_persistent_data;
-        AP::logger().WriteCritical("WDOG", "TimeUS,Task,IErr,IErrCnt,MavMsg,MavCmd,SemLine,FL,FT,FA,FP,ICSR", "QbIIHHHHHIBI",
+        AP::logger().WriteCritical("WDOG", "TimeUS,Tsk,IErr,IEC,MM,MC,SL,FL,FT,FA,FP,ICSR,E1,E2", "QbIIHHHHHIBIhh",
                                    AP_HAL::micros64(),
                                    pd.scheduler_task,
                                    pd.internal_errors,
@@ -238,7 +238,9 @@ static void main_loop()
                                    pd.fault_type,
                                    pd.fault_addr,
                                    pd.fault_thd_prio,
-                                   pd.fault_icsr);
+                                   pd.fault_icsr,
+                                   pd.exline1,
+                                   pd.exline2);
     }
 #endif // HAL_NO_LOGGING
 #endif // IOMCU_FW
