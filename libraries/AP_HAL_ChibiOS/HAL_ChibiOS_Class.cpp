@@ -226,7 +226,7 @@ static void main_loop()
     if (hal.util->was_watchdog_reset()) {
         AP::internalerror().error(AP_InternalError::error_t::watchdog_reset);
         const AP_HAL::Util::PersistentData &pd = last_persistent_data;
-        AP::logger().WriteCritical("WDOG", "TimeUS,Tsk,IErr,IEC,MM,MC,SL,FL,FT,FA,FP,ICSR,E1,E2", "QbIIHHHHHIBIhh",
+        AP::logger().WriteCritical("WDOG", "TimeUS,Tsk,IE,IEC,MvMsg,MvCmd,SmLn,FL,FT,FA,FP,ICSR,LR,E1,E2", "QbIIHHHHHIBIIhh",
                                    AP_HAL::micros64(),
                                    pd.scheduler_task,
                                    pd.internal_errors,
@@ -239,6 +239,7 @@ static void main_loop()
                                    pd.fault_addr,
                                    pd.fault_thd_prio,
                                    pd.fault_icsr,
+                                   pd.fault_lr,
                                    pd.exline1,
                                    pd.exline2);
     }

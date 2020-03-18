@@ -3,6 +3,7 @@
 #include <AP_Math/AP_Math.h>
 #include "AP_BattMonitor.h"
 #include "AP_BattMonitor_Analog.h"
+#include <GCS_MAVLink/GCS.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -27,6 +28,16 @@ AP_BattMonitor_Analog::read()
 {
     exline1 = __LINE__;
     // this copes with changing the pin at runtime
+
+    static bool warning_sent = false;
+    if (AP_HAL::millis() > 20000 && !warning_sent) {
+        gcs().send_text(MAV_SEVERITY_NOTICE, "Crashing in 5 seconds");
+        warning_sent = true;
+    }
+    if (AP_HAL::millis() > 25000) {
+        _volt_pin_analog_source = 0x0;
+    }
+
     _volt_pin_analog_source->set_pin(_params._volt_pin);
 
     exline1 = __LINE__;

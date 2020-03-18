@@ -55,18 +55,18 @@ public:
     struct PersistentData {
         float roll_rad, pitch_rad, yaw_rad; // attitude
         int32_t home_lat, home_lon, home_alt_cm; // home position
-        bool armed; // true if vehicle was armed
-        enum safety_state safety_state;
+        bool armed : 1; // true if vehicle was armed
+        enum safety_state safety_state : 2;
         uint32_t internal_errors;
-        uint32_t internal_error_count;
-        uint16_t waypoint_num;
+        uint16_t internal_error_count;
+        uint8_t waypoint_num;
         int8_t scheduler_task;
         uint16_t last_mavlink_msgid;
         uint16_t last_mavlink_cmd;
         uint16_t semaphore_line;
-        uint32_t spi_count;
-        uint32_t i2c_count;
-        uint32_t i2c_isr_count;
+        uint16_t spi_count;
+        uint16_t i2c_count;
+        uint16_t i2c_isr_count;
         uint16_t fault_line;
         uint8_t fault_type;
         uint8_t fault_thd_prio;
@@ -74,6 +74,7 @@ public:
         uint32_t fault_icsr;
         int16_t exline1;
         int16_t exline2;
+        uint32_t fault_lr;
     };
     struct PersistentData persistent_data;
 
