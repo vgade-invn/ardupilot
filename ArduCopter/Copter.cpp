@@ -329,7 +329,7 @@ void Copter::update_batt_compass(void)
     exline1 = __LINE__;
 
     if(AP::compass().enabled()) {
-    exline1 = __LINE__;
+        exline1 = __LINE__;
         // update compass with throttle value - used for compassmot
         compass.set_throttle(motors->get_throttle());
         exline1 = __LINE__;

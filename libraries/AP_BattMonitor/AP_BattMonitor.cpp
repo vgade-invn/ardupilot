@@ -23,6 +23,8 @@ extern const AP_HAL::HAL& hal;
 
 AP_BattMonitor *AP_BattMonitor::_singleton;
 
+extern volatile int16_t exline1;
+
 const AP_Param::GroupInfo AP_BattMonitor::var_info[] = {
     // 0 - 18, 20- 22 used by old parameter indexes
 
@@ -258,22 +260,34 @@ void AP_BattMonitor::convert_params(void) {
 void
 AP_BattMonitor::read()
 {
+    exline1 = __LINE__;
     for (uint8_t i=0; i<_num_instances; i++) {
+        exline1 = __LINE__;
         if (drivers[i] != nullptr && _params[i].type() != AP_BattMonitor_Params::BattMonitor_TYPE_NONE) {
+            exline1 = __LINE__;
             drivers[i]->read();
+            exline1 = __LINE__;
             drivers[i]->update_resistance_estimate();
+            exline1 = __LINE__;
         }
     }
 
+    exline1 = __LINE__;
     AP_Logger *logger = AP_Logger::get_singleton();
+    exline1 = __LINE__;
     if (logger->should_log(_log_battery_bit)) {
+        exline1 = __LINE__;
         logger->Write_Current();
+        exline1 = __LINE__;
         logger->Write_Power();
+        exline1 = __LINE__;
     }
 
+    exline1 = __LINE__;
     check_failsafes();
-    
+    exline1 = __LINE__;
     checkPoweringOff();
+    exline1 = __LINE__;
 }
 
 // healthy - returns true if monitor is functioning

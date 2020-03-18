@@ -2594,6 +2594,8 @@ MAV_RESULT GCS_MAVLINK::handle_preflight_reboot(const mavlink_command_long_t &pa
         // this is a magic sequence to force the main loop to
         // lockup. This is for testing the stm32 watchdog
         // functionality
+        uint8_t *xxx = (uint8_t *)0xE000ED38;
+        (*xxx)++;
         while (true) {
             send_text(MAV_SEVERITY_WARNING,"entering lockup");
             hal.scheduler->delay(250);

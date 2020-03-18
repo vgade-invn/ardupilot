@@ -29,6 +29,9 @@
 
 using namespace HALSITL;
 
+int16_t exline1;
+int16_t exline2;
+
 static Storage sitlStorage;
 static SITL_State sitlState;
 static Scheduler sitlScheduler(&sitlState);

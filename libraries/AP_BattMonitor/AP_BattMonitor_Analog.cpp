@@ -6,6 +6,8 @@
 
 extern const AP_HAL::HAL& hal;
 
+extern volatile int16_t exline1;
+
 /// Constructor
 AP_BattMonitor_Analog::AP_BattMonitor_Analog(AP_BattMonitor &mon,
                                              AP_BattMonitor::BattMonitor_State &mon_state,
@@ -23,35 +25,45 @@ AP_BattMonitor_Analog::AP_BattMonitor_Analog(AP_BattMonitor &mon,
 void
 AP_BattMonitor_Analog::read()
 {
+    exline1 = __LINE__;
     // this copes with changing the pin at runtime
     _volt_pin_analog_source->set_pin(_params._volt_pin);
 
+    exline1 = __LINE__;
     // get voltage
     _state.voltage = _volt_pin_analog_source->voltage_average() * _params._volt_multiplier;
 
+    exline1 = __LINE__;
     // read current
     if (has_current()) {
+        exline1 = __LINE__;
         // calculate time since last current read
         uint32_t tnow = AP_HAL::micros();
         float dt = tnow - _state.last_time_micros;
 
+        exline1 = __LINE__;
         // this copes with changing the pin at runtime
         _curr_pin_analog_source->set_pin(_params._curr_pin);
 
+        exline1 = __LINE__;
         // read current
         _state.current_amps = (_curr_pin_analog_source->voltage_average()-_params._curr_amp_offset)*_params._curr_amp_per_volt;
 
+        exline1 = __LINE__;
         // update total current drawn since startup
         if (_state.last_time_micros != 0 && dt < 2000000.0f) {
             // .0002778 is 1/3600 (conversion to hours)
+            exline1 = __LINE__;
             float mah = _state.current_amps * dt * 0.0000002778f;
             _state.consumed_mah += mah;
             _state.consumed_wh  += 0.001f * mah * _state.voltage;
         }
 
+        exline1 = __LINE__;
         // record time
         _state.last_time_micros = tnow;
     }
+    exline1 = __LINE__;
 }
 
 /// return true if battery provides current info

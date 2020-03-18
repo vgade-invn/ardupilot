@@ -18,6 +18,8 @@
 #include "AP_BattMonitor.h"
 #include "AP_BattMonitor_Backend.h"
 
+extern volatile int16_t exline1;
+
 /*
   base class constructor.
   This incorporates initialisation as well.
@@ -33,6 +35,7 @@ AP_BattMonitor_Backend::AP_BattMonitor_Backend(AP_BattMonitor &mon, AP_BattMonit
 /// capacity_remaining_pct - returns the % battery capacity remaining (0 ~ 100)
 uint8_t AP_BattMonitor_Backend::capacity_remaining_pct() const
 {
+    exline1 = __LINE__;
     float mah_remaining = _params._pack_capacity - _state.consumed_mah;
     if ( _params._pack_capacity > 10 ) { // a very very small battery
         return MIN(MAX((100 * (mah_remaining) / _params._pack_capacity), 0), UINT8_MAX);
@@ -47,11 +50,13 @@ uint8_t AP_BattMonitor_Backend::capacity_remaining_pct() const
 // high current steps are integrated into the resistance estimate by varying the time constant of the resistance filter
 void AP_BattMonitor_Backend::update_resistance_estimate()
 {
+    exline1 = __LINE__;
     // return immediately if no current
     if (!has_current() || !is_positive(_state.current_amps)) {
         return;
     }
 
+    exline1 = __LINE__;
     // update maximum current seen since startup and protect against divide by zero
     _current_max_amps = MAX(_current_max_amps, _state.current_amps);
     float current_delta = _state.current_amps - _current_filt_amps;
@@ -59,17 +64,20 @@ void AP_BattMonitor_Backend::update_resistance_estimate()
         return;
     }
 
+    exline1 = __LINE__;
     // update reference voltage and current
     if (_state.voltage > _resistance_voltage_ref) {
         _resistance_voltage_ref = _state.voltage;
         _resistance_current_ref = _state.current_amps;
     }
 
+    exline1 = __LINE__;
     // calculate time since last update
     uint32_t now = AP_HAL::millis();
     float loop_interval = (now - _resistance_timer_ms) / 1000.0f;
     _resistance_timer_ms = now;
 
+    exline1 = __LINE__;
     // estimate short-term resistance
     float filt_alpha = constrain_float(loop_interval/(loop_interval + AP_BATT_MONITOR_RES_EST_TC_1), 0.0f, 0.5f);
     float resistance_alpha = MIN(1, AP_BATT_MONITOR_RES_EST_TC_2*fabsf((_state.current_amps-_current_filt_amps)/_current_max_amps));
@@ -77,6 +85,7 @@ void AP_BattMonitor_Backend::update_resistance_estimate()
     if (is_positive(resistance_estimate)) {
         _state.resistance = _state.resistance*(1-resistance_alpha) + resistance_estimate*resistance_alpha;
     }
+    exline1 = __LINE__;
 
     // calculate maximum resistance
     if ((_resistance_voltage_ref > _state.voltage) && (_state.current_amps > _resistance_current_ref)) {
@@ -84,12 +93,14 @@ void AP_BattMonitor_Backend::update_resistance_estimate()
         _state.resistance = MIN(_state.resistance, resistance_max);
     }
 
+    exline1 = __LINE__;
     // update the filtered voltage and currents
     _voltage_filt = _voltage_filt*(1-filt_alpha) + _state.voltage*filt_alpha;
     _current_filt_amps = _current_filt_amps*(1-filt_alpha) + _state.current_amps*filt_alpha;
 
     // update estimated voltage without sag
     _state.voltage_resting_estimate = _state.voltage + _state.current_amps * _state.resistance;
+    exline1 = __LINE__;
 }
 
 float AP_BattMonitor_Backend::voltage_resting_estimate() const
@@ -102,9 +113,11 @@ AP_BattMonitor::BatteryFailsafe AP_BattMonitor_Backend::update_failsafes(void)
 {
     const uint32_t now = AP_HAL::millis();
 
+    exline1 = __LINE__;
     bool low_voltage, low_capacity, critical_voltage, critical_capacity;
     check_failsafe_types(low_voltage, low_capacity, critical_voltage, critical_capacity);
 
+    exline1 = __LINE__;
     if (critical_voltage) {
         // this is the first time our voltage has dropped below minimum so start timer
         if (_state.critical_voltage_start_ms == 0) {
@@ -118,10 +131,12 @@ AP_BattMonitor::BatteryFailsafe AP_BattMonitor_Backend::update_failsafes(void)
         _state.critical_voltage_start_ms = 0;
     }
 
+    exline1 = __LINE__;
     if (critical_capacity) {
         return AP_BattMonitor::BatteryFailsafe_Critical;
     }
 
+    exline1 = __LINE__;
     if (low_voltage) {
         // this is the first time our voltage has dropped below minimum so start timer
         if (_state.low_voltage_start_ms == 0) {
@@ -135,10 +150,12 @@ AP_BattMonitor::BatteryFailsafe AP_BattMonitor_Backend::update_failsafes(void)
         _state.low_voltage_start_ms = 0;
     }
 
+    exline1 = __LINE__;
     if (low_capacity) {
         return AP_BattMonitor::BatteryFailsafe_Low;
     }
 
+    exline1 = __LINE__;
     // if we've gotten this far then battery is ok
     return AP_BattMonitor::BatteryFailsafe_None;
 }
@@ -182,6 +199,7 @@ bool AP_BattMonitor_Backend::arming_checks(char * buffer, size_t buflen) const
 
 void AP_BattMonitor_Backend::check_failsafe_types(bool &low_voltage, bool &low_capacity, bool &critical_voltage, bool &critical_capacity) const
 {
+    exline1 = __LINE__;
     // use voltage or sag compensated voltage
     float voltage_used;
     switch (_params.failsafe_voltage_source()) {
@@ -194,6 +212,7 @@ void AP_BattMonitor_Backend::check_failsafe_types(bool &low_voltage, bool &low_c
             break;
     }
 
+    exline1 = __LINE__;
     // check critical battery levels
     if ((voltage_used > 0) && (_params._critical_voltage > 0) && (voltage_used < _params._critical_voltage)) {
         critical_voltage = true;
@@ -201,6 +220,7 @@ void AP_BattMonitor_Backend::check_failsafe_types(bool &low_voltage, bool &low_c
         critical_voltage = false;
     }
 
+    exline1 = __LINE__;
     // check capacity failsafe if current monitoring is enabled
     if (has_current() && (_params._critical_capacity > 0) &&
         ((_params._pack_capacity - _state.consumed_mah) < _params._critical_capacity)) {
@@ -209,6 +229,7 @@ void AP_BattMonitor_Backend::check_failsafe_types(bool &low_voltage, bool &low_c
         critical_capacity = false;
     }
 
+    exline1 = __LINE__;
     if ((voltage_used > 0) && (_params._low_voltage > 0) && (voltage_used < _params._low_voltage)) {
         low_voltage = true;
     } else {
@@ -222,6 +243,7 @@ void AP_BattMonitor_Backend::check_failsafe_types(bool &low_voltage, bool &low_c
     } else {
         low_capacity = false;
     }
+    exline1 = __LINE__;
 }
 
 /*

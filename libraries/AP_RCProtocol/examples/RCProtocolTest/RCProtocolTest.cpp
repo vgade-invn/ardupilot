@@ -241,18 +241,27 @@ void loop()
     const uint8_t ibus_bytes[] = {0x20, 0x40, 0xdc, 0x05, 0xdc, 0x05, 0xe8, 0x03, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0x47, 0xf3};
     const uint16_t ibus_output[] = {1500, 1500, 1000, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500};
 
-    test_protocol("SRXL", 115200, srxl_bytes, sizeof(srxl_bytes), srxl_output, ARRAY_SIZE(srxl_output), 1);
-    test_protocol("SUMD", 115200, sumd_bytes, sizeof(sumd_bytes), sumd_output, ARRAY_SIZE(sumd_output), 1);
-    test_protocol("SUMD2", 115200, sumd_bytes2, sizeof(sumd_bytes2), sumd_output2, ARRAY_SIZE(sumd_output2), 1);
-    test_protocol("SUMD3", 115200, sumd_bytes3, sizeof(sumd_bytes3), sumd_output3, ARRAY_SIZE(sumd_output3), 1);
-    test_protocol("IBUS", 115200, ibus_bytes, sizeof(ibus_bytes), ibus_output, ARRAY_SIZE(ibus_output), 1);
+    const uint8_t fport_bytes[] = {0x7e, 0x19, 0x00, 0xe3, 0x1b, 0x1f, 0x2B, 0xC8, 0xC7, 0x0A, 0xf0, 0xb1, 0xb2, 0x15, 0x3b, 0x9b, 0x38, 0x2b, 0xc0,
+                                   0x07, 0x3e, 0xf0, 0x81, 0x0f, 0x7c, 0x00, 0x39, 0x51, 0x7e, 0x7e, 0x08, 0x01, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                   0xe6, 0x7e};
+    const uint16_t fport_output[] = {1500, 1500, 1000, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500};
 
-    // SBUS needs 3 repeats to pass the RCProtocol 3 frames test
-    test_protocol("SBUS", 100000, sbus_bytes, sizeof(sbus_bytes), sbus_output, ARRAY_SIZE(sbus_output), 3);
+    static uint32_t cc;
+    if (cc++ == 0xffffffff) {
+        test_protocol("SRXL", 115200, srxl_bytes, sizeof(srxl_bytes), srxl_output, ARRAY_SIZE(srxl_output), 1);
+        test_protocol("SUMD", 115200, sumd_bytes, sizeof(sumd_bytes), sumd_output, ARRAY_SIZE(sumd_output), 1);
+        test_protocol("SUMD2", 115200, sumd_bytes2, sizeof(sumd_bytes2), sumd_output2, ARRAY_SIZE(sumd_output2), 1);
+        test_protocol("SUMD3", 115200, sumd_bytes3, sizeof(sumd_bytes3), sumd_output3, ARRAY_SIZE(sumd_output3), 1);
+        test_protocol("IBUS", 115200, ibus_bytes, sizeof(ibus_bytes), ibus_output, ARRAY_SIZE(ibus_output), 1);
 
-    // DSM needs 8 repeats, 5 to guess the format, then 3 to pass the RCProtocol 3 frames test
-    test_protocol("DSM",  115200, dsm_bytes, sizeof(dsm_bytes), dsm_output, ARRAY_SIZE(dsm_output), 9);
-    test_protocol("DSM2", 115200, dsm_bytes2, sizeof(dsm_bytes2), dsm_output2, ARRAY_SIZE(dsm_output2), 9, 16);
+        // SBUS needs 3 repeats to pass the RCProtocol 3 frames test
+        test_protocol("SBUS", 100000, sbus_bytes, sizeof(sbus_bytes), sbus_output, ARRAY_SIZE(sbus_output), 3);
+
+        // DSM needs 8 repeats, 5 to guess the format, then 3 to pass the RCProtocol 3 frames test
+        test_protocol("DSM",  115200, dsm_bytes, sizeof(dsm_bytes), dsm_output, ARRAY_SIZE(dsm_output), 9);
+        test_protocol("DSM2", 115200, dsm_bytes2, sizeof(dsm_bytes2), dsm_output2, ARRAY_SIZE(dsm_output2), 9, 16);
+    }
+    test_protocol("FPORT", 115200, fport_bytes, sizeof(fport_bytes), fport_output, ARRAY_SIZE(fport_output), 1);
 }
 
 AP_HAL_MAIN();
