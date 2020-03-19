@@ -242,8 +242,8 @@ static void main_loop()
                                    pd.fault_lr,
                                    pd.exline1,
                                    pd.exline2);
-        hal.console->printf("WDOG Tsk:%u FA:%x FP:%u ICSR:%x LR:%x E1:%d E2:%d",
-                            unsigned(pd.scheduler_task),
+        hal.console->printf("WDOG Tsk:%d FA:%x FP:%u ICSR:%x LR:%x E1:%d E2:%d",
+                            int(pd.scheduler_task),
                             unsigned(pd.fault_addr),
                             unsigned(pd.fault_thd_prio),
                             unsigned(pd.fault_icsr),

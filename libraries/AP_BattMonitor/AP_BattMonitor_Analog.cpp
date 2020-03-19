@@ -10,6 +10,7 @@ extern const AP_HAL::HAL& hal;
 extern volatile int16_t exline1;
 
 static AP_HAL::AnalogSource *last_vsrc;
+static void *last_state;
 
 /// Constructor
 AP_BattMonitor_Analog::AP_BattMonitor_Analog(AP_BattMonitor &mon,
@@ -22,12 +23,14 @@ AP_BattMonitor_Analog::AP_BattMonitor_Analog(AP_BattMonitor &mon,
 
     // always healthy
     _state.healthy = true;
+    last_state = &_state;
 }
 
 // read - read the voltage and current
 void
 AP_BattMonitor_Analog::read()
 {
+
     exline1 = __LINE__;
     // this copes with changing the pin at runtime
 #if 0
@@ -42,15 +45,29 @@ AP_BattMonitor_Analog::read()
 #endif
 
     if (last_vsrc != _volt_pin_analog_source) {
-        gcs().send_text(MAV_SEVERITY_NOTICE, "VSRC %p %p", _volt_pin_analog_source, last_vsrc);
+        hal.console->printf("VSRC %p %p", _volt_pin_analog_source, last_vsrc);
+        hal.scheduler->delay(10);
         return;
-    } else {
-        _volt_pin_analog_source->set_pin(_params._volt_pin);
+    }
+
+    if (last_state != (void *)&_state) {
+        hal.console->printf("STATE %p %p", last_state, &_state);
+        hal.scheduler->delay(10);
+        return;
     }
 
     exline1 = __LINE__;
+
+    float vmul = _params._volt_multiplier;
+
+    exline1 = __LINE__;
+
+    float vavg = _volt_pin_analog_source->voltage_average();
+
+    exline1 = __LINE__;
+
     // get voltage
-    _state.voltage = _volt_pin_analog_source->voltage_average() * _params._volt_multiplier;
+    _state.voltage = vavg * vmul;
 
     exline1 = __LINE__;
     // read current
