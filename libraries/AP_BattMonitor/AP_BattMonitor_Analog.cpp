@@ -43,9 +43,10 @@ AP_BattMonitor_Analog::read()
 
     if (last_vsrc != _volt_pin_analog_source) {
         gcs().send_text(MAV_SEVERITY_NOTICE, "VSRC %p %p", _volt_pin_analog_source, last_vsrc);
+        return;
+    } else {
+        _volt_pin_analog_source->set_pin(_params._volt_pin);
     }
-
-    _volt_pin_analog_source->set_pin(_params._volt_pin);
 
     exline1 = __LINE__;
     // get voltage
