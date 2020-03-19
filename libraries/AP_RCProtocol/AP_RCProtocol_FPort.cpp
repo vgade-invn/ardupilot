@@ -328,6 +328,10 @@ void AP_RCProtocol_FPort::_process_byte(uint32_t timestamp_us, uint8_t b)
             (frame->type == FPORT_TYPE_DOWNLINK && frame->len != FRAME_LEN_DOWNLINK)) {
             goto reset;
         }
+        if (frame->type != FPORT_TYPE_CONTROL && frame->type != FPORT_TYPE_DOWNLINK) {
+            // invalid type
+            goto reset;
+        }
     }
 
     if (frame->type == FPORT_TYPE_CONTROL && byte_input.ofs == FRAME_LEN_CONTROL + 4) {
