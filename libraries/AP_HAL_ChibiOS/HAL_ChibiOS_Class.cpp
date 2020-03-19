@@ -242,6 +242,14 @@ static void main_loop()
                                    pd.fault_lr,
                                    pd.exline1,
                                    pd.exline2);
+        hal.console->printf("WDOG Tsk:%u FA:%x FP:%u ICSR:%x LR:%x E1:%d E2:%d",
+                            unsigned(pd.scheduler_task),
+                            unsigned(pd.fault_addr),
+                            unsigned(pd.fault_thd_prio),
+                            unsigned(pd.fault_icsr),
+                            unsigned(pd.fault_lr),
+                            int(pd.exline1),
+                            int(pd.exline2));
     }
 #endif // HAL_NO_LOGGING
 #endif // IOMCU_FW

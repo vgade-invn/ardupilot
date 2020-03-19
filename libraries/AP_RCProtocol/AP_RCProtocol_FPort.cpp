@@ -247,6 +247,12 @@ void AP_RCProtocol_FPort::decode_downlink(const FPort_Frame &frame)
             buf2[len++] = c;
         }
     }
+#if 0
+    static uint8_t cc;
+    if (cc++ % 10 == 0) {
+        hal.console->printf("telem %u\n", len);
+    }
+#endif
     uart->write(buf2, len);
     // get fresh telem_data in the next call
     telem_data.available = false;
