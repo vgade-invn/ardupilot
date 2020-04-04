@@ -6,3 +6,5 @@ include ../Pixhawk1/hwdef.dat
 FLASH_SIZE_KB 1024
 define HAL_MINIMIZE_FEATURES 1
 undef STORAGE_FLASH_PAGE
+
+define GPS_UBLOX_MOVING_BASELINE 1
