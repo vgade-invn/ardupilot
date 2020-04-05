@@ -875,8 +875,6 @@ def write_SPI_table(f):
             error("Bad SPI bus in SPIDEV line %s" % dev)
         if not devid.startswith('DEVID') or not is_int(devid[5:]):
             error("Bad DEVID in SPIDEV line %s" % dev)
-        if cs not in bylabel or not bylabel[cs].is_CS():
-            error("Bad CS pin in SPIDEV line %s" % dev)
         if mode not in ['MODE0', 'MODE1', 'MODE2', 'MODE3']:
             error("Bad MODE in SPIDEV line %s" % dev)
         if not lowspeed.endswith('*MHZ') and not lowspeed.endswith('*KHZ'):
@@ -884,7 +882,12 @@ def write_SPI_table(f):
         if not highspeed.endswith('*MHZ') and not highspeed.endswith('*KHZ'):
             error("Bad highspeed value %s in SPIDEV line %s" % (highspeed,
                                                                 dev))
-        cs_pin = bylabel[cs]
+        if cs in bylabel and bylabel[cs].is_CS():
+            cs_pin = bylabel[cs]
+        elif cs in altlabel and altlabel[cs].is_CS():
+            cs_pin = altlabel[cs]
+        else:
+            error("Bad CS pin in SPIDEV line %s" % dev)
         pal_line = 'PAL_LINE(GPIO%s,%uU)' % (cs_pin.port, cs_pin.pin)
         devidx = len(devlist)
         f.write(
