@@ -62,15 +62,15 @@ void AP_RCProtocol_SRXL2::_process_byte(uint32_t timestamp_us, uint8_t byte)
     if (_decode_state == STATE_IDLE) {
         switch (byte) {
         case SPEKTRUM_SRXL_ID:
-            _frame_len_full = 0U;
             _decode_state = STATE_NEW;
             break;
         default:
-            _frame_len_full = 0U;
             _decode_state = STATE_IDLE;
-            _buflen = 0;
             return;
         }
+        _frame_len_full = 0U;
+        _buflen = 0;
+        _decode_state_next = STATE_IDLE;
     }
 
     switch (_decode_state) {
@@ -92,6 +92,10 @@ void AP_RCProtocol_SRXL2::_process_byte(uint32_t timestamp_us, uint8_t byte)
         // parse the length
         if (_buflen == SRXL2_HEADER_LEN) {
             _frame_len_full = _buffer[2];
+            if (_frame_len_full > sizeof(_buffer)) {
+                _decode_state = STATE_IDLE;
+                _buflen = 0;
+            }
             return;
         }
 
@@ -113,6 +117,7 @@ void AP_RCProtocol_SRXL2::_process_byte(uint32_t timestamp_us, uint8_t byte)
             _last_run_ms = AP_HAL::millis();
 
             _decode_state_next = STATE_IDLE;
+            _buflen = 0;
         } else {
             _decode_state_next = STATE_COLLECT;
         }
