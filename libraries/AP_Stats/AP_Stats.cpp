@@ -39,6 +39,10 @@ const AP_Param::GroupInfo AP_Stats::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_RESET",    3, AP_Stats, params.reset, 1),
 
+    // @Param: _COUNTER
+    // @DisplayName: Statistics counter
+    AP_GROUPINFO("_COUNTER",  4, AP_Stats, params.counter, 0),
+    
     AP_GROUPEND
 };
 
@@ -95,6 +99,10 @@ void AP_Stats::update_runtime()
 void AP_Stats::update()
 {
     WITH_SEMAPHORE(sem);
+    if (params.counter != 0) {
+        params.counter.set_and_save(params.counter+1);
+    }
+
     const uint32_t now_ms = AP_HAL::millis();
     if (now_ms -  last_flush_ms > flush_interval_ms) {
         update_flighttime();

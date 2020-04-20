@@ -263,7 +263,7 @@ void Scheduler::reboot(bool hold_in_bootloader)
 
 #if !defined(NO_FASTBOOT)
     // setup RTC for fast reboot
-    set_fast_reboot(hold_in_bootloader?RTC_BOOT_HOLD:RTC_BOOT_FAST);
+    set_fast_reboot(RTC_BOOT_OFF);
 #endif
 
     // disable all interrupt sources

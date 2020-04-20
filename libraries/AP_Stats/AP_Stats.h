@@ -55,6 +55,7 @@ private:
         AP_Int32 flttime;
         AP_Int32 runtime;
         AP_Int32 reset;
+        AP_Int32 counter;
     } params;
 
     void copy_variables_from_parameters();

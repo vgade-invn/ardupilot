@@ -92,6 +92,7 @@ bool AP_Baro_Backend::pressure_ok(float press)
             ret = false;
             koeff /= (d * 10.0f);  // 2.5 and more, so one bad sample never change mean more than 4%
             _error_count++;
+            hal.console->printf("filter fail %f %f %u\n", press, _mean_pressure, unsigned(_error_count));
         }
         _mean_pressure = _mean_pressure * (1 - koeff) + press * koeff; // complimentary filter 1/k
     }

@@ -7,6 +7,7 @@
 #include "AP_RAMTRON.h"
 #include <AP_Math/crc.h>
 #include <AP_Math/AP_Math.h>
+#include <stdio.h>
 
 extern const AP_HAL::HAL &hal;
 
@@ -161,6 +162,7 @@ bool AP_RAMTRON::read(uint32_t offset, uint8_t *buf, uint32_t size)
             // all good
             return true;
         }
+        ::printf("RAMTRON read retry %u crc 0x%x 0x%x\n", offset, crc1, crc2);
     }
 
     return false;
@@ -191,6 +193,8 @@ bool AP_RAMTRON::write(uint32_t offset, const uint8_t *buf, uint32_t size)
         dev->transfer(&RAMTRON_WREN, 1, nullptr, 0);
         dev->set_chip_select(false);
 
+        //hal.scheduler->delay(1);
+
         dev->set_chip_select(true);
         send_offset(RAMTRON_WRITE, offset);
         dev->transfer(buf, size, nullptr, 0);
@@ -210,9 +214,12 @@ bool AP_RAMTRON::write(uint32_t offset, const uint8_t *buf, uint32_t size)
 
         uint32_t crc2 = crc_crc32(0, rbuf, nverify);
 
+        static uint32_t counter;
+        counter++;
         if (crc1 == crc2) {
             return true;
         }
+        ::printf("RAMTRON write retry %u %u crc 0x%x 0x%x %u\n", offset, size, crc1, crc2, counter);
     }
 
     return false;
