@@ -6,7 +6,7 @@
 
 #if (CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS || CONFIG_HAL_BOARD == HAL_BOARD_LINUX) && HAL_WITH_UAVCAN
 
-#include <AP_HAL/CAN.h>
+#include <AP_CANManager/AP_CANManager.h>
 #include <AP_HAL/Semaphores.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
@@ -97,25 +97,25 @@ static void count_msg(uint32_t frame_id)
 void KDECAN_sniffer::init(void)
 {
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
-    AP_HAL::CANManager* can_mgr = new ChibiOS::CANManager;
+    AP_HAL::CANDriver* can_drv = new ChibiOS::CANDriver;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
-    AP_HAL::CANManager* can_mgr = new Linux::CANManager;
+    AP_HAL::CANDriver* can_drv = new Linux::CANDriver;
 #endif
     
-    if (can_mgr == nullptr) {
+    if (can_drv == nullptr) {
         AP_HAL::panic("Couldn't allocate CANManager, something is very wrong");
     }
 
-    const_cast <AP_HAL::HAL&> (hal).can_mgr[_driver_index] = can_mgr;
-    can_mgr->begin(1000000, _interface);
-    can_mgr->initialized(true);
+    const_cast <AP_HAL::HAL&> (hal).can_drv[_driver_index] = can_drv;
+    can_drv->begin(1000000, _interface);
+    can_drv->initialized(true);
 
-    if (!can_mgr->is_initialized()) {
+    if (!can_drv->is_initialized()) {
         debug_can("Can not initialised\n");
         return;
     }
 
-    _can_driver = can_mgr->get_driver();
+    _can_driver = can_drv->get_driver();
 
     if (_can_driver == nullptr) {
         debug_can("KDECAN: no CAN driver\n\r");

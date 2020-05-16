@@ -18,7 +18,7 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
-#include <AP_HAL/CAN.h>
+#include <AP_CANManager/AP_CANManager.h>
 #include <AP_HAL/Semaphores.h>
 
 #include "piccolo_protocol/ESCPackets.h"
@@ -33,7 +33,7 @@
 
 #if HAL_PICCOLO_CAN_ENABLE
 
-class AP_PiccoloCAN : public AP_HAL::CANProtocol
+class AP_PiccoloCAN : public AP::CANProtocol
 {
 public:
     AP_PiccoloCAN();
@@ -65,6 +65,7 @@ public:
 
     // initialize PiccoloCAN bus
     void init(uint8_t driver_index, bool enable_filters) override;
+    bool add_interface(AP_HAL::CANDriver* can_iface) override;
 
     // called from SRV_Channels
     void update();
@@ -87,23 +88,22 @@ private:
     void loop();
 
     // write frame on CAN bus, returns true on success
-    bool write_frame(uavcan::CanFrame &out_frame, uavcan::MonotonicTime timeout);
+    bool write_frame(AP_HAL::CanFrame &out_frame, uint64_t timeout);
 
     // read frame on CAN bus, returns true on succses
-    bool read_frame(uavcan::CanFrame &recv_frame, uavcan::MonotonicTime timeout);
+    bool read_frame(AP_HAL::CanFrame &recv_frame, uint64_t timeout);
 
     // send ESC commands over CAN
     void send_esc_messages(void);
 
     // interpret an ESC message received over CAN
-    bool handle_esc_message(uavcan::CanFrame &frame);
+    bool handle_esc_message(AP_HAL::CanFrame &frame);
 
     bool _initialized;
     char _thread_name[16];
     uint8_t _driver_index;
-    uavcan::ICanDriver* _can_driver;
-    const uavcan::CanFrame* _select_frames[uavcan::MaxCanIfaces] { };
-
+    AP_HAL::CANDriver* _can_driver;
+    HAL_EventHandle _event_handle;
     HAL_Semaphore _telem_sem;
 
     struct PiccoloESC_Info_t {

@@ -14,6 +14,7 @@ namespace ChibiOS {
     class RCOutput;
     class Scheduler;
     class Semaphore;
+    class EventHandle;
     class SPIBus;
     class SPIDesc;
     class SPIDevice;
@@ -25,6 +26,6 @@ namespace ChibiOS {
     class Shared_DMA;
     class SoftSigReader;
     class SoftSigReaderInt;
-    class CANManager;
+    class CANDriver;
     class Flash;
 }

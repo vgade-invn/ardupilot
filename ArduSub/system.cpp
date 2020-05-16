@@ -16,7 +16,7 @@ void Sub::init_ardupilot()
 {
     BoardConfig.init();
 #if HAL_WITH_UAVCAN
-    BoardConfig_CAN.init();
+    can_mgr.init();
 #endif
 
 #if AP_FEATURE_BOARD_DETECT

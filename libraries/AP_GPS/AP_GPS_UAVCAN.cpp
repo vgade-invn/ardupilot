@@ -21,7 +21,7 @@
 #if HAL_WITH_UAVCAN
 #include "AP_GPS_UAVCAN.h"
 
-#include <AP_BoardConfig/AP_BoardConfig_CAN.h>
+#include <AP_CANManager/AP_CANManager.h>
 #include <AP_UAVCAN/AP_UAVCAN.h>
 
 #include <uavcan/equipment/gnss/Fix.hpp>

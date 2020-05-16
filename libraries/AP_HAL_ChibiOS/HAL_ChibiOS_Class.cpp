@@ -103,6 +103,9 @@ static ChibiOS::Flash flashDriver;
 static Empty::Flash flashDriver;
 #endif
 
+#if MAX_NUMBER_OF_CAN_INTERFACES > 0
+static ChibiOS::CANDriver* canDrivers[MAX_NUMBER_OF_CAN_INTERFACES];
+#endif
 
 #if HAL_WITH_IO_MCU
 HAL_UART_IO_DRIVER;
@@ -133,7 +136,11 @@ HAL_ChibiOS::HAL_ChibiOS() :
         &opticalFlowDriver,
         &flashDriver,
         &dspDriver,
+#if MAX_NUMBER_OF_CAN_INTERFACES > 0
+        (AP_HAL::CANDriver**)canDrivers
+#else
         nullptr
+#endif
         )
 {}
 

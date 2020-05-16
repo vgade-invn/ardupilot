@@ -33,8 +33,9 @@ void Plane::init_ardupilot()
 
     // setup any board specific drivers
     BoardConfig.init();
+    hal.scheduler->delay(1000);
 #if HAL_WITH_UAVCAN
-    BoardConfig_CAN.init();
+    can_mgr.init();
 #endif
 
     // initialise rc channels including setting mode

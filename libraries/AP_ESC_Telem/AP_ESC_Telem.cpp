@@ -17,7 +17,7 @@
 #include <AP_HAL/AP_HAL.h>
 
 #if HAL_WITH_UAVCAN
-  #include <AP_BoardConfig/AP_BoardConfig_CAN.h>
+  #include <AP_CANManager/AP_CANManager.h>
   #include <AP_Common/AP_Common.h>
   #include <AP_Vehicle/AP_Vehicle.h>
   #include <AP_UAVCAN/AP_UAVCAN.h>
@@ -41,7 +41,7 @@ bool AP_ESC_Telem::get_usage_seconds(uint8_t esc_id, uint32_t& usage_sec) const
 #if HAL_WITH_UAVCAN
     const uint8_t num_drivers = AP::can().get_num_drivers();
     for (uint8_t i = 0; i < num_drivers; i++) {
-        if (AP::can().get_protocol_type(i) == AP_BoardConfig_CAN::Protocol_Type_ToshibaCAN) {
+        if (AP::can().get_protocol_type(i) == AP_CANManager::Protocol_Type_ToshibaCAN) {
             AP_ToshibaCAN *tcan = AP_ToshibaCAN::get_tcan(i);
             if (tcan != nullptr) {
                 usage_sec = tcan->get_usage_seconds(esc_id);

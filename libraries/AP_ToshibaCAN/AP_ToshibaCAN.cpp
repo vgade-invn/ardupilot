@@ -19,7 +19,7 @@
 
 #include <AP_HAL/utility/sparse-endian.h>
 #include <AP_BoardConfig/AP_BoardConfig.h>
-#include <AP_BoardConfig/AP_BoardConfig_CAN.h>
+#include <AP_CANManager/AP_CANManager.h>
 #include <AP_Common/AP_Common.h>
 #include <AP_Scheduler/AP_Scheduler.h>
 #include <AP_HAL/utility/sparse-endian.h>
@@ -27,6 +27,7 @@
 #include <GCS_MAVLink/GCS.h>
 #include "AP_ToshibaCAN.h"
 #include <AP_Logger/AP_Logger.h>
+#include <stdio.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -65,11 +66,38 @@ AP_ToshibaCAN::AP_ToshibaCAN()
 AP_ToshibaCAN *AP_ToshibaCAN::get_tcan(uint8_t driver_index)
 {
     if (driver_index >= AP::can().get_num_drivers() ||
-        AP::can().get_protocol_type(driver_index) != AP_BoardConfig_CAN::Protocol_Type_ToshibaCAN) {
+        AP::can().get_protocol_type(driver_index) != AP_CANManager::Protocol_Type_ToshibaCAN) {
         return nullptr;
     }
     return static_cast<AP_ToshibaCAN*>(AP::can().get_driver(driver_index));
 }
+
+
+bool AP_ToshibaCAN::add_interface(AP_HAL::CANDriver* can_iface) {
+    if (_can_driver != nullptr) {
+        debug_can(1, "ToshibaCAN: Multiple Interface not supported\n\r");
+        return false;
+    }
+
+    _can_driver = can_iface;
+
+    if (_can_driver == nullptr) {
+        debug_can(1, "ToshibaCAN: CAN driver not found\n\r");
+        return false;
+    }
+
+    if (!_can_driver->is_initialized()) {
+        debug_can(1, "ToshibaCAN: Driver not initialized\n\r");
+        return false;
+    }
+
+    if (!_can_driver->set_event_handle(&_event_handle)) {
+        debug_can(1, "ToshibaCAN: Cannot add event handle\n\r");
+        return false;
+    }
+    return true;
+}
+
 
 // initialise ToshibaCAN bus
 void AP_ToshibaCAN::init(uint8_t driver_index, bool enable_filters)
@@ -83,22 +111,8 @@ void AP_ToshibaCAN::init(uint8_t driver_index, bool enable_filters)
         return;
     }
 
-    AP_HAL::CANManager* can_mgr = hal.can_mgr[driver_index];
-
-    if (can_mgr == nullptr) {
-        debug_can(1, "ToshibaCAN: no mgr for this driver\n\r");
-        return;
-    }
-
-    if (!can_mgr->is_initialized()) {
-        debug_can(1, "ToshibaCAN: mgr not initialized\n\r");
-        return;
-    }
-
-    _can_driver = can_mgr->get_driver();
-
     if (_can_driver == nullptr) {
-        debug_can(1, "ToshibaCAN: no CAN driver\n\r");
+        debug_can(1, "ToshibaCAN: Interface not found\n\r");
         return;
     }
 
@@ -118,7 +132,7 @@ void AP_ToshibaCAN::init(uint8_t driver_index, bool enable_filters)
 // loop to send output to ESCs in background thread
 void AP_ToshibaCAN::loop()
 {
-    uavcan::MonotonicTime timeout;
+    uint64_t timeout = 0;
     const uint32_t timeout_us = MIN(AP::scheduler().get_loop_period_us(), TOSHIBACAN_SEND_TIMEOUT_US);
 
     while (true) {
@@ -181,9 +195,9 @@ void AP_ToshibaCAN::loop()
                 update_count_buffered = update_count;
             }
             unlock_frame = {(uint8_t)COMMAND_LOCK, unlock_cmd.data, sizeof(unlock_cmd.data)};
-            mot_rot_frame1 = {((uint8_t)COMMAND_MOTOR1 & uavcan::CanFrame::MaskStdID), mot_rot_cmd1.data, sizeof(mot_rot_cmd1.data)};
-            mot_rot_frame2 = {((uint8_t)COMMAND_MOTOR2 & uavcan::CanFrame::MaskStdID), mot_rot_cmd2.data, sizeof(mot_rot_cmd2.data)};
-            mot_rot_frame3 = {((uint8_t)COMMAND_MOTOR3 & uavcan::CanFrame::MaskStdID), mot_rot_cmd3.data, sizeof(mot_rot_cmd3.data)};
+            mot_rot_frame1 = {((uint8_t)COMMAND_MOTOR1 & AP_HAL::CanFrame::MaskStdID), mot_rot_cmd1.data, sizeof(mot_rot_cmd1.data)};
+            mot_rot_frame2 = {((uint8_t)COMMAND_MOTOR2 & AP_HAL::CanFrame::MaskStdID), mot_rot_cmd2.data, sizeof(mot_rot_cmd2.data)};
+            mot_rot_frame3 = {((uint8_t)COMMAND_MOTOR3 & AP_HAL::CanFrame::MaskStdID), mot_rot_cmd3.data, sizeof(mot_rot_cmd3.data)};
 
             // advance to next stage
             send_stage++;
@@ -191,7 +205,7 @@ void AP_ToshibaCAN::loop()
 
         // send unlock command
         if (send_stage == 1) {
-            timeout = uavcan::MonotonicTime::fromUSec(AP_HAL::micros64() + timeout_us);
+            timeout = AP_HAL::micros64() + timeout_us;
             if (!write_frame(unlock_frame, timeout)) {
                 continue;
             }
@@ -200,7 +214,7 @@ void AP_ToshibaCAN::loop()
 
         // send output to motor bank3
         if (send_stage == 2) {
-            timeout = uavcan::MonotonicTime::fromUSec(AP_HAL::micros64() + timeout_us);
+            timeout = AP_HAL::micros64() + timeout_us;
             if (!write_frame(mot_rot_frame3, timeout)) {
                 continue;
             }
@@ -209,7 +223,7 @@ void AP_ToshibaCAN::loop()
 
         // send output to motor bank2
         if (send_stage == 3) {
-            timeout = uavcan::MonotonicTime::fromUSec(AP_HAL::micros64() + timeout_us);
+            timeout = AP_HAL::micros64() + timeout_us;
             if (!write_frame(mot_rot_frame2, timeout)) {
                 continue;
             }
@@ -218,7 +232,7 @@ void AP_ToshibaCAN::loop()
 
         // send output to motor bank1
         if (send_stage == 4) {
-            timeout = uavcan::MonotonicTime::fromUSec(AP_HAL::micros64() + timeout_us);
+            timeout = AP_HAL::micros64() + timeout_us;
             if (!write_frame(mot_rot_frame1, timeout)) {
                 continue;
             }
@@ -241,11 +255,11 @@ void AP_ToshibaCAN::loop()
 
                 // prepare command to request data1 (rpm and voltage) from all ESCs
                 motor_request_data_cmd_t request_data_cmd = get_motor_request_data_cmd(1);
-                uavcan::CanFrame request_data_frame;
+                AP_HAL::CanFrame request_data_frame;
                 request_data_frame = {(uint8_t)COMMAND_REQUEST_DATA, request_data_cmd.data, sizeof(request_data_cmd.data)};
 
                 // send request data command
-                timeout = uavcan::MonotonicTime::fromUSec(AP_HAL::micros64() + timeout_us);
+                timeout = AP_HAL::micros64() + timeout_us;
                 if (!write_frame(request_data_frame, timeout)) {
                     continue;
                 }
@@ -265,11 +279,11 @@ void AP_ToshibaCAN::loop()
 
                 // prepare command to request data2 (temperature) from all ESCs
                 motor_request_data_cmd_t request_data_cmd = get_motor_request_data_cmd(2);
-                uavcan::CanFrame request_data_frame;
+                AP_HAL::CanFrame request_data_frame;
                 request_data_frame = {(uint8_t)COMMAND_REQUEST_DATA, request_data_cmd.data, sizeof(request_data_cmd.data)};
 
                 // send request data command
-                timeout = uavcan::MonotonicTime::fromUSec(AP_HAL::micros64() + timeout_us);
+                timeout = AP_HAL::micros64() + timeout_us;
                 if (!write_frame(request_data_frame, timeout)) {
                     continue;
                 }
@@ -285,11 +299,11 @@ void AP_ToshibaCAN::loop()
 
                 // prepare command to request data2 (temperature) from all ESCs
                 motor_request_data_cmd_t request_data_cmd = get_motor_request_data_cmd(3);
-                uavcan::CanFrame request_data_frame;
+                AP_HAL::CanFrame request_data_frame;
                 request_data_frame = {(uint8_t)COMMAND_REQUEST_DATA, request_data_cmd.data, sizeof(request_data_cmd.data)};
 
                 // send request data command
-                timeout = uavcan::MonotonicTime::fromUSec(AP_HAL::micros64() + timeout_us);
+                timeout = AP_HAL::micros64() + timeout_us;
                 if (!write_frame(request_data_frame, timeout)) {
                     continue;
                 }
@@ -299,7 +313,7 @@ void AP_ToshibaCAN::loop()
 
         // check for replies from ESCs
         if (send_stage == 8) {
-            uavcan::CanFrame recv_frame;
+            AP_HAL::CanFrame recv_frame;
             while (read_frame(recv_frame, timeout)) {
                 // decode rpm and voltage data
                 if ((recv_frame.id >= MOTOR_DATA1) && (recv_frame.id <= MOTOR_DATA1 + TOSHIBACAN_MAX_NUM_ESCS)) {
@@ -382,46 +396,40 @@ void AP_ToshibaCAN::loop()
 }
 
 // write frame on CAN bus
-bool AP_ToshibaCAN::write_frame(uavcan::CanFrame &out_frame, uavcan::MonotonicTime timeout)
+bool AP_ToshibaCAN::write_frame(AP_HAL::CanFrame &out_frame, uint64_t timeout)
 {
     // wait for space in buffer to send command
-    uavcan::CanSelectMasks inout_mask;
-    do {
-        inout_mask.read = 0;
-        inout_mask.write = 1 << CAN_IFACE_INDEX;
-        _select_frames[CAN_IFACE_INDEX] = &out_frame;
-        _can_driver->select(inout_mask, _select_frames, timeout);
 
-        // delay if no space is available to send
-        if (!inout_mask.write) {
+    bool read_select = false;
+    bool write_select = true;
+    do {
+        int ret = _can_driver->select(read_select, write_select, &out_frame, timeout);
+        if (ret < 0 || !write_select) {
+            // delay if no space is available to send
             hal.scheduler->delay_microseconds(50);
         }
-    } while (!inout_mask.write);
+    } while (!write_select);
 
     // send frame and return success
-    return (_can_driver->getIface(CAN_IFACE_INDEX)->send(out_frame, timeout, uavcan::CanIOFlagAbortOnError) == 1);
+    return (_can_driver->send(out_frame, timeout, AP_HAL::CANDriver::CanIOFlagAbortOnError) == 1);
 }
 
 // read frame on CAN bus, returns true on success
-bool AP_ToshibaCAN::read_frame(uavcan::CanFrame &recv_frame, uavcan::MonotonicTime timeout)
+bool AP_ToshibaCAN::read_frame(AP_HAL::CanFrame &recv_frame, uint64_t timeout)
 {
     // wait for space in buffer to read
-    uavcan::CanSelectMasks inout_mask;
-    inout_mask.read = 1 << CAN_IFACE_INDEX;
-    inout_mask.write = 0;
-    _select_frames[CAN_IFACE_INDEX] = &recv_frame;
-    _can_driver->select(inout_mask, _select_frames, timeout);
-
-    // return false if no data is available to read
-    if (!inout_mask.read) {
+    bool read_select = true;
+    bool write_select = false;
+    int ret = _can_driver->select(read_select, write_select, nullptr, timeout);
+    if (ret < 0 || !read_select) {
+        // return false if no data is available to read
         return false;
     }
-    uavcan::MonotonicTime time;
-    uavcan::UtcTime utc_time;
-    uavcan::CanIOFlags flags {};
+    uint64_t time;
+    AP_HAL::CANDriver::CanIOFlags flags {};
 
     // read frame and return success
-    return (_can_driver->getIface(CAN_IFACE_INDEX)->receive(recv_frame, time, utc_time, flags) == 1);
+    return (_can_driver->receive(recv_frame, time, flags) == 1);
 }
 
 // update esc_present_bitmask

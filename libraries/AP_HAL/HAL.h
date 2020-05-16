@@ -14,9 +14,7 @@ class AP_Param;
 #include "system.h"
 #include "OpticalFlow.h"
 #include "DSP.h"
-#if HAL_WITH_UAVCAN
-#include "CAN.h"
-#endif
+#include "CANDriver.h"
 
 
 class AP_HAL::HAL {
@@ -42,10 +40,10 @@ public:
         AP_HAL::OpticalFlow*_opticalflow,
         AP_HAL::Flash*      _flash,
         AP_HAL::DSP*        _dsp,
-#if HAL_WITH_UAVCAN
-        AP_HAL::CANManager* _can_mgr[MAX_NUMBER_OF_CAN_DRIVERS])
+#if MAX_NUMBER_OF_CAN_INTERFACES > 0
+        AP_HAL::CANDriver* _can_drv[MAX_NUMBER_OF_CAN_INTERFACES])
 #else
-        AP_HAL::CANManager** _can_mgr)
+        AP_HAL::CANDriver** _can_drv)
 #endif
         :
         uartA(_uartA),
@@ -70,13 +68,13 @@ public:
         flash(_flash),
         dsp(_dsp)
     {
-#if HAL_WITH_UAVCAN
-        if (_can_mgr == nullptr) {
-            for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_DRIVERS; i++)
-                can_mgr[i] = nullptr;
+#if MAX_NUMBER_OF_CAN_INTERFACES > 0
+        if (_can_drv == nullptr) {
+            for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_INTERFACES; i++)
+                can[i] = nullptr;
         } else {
-            for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_DRIVERS; i++)
-                can_mgr[i] = _can_mgr[i];
+            for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_INTERFACES; i++)
+                can[i] = _can_drv[i];
         }
 #endif
 
@@ -122,9 +120,9 @@ public:
     AP_HAL::OpticalFlow *opticalflow;
     AP_HAL::Flash       *flash;
     AP_HAL::DSP         *dsp;
-#if HAL_WITH_UAVCAN
-    AP_HAL::CANManager* can_mgr[MAX_NUMBER_OF_CAN_DRIVERS];
+#if MAX_NUMBER_OF_CAN_INTERFACES > 0
+    AP_HAL::CANDriver* can[MAX_NUMBER_OF_CAN_INTERFACES];
 #else
-    AP_HAL::CANManager** can_mgr;
+    AP_HAL::CANDriver** can;
 #endif
 };

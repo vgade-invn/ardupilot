@@ -244,13 +244,12 @@ def setup_can_build(cfg):
         'modules/uavcan/libuavcan/src/**/*.cpp',
         ]
 
-    env.CFLAGS += ['-DUAVCAN_STM32_CHIBIOS=1',
-                   '-DUAVCAN_STM32_NUM_IFACES=2']
+    env.CFLAGS += ['-DHAL_CAN_IFACES=2']
 
     env.CXXFLAGS += [
         '-Wno-error=cast-align',
-        '-DUAVCAN_STM32_CHIBIOS=1',
-        '-DUAVCAN_STM32_NUM_IFACES=2'
+        '-DMAX_NUMBER_OF_CAN_INTERFACES=2',
+        '-DMAX_NUMBER_OF_CAN_PROTOCOLS=2'
         ]
 
     env.DEFINES += [

@@ -23,7 +23,7 @@
 #include <GCS_MAVLink/GCS.h>
 
 #include <AP_BoardConfig/AP_BoardConfig.h>
-#include <AP_BoardConfig/AP_BoardConfig_CAN.h>
+#include <AP_CANManager/AP_CANManager.h>
 
 #include <uavcan/transport/can_acceptance_filter_configurator.hpp>
 
@@ -58,7 +58,9 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define debug_uavcan(level_debug, fmt, args...) do { if ((level_debug) <= AP::can().get_debug_level_driver(_driver_index)) { printf(fmt, ##args); }} while (0)
+#define DEBUG_LEVEL 2
+
+#define debug_uavcan(level_debug, fmt, args...) do { if ((level_debug) <= DEBUG_LEVEL) { printf(fmt, ##args); }} while (0)
 
 // Translation of all messages from UAVCAN structures into AP structures is done
 // in AP_UAVCAN and not in corresponding drivers.
@@ -104,30 +106,30 @@ const AP_Param::GroupInfo AP_UAVCAN::var_info[] = {
 #define CAN_PERIODIC_TX_TIMEOUT_MS 2
 
 // publisher interfaces
-static uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>* act_out_array[MAX_NUMBER_OF_CAN_DRIVERS];
-static uavcan::Publisher<uavcan::equipment::esc::RawCommand>* esc_raw[MAX_NUMBER_OF_CAN_DRIVERS];
-static uavcan::Publisher<uavcan::equipment::indication::LightsCommand>* rgb_led[MAX_NUMBER_OF_CAN_DRIVERS];
-static uavcan::Publisher<uavcan::equipment::indication::BeepCommand>* buzzer[MAX_NUMBER_OF_CAN_DRIVERS];
-static uavcan::Publisher<ardupilot::indication::SafetyState>* safety_state[MAX_NUMBER_OF_CAN_DRIVERS];
-static uavcan::Publisher<uavcan::equipment::gnss::RTCMStream>* rtcm_stream[MAX_NUMBER_OF_CAN_DRIVERS];
+static uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>* act_out_array[MAX_NUMBER_OF_CAN_INTERFACES];
+static uavcan::Publisher<uavcan::equipment::esc::RawCommand>* esc_raw[MAX_NUMBER_OF_CAN_INTERFACES];
+static uavcan::Publisher<uavcan::equipment::indication::LightsCommand>* rgb_led[MAX_NUMBER_OF_CAN_INTERFACES];
+static uavcan::Publisher<uavcan::equipment::indication::BeepCommand>* buzzer[MAX_NUMBER_OF_CAN_INTERFACES];
+static uavcan::Publisher<ardupilot::indication::SafetyState>* safety_state[MAX_NUMBER_OF_CAN_INTERFACES];
+static uavcan::Publisher<uavcan::equipment::gnss::RTCMStream>* rtcm_stream[MAX_NUMBER_OF_CAN_INTERFACES];
 
 // subscribers
 
 // handler SafteyButton
 UC_REGISTRY_BINDER(ButtonCb, ardupilot::indication::Button);
-static uavcan::Subscriber<ardupilot::indication::Button, ButtonCb> *safety_button_listener[MAX_NUMBER_OF_CAN_DRIVERS];
+static uavcan::Subscriber<ardupilot::indication::Button, ButtonCb> *safety_button_listener[MAX_NUMBER_OF_CAN_INTERFACES];
 
 // handler TrafficReport
 UC_REGISTRY_BINDER(TrafficReportCb, ardupilot::equipment::trafficmonitor::TrafficReport);
-static uavcan::Subscriber<ardupilot::equipment::trafficmonitor::TrafficReport, TrafficReportCb> *traffic_report_listener[MAX_NUMBER_OF_CAN_DRIVERS];
+static uavcan::Subscriber<ardupilot::equipment::trafficmonitor::TrafficReport, TrafficReportCb> *traffic_report_listener[MAX_NUMBER_OF_CAN_INTERFACES];
 
 // handler actuator status
 UC_REGISTRY_BINDER(ActuatorStatusCb, uavcan::equipment::actuator::Status);
-static uavcan::Subscriber<uavcan::equipment::actuator::Status, ActuatorStatusCb> *actuator_status_listener[MAX_NUMBER_OF_CAN_DRIVERS];
+static uavcan::Subscriber<uavcan::equipment::actuator::Status, ActuatorStatusCb> *actuator_status_listener[MAX_NUMBER_OF_CAN_INTERFACES];
 
 // handler ESC status
 UC_REGISTRY_BINDER(ESCStatusCb, uavcan::equipment::esc::Status);
-static uavcan::Subscriber<uavcan::equipment::esc::Status, ESCStatusCb> *esc_status_listener[MAX_NUMBER_OF_CAN_DRIVERS];
+static uavcan::Subscriber<uavcan::equipment::esc::Status, ESCStatusCb> *esc_status_listener[MAX_NUMBER_OF_CAN_INTERFACES];
 
 
 AP_UAVCAN::AP_UAVCAN() :
@@ -150,10 +152,28 @@ AP_UAVCAN::~AP_UAVCAN()
 AP_UAVCAN *AP_UAVCAN::get_uavcan(uint8_t driver_index)
 {
     if (driver_index >= AP::can().get_num_drivers() ||
-        AP::can().get_protocol_type(driver_index) != AP_BoardConfig_CAN::Protocol_Type_UAVCAN) {
+        AP::can().get_protocol_type(driver_index) != AP_CANManager::Protocol_Type_UAVCAN) {
         return nullptr;
     }
     return static_cast<AP_UAVCAN*>(AP::can().get_driver(driver_index));
+}
+
+bool AP_UAVCAN::add_interface(AP_HAL::CANDriver* can_iface) {
+
+    if (_driver == nullptr) {
+        _driver = new uavcan::CanDriver();
+    }
+
+    if (_driver == nullptr) {
+        debug_uavcan(2, "UAVCAN: can't create UAVCAN interface manager\n\r");
+        return false;
+    }
+
+    if (!_driver->add_interface(can_iface)) {
+        debug_uavcan(2, "UAVCAN: can't add UAVCAN interface\n\r");
+        return false;   
+    }
+    return true;
 }
 
 void AP_UAVCAN::init(uint8_t driver_index, bool enable_filters)
@@ -163,26 +183,12 @@ void AP_UAVCAN::init(uint8_t driver_index, bool enable_filters)
         return;
     }
 
-    _driver_index = driver_index;
-
-    AP_HAL::CANManager* can_mgr = hal.can_mgr[driver_index];
-    if (can_mgr == nullptr) {
-        debug_uavcan(2, "UAVCAN: init called for inexisting CAN driver\n\r");
-        return;
-    }
-
-    if (!can_mgr->is_initialized()) {
-        debug_uavcan(1, "UAVCAN: CAN driver not initialized\n\r");
-        return;
-    }
-
-    uavcan::ICanDriver* driver = can_mgr->get_driver();
-    if (driver == nullptr) {
+    if (_driver == nullptr) {
         debug_uavcan(2, "UAVCAN: can't get UAVCAN interface driver\n\r");
         return;
     }
 
-    _node = new uavcan::Node<0>(*driver, SystemClock::instance(), _node_allocator);
+    _node = new uavcan::Node<0>(*_driver, uavcan::SystemClock::instance(), _node_allocator);
 
     if (_node == nullptr) {
         debug_uavcan(1, "UAVCAN: couldn't allocate node\n\r");

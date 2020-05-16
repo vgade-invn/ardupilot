@@ -44,9 +44,9 @@ static void trampoline_handleNodeInfo(const uavcan::ServiceCallResult<uavcan::pr
 static void trampoline_handleAllocation(AP_UAVCAN* ap_uavcan, uint8_t node_id, const AllocationCb &cb);
 static void trampoline_handleNodeStatus(AP_UAVCAN* ap_uavcan, uint8_t node_id, const NodeStatusCb &cb);
 
-static uavcan::ServiceClient<uavcan::protocol::GetNodeInfo>* getNodeInfo_client[MAX_NUMBER_OF_CAN_DRIVERS];
+static uavcan::ServiceClient<uavcan::protocol::GetNodeInfo>* getNodeInfo_client[MAX_NUMBER_OF_CAN_INTERFACES];
 
-static uavcan::Publisher<uavcan::protocol::dynamic_node_id::Allocation>* allocation_pub[MAX_NUMBER_OF_CAN_DRIVERS];
+static uavcan::Publisher<uavcan::protocol::dynamic_node_id::Allocation>* allocation_pub[MAX_NUMBER_OF_CAN_INTERFACES];
 
 /* Subscribe to all the messages we are going to handle for
 Server registry and Node allocation. */
@@ -429,7 +429,7 @@ void AP_UAVCAN_DNA_Server::verify_nodes(AP_UAVCAN *ap_uavcan)
 
     //Check if we got acknowledgement from previous request
     //except for requests using our own node_id
-    for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_DRIVERS; i++) {
+    for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_INTERFACES; i++) {
         if (curr_verifying_node == self_node_id[i]) {
             nodeInfo_resp_rcvd = true;
         }
@@ -455,7 +455,7 @@ void AP_UAVCAN_DNA_Server::verify_nodes(AP_UAVCAN *ap_uavcan)
             break;
         }
     }
-    for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_DRIVERS; i++) {
+    for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_INTERFACES; i++) {
         if (getNodeInfo_client[i] != nullptr && isNodeIDOccupied(curr_verifying_node)) {
             uavcan::protocol::GetNodeInfo::Request request;
             getNodeInfo_client[i]->call(curr_verifying_node, request);
@@ -475,7 +475,7 @@ void AP_UAVCAN_DNA_Server::handleNodeStatus(uint8_t node_id, const NodeStatusCb 
     WITH_SEMAPHORE(sem);
     if (!isNodeIDVerified(node_id)) {
         //immediately begin verification of the node_id
-        for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_DRIVERS; i++) {
+        for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_INTERFACES; i++) {
             if (getNodeInfo_client[i] != nullptr) {
                 uavcan::protocol::GetNodeInfo::Request request;
                 getNodeInfo_client[i]->call(node_id, request);

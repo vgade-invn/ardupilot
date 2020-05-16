@@ -58,7 +58,9 @@
 
 // allow for static semaphores
 #include <AP_HAL_ChibiOS/Semaphores.h>
+#include <AP_HAL_ChibiOS/EventHandle.h>
 #define HAL_Semaphore ChibiOS::Semaphore
+#define HAL_EventHandle ChibiOS::EventHandle
 
 /* string names for well known SPI devices */
 #define HAL_BARO_MS5611_NAME "ms5611"

@@ -4,7 +4,7 @@
 
 #include "AP_OpticalFlow_HereFlow.h"
 
-#include <AP_BoardConfig/AP_BoardConfig_CAN.h>
+#include <AP_CANManager/AP_CANManager.h>
 #include <AP_UAVCAN/AP_UAVCAN.h>
 
 #include <com/hex/equipment/flow/Measurement.hpp>

@@ -23,7 +23,7 @@
 #if HAL_WITH_UAVCAN
 
 #include <AP_BoardConfig/AP_BoardConfig.h>
-#include <AP_BoardConfig/AP_BoardConfig_CAN.h>
+#include <AP_CANManager/AP_CANManager.h>
 
 #include <AP_Common/AP_Common.h>
 
@@ -37,10 +37,11 @@
 #include <AP_Logger/AP_Logger.h>
 
 #include "AP_KDECAN.h"
+#include <stdio.h>
 
 extern const AP_HAL::HAL& hal;
 
-#define debug_can(level_debug, fmt, args...) do { if ((level_debug) <= AP::can().get_debug_level_driver(_driver_index)) { printf(fmt, ##args); }} while (0)
+#define debug_can(level_debug, fmt, args...) do { if ((level_debug) <= AP::can().get_debug_level_driver(_driver_index)) { hal.console->printf(fmt, ##args); }} while (0)
 
 #define DEFAULT_NUM_POLES 14
 
@@ -66,10 +67,36 @@ AP_KDECAN::AP_KDECAN()
 AP_KDECAN *AP_KDECAN::get_kdecan(uint8_t driver_index)
 {
     if (driver_index >= AP::can().get_num_drivers() ||
-        AP::can().get_protocol_type(driver_index) != AP_BoardConfig_CAN::Protocol_Type_KDECAN) {
+        AP::can().get_protocol_type(driver_index) != AP_CANManager::Protocol_Type_KDECAN) {
         return nullptr;
     }
     return static_cast<AP_KDECAN*>(AP::can().get_driver(driver_index));
+}
+
+bool AP_KDECAN::add_interface(AP_HAL::CANDriver* can_iface) {
+
+    if (_can_driver != nullptr) {
+        debug_can(1, "AP_KDECAN: Multiple Interface not supported\n\r");
+        return false;
+    }
+
+    _can_driver = can_iface;
+
+    if (_can_driver == nullptr) {
+        debug_can(1, "AP_KDECAN: CAN driver not found\n\r");
+        return false;
+    }
+
+    if (!_can_driver->is_initialized()) {
+        debug_can(1, "AP_KDECAN: Driver not initialized\n\r");
+        return false;
+    }
+
+    if (!_can_driver->set_event_handle(&_event_handle)) {
+        debug_can(1, "AP_KDECAN: Cannot add event handle\n\r");
+        return false;
+    }
+    return true;
 }
 
 void AP_KDECAN::init(uint8_t driver_index, bool enable_filters)
@@ -83,24 +110,8 @@ void AP_KDECAN::init(uint8_t driver_index, bool enable_filters)
         return;
     }
 
-    // get CAN manager instance
-    AP_HAL::CANManager* can_mgr = hal.can_mgr[driver_index];
-
-    if (can_mgr == nullptr) {
-        debug_can(1, "KDECAN: no mgr for this driver\n\r");
-        return;
-    }
-
-    if (!can_mgr->is_initialized()) {
-        debug_can(1, "KDECAN: mgr not initialized\n\r");
-        return;
-    }
-
-    // store pointer to CAN driver
-    _can_driver = can_mgr->get_driver();
-
     if (_can_driver == nullptr) {
-        debug_can(1, "KDECAN: no CAN driver\n\r");
+        debug_can(1, "KDECAN: Interface not found\n\r");
         return;
     }
 
@@ -111,9 +122,9 @@ void AP_KDECAN::init(uint8_t driver_index, bool enable_filters)
                       .priority = 0,
                       .unused = 0 } };
 
-    uavcan::CanFrame frame { (id.value | uavcan::CanFrame::FlagEFF), nullptr, 0 };
+    AP_HAL::CanFrame frame { (id.value | AP_HAL::CanFrame::FlagEFF), nullptr, 0 };
 
-    if(!_can_driver->getIface(CAN_IFACE_INDEX)->send(frame, uavcan::MonotonicTime::fromMSec(AP_HAL::millis() + 1000), 0)) {
+    if(!_can_driver->send(frame, AP_HAL::micros() + 1000000, 0)) {
         debug_can(1, "KDECAN: couldn't send discovery message\n\r");
         return;
     }
@@ -124,12 +135,11 @@ void AP_KDECAN::init(uint8_t driver_index, bool enable_filters)
 
     // wait 1 second for answers
     while (AP_HAL::millis() - start < 1000) {
-        uavcan::CanFrame esc_id_frame {};
-        uavcan::MonotonicTime time {};
-        uavcan::UtcTime utc_time {};
-        uavcan::CanIOFlags flags {};
+        AP_HAL::CanFrame esc_id_frame {};
+        uint64_t rx_time;
+        AP_HAL::CANDriver::CanIOFlags flags = 0;
 
-        int16_t n = _can_driver->getIface(CAN_IFACE_INDEX)->receive(esc_id_frame, time, utc_time, flags);
+        int16_t n = _can_driver->receive(esc_id_frame, rx_time, flags);
 
         if (n != 1) {
             continue;
@@ -143,7 +153,7 @@ void AP_KDECAN::init(uint8_t driver_index, bool enable_filters)
             continue;
         }
 
-        id.value = esc_id_frame.id & uavcan::CanFrame::MaskExtID;
+        id.value = esc_id_frame.id & AP_HAL::CanFrame::MaskExtID;
 
         if (id.source_id == BROADCAST_NODE_ID ||
             id.source_id >= (KDECAN_MAX_NUM_ESCS + ESC_NODE_ID_FIRST) ||
@@ -175,10 +185,7 @@ void AP_KDECAN::init(uint8_t driver_index, bool enable_filters)
 
 void AP_KDECAN::loop()
 {
-    uavcan::MonotonicTime timeout;
-    uavcan::CanFrame empty_frame { (0 | uavcan::CanFrame::FlagEFF), nullptr, 0 };
-    const uavcan::CanFrame* select_frames[uavcan::MaxCanIfaces] { };
-    select_frames[CAN_IFACE_INDEX] = &empty_frame;
+    uint64_t timeout;
 
     uint16_t output_buffer[KDECAN_MAX_NUM_ESCS] {};
 
@@ -199,9 +206,10 @@ void AP_KDECAN::loop()
             continue;
         }
 
-        uavcan::CanSelectMasks inout_mask;
         uint64_t now = AP_HAL::micros64();
-
+        bool read_select;
+        bool write_select;
+        int select_ret;
         // get latest enumeration state set from GCS
         if (_enum_sem.take(1)) {
             enumeration_state = _enumeration_state;
@@ -225,11 +233,10 @@ void AP_KDECAN::loop()
                 continue;
             }
 
-            timeout = uavcan::MonotonicTime::fromUSec(now + 1000);
+            timeout = now + 1000;
 
             switch (enumeration_state) {
                 case ENUMERATION_START: {
-                    inout_mask.write = 1 << CAN_IFACE_INDEX;
 
                     // send broadcast frame to start enumeration
                     frame_id_t id = { { .object_address = ENUM_OBJ_ADDR,
@@ -238,20 +245,19 @@ void AP_KDECAN::loop()
                                       .priority = 0,
                                       .unused = 0 } };
                     be16_t data = htobe16((uint16_t) ENUMERATION_TIMEOUT_MS);
-                    uavcan::CanFrame frame { (id.value | uavcan::CanFrame::FlagEFF), (uint8_t*) &data, sizeof(data) };
+                    AP_HAL::CanFrame frame { (id.value | AP_HAL::CanFrame::FlagEFF), (uint8_t*) &data, sizeof(data) };
 
-                    uavcan::CanSelectMasks in_mask = inout_mask;
-                    select_frames[CAN_IFACE_INDEX] = &frame;
 
                     // wait for write space to be available
-                    _can_driver->select(inout_mask, select_frames, timeout);
-                    select_frames[CAN_IFACE_INDEX] = &empty_frame;
+                    read_select = false;
+                    write_select = true;
+                    select_ret = _can_driver->select(read_select, write_select, &frame, timeout);
 
-                    if (in_mask.write & inout_mask.write) {
+                    if (select_ret > 0 && write_select) {
                         now = AP_HAL::micros64();
-                        timeout = uavcan::MonotonicTime::fromUSec(now + ENUMERATION_TIMEOUT_MS * 1000);
+                        timeout = now + ENUMERATION_TIMEOUT_MS * 1000;
 
-                        int8_t res = _can_driver->getIface(CAN_IFACE_INDEX)->send(frame, timeout, 0);
+                        int8_t res = _can_driver->send(frame, timeout, 0);
 
                         if (res == 1) {
                             enumeration_start = now;
@@ -277,28 +283,27 @@ void AP_KDECAN::loop()
                     FALLTHROUGH;
                 }
                 case ENUMERATION_RUNNING: {
-                    inout_mask.read = 1 << CAN_IFACE_INDEX;
-                    inout_mask.write = 0;
-
                     // wait for enumeration messages from ESCs
-                    uavcan::CanSelectMasks in_mask = inout_mask;
-                    _can_driver->select(inout_mask, select_frames, timeout);
 
-                    if (in_mask.read & inout_mask.read) {
-                        uavcan::CanFrame recv_frame;
-                        uavcan::MonotonicTime time;
-                        uavcan::UtcTime utc_time;
-                        uavcan::CanIOFlags flags {};
+                    // wait for write space to be available
+                    read_select = true;
+                    write_select = false;
+                    select_ret = _can_driver->select(read_select, write_select, nullptr, timeout);
 
-                        int16_t res = _can_driver->getIface(CAN_IFACE_INDEX)->receive(recv_frame, time, utc_time, flags);
+                    if (select_ret > 0 && read_select) {
+                        AP_HAL::CanFrame recv_frame;
+                        uint64_t rx_time;
+                        AP_HAL::CANDriver::CanIOFlags flags {};
+
+                        int16_t res = _can_driver->receive(recv_frame, rx_time, flags);
 
                         if (res == 1) {
-                            if (time.toUSec() < enumeration_start) {
+                            if (rx_time < enumeration_start) {
                                 // old message
                                 break;
                             }
 
-                            frame_id_t id { .value = recv_frame.id & uavcan::CanFrame::MaskExtID };
+                            frame_id_t id { .value = recv_frame.id & AP_HAL::CanFrame::MaskExtID };
 
                             if (id.object_address == UPDATE_NODE_ID_OBJ_ADDR) {
                                 // reply from setting new node ID
@@ -312,23 +317,21 @@ void AP_KDECAN::loop()
 
                             // try to set node ID for the received ESC
                             while (AP_HAL::micros64() - enumeration_start < ENUMERATION_TIMEOUT_MS * 1000) {
-                                inout_mask.read = 0;
-                                inout_mask.write = 1 << CAN_IFACE_INDEX;
-
                                 // wait for write space to be available
-                                in_mask = inout_mask;
-                                _can_driver->select(inout_mask, select_frames, timeout);
+                                id = { { .object_address = UPDATE_NODE_ID_OBJ_ADDR,
+                                            .destination_id = uint8_t(enumeration_esc_num + ESC_NODE_ID_FIRST),
+                                            .source_id = AUTOPILOT_NODE_ID,
+                                            .priority = 0,
+                                            .unused = 0 } };
+                                AP_HAL::CanFrame send_frame { (id.value | AP_HAL::CanFrame::FlagEFF), (uint8_t*) &recv_frame.data, recv_frame.dlc };
+                                read_select = false;
+                                write_select = true;
+                                select_ret = _can_driver->select(read_select, write_select, &send_frame, timeout);
 
-                                if (in_mask.write & inout_mask.write) {
-                                    id = { { .object_address = UPDATE_NODE_ID_OBJ_ADDR,
-                                             .destination_id = uint8_t(enumeration_esc_num + ESC_NODE_ID_FIRST),
-                                             .source_id = AUTOPILOT_NODE_ID,
-                                             .priority = 0,
-                                             .unused = 0 } };
-                                    uavcan::CanFrame send_frame { (id.value | uavcan::CanFrame::FlagEFF), (uint8_t*) &recv_frame.data, recv_frame.dlc };
-                                    timeout = uavcan::MonotonicTime::fromUSec(enumeration_start + ENUMERATION_TIMEOUT_MS * 1000);
+                                if (select_ret > 0 && write_select) {
+                                    timeout = enumeration_start + ENUMERATION_TIMEOUT_MS * 1000;
 
-                                    res = _can_driver->getIface(CAN_IFACE_INDEX)->send(send_frame, timeout, 0);
+                                    res = _can_driver->send(send_frame, timeout, 0);
 
                                     if (res == 1) {
                                         enumeration_esc_num++;
@@ -349,7 +352,6 @@ void AP_KDECAN::loop()
                     break;
                 }
                 case ENUMERATION_STOP: {
-                    inout_mask.write = 1 << CAN_IFACE_INDEX;
 
                     // send broadcast frame to stop enumeration
                     frame_id_t id = { { .object_address = ENUM_OBJ_ADDR,
@@ -358,19 +360,18 @@ void AP_KDECAN::loop()
                                       .priority = 0,
                                       .unused = 0 } };
                     le16_t data = htole16((uint16_t) ENUMERATION_TIMEOUT_MS);
-                    uavcan::CanFrame frame { (id.value | uavcan::CanFrame::FlagEFF), (uint8_t*) &data, sizeof(data) };
+                    AP_HAL::CanFrame frame { (id.value | AP_HAL::CanFrame::FlagEFF), (uint8_t*) &data, sizeof(data) };
 
-                    uavcan::CanSelectMasks in_mask = inout_mask;
-                    select_frames[CAN_IFACE_INDEX] = &frame;
 
                     // wait for write space to be available
-                    _can_driver->select(inout_mask, select_frames, timeout);
-                    select_frames[CAN_IFACE_INDEX] = &empty_frame;
+                    read_select = false;
+                    write_select = true;
+                    select_ret = _can_driver->select(read_select, read_select, &frame, timeout);
 
-                    if (in_mask.write & inout_mask.write) {
-                        timeout = uavcan::MonotonicTime::fromUSec(enumeration_start + ENUMERATION_TIMEOUT_MS * 1000);
+                    if (select_ret > 0 && write_select) {
+                        timeout = enumeration_start + ENUMERATION_TIMEOUT_MS * 1000;
 
-                        int8_t res = _can_driver->getIface(CAN_IFACE_INDEX)->send(frame, timeout, 0);
+                        int8_t res = _can_driver->send(frame, timeout, 0);
 
                         if (res == 1) {
                             enumeration_start = 0;
@@ -404,44 +405,49 @@ void AP_KDECAN::loop()
         }
 
         // always look for received frames
-        inout_mask.read = 1 << CAN_IFACE_INDEX;
-        timeout = uavcan::MonotonicTime::fromUSec(now + LOOP_INTERVAL_US);
+        timeout = now + LOOP_INTERVAL_US;
 
         // check if:
         //   - is currently sending throttle frames, OR
         //   - there are new output values and, a throttle frame was never sent or it's no longer in CAN queue, OR
         //   - it is time to send throttle frames again, regardless of new output values, OR
         //   - it is time to ask for telemetry information
+        bool try_write = false;
         if (sending_esc_num > 0 ||
             (_new_output.load(std::memory_order_acquire) && (pwm_last_sent == 0 || now - pwm_last_sent > SET_PWM_TIMEOUT_US)) ||
             (pwm_last_sent != 0 && (now - pwm_last_sent > SET_PWM_MIN_INTERVAL_US)) ||
             (now - telemetry_last_request > TELEMETRY_INTERVAL_US)) {
-
-            inout_mask.write = 1 << CAN_IFACE_INDEX;
+            // wait for write space or receive frame
+            try_write = true;
         } else {  // don't need to send frame, choose the maximum time we'll wait for receiving a frame
             uint64_t next_action = MIN(now + LOOP_INTERVAL_US, telemetry_last_request + TELEMETRY_INTERVAL_US);
 
             if (pwm_last_sent != 0) {
                 next_action = MIN(next_action, pwm_last_sent + SET_PWM_MIN_INTERVAL_US);
             }
-
-            timeout = uavcan::MonotonicTime::fromUSec(next_action);
+            timeout = next_action;
         }
 
-        // wait for write space or receive frame
-        uavcan::CanSelectMasks in_mask = inout_mask;
-        _can_driver->select(inout_mask, select_frames, timeout);
+        read_select = true;
+        write_select = true;
+        // Immediately check if rx buffer not empty
+        select_ret = _can_driver->select(read_select, write_select, nullptr, 0);
+        if (!read_select && !write_select) {
+            //wait for any event
+            _event_handle.wait(timeout);
+        }
+        read_select = true;
+        write_select = true;
+        select_ret = _can_driver->select(read_select, write_select, nullptr, 0);
+        if (select_ret > 0 && read_select) {
+            AP_HAL::CanFrame frame;
+            uint64_t rx_time;
+            AP_HAL::CANDriver::CanIOFlags flags {};
 
-        if (in_mask.read & inout_mask.read) {
-            uavcan::CanFrame frame;
-            uavcan::MonotonicTime time;
-            uavcan::UtcTime utc_time;
-            uavcan::CanIOFlags flags {};
-
-            int16_t res = _can_driver->getIface(CAN_IFACE_INDEX)->receive(frame, time, utc_time, flags);
+            int16_t res = _can_driver->receive(frame, rx_time, flags);
 
             if (res == 1) {
-                frame_id_t id { .value = frame.id & uavcan::CanFrame::MaskExtID };
+                frame_id_t id { .value = frame.id & AP_HAL::CanFrame::MaskExtID };
 
                 // check if frame is valid: directed at autopilot, doesn't come from broadcast and ESC was detected before
                 if (id.destination_id == AUTOPILOT_NODE_ID &&
@@ -458,7 +464,7 @@ void AP_KDECAN::loop()
                                 break;
                             }
 
-                            _telemetry[id.source_id - ESC_NODE_ID_FIRST].time = time.toUSec();
+                            _telemetry[id.source_id - ESC_NODE_ID_FIRST].time = rx_time;
                             _telemetry[id.source_id - ESC_NODE_ID_FIRST].voltage = frame.data[0] << 8 | frame.data[1];
                             _telemetry[id.source_id - ESC_NODE_ID_FIRST].current = frame.data[2] << 8 | frame.data[3];
                             _telemetry[id.source_id - ESC_NODE_ID_FIRST].rpm = frame.data[4] << 8 | frame.data[5];
@@ -475,7 +481,7 @@ void AP_KDECAN::loop()
             }
         }
 
-        if (in_mask.write & inout_mask.write) {
+        if (try_write) {
             now = AP_HAL::micros64();
 
             bool new_output = _new_output.load(std::memory_order_acquire);
@@ -525,15 +531,23 @@ void AP_KDECAN::loop()
                                       .priority = 0,
                                       .unused = 0 } };
 
-                    uavcan::CanFrame frame { (id.value | uavcan::CanFrame::FlagEFF), (uint8_t*) &kde_pwm, sizeof(kde_pwm) };
+                    AP_HAL::CanFrame frame { (id.value | AP_HAL::CanFrame::FlagEFF), (uint8_t*) &kde_pwm, sizeof(kde_pwm) };
 
                     if (esc_num == 0) {
-                        timeout = uavcan::MonotonicTime::fromUSec(now + SET_PWM_TIMEOUT_US);
+                        timeout = now + SET_PWM_TIMEOUT_US;
                     } else {
-                        timeout = uavcan::MonotonicTime::fromUSec(pwm_last_sent + SET_PWM_TIMEOUT_US);
+                        timeout = pwm_last_sent + SET_PWM_TIMEOUT_US;
                     }
-
-                    int8_t res = _can_driver->getIface(CAN_IFACE_INDEX)->send(frame, timeout, 0);
+                    
+                    write_select = true;
+                    read_select = false;
+                    //Check if we can transmit this frame
+                    int16_t res = _can_driver->select(read_select, write_select, &frame, 0);
+                    if (res > 0 && write_select) {
+                        res = _can_driver->send(frame, timeout, 0);
+                    } else {
+                        res = 0;
+                    }
 
                     if (res == 1) {
                         if (esc_num == 0) {
@@ -561,11 +575,19 @@ void AP_KDECAN::loop()
                                   .priority = 0,
                                   .unused = 0 } };
 
-                uavcan::CanFrame frame { (id.value | uavcan::CanFrame::FlagEFF), nullptr, 0 };
-                timeout = uavcan::MonotonicTime::fromUSec(now + TELEMETRY_TIMEOUT_US);
+                AP_HAL::CanFrame frame { (id.value | AP_HAL::CanFrame::FlagEFF), nullptr, 0 };
+                timeout = now + TELEMETRY_TIMEOUT_US;
 
-                int8_t res = _can_driver->getIface(CAN_IFACE_INDEX)->send(frame, timeout, 0);
-
+                write_select = true;
+                read_select = false;
+                //Check if we can transmit this frame
+                int16_t res = _can_driver->select(read_select, write_select, &frame, 0);
+                if (res > 0 && write_select) {
+                    res = _can_driver->send(frame, timeout, 0);
+                } else {
+                    res = 0;
+                }
+ 
                 if (res == 1) {
                     telemetry_last_request = now;
                 } else if (res == 0) {

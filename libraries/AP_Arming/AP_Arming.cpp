@@ -39,7 +39,7 @@
 #include <AP_VisualOdom/AP_VisualOdom.h>
 
 #if HAL_WITH_UAVCAN
-  #include <AP_BoardConfig/AP_BoardConfig_CAN.h>
+  #include <AP_CANManager/AP_CANManager.h>
   #include <AP_Common/AP_Common.h>
   #include <AP_Vehicle/AP_Vehicle.h>
 
@@ -821,7 +821,7 @@ bool AP_Arming::can_checks(bool report)
 
         for (uint8_t i = 0; i < num_drivers; i++) {
             switch (AP::can().get_protocol_type(i)) {
-                case AP_BoardConfig_CAN::Protocol_Type_KDECAN: {
+                case AP_CANManager::Protocol_Type_KDECAN: {
 // To be replaced with macro saying if KDECAN library is included
 #if APM_BUILD_TYPE(APM_BUILD_ArduCopter) || APM_BUILD_TYPE(APM_BUILD_ArduPlane) || APM_BUILD_TYPE(APM_BUILD_ArduSub)
                     AP_KDECAN *ap_kdecan = AP_KDECAN::get_kdecan(i);
@@ -832,7 +832,7 @@ bool AP_Arming::can_checks(bool report)
 #endif
                     break;
                 }
-                case AP_BoardConfig_CAN::Protocol_Type_PiccoloCAN: {
+                case AP_CANManager::Protocol_Type_PiccoloCAN: {
 #if HAL_PICCOLO_CAN_ENABLE
                     AP_PiccoloCAN *ap_pcan = AP_PiccoloCAN::get_pcan(i);
 
@@ -847,7 +847,7 @@ bool AP_Arming::can_checks(bool report)
 #endif
                     break;
                 }
-                case AP_BoardConfig_CAN::Protocol_Type_UAVCAN:
+                case AP_CANManager::Protocol_Type_UAVCAN:
                 {
                     if (!AP::uavcan_dna_server().prearm_check(fail_msg, ARRAY_SIZE(fail_msg))) {
                         check_failed(ARMING_CHECK_SYSTEM, report, "UAVCAN: %s", fail_msg);
@@ -855,14 +855,14 @@ bool AP_Arming::can_checks(bool report)
                     }
                     break;
                 }
-                case AP_BoardConfig_CAN::Protocol_Type_ToshibaCAN:
+                case AP_CANManager::Protocol_Type_ToshibaCAN:
                 {
                     // toshibacan doesn't currently have any prearm
                     // checks.  Theres scope for adding a "not
                     // initialised" prearm check.
                     break;
                 }
-                case AP_BoardConfig_CAN::Protocol_Type_None:
+                case AP_CANManager::Protocol_Type_None:
                     break;
             }
         }

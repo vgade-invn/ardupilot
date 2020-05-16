@@ -19,13 +19,10 @@
 
 #include <AP_HAL/AP_HAL.h>
 
-#if AP_UAVCAN_SLCAN_ENABLED
 
-#include "AP_UAVCAN_SLCAN.h"
+#include "AP_SLCANDriver.h"
 #include <AP_SerialManager/AP_SerialManager.h>
-
-#include <AP_HAL_ChibiOS/CANSerialRouter.h>
-
+#include <stdio.h>
 extern const AP_HAL::HAL& hal;
 
 static uint8_t nibble2hex(uint8_t x)
@@ -68,14 +65,21 @@ static uint8_t hex2nibble(char c)
     return out;
 }
 
+int SLCAN::CANDriver::set_port(AP_HAL::UARTDriver* port) {
+    if (port == nullptr) {
+        return -1;
+    }
+    _port = port;
+    return 0;
+}
 
-bool SLCAN::CAN::push_Frame(uavcan::CanFrame &frame)
+
+bool SLCAN::CANDriver::push_Frame(AP_HAL::CanFrame &frame)
 {
-    SLCAN::CanRxItem frm;
+    AP_HAL::CANDriver::CanRxItem frm;
     frm.frame = frame;
     frm.flags = 0;
-    frm.utc_usec = AP_HAL::micros64();
-    ChibiOS_CAN::CanIface::slcan_router().route_frame_to_can(frm.frame, frm.utc_usec);
+    frm.timestamp_us = AP_HAL::micros64();
     return rx_queue_.push(frm);
 }
 
@@ -84,9 +88,9 @@ bool SLCAN::CAN::push_Frame(uavcan::CanFrame &frame)
  *  <type> <id> <dlc> <data>
  * The emitting functions below are highly optimized for speed.
  */
-bool SLCAN::CAN::handle_FrameDataExt(const char* cmd)
+bool SLCAN::CANDriver::handle_FrameDataExt(const char* cmd)
 {
-    uavcan::CanFrame f;
+    AP_HAL::CanFrame f;
     hex2nibble_error = false;
     f.id = f.FlagEFF |
            (hex2nibble(cmd[1]) << 28) |
@@ -97,11 +101,11 @@ bool SLCAN::CAN::handle_FrameDataExt(const char* cmd)
            (hex2nibble(cmd[6]) <<  8) |
            (hex2nibble(cmd[7]) <<  4) |
            (hex2nibble(cmd[8]) <<  0);
-    if (cmd[9] < '0' || cmd[9] > ('0' + uavcan::CanFrame::MaxDataLen)) {
+    if (cmd[9] < '0' || cmd[9] > ('0' + AP_HAL::CanFrame::MaxDataLen)) {
         return false;
     }
     f.dlc = cmd[9] - '0';
-    if (f.dlc > uavcan::CanFrame::MaxDataLen) {
+    if (f.dlc > AP_HAL::CanFrame::MaxDataLen) {
         return false;
     }
     {
@@ -117,18 +121,18 @@ bool SLCAN::CAN::handle_FrameDataExt(const char* cmd)
     return push_Frame(f);
 }
 
-bool SLCAN::CAN::handle_FrameDataStd(const char* cmd)
+bool SLCAN::CANDriver::handle_FrameDataStd(const char* cmd)
 {
-    uavcan::CanFrame f;
+    AP_HAL::CanFrame f;
     hex2nibble_error = false;
     f.id = (hex2nibble(cmd[1]) << 8) |
            (hex2nibble(cmd[2]) << 4) |
            (hex2nibble(cmd[3]) << 0);
-    if (cmd[4] < '0' || cmd[4] > ('0' + uavcan::CanFrame::MaxDataLen)) {
+    if (cmd[4] < '0' || cmd[4] > ('0' + AP_HAL::CanFrame::MaxDataLen)) {
         return false;
     }
     f.dlc = cmd[4] - '0';
-    if (f.dlc > uavcan::CanFrame::MaxDataLen) {
+    if (f.dlc > AP_HAL::CanFrame::MaxDataLen) {
         return false;
     }
     {
@@ -144,9 +148,9 @@ bool SLCAN::CAN::handle_FrameDataStd(const char* cmd)
     return push_Frame(f);
 }
 
-bool SLCAN::CAN::handle_FrameRTRExt(const char* cmd)
+bool SLCAN::CANDriver::handle_FrameRTRExt(const char* cmd)
 {
-    uavcan::CanFrame f;
+    AP_HAL::CanFrame f;
     hex2nibble_error = false;
     f.id = f.FlagEFF | f.FlagRTR |
            (hex2nibble(cmd[1]) << 28) |
@@ -157,12 +161,12 @@ bool SLCAN::CAN::handle_FrameRTRExt(const char* cmd)
            (hex2nibble(cmd[6]) <<  8) |
            (hex2nibble(cmd[7]) <<  4) |
            (hex2nibble(cmd[8]) <<  0);
-    if (cmd[9] < '0' || cmd[9] > ('0' + uavcan::CanFrame::MaxDataLen)) {
+    if (cmd[9] < '0' || cmd[9] > ('0' + AP_HAL::CanFrame::MaxDataLen)) {
         return false;
     }
     f.dlc = cmd[9] - '0';
 
-    if (f.dlc > uavcan::CanFrame::MaxDataLen) {
+    if (f.dlc > AP_HAL::CanFrame::MaxDataLen) {
         return false;
     }
     if (hex2nibble_error) {
@@ -171,19 +175,19 @@ bool SLCAN::CAN::handle_FrameRTRExt(const char* cmd)
     return push_Frame(f);
 }
 
-bool SLCAN::CAN::handle_FrameRTRStd(const char* cmd)
+bool SLCAN::CANDriver::handle_FrameRTRStd(const char* cmd)
 {
-    uavcan::CanFrame f;
+    AP_HAL::CanFrame f;
     hex2nibble_error = false;
     f.id = f.FlagRTR |
            (hex2nibble(cmd[1]) << 8) |
            (hex2nibble(cmd[2]) << 4) |
            (hex2nibble(cmd[3]) << 0);
-    if (cmd[4] < '0' || cmd[4] > ('0' + uavcan::CanFrame::MaxDataLen)) {
+    if (cmd[4] < '0' || cmd[4] > ('0' + AP_HAL::CanFrame::MaxDataLen)) {
         return false;
     }
     f.dlc = cmd[4] - '0';
-    if (f.dlc <= uavcan::CanFrame::MaxDataLen) {
+    if (f.dlc <= AP_HAL::CanFrame::MaxDataLen) {
         return false;
     }
     if (hex2nibble_error) {
@@ -198,34 +202,34 @@ static inline const char* getASCIIStatusCode(bool status)
 }
 
 
-bool SLCAN::CANManager::begin(uint32_t bitrate, uint8_t can_number)
-{
-    if (driver_.init(bitrate, SLCAN::CAN::NormalMode, nullptr) < 0) {
-        return false;
-    }
-    if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&SLCAN::CANManager::reader_trampoline, void), "SLCAN", 4096, AP_HAL::Scheduler::PRIORITY_CAN, -1)) {
-        return false;
-    }
-    initialized(true);
-    return true;
-}
+// bool SLCAN::CANManager::begin(uint32_t bitrate, uint8_t can_number)
+// {
+//     if (driver_.init(bitrate, SLCAN::CANDriver::NormalMode, nullptr) < 0) {
+//         return false;
+//     }
+//     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&SLCAN::CANManager::reader_trampoline, void), "SLCAN", 4096, AP_HAL::Scheduler::PRIORITY_CAN, -1)) {
+//         return false;
+//     }
+//     initialized(true);
+//     return true;
+// }
 
-bool SLCAN::CANManager::is_initialized()
+bool SLCAN::CANDriver::is_initialized() const
 {
     return initialized_;
 }
 
-void SLCAN::CANManager::initialized(bool val)
-{
-    initialized_ = val;
-}
+// void SLCAN::CANManager::initialized(bool val)
+// {
+//     initialized_ = val;
+// }
 
-int SLCAN::CAN::init(const uint32_t bitrate, const OperatingMode mode, AP_HAL::UARTDriver* port)
+int SLCAN::CANDriver::init()
 {
-    if (port == nullptr) {
+    if (_port == nullptr) {
         return -1;
     }
-    _port = port;
+    _port->lock_port(_serial_lock_key, _serial_lock_key);
     initialized_ = true;
     return 0;
 }
@@ -241,8 +245,11 @@ int SLCAN::CAN::init(const uint32_t bitrate, const OperatingMode mode, AP_HAL::U
  * Flags:
  *  L - this frame is a loopback frame; timestamp field contains TX timestamp
  */
-int16_t SLCAN::CAN::reportFrame(const uavcan::CanFrame& frame, bool loopback, uint64_t timestamp_usec)
+int16_t SLCAN::CANDriver::reportFrame(const AP_HAL::CanFrame& frame, bool loopback, uint64_t timestamp_usec)
 {
+    if (_port == nullptr) {
+        return -1;
+    }
     constexpr unsigned SLCANMaxFrameSize = 40;
     uint8_t buffer[SLCANMaxFrameSize] = {'\0'};
     uint8_t* p = &buffer[0];
@@ -334,8 +341,13 @@ int16_t SLCAN::CAN::reportFrame(const uavcan::CanFrame& frame, bool loopback, ui
 /**
  * Accepts command string, returns response string or nullptr if no response is needed.
  */
-const char* SLCAN::CAN::processCommand(char* cmd)
+const char* SLCAN::CANDriver::processCommand(char* cmd)
 {
+
+    if (_port == nullptr) {
+        return nullptr;
+    }
+
     /*
         * High-traffic SLCAN commands go first
         */
@@ -352,7 +364,8 @@ const char* SLCAN::CAN::processCommand(char* cmd)
         // See long commands below
         return handle_FrameRTRStd(cmd) ? "z\r" : "\a";
     }
-
+    uint8_t resp_bytes[40];
+    uint16_t resp_len;
     /*
         * Regular SLCAN commands
         */
@@ -360,14 +373,8 @@ const char* SLCAN::CAN::processCommand(char* cmd)
     case 'S':               // Set CAN bitrate
     case 'O':               // Open CAN in normal mode
     case 'L':               // Open CAN in listen-only mode
-    case 'l': {             // Open CAN with loopback enabled
-        _close = false;
-        return getASCIIStatusCode(true);    // Returning success for compatibility reasons
-    }
-    case 'C': {             // Close CAN
-        _close = true;
-        return getASCIIStatusCode(true);    // Returning success for compatibility reasons
-    }
+    case 'l':               // Open CAN with loopback enabled
+    case 'C':               // Close CAN
     case 'M':               // Set CAN acceptance filter ID
     case 'm':               // Set CAN acceptance filter mask
     case 'U':               // Set UART baud rate, see http://www.can232.com/docs/can232_v3.pdf
@@ -375,16 +382,21 @@ const char* SLCAN::CAN::processCommand(char* cmd)
         return getASCIIStatusCode(true);    // Returning success for compatibility reasons
     }
     case 'F': {             // Get status flags
-        _port->printf("F%02X\r", unsigned(0));    // Returning success for compatibility reasons
+        resp_len = snprintf((char*)resp_bytes, sizeof(resp_bytes), "F%02X\r", unsigned(0));    // Returning success for compatibility reasons
+        if (resp_len > 0) {
+            _port->write_locked(resp_bytes, resp_len, _serial_lock_key);
+        }
         return nullptr;
     }
     case 'V': {             // HW/SW version
-        _port->printf("V%x%x%x%x\r", AP_UAVCAN_HW_VERS_MAJOR, AP_UAVCAN_HW_VERS_MINOR, AP_UAVCAN_SW_VERS_MAJOR, AP_UAVCAN_SW_VERS_MINOR);
+        resp_len = snprintf((char*)resp_bytes, sizeof(resp_bytes),"V%x%x%x%x\r", 1, 0, 1, 0);
+        if (resp_len > 0) {
+            _port->write_locked(resp_bytes, resp_len, _serial_lock_key);
+        }
         return nullptr;
     }
     case 'N': {             // Serial number
-        uavcan::protocol::HardwareVersion hw_version; // Standard type uavcan.protocol.HardwareVersion
-        const uint8_t uid_buf_len = hw_version.unique_id.capacity();
+        const uint8_t uid_buf_len = 12;
         uint8_t uid_len = uid_buf_len;
         uint8_t unique_id[uid_buf_len];
         char buf[uid_buf_len * 2 + 1] = {'\0'};
@@ -396,7 +408,10 @@ const char* SLCAN::CAN::processCommand(char* cmd)
             }
         }
         *pos++ = '\0';
-        _port->printf("N%s\r", &buf[0]);
+        resp_len = snprintf((char*)resp_bytes, sizeof(resp_bytes),"N%s\r", &buf[0]);
+        if (resp_len > 0) {
+            _port->write_locked(resp_bytes, resp_len, _serial_lock_key);
+        }
         return nullptr;
     }
     default: {
@@ -410,25 +425,30 @@ const char* SLCAN::CAN::processCommand(char* cmd)
 /**
  * Please keep in mind that this function is strongly optimized for speed.
  */
-inline void SLCAN::CAN::addByte(const uint8_t byte)
+inline void SLCAN::CANDriver::addByte(const uint8_t byte)
 {
+    if (_port == nullptr) {
+        return;
+    }
     if ((byte >= 32 && byte <= 126)) {                // Normal printable ASCII character
         if (pos_ < SLCAN_BUFFER_SIZE) {
             buf_[pos_] = char(byte);
             pos_ += 1;
         }
         else {
-            reset();                                        // Buffer overrun; silently drop the data
+            pos_ = 0;                                        // Buffer overrun; silently drop the data
         }
     }
     else if (byte == '\r') {                          // End of command (SLCAN)
+
         // Processing the command
         buf_[pos_] = '\0';
         const char* const response = processCommand(reinterpret_cast<char*>(&buf_[0]));
-        reset();
+        pos_ = 0;
 
         // Sending the response if provided
         if (response != nullptr) {
+            
             _port->write_locked(reinterpret_cast<const uint8_t*>(response),
                                 strlen(response), _serial_lock_key);
         }
@@ -439,134 +459,140 @@ inline void SLCAN::CAN::addByte(const uint8_t byte)
         }
     }
     else {                                                  // This also includes Ctrl+C, Ctrl+D
-        reset();                                            // Invalid byte - drop the current command
+        pos_ = 0;                                            // Invalid byte - drop the current command
     }
 }
 
-void SLCAN::CAN::reset()
-{
-    pos_ = 0;
-}
+// void SLCAN::CANDriver::reader()
+// {
+//     if (_port == nullptr) {
+//         return;
+//     }
+//     if (!_port_initialised) {
+//         //_port->begin(bitrate_);
+//         _port_initialised = true;
+//     }
+//     _port->lock_port(_serial_lock_key, _serial_lock_key);
+//     if (!_port->wait_timeout(1,1)) {
+//         int16_t data = _port->read_locked(_serial_lock_key);
+//         while (data > 0) {
+//             addByte(data);
+//             data = _port->read_locked(_serial_lock_key);
+//         }
+//     }
+// }
 
-
-void SLCAN::CAN::reader()
-{
-    if (_port == nullptr) {
-        return;
-    }
-    if (!_port_initialised) {
-        //_port->begin(bitrate_);
-        _port_initialised = true;
-    }
-    _port->lock_port(_serial_lock_key, _serial_lock_key);
-    if (!_port->wait_timeout(1,1)) {
-        int16_t data = _port->read_locked(_serial_lock_key);
-        while (data > 0) {
-            addByte(data);
-            data = _port->read_locked(_serial_lock_key);
-        }
-    }
-}
-
-int16_t SLCAN::CAN::send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline, uavcan::CanIOFlags flags)
+int16_t SLCAN::CANDriver::send(const AP_HAL::CanFrame& frame, uint64_t tx_deadline, AP_HAL::CANDriver::CanIOFlags flags)
 {
     if (frame.isErrorFrame() || frame.dlc > 8) {
         return -ErrUnsupportedFrame;
     }
 
-    return reportFrame(frame, flags & uavcan::CanIOFlagLoopback, AP_HAL::micros64());
+    return reportFrame(frame, flags & AP_HAL::CANDriver::CanIOFlagLoopback, AP_HAL::micros64());
 }
 
-int16_t SLCAN::CAN::receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
-                            uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
+int16_t SLCAN::CANDriver::receive(AP_HAL::CanFrame& out_frame, uint64_t& rx_time,
+                                  AP_HAL::CANDriver::CanIOFlags& out_flags)
 {
-    out_ts_monotonic = uavcan::MonotonicTime::fromUSec(AP_HAL::micros64());; // High precision is not required for monotonic timestamps
-    uint64_t utc_usec;
+    if (_port == nullptr) {
+        return 0;
+    }
+    if (!_port->available_locked(_serial_lock_key)) {
+        return 0;
+    } else {
+        uint32_t num_bytes = _port->available_locked(_serial_lock_key);
+        while(num_bytes--) {
+            int16_t ret = _port->read_locked(_serial_lock_key);
+            if (ret <= 0) {
+                break;
+            }
+            addByte(ret);
+        }
+    }
+    if (!rx_queue_.available()) {
+        return 0;
+    }
     CanRxItem frm;
     rx_queue_.pop(frm);
     out_frame = frm.frame;
-    utc_usec = frm.utc_usec;
+    rx_time = frm.timestamp_us;
     out_flags = frm.flags;
-    out_ts_utc = uavcan::UtcTime::fromUSec(utc_usec);
     return 1;
 }
 
-bool SLCAN::CAN::pending_frame_sent()
-{
-    if (_pending_frame_size == 0) {
-        return false;
-    }
-    else if (_port->txspace() >= _pending_frame_size) {
-        _pending_frame_size = 0;
-        return true;
-    }
-    return false;
-}
+// bool SLCAN::CANDriver::pending_frame_sent()
+// {
+//     if (_pending_frame_size == 0) {
+//         return false;
+//     }
+//     else if (_port->txspace() >= _pending_frame_size) {
+//         _pending_frame_size = 0;
+//         return true;
+//     }
+//     return false;
+// }
 
-bool SLCAN::CAN::isRxBufferEmpty()
-{
-    return rx_queue_.available() == 0;
-}
+// bool SLCAN::CANDriver::isRxBufferEmpty()
+// {
+//     return rx_queue_.available() == 0;
+// }
 
-bool SLCAN::CAN::canAcceptNewTxFrame() const
-{
-    constexpr unsigned SLCANMaxFrameSize = 40;
-    if (_port->txspace() >= SLCANMaxFrameSize) {
-        return true;
-    }
-    return false;
-}
+// bool SLCAN::CANDriver::canAcceptNewTxFrame() const
+// {
+//     constexpr unsigned SLCANMaxFrameSize = 40;
+//     if (_port->txspace() >= SLCANMaxFrameSize) {
+//         return true;
+//     }
+//     return false;
+// }
 
-uavcan::CanSelectMasks SLCAN::CANManager::makeSelectMasks(const uavcan::CanFrame* (&pending_tx)[uavcan::MaxCanIfaces])
-{
-    uavcan::CanSelectMasks msk;
+// uavcan::CanSelectMasks SLCAN::CANManager::makeSelectMasks(const uavcan::CanFrame* (&pending_tx)[uavcan::MaxCanIfaces])
+// {
+//     uavcan::CanSelectMasks msk;
 
-    for (uint8_t i = 0; i < _ifaces_num; i++) {
-        if (!driver_.is_initialized()) {
-            continue;
-        }
+//     for (uint8_t i = 0; i < _ifaces_num; i++) {
+//         if (!driver_.is_initialized()) {
+//             continue;
+//         }
 
-        if (!driver_.isRxBufferEmpty()) {
-            msk.read |= 1 << i;
-        }
+//         if (!driver_.isRxBufferEmpty()) {
+//             msk.read |= 1 << i;
+//         }
 
-        if (pending_tx[i] != nullptr) {
-            if (driver_.canAcceptNewTxFrame()) {
-                msk.write |= 1 << i;
-            }
-        }
-    }
+//         if (pending_tx[i] != nullptr) {
+//             if (driver_.canAcceptNewTxFrame()) {
+//                 msk.write |= 1 << i;
+//             }
+//         }
+//     }
 
-    return msk;
-}
+//     return msk;
+// }
 
-int16_t SLCAN::CANManager::select(uavcan::CanSelectMasks& inout_masks,
-                                  const uavcan::CanFrame* (&pending_tx)[uavcan::MaxCanIfaces], uavcan::MonotonicTime blocking_deadline)
-{
-    const uavcan::CanSelectMasks in_masks = inout_masks;
-    const uavcan::MonotonicTime time = uavcan::MonotonicTime::fromUSec(AP_HAL::micros64());
+// int16_t SLCAN::CANManager::select(uavcan::CanSelectMasks& inout_masks,
+//                                   const uavcan::CanFrame* (&pending_tx)[uavcan::MaxCanIfaces], uavcan::MonotonicTime blocking_deadline)
+// {
+//     const uavcan::CanSelectMasks in_masks = inout_masks;
+//     const uavcan::MonotonicTime time = uavcan::MonotonicTime::fromUSec(AP_HAL::micros64());
 
-    inout_masks = makeSelectMasks(pending_tx); // Check if we already have some of the requested events
-    if ((inout_masks.read & in_masks.read) != 0 || (inout_masks.write & in_masks.write) != 0) {
-        return 1;
-    }
-    _irq_handler_ctx = chThdGetSelfX();
-    if (blocking_deadline.toUSec()) {
-        chEvtWaitAnyTimeout(ALL_EVENTS, chTimeUS2I((blocking_deadline - time).toUSec())); // Block until timeout expires or any iface updates
-    }
-    inout_masks = makeSelectMasks(pending_tx); // Return what we got even if none of the requested events are set
-    return 1; // Return value doesn't matter as long as it is non-negative
-}
+//     inout_masks = makeSelectMasks(pending_tx); // Check if we already have some of the requested events
+//     if ((inout_masks.read & in_masks.read) != 0 || (inout_masks.write & in_masks.write) != 0) {
+//         return 1;
+//     }
+//     _irq_handler_ctx = chThdGetSelfX();
+//     if (blocking_deadline.toUSec()) {
+//         chEvtWaitAnyTimeout(ALL_EVENTS, chTimeUS2I((blocking_deadline - time).toUSec())); // Block until timeout expires or any iface updates
+//     }
+//     inout_masks = makeSelectMasks(pending_tx); // Return what we got even if none of the requested events are set
+//     return 1; // Return value doesn't matter as long as it is non-negative
+// }
 
-void SLCAN::CANManager::reader_trampoline(void)
-{
-    while (true) {
-        driver_.reader();
-        if ((driver_.pending_frame_sent() || !driver_.isRxBufferEmpty()) && _irq_handler_ctx) {
-            chEvtSignalI(_irq_handler_ctx, EVENT_MASK(0));
-        }
-    }
-}
-
-#endif // AP_UAVCAN_SLCAN_ENABLED
-
+// void SLCAN::CANManager::reader_trampoline(void)
+// {
+//     while (true) {
+//         driver_.reader();
+//         if ((driver_.pending_frame_sent() || !driver_.isRxBufferEmpty()) && _irq_handler_ctx) {
+//             chEvtSignalI(_irq_handler_ctx, EVENT_MASK(0));
+//         }
+//     }
+// }

@@ -6,7 +6,7 @@
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS && HAL_WITH_UAVCAN
 
-#include <AP_HAL/CAN.h>
+#include <AP_CANManager/AP_CANManager.h>
 #include <AP_HAL/Semaphores.h>
 #include <AP_HAL_ChibiOS/CAN.h>
 
@@ -156,22 +156,22 @@ MSG_CB(com::hex::equipment::flow::Measurement, Measurement);
 void UAVCAN_sniffer::init(void)
 {
     uint8_t interface = 0;
-    AP_HAL::CANManager* can_mgr = new ChibiOS::CANManager;
+    AP_HAL::CANDriver* can_drv = new ChibiOS::CANDriver;
     
-    if (can_mgr == nullptr) {
-        AP_HAL::panic("Couldn't allocate CANManager, something is very wrong");
+    if (can_drv == nullptr) {
+        AP_HAL::panic("Couldn't allocate CANDriver, something is very wrong");
     }
 
-    const_cast <AP_HAL::HAL&> (hal).can_mgr[driver_index] = can_mgr;
-    can_mgr->begin(1000000, interface);
-    can_mgr->initialized(true);
+    const_cast <AP_HAL::HAL&> (hal).can_drv[driver_index] = can_drv;
+    can_drv->begin(1000000, interface);
+    can_drv->initialized(true);
 
-    if (!can_mgr->is_initialized()) {
+    if (!can_drv->is_initialized()) {
         debug_uavcan("Can not initialised\n");
         return;
     }
 
-    uavcan::ICanDriver* driver = can_mgr->get_driver();
+    uavcan::ICanDriver* driver = can_drv->get_driver();
     if (driver == nullptr) {
         return;
     }

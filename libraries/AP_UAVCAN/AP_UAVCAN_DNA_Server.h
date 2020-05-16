@@ -30,7 +30,7 @@ class AP_UAVCAN_DNA_Server
 
     uint32_t last_verification_request;
     uint8_t curr_verifying_node;
-    uint8_t self_node_id[MAX_NUMBER_OF_CAN_DRIVERS];
+    uint8_t self_node_id[MAX_NUMBER_OF_CAN_INTERFACES];
     bool nodeInfo_resp_rcvd;
 
     Bitmask<128> occupation_mask;
