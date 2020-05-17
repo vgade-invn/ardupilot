@@ -1,6 +1,7 @@
-#include "AP_UAVCAN_Driver.h"
+#include "AP_UAVCAN_IfaceMgr.h"
 #include "AP_UAVCAN_Clock.h"
 #include <AP_HAL/AP_HAL.h>
+#include <AP_CANManager/AP_CANManager.h>
 using namespace uavcan;
 extern const AP_HAL::HAL& hal;
 
@@ -23,7 +24,7 @@ extern const AP_HAL::HAL& hal;
  * @return 1 = one frame transmitted, 0 = TX buffer full, negative for error.
  */
 int16_t CanIface::send(const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags) {
-    return can_drv_->send(AP_HAL::CanFrame(frame.id, frame.data, frame.dlc), tx_deadline.toUSec(), flags);
+    return can_iface_->send(AP_HAL::CanFrame(frame.id, frame.data, frame.dlc), tx_deadline.toUSec(), flags);
 }
 
 /**
@@ -45,11 +46,15 @@ int16_t CanIface::send(const CanFrame& frame, MonotonicTime tx_deadline, CanIOFl
  */
 int16_t CanIface::receive(CanFrame& out_frame, MonotonicTime& out_ts_monotonic, UtcTime& out_ts_utc,
                         CanIOFlags& out_flags) {
+    
+    if (can_iface_ == UAVCAN_NULLPTR) {
+        return -1;
+    }
     AP_HAL::CanFrame frame;
     uint64_t rx_timestamp;
     uint16_t flags;
     out_ts_monotonic = uavcan::MonotonicTime::fromUSec(AP_HAL::micros());
-    int16_t ret = can_drv_->receive(frame, rx_timestamp, flags);
+    int16_t ret = can_iface_->receive(frame, rx_timestamp, flags);
     if (ret < 0) {
         return ret;
     }
@@ -69,7 +74,10 @@ int16_t CanIface::receive(CanFrame& out_frame, MonotonicTime& out_ts_monotonic, 
  * @return 0 = success, negative for error.
  */
 int16_t CanIface::configureFilters(const CanFilterConfig* filter_configs, uint16_t num_configs) {
-    AP_HAL::CANDriver::CanFilterConfig* hal_filter_configs = new AP_HAL::CANDriver::CanFilterConfig[num_configs];
+    if (can_iface_ == UAVCAN_NULLPTR) {
+        return -1;
+    }
+    AP_HAL::CANIface::CanFilterConfig* hal_filter_configs = new AP_HAL::CANIface::CanFilterConfig[num_configs];
     if (hal_filter_configs == nullptr) {
         return -1;
     }
@@ -77,14 +85,17 @@ int16_t CanIface::configureFilters(const CanFilterConfig* filter_configs, uint16
         hal_filter_configs[i].id = filter_configs[i].id;
         hal_filter_configs[i].mask = filter_configs[i].mask;
     }
-    return can_drv_->configureFilters(hal_filter_configs, num_configs);
+    return can_iface_->configureFilters(hal_filter_configs, num_configs);
 }
 
 /**
  * Number of available hardware filters.
  */
 uint16_t CanIface::getNumFilters() const {
-    return can_drv_->getNumFilters();
+    if (can_iface_ == UAVCAN_NULLPTR) {
+        return -1;
+    }
+    return can_iface_->getNumFilters();
 }
 
 /**
@@ -92,7 +103,10 @@ uint16_t CanIface::getNumFilters() const {
  * Arbitration lost should not be treated as a hardware error.
  */
 uint64_t CanIface::getErrorCount() const {
-    return can_drv_->getErrorCount();
+    if (can_iface_ == UAVCAN_NULLPTR) {
+        return -1;
+    }
+    return can_iface_->getErrorCount();
 }
 
 /*****************************************************
@@ -101,28 +115,36 @@ uint64_t CanIface::getErrorCount() const {
  *                                                   *
  * ***************************************************/
 
-bool CanDriver::add_interface(AP_HAL::CANDriver *can_drv) {
+bool CanIfaceMgr::add_interface(AP_HAL::CANIface *can_iface) {
     if (num_ifaces > MAX_NUMBER_OF_CAN_INTERFACES) {
+        AP::can().log(AP_CANManager::LOG_ERROR, num_ifaces, "UAVCANIfaceMgr: Num Ifaces Exceeded\n");
+        return false;
+    }
+    if (can_iface == nullptr) {
+        AP::can().log(AP_CANManager::LOG_ERROR, num_ifaces, "UAVCANIfaceMgr: Iface Null\n");
         return false;
     }
     if (ifaces[num_ifaces] != nullptr) {
+        AP::can().log(AP_CANManager::LOG_ERROR, num_ifaces, "UAVCANIfaceMgr: Iface already added\n", num_ifaces);
         return false;
     }
-    ifaces[num_ifaces] = new CanIface(can_drv);
+    ifaces[num_ifaces] = new CanIface(can_iface);
     if (ifaces[num_ifaces] == nullptr) {
+        AP::can().log(AP_CANManager::LOG_ERROR, num_ifaces, "UAVCANIfaceMgr: Can't alloc uavcan::iface\n", num_ifaces);
+    return false;
+    }
+    if (!ifaces[num_ifaces]->can_iface_->set_event_handle(&_event_handle)) {
+        AP::can().log(AP_CANManager::LOG_ERROR, num_ifaces, "UAVCANIfaceMgr: Setting event handle failed\n", num_ifaces);
         return false;
     }
-    if (!ifaces[num_ifaces]->can_drv_->set_event_handle(&_event_handle)) {
-        return false;
-    }
-    hal.console->printf("UAVCANDriver: Successfully added interface %d\n", num_ifaces);
+    AP::can().log(AP_CANManager::LOG_INFO, num_ifaces, "UAVCANIfaceMgr: Successfully added interface %d\n", num_ifaces);
     num_ifaces++;
     return true;
 }
 /**
  * Returns an interface by index, or null pointer if the index is out of range.
  */
-ICanIface* CanDriver::getIface(uint8_t iface_index) {
+ICanIface* CanIfaceMgr::getIface(uint8_t iface_index) {
     if (iface_index > num_ifaces) {
         return UAVCAN_NULLPTR;
     }
@@ -133,25 +155,28 @@ ICanIface* CanDriver::getIface(uint8_t iface_index) {
  * Total number of available CAN interfaces.
  * This value shall not change after initialization.
  */
-uint8_t CanDriver::getNumIfaces() const { 
+uint8_t CanIfaceMgr::getNumIfaces() const { 
     return num_ifaces; 
 }
 
-CanSelectMasks CanDriver::makeSelectMasks(const CanFrame* (& pending_tx)[MaxCanIfaces]) const
+CanSelectMasks CanIfaceMgr::makeSelectMasks(const CanFrame* (& pending_tx)[MaxCanIfaces]) const
 {
     CanSelectMasks msk;
     for (uint8_t i = 0; i < num_ifaces; i++) {
         bool read = true;
         bool write = true;
         CanIface* iface = ifaces[i];
+        if (iface == nullptr) {
+            continue;
+        }
         if (pending_tx[i] == UAVCAN_NULLPTR) {
-            if (iface->can_drv_->select(read, write, nullptr, 0) > 0) {
+            if (iface->can_iface_->select(read, write, nullptr, 0)) {
                 msk.read  |= (read ? 1 : 0) << i;
                 msk.write |= (write ? 1 : 0) << i;
             }
         } else {
             AP_HAL::CanFrame frame {pending_tx[i]->id, pending_tx[i]->data, pending_tx[i]->dlc};
-            if (iface->can_drv_->select(read, write, &frame, 0) > 0) {
+            if (iface->can_iface_->select(read, write, &frame, 0)) {
                 msk.read  |= (read ? 1 : 0) << i;
                 msk.write |= (write ? 1 : 0) << i;
             }
@@ -181,7 +206,7 @@ CanSelectMasks CanDriver::makeSelectMasks(const CanFrame* (& pending_tx)[MaxCanI
  * @param [in]     blocking_deadline  Zero means non-blocking operation.
  * @return Positive number of ready interfaces or negative error code.
  */
-int16_t CanDriver::select(CanSelectMasks& inout_masks,
+int16_t CanIfaceMgr::select(CanSelectMasks& inout_masks,
                                 const CanFrame* (& pending_tx)[MaxCanIfaces],
                                 const MonotonicTime blocking_deadline)
 {

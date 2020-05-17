@@ -45,9 +45,9 @@
 #include <cstring>
 #include <AP_Math/AP_Math.h>
 # include <hal.h>
-
+#include <AP_CANManager/AP_CANManager.h>
 # if defined(STM32H7XX)
-#include "CANFDDriver.h"
+#include "CANFDIface.h"
 
 #define FDCAN1_IT0_IRQHandler      STM32_FDCAN1_IT0_HANDLER
 #define FDCAN1_IT1_IRQHandler      STM32_FDCAN1_IT1_HANDLER
@@ -69,7 +69,7 @@ static_assert(STM32_FDCANCLK <= 80U*1000U*1000U, "FDCAN clock must be max 80MHz"
 
 using namespace ChibiOS;
 
-#define Debug(fmt, args...) do { hal.console->printf(fmt, ##args); } while (0)
+#define Debug(fmt, args...) do { AP::can().log(AP_CANManager::LOG_DEBUG, self_index_, fmt, ##args); } while (0)
 
 inline bool driver_inititialised(uint8_t iface_index) {
     if (iface_index >= MAX_NUMBER_OF_CAN_INTERFACES) {
@@ -85,38 +85,43 @@ static inline void handleCANInterrupt(uint8_t iface_index, uint8_t line_index)
 {
     if (!driver_inititialised(iface_index)) {
         //Just reset all the interrupts and return
-        CANDriver::Can[iface_index]->IR = FDCAN_IR_RF0N;
-        CANDriver::Can[iface_index]->IR = FDCAN_IR_RF1N;
-        CANDriver::Can[iface_index]->IR = FDCAN_IR_TEFN;
+        CANIface::Can[iface_index]->IR = FDCAN_IR_RF0N;
+        CANIface::Can[iface_index]->IR = FDCAN_IR_RF1N;
+        CANIface::Can[iface_index]->IR = FDCAN_IR_TEFN;
         return;
     }
     if (line_index == 0) {
-        if ((CANDriver::Can[iface_index]->IR & FDCAN_IR_RF0N) ||
-           (CANDriver::Can[iface_index]->IR & FDCAN_IR_RF0F)) {
-            CANDriver::Can[iface_index]->IR = FDCAN_IR_RF0N | FDCAN_IR_RF0F;
-            ((ChibiOS::CANDriver*)hal.can[iface_index])->handleRxInterrupt(0);
+        if ((CANIface::Can[iface_index]->IR & FDCAN_IR_RF0N) ||
+           (CANIface::Can[iface_index]->IR & FDCAN_IR_RF0F)) {
+            CANIface::Can[iface_index]->IR = FDCAN_IR_RF0N | FDCAN_IR_RF0F;
+            ((ChibiOS::CANIface*)hal.can[iface_index])->handleRxInterrupt(0);
         }
-        if ((CANDriver::Can[iface_index]->IR & FDCAN_IR_RF1N) ||
-           (CANDriver::Can[iface_index]->IR & FDCAN_IR_RF1F)) {
-            CANDriver::Can[iface_index]->IR = FDCAN_IR_RF1N | FDCAN_IR_RF1F;
-            ((ChibiOS::CANDriver*)hal.can[iface_index])->handleRxInterrupt(1);
+        if ((CANIface::Can[iface_index]->IR & FDCAN_IR_RF1N) ||
+           (CANIface::Can[iface_index]->IR & FDCAN_IR_RF1F)) {
+            CANIface::Can[iface_index]->IR = FDCAN_IR_RF1N | FDCAN_IR_RF1F;
+            ((ChibiOS::CANIface*)hal.can[iface_index])->handleRxInterrupt(1);
         }
     } else {
-        if (CANDriver::Can[iface_index]->IR & FDCAN_IR_TC) {
-            CANDriver::Can[iface_index]->IR = FDCAN_IR_TC;
+        if (CANIface::Can[iface_index]->IR & FDCAN_IR_TC) {
+            CANIface::Can[iface_index]->IR = FDCAN_IR_TC;
             uint64_t timestamp_us = AP_HAL::micros64();
             if (timestamp_us > 0) {
                 timestamp_us--;
             }
-            ((ChibiOS::CANDriver*)hal.can[iface_index])->handleTxCompleteInterrupt(timestamp_us);
+            ((ChibiOS::CANIface*)hal.can[iface_index])->handleTxCompleteInterrupt(timestamp_us);
+        }
+
+        if ((CANIface::Can[iface_index]->IR & FDCAN_IR_BO)) {
+            CANIface::Can[iface_index]->IR = FDCAN_IR_BO;
+            ((ChibiOS::CANIface*)hal.can[iface_index])->handleBusOffInterrupt();
         }
     }
-    ((ChibiOS::CANDriver*)hal.can[iface_index])->pollErrorFlagsFromISR();
+    ((ChibiOS::CANIface*)hal.can[iface_index])->pollErrorFlagsFromISR();
 }
 
-uint32_t CANDriver::FDCANMessageRAMOffset_ = 0;
+uint32_t CANIface::FDCANMessageRAMOffset_ = 0;
 
-CANDriver::CANDriver(uint8_t index) : 
+CANIface::CANIface(uint8_t index) : 
 self_index_(index),
 rx_queue_(HAL_CAN_RX_QUEUE_SIZE)
 {
@@ -127,14 +132,18 @@ rx_queue_(HAL_CAN_RX_QUEUE_SIZE)
         can_ = reinterpret_cast<CanType*>(FDCAN2_BASE);
 #endif
     } else {
-        AP_HAL::panic("Bad CANDriver index.");
+        AP_HAL::panic("Bad CANIface index.");
     }
 }
 
-int CANDriver::computeTimings(const uint32_t target_bitrate, Timings& out_timings)
+void CANIface::handleBusOffInterrupt() {
+    _detected_bus_off = true;
+}
+
+bool CANIface::computeTimings(const uint32_t target_bitrate, Timings& out_timings)
 {
     if (target_bitrate < 1) {
-        return -ErrInvalidBitRate;
+        return false;
     }
 
     /*
@@ -180,14 +189,14 @@ int CANDriver::computeTimings(const uint32_t target_bitrate, Timings& out_timing
 
     while ((prescaler_bs % (1 + bs1_bs2_sum)) != 0) {
         if (bs1_bs2_sum <= 2) {
-            return -ErrInvalidBitRate;          // No solution
+            return false;          // No solution
         }
         bs1_bs2_sum--;
     }
 
     const uint32_t prescaler = prescaler_bs / (1 + bs1_bs2_sum);
     if ((prescaler < 1U) || (prescaler > 1024U)) {
-        return -ErrInvalidBitRate;              // No solution
+        return false;              // No solution
     }
 
     /*
@@ -249,7 +258,7 @@ int CANDriver::computeTimings(const uint32_t target_bitrate, Timings& out_timing
      *
      */
     if ((target_bitrate != (pclk / (prescaler * (1 + solution.bs1 + solution.bs2)))) || !solution.isValid()) {
-        return -ErrLogic;
+        return false;
     }
 
     Debug("Timings: quanta/bit: %d, sample point location: %.1f%%\n",
@@ -259,40 +268,41 @@ int CANDriver::computeTimings(const uint32_t target_bitrate, Timings& out_timing
     out_timings.sjw = 0;                                        // Which means one
     out_timings.bs1 = uint8_t(solution.bs1 - 1);
     out_timings.bs2 = uint8_t(solution.bs2 - 1);
-    return 0;
+    return true;
 }
 
-int16_t CANDriver::send(const AP_HAL::CanFrame& frame, uint64_t tx_deadline,
+int16_t CANIface::send(const AP_HAL::CanFrame& frame, uint64_t tx_deadline,
                                CanIOFlags flags)
 {
+    stats.tx_requests++;
     if (frame.isErrorFrame() || frame.dlc > 8) {
-        return -ErrUnsupportedFrame;
+        stats.tx_rejected++;
+        return -1;
     }
 
-    /*
-     * Normally we should perform the same check as in @ref canAcceptNewTxFrame(), because
-     * it is possible that the highest-priority frame between select() and send() could have been
-     * replaced with a lower priority one due to TX timeout. But we don't do this check because:
-     *
-     *  - It is a highly unlikely scenario.
-     *
-     *  - Frames do not timeout on a properly functioning bus. Since frames do not timeout, the new
-     *    frame can only have higher priority, which doesn't break the logic.
-     *
-     *  - If high-priority frames are timing out in the TX queue, there's probably a lot of other
-     *    issues to take care of before this one becomes relevant.
-     *
-     *  - It takes CPU time. Not just CPU time, but critical section time, which is expensive.
-     */
     CriticalSectionLocker lock;
 
+    if (_detected_bus_off) {
+        //Try Recovering from BusOff
+        //While in Bus off mode the CAN Peripheral is put
+        //into INIT mode, when we ask Peripheral to get out
+        //of INIT mode, the bit stream processor (BSP) synchronizes
+        //itself to the data transfer on the CAN bus by
+        //waiting for the occurrence of a sequence of 11 consecutive 
+        //recessive bits (Bus_Idle) before it can take part in bus 
+        //activities and start the message transfer
+        can_->CCCR &= ~FDCAN_CCCR_INIT; // Leave init mode
+        stats.num_busoff_err++;
+        _detected_bus_off = false;
+    }
     /*
      * Seeking for an empty slot
      */
     uint8_t index;
 
     if ((can_->TXFQS & FDCAN_TXFQS_TFQF) != 0) {
-        return false;    //we don't have free space
+        stats.tx_rejected++;
+        return 0;    //we don't have free space
     }
     index = ((can_->TXFQS & FDCAN_TXFQS_TFQPI) >> FDCAN_TXFQS_TFQPI_Pos);
 
@@ -327,13 +337,17 @@ int16_t CANDriver::send(const AP_HAL::CanFrame& frame, uint64_t tx_deadline,
     //Registering the pending transmission so we can track its deadline and loopback it as needed
     pending_tx_[index].deadline       = tx_deadline;
     pending_tx_[index].frame          = frame;
-    pending_tx_[index].loopback       = (flags & CanIOFlagLoopback) != 0;
-    pending_tx_[index].abort_on_error = (flags & CanIOFlagAbortOnError) != 0;
+    pending_tx_[index].loopback       = (flags & AP_HAL::CANIface::Loopback) != 0;
+    pending_tx_[index].abort_on_error = (flags & AP_HAL::CANIface::AbortOnError) != 0;
     pending_tx_[index].index          = index;
+    // setup frame initial state
+    pending_tx_[index].aborted        = false;
+    pending_tx_[index].setup          = true;
+    pending_tx_[index].pushed         = false;
     return 1;
 }
 
-int16_t CANDriver::receive(AP_HAL::CanFrame& out_frame, uint64_t& out_timestamp_us, CanIOFlags& out_flags)
+int16_t CANIface::receive(AP_HAL::CanFrame& out_frame, uint64_t& out_timestamp_us, CanIOFlags& out_flags)
 {
     {
         CriticalSectionLocker lock;
@@ -349,7 +363,7 @@ int16_t CANDriver::receive(AP_HAL::CanFrame& out_frame, uint64_t& out_timestamp_
     return 1;
 }
 
-int16_t CANDriver::configureFilters(const CanFilterConfig* filter_configs,
+bool CANIface::configureFilters(const CanFilterConfig* filter_configs,
         uint16_t num_configs)
 {
     uint32_t num_extid = 0, num_stdid = 0;
@@ -381,7 +395,7 @@ int16_t CANDriver::configureFilters(const CanFilterConfig* filter_configs,
         can_->GFC |= (0x3U << 4); //Reject non matching Standard frames
     } else {    //The List is too big, return fail
         can_->CCCR &= ~FDCAN_CCCR_INIT; // Leave init mode
-        return -ErrFilterNumConfigs;
+        return false;
     }
 
     if (num_stdid) {
@@ -414,7 +428,7 @@ int16_t CANDriver::configureFilters(const CanFilterConfig* filter_configs,
         can_->GFC = (0x3U << 2); // Reject non matching Extended frames
     } else {    //The List is too big, return fail
         can_->CCCR &= ~FDCAN_CCCR_INIT; // Leave init mode
-        return -ErrFilterNumConfigs;
+        return false;
     }
 
     if (num_extid) {
@@ -445,13 +459,13 @@ int16_t CANDriver::configureFilters(const CanFilterConfig* filter_configs,
     return 0;
 }
 
-uint16_t CANDriver::getNumFilters() const
+uint16_t CANIface::getNumFilters() const
 {
     return MAX_FILTER_LIST_SIZE;
 }
 
-bool CANDriver::clock_init_ = false;
-int CANDriver::init(const uint32_t bitrate, const OperatingMode mode)
+bool CANIface::clock_init_ = false;
+bool CANIface::init(const uint32_t bitrate, const OperatingMode mode)
 {
     //Only do it once
     //Doing it second time will reset the previously initialised bus
@@ -510,10 +524,10 @@ int CANDriver::init(const uint32_t bitrate, const OperatingMode mode)
      * CAN timings for this bitrate
      */
     Timings timings;
-    const int timings_res = computeTimings(bitrate, timings);
-    if (timings_res < 0) {
+
+    if (!computeTimings(bitrate, timings)) {
         can_->CCCR &= ~FDCAN_CCCR_INIT;
-        return timings_res;
+        return false;
     }
     Debug("Timings: presc=%u sjw=%u bs1=%u bs2=%u\n",
                      unsigned(timings.prescaler), unsigned(timings.sjw), unsigned(timings.bs1), unsigned(timings.bs2));
@@ -530,15 +544,19 @@ int CANDriver::init(const uint32_t bitrate, const OperatingMode mode)
 
     //Setup Message RAM
     setupMessageRam();
+    // Reset Bus Off
+    _detected_bus_off = false;
     //Clear all Interrupts
     can_->IR = 0x3FFFFFFF;
     //Enable Interrupts
     can_->IE =  FDCAN_IE_TCE |  // Transmit Complete interrupt enable
+                FDCAN_IE_BOE |  // Bus off Error Interrupt enable
                 FDCAN_IE_RF0NE |  // RX FIFO 0 new message
                 FDCAN_IE_RF0FE |  // Rx FIFO 1 FIFO Full
                 FDCAN_IE_RF1NE |  // RX FIFO 1 new message
                 FDCAN_IE_RF1FE;   // Rx FIFO 1 FIFO Full
-    can_->ILS = FDCAN_ILS_TCL;  //Set Line 1 for Transmit Complete Event Interrupt
+    can_->ILS = FDCAN_ILS_TCL | FDCAN_ILS_BOE;  //Set Line 1 for Transmit Complete Event Interrupt
+                                                // And Busoff error
     can_->TXBTIE = 0xFFFFFFFF;
     can_->ILE = 0x3;
 
@@ -547,10 +565,16 @@ int CANDriver::init(const uint32_t bitrate, const OperatingMode mode)
 
     //initialised
     initialised_ = true;
-    return 0;
+    return true;
 }
 
-void CANDriver::setupMessageRam()
+void CANIface::flush()
+{
+    CriticalSectionLocker lock;
+    rx_queue_.clear();
+}
+
+void CANIface::setupMessageRam()
 {
     uint32_t num_elements = 0;
 
@@ -578,25 +602,32 @@ void CANDriver::setupMessageRam()
     }
 }
 
-void CANDriver::handleTxCompleteInterrupt(const uint64_t timestamp_us)
+void CANIface::handleTxCompleteInterrupt(const uint64_t timestamp_us)
 {
     for (uint8_t i = 0; i < NumTxMailboxes; i++) {
         if ((can_->TXBTO & (1UL << i))) {
+            
+            if (!pending_tx_[i].pushed) {
+                stats.tx_success++;
+                pending_tx_[i].pushed = true;
+            }
+
             if (pending_tx_[i].loopback && had_activity_) {
                 CanRxItem rx_item;
                 rx_item.frame = pending_tx_[i].frame;
                 rx_item.timestamp_us = timestamp_us;
-                rx_item.flags = CanIOFlagLoopback;
+                rx_item.flags = AP_HAL::CANIface::Loopback;
                 rx_queue_.push(rx_item);
             }
             if (event_handle_ != nullptr) {
+                stats.num_events++;
                 event_handle_->signalFromInterrupt();
             }
         }
     }
 }
 
-bool CANDriver::readRxFIFO(uint8_t fifo_index)
+bool CANIface::readRxFIFO(uint8_t fifo_index)
 {
     uint32_t *frame_ptr;
     uint32_t index;
@@ -608,7 +639,7 @@ bool CANDriver::readRxFIFO(uint8_t fifo_index)
         }
         //Register Message Lost as a hardware error
         if ((can_->RXF0S & FDCAN_RXF0S_RF0L) != 0) {
-            error_cnt_++;
+            stats.rx_errors++;
         }
 
         if ((can_->RXF0S & FDCAN_RXF0S_F0FL) == 0) {
@@ -624,7 +655,7 @@ bool CANDriver::readRxFIFO(uint8_t fifo_index)
         }
         //Register Message Lost as a hardware error
         if ((can_->RXF1S & FDCAN_RXF1S_RF1L) != 0) {
-            error_cnt_++;
+            stats.rx_errors++;
         }
 
         if ((can_->RXF1S & FDCAN_RXF1S_F1FL) == 0) {
@@ -674,16 +705,21 @@ bool CANDriver::readRxFIFO(uint8_t fifo_index)
     rx_item.frame = frame;
     rx_item.timestamp_us = timestamp_us;
     rx_item.flags = 0;
-    rx_queue_.push(rx_item);
+    if (rx_queue_.push(rx_item)) {
+        stats.rx_received++;
+    } else {
+        stats.rx_overflow++;
+    }
     return true;
 }
 
-void CANDriver::handleRxInterrupt(uint8_t fifo_index)
+void CANIface::handleRxInterrupt(uint8_t fifo_index)
 {
     while (readRxFIFO(fifo_index)) {
         had_activity_ = true;
     }
     if (event_handle_ != nullptr) {
+        stats.num_events++;
         event_handle_->signalFromInterrupt();
     }
 }
@@ -695,31 +731,31 @@ void CANDriver::handleRxInterrupt(uint8_t fifo_index)
  *
  * Should be called from RX ISR, TX ISR, and select(); interrupts must be enabled.
  */
-void CANDriver::pollErrorFlagsFromISR()
+void CANIface::pollErrorFlagsFromISR()
 {
     const uint8_t cel = can_->ECR >> 16;
 
     if (cel != 0) {
         for (int i = 0; i < NumTxMailboxes; i++) {
-            if (!pending_tx_[i].abort_on_error) {
+            if (!pending_tx_[i].abort_on_error || pending_tx_[i].aborted) {
                 continue;
             }
             if (((1 << pending_tx_[i].index) & can_->TXBRP)) {
                 can_->TXBCR = 1 << pending_tx_[i].index;  // Goodnight sweet transmission
-                error_cnt_++;
-                served_aborts_cnt_++;
+                pending_tx_[i].aborted = true;
+                stats.tx_abort++;
             }
         }
     }
 }
 
-void CANDriver::pollErrorFlags()
+void CANIface::pollErrorFlags()
 {
     CriticalSectionLocker cs_locker;
     pollErrorFlagsFromISR();
 }
 
-bool CANDriver::canAcceptNewTxFrame() const
+bool CANIface::canAcceptNewTxFrame() const
 {
     //Check if Tx FIFO is allocated
     if ((can_->TXBC & FDCAN_TXBC_TFQS) == 0) {
@@ -736,38 +772,41 @@ bool CANDriver::canAcceptNewTxFrame() const
  * Total number of hardware failures and other kinds of errors (e.g. queue overruns).
  * May increase continuously if the interface is not connected to the bus.
  */
-uint64_t CANDriver::getErrorCount() const
+uint32_t CANIface::getErrorCount() const
 {
     CriticalSectionLocker lock;
     return error_cnt_;
 }
 
-bool CANDriver::set_event_handle(AP_HAL::EventHandle* handle) {
-    if (event_handle_ != nullptr) {
-        return false;
-    }
+bool CANIface::set_event_handle(AP_HAL::EventHandle* handle)
+{
+    CriticalSectionLocker lock;
     event_handle_ = (ChibiOS::EventHandle*)handle;
     return true;
 }
 
-bool CANDriver::isRxBufferEmpty() const
+bool CANIface::isRxBufferEmpty() const
 {
     CriticalSectionLocker lock;
     return rx_queue_.available() == 0;
 }
 
-void CANDriver::discardTimedOutTxMailboxes(uint64_t current_time)
+void CANIface::discardTimedOutTxMailboxes(uint64_t current_time)
 {
     CriticalSectionLocker lock;
     for (int i = 0; i < NumTxMailboxes; i++) {
+        if (pending_tx_[i].aborted || !pending_tx_[i].setup) {
+            continue;
+        }
         if (((1 << pending_tx_[i].index) & can_->TXBRP) && pending_tx_[i].deadline < current_time) {
             can_->TXBCR = 1 << pending_tx_[i].index;  // Goodnight sweet transmission
-            error_cnt_++;
+            pending_tx_[i].aborted = true;
+            stats.tx_timedout++;
         }
     }
 }
 
-void CANDriver::checkAvailable(bool& read, bool& write, const AP_HAL::CanFrame* pending_tx) const
+void CANIface::checkAvailable(bool& read, bool& write, const AP_HAL::CanFrame* pending_tx) const
 {
     write = false;
     read = !isRxBufferEmpty();
@@ -776,7 +815,7 @@ void CANDriver::checkAvailable(bool& read, bool& write, const AP_HAL::CanFrame* 
     }
 }
 
-int16_t CANDriver::select(bool &read, bool &write,
+bool CANIface::select(bool &read, bool &write,
                             const AP_HAL::CanFrame* pending_tx,
                             uint64_t blocking_deadline)
 {
@@ -808,6 +847,37 @@ int16_t CANDriver::select(bool &read, bool &write,
         time = AP_HAL::micros();
     }
     return 1; // Return value doesn't matter as long as it is non-negative
+}
+
+uint32_t CANIface::get_stats(char* data, uint32_t max_size)
+{
+    if (data == nullptr) {
+        return 0;
+    }
+    CriticalSectionLocker lock;
+    uint32_t ret = snprintf(data, max_size, 
+                             "tx_requests:    %lu\n"
+                             "tx_rejected:    %lu\n"
+                             "tx_success:     %lu\n"
+                             "tx_timedout:    %lu\n"
+                             "tx_abort:       %lu\n"
+                             "rx_received:    %lu\n"
+                             "rx_overflow:    %lu\n"
+                             "rx_errors:      %lu\n"
+                             "num_busoff_err: %lu\n"
+                             "num_events:     %lu\n",
+                             stats.tx_requests,
+                             stats.tx_rejected,
+                             stats.tx_success,
+                             stats.tx_timedout,
+                             stats.tx_abort,
+                             stats.rx_received,
+                             stats.rx_overflow,
+                             stats.rx_errors,
+                             stats.num_busoff_err,
+                             stats.num_events);
+    memset(&stats, 0, sizeof(stats));
+    return ret;
 }
 
 

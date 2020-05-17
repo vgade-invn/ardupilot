@@ -315,7 +315,7 @@ bool AP_Arming_Copter::motor_checks(bool display_failure)
     uint8_t tcan_index = 0;
     const uint8_t num_drivers = AP::can().get_num_drivers();
     for (uint8_t i = 0; i < num_drivers; i++) {
-        if (AP::can().get_protocol_type(i) == AP_CANManager::Protocol_Type_ToshibaCAN) {
+        if (AP::can().get_driver_type(i) == AP_CANManager::Driver_Type_ToshibaCAN) {
             tcan_active = true;
             tcan_index = i;
         }

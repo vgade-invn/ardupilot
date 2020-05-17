@@ -44,7 +44,7 @@
 
 // #if HAL_WITH_UAVCAN
 // # if defined(STM32H7XX)
-#include "CANFDDriver.h"
+#include "CANFDIface.h"
 // #else
 // #include "CANThread.h"
 // #include "CANIface.h"

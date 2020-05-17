@@ -41,7 +41,7 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define debug_can(level_debug, fmt, args...) do { if ((level_debug) <= AP::can().get_debug_level_driver(_driver_index)) { hal.console->printf(fmt, ##args); }} while (0)
+#define debug_can(level_debug, fmt, args...) do { AP::can().log(level_debug, _driver_index, fmt, ##args); } while (0)
 
 #define DEFAULT_NUM_POLES 14
 
@@ -61,39 +61,39 @@ AP_KDECAN::AP_KDECAN()
 {
     AP_Param::setup_object_defaults(this, var_info);
 
-    debug_can(2, "KDECAN: constructed\n\r");
+    debug_can(AP_CANManager::LOG_INFO, "KDECAN: constructed\n\r");
 }
 
 AP_KDECAN *AP_KDECAN::get_kdecan(uint8_t driver_index)
 {
     if (driver_index >= AP::can().get_num_drivers() ||
-        AP::can().get_protocol_type(driver_index) != AP_CANManager::Protocol_Type_KDECAN) {
+        AP::can().get_driver_type(driver_index) != AP_CANManager::Driver_Type_KDECAN) {
         return nullptr;
     }
     return static_cast<AP_KDECAN*>(AP::can().get_driver(driver_index));
 }
 
-bool AP_KDECAN::add_interface(AP_HAL::CANDriver* can_iface) {
+bool AP_KDECAN::add_interface(AP_HAL::CANIface* can_iface) {
 
-    if (_can_driver != nullptr) {
-        debug_can(1, "AP_KDECAN: Multiple Interface not supported\n\r");
+    if (_can_iface != nullptr) {
+        debug_can(AP_CANManager::LOG_ERROR, "AP_KDECAN: Multiple Interface not supported\n\r");
         return false;
     }
 
-    _can_driver = can_iface;
+    _can_iface = can_iface;
 
-    if (_can_driver == nullptr) {
-        debug_can(1, "AP_KDECAN: CAN driver not found\n\r");
+    if (_can_iface == nullptr) {
+        debug_can(AP_CANManager::LOG_ERROR, "AP_KDECAN: CAN driver not found\n\r");
         return false;
     }
 
-    if (!_can_driver->is_initialized()) {
-        debug_can(1, "AP_KDECAN: Driver not initialized\n\r");
+    if (!_can_iface->is_initialized()) {
+        debug_can(AP_CANManager::LOG_ERROR, "AP_KDECAN: Driver not initialized\n\r");
         return false;
     }
 
-    if (!_can_driver->set_event_handle(&_event_handle)) {
-        debug_can(1, "AP_KDECAN: Cannot add event handle\n\r");
+    if (!_can_iface->set_event_handle(&_event_handle)) {
+        debug_can(AP_CANManager::LOG_ERROR, "AP_KDECAN: Cannot add event handle\n\r");
         return false;
     }
     return true;
@@ -103,15 +103,15 @@ void AP_KDECAN::init(uint8_t driver_index, bool enable_filters)
 {
     _driver_index = driver_index;
 
-    debug_can(2, "KDECAN: starting init\n\r");
+    debug_can(AP_CANManager::LOG_INFO, "KDECAN: starting init\n\r");
 
     if (_initialized) {
-        debug_can(1, "KDECAN: already initialized\n\r");
+        debug_can(AP_CANManager::LOG_ERROR, "KDECAN: already initialized\n\r");
         return;
     }
 
-    if (_can_driver == nullptr) {
-        debug_can(1, "KDECAN: Interface not found\n\r");
+    if (_can_iface == nullptr) {
+        debug_can(AP_CANManager::LOG_ERROR, "KDECAN: Interface not found\n\r");
         return;
     }
 
@@ -124,12 +124,12 @@ void AP_KDECAN::init(uint8_t driver_index, bool enable_filters)
 
     AP_HAL::CanFrame frame { (id.value | AP_HAL::CanFrame::FlagEFF), nullptr, 0 };
 
-    if(!_can_driver->send(frame, AP_HAL::micros() + 1000000, 0)) {
-        debug_can(1, "KDECAN: couldn't send discovery message\n\r");
+    if(!_can_iface->send(frame, AP_HAL::micros() + 1000000, 0)) {
+        debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: couldn't send discovery message\n\r");
         return;
     }
 
-    debug_can(2, "KDECAN: discovery message sent\n\r");
+    debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: discovery message sent\n\r");
 
     uint32_t start = AP_HAL::millis();
 
@@ -137,9 +137,9 @@ void AP_KDECAN::init(uint8_t driver_index, bool enable_filters)
     while (AP_HAL::millis() - start < 1000) {
         AP_HAL::CanFrame esc_id_frame {};
         uint64_t rx_time;
-        AP_HAL::CANDriver::CanIOFlags flags = 0;
+        AP_HAL::CANIface::CanIOFlags flags = 0;
 
-        int16_t n = _can_driver->receive(esc_id_frame, rx_time, flags);
+        int16_t n = _can_iface->receive(esc_id_frame, rx_time, flags);
 
         if (n != 1) {
             continue;
@@ -165,20 +165,20 @@ void AP_KDECAN::init(uint8_t driver_index, bool enable_filters)
         _esc_present_bitmask |= (1 << (id.source_id - ESC_NODE_ID_FIRST));
         _esc_max_node_id = id.source_id - ESC_NODE_ID_FIRST + 1;
 
-        debug_can(2, "KDECAN: found ESC id %u\n\r", id.source_id);
+        debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: found ESC id %u\n\r", id.source_id);
     }
 
     snprintf(_thread_name, sizeof(_thread_name), "kdecan_%u", driver_index);
 
     // start thread for receiving and sending CAN frames
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_KDECAN::loop, void), _thread_name, 4096, AP_HAL::Scheduler::PRIORITY_CAN, 0)) {
-        debug_can(1, "KDECAN: couldn't create thread\n\r");
+        debug_can(AP_CANManager::LOG_ERROR, "KDECAN: couldn't create thread\n\r");
         return;
     }
 
     _initialized = true;
 
-    debug_can(2, "KDECAN: init done\n\r");
+    debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: init done\n\r");
 
     return;
 }
@@ -201,7 +201,7 @@ void AP_KDECAN::loop()
 
     while (true) {
         if (!_initialized) {
-            debug_can(2, "KDECAN: not initialized\n\r");
+            debug_can(AP_CANManager::LOG_ERROR, "KDECAN: not initialized\n\r");
             hal.scheduler->delay_microseconds(2000);
             continue;
         }
@@ -209,13 +209,13 @@ void AP_KDECAN::loop()
         uint64_t now = AP_HAL::micros64();
         bool read_select;
         bool write_select;
-        int select_ret;
+        bool select_ret;
         // get latest enumeration state set from GCS
         if (_enum_sem.take(1)) {
             enumeration_state = _enumeration_state;
             _enum_sem.give();
         } else {
-            debug_can(2, "KDECAN: failed to get enumeration semaphore on loop\n\r");
+            debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: failed to get enumeration semaphore on loop\n\r");
         }
 
         if (enumeration_state != ENUMERATION_STOPPED) {
@@ -251,13 +251,13 @@ void AP_KDECAN::loop()
                     // wait for write space to be available
                     read_select = false;
                     write_select = true;
-                    select_ret = _can_driver->select(read_select, write_select, &frame, timeout);
+                    select_ret = _can_iface->select(read_select, write_select, &frame, timeout);
 
-                    if (select_ret > 0 && write_select) {
+                    if (select_ret && write_select) {
                         now = AP_HAL::micros64();
                         timeout = now + ENUMERATION_TIMEOUT_MS * 1000;
 
-                        int8_t res = _can_driver->send(frame, timeout, 0);
+                        int8_t res = _can_iface->send(frame, timeout, 0);
 
                         if (res == 1) {
                             enumeration_start = now;
@@ -271,10 +271,10 @@ void AP_KDECAN::loop()
                                 enumeration_state = _enumeration_state = ENUMERATION_RUNNING;
                             }
                         } else if (res == 0) {
-                            debug_can(1, "KDECAN: strange buffer full when starting ESC enumeration\n\r");
+                            debug_can(AP_CANManager::LOG_ERROR, "KDECAN: strange buffer full when starting ESC enumeration\n\r");
                             break;
                         } else {
-                            debug_can(1, "KDECAN: error sending message to start ESC enumeration, result %d\n\r", res);
+                            debug_can(AP_CANManager::LOG_ERROR, "KDECAN: error sending message to start ESC enumeration, result %d\n\r", res);
                             break;
                         }
                     } else {
@@ -288,14 +288,14 @@ void AP_KDECAN::loop()
                     // wait for write space to be available
                     read_select = true;
                     write_select = false;
-                    select_ret = _can_driver->select(read_select, write_select, nullptr, timeout);
+                    select_ret = _can_iface->select(read_select, write_select, nullptr, timeout);
 
-                    if (select_ret > 0 && read_select) {
+                    if (select_ret && read_select) {
                         AP_HAL::CanFrame recv_frame;
                         uint64_t rx_time;
-                        AP_HAL::CANDriver::CanIOFlags flags {};
+                        AP_HAL::CANIface::CanIOFlags flags {};
 
-                        int16_t res = _can_driver->receive(recv_frame, rx_time, flags);
+                        int16_t res = _can_iface->receive(recv_frame, rx_time, flags);
 
                         if (res == 1) {
                             if (rx_time < enumeration_start) {
@@ -326,27 +326,27 @@ void AP_KDECAN::loop()
                                 AP_HAL::CanFrame send_frame { (id.value | AP_HAL::CanFrame::FlagEFF), (uint8_t*) &recv_frame.data, recv_frame.dlc };
                                 read_select = false;
                                 write_select = true;
-                                select_ret = _can_driver->select(read_select, write_select, &send_frame, timeout);
+                                select_ret = _can_iface->select(read_select, write_select, &send_frame, timeout);
 
-                                if (select_ret > 0 && write_select) {
+                                if (select_ret && write_select) {
                                     timeout = enumeration_start + ENUMERATION_TIMEOUT_MS * 1000;
 
-                                    res = _can_driver->send(send_frame, timeout, 0);
+                                    res = _can_iface->send(send_frame, timeout, 0);
 
                                     if (res == 1) {
                                         enumeration_esc_num++;
                                         break;
                                     } else if (res == 0) {
-                                        debug_can(1, "KDECAN: strange buffer full when setting ESC node ID\n\r");
+                                        debug_can(AP_CANManager::LOG_ERROR, "KDECAN: strange buffer full when setting ESC node ID\n\r");
                                     } else {
-                                        debug_can(1, "KDECAN: error sending message to set ESC node ID, result %d\n\r", res);
+                                        debug_can(AP_CANManager::LOG_ERROR, "KDECAN: error sending message to set ESC node ID, result %d\n\r", res);
                                     }
                                 }
                             }
                         } else if (res == 0) {
-                            debug_can(1, "KDECAN: strange failed read when getting ESC enumeration message\n\r");
+                            debug_can(AP_CANManager::LOG_ERROR, "KDECAN: strange failed read when getting ESC enumeration message\n\r");
                         } else {
-                            debug_can(1, "KDECAN: error receiving ESC enumeration message, result %d\n\r", res);
+                            debug_can(AP_CANManager::LOG_ERROR, "KDECAN: error receiving ESC enumeration message, result %d\n\r", res);
                         }
                     }
                     break;
@@ -366,12 +366,12 @@ void AP_KDECAN::loop()
                     // wait for write space to be available
                     read_select = false;
                     write_select = true;
-                    select_ret = _can_driver->select(read_select, read_select, &frame, timeout);
+                    select_ret = _can_iface->select(read_select, read_select, &frame, timeout);
 
-                    if (select_ret > 0 && write_select) {
+                    if (select_ret && write_select) {
                         timeout = enumeration_start + ENUMERATION_TIMEOUT_MS * 1000;
 
-                        int8_t res = _can_driver->send(frame, timeout, 0);
+                        int8_t res = _can_iface->send(frame, timeout, 0);
 
                         if (res == 1) {
                             enumeration_start = 0;
@@ -382,16 +382,16 @@ void AP_KDECAN::loop()
                                 enumeration_state = _enumeration_state = ENUMERATION_STOPPED;
                             }
                         } else if (res == 0) {
-                            debug_can(1, "KDECAN: strange buffer full when stop ESC enumeration\n\r");
+                            debug_can(AP_CANManager::LOG_ERROR, "KDECAN: strange buffer full when stop ESC enumeration\n\r");
                         } else {
-                            debug_can(1, "KDECAN: error sending message to stop ESC enumeration, result %d\n\r", res);
+                            debug_can(AP_CANManager::LOG_ERROR, "KDECAN: error sending message to stop ESC enumeration, result %d\n\r", res);
                         }
                     }
                     break;
                 }
                 case ENUMERATION_STOPPED:
                 default:
-                    debug_can(2, "KDECAN: something wrong happened, shouldn't be here, enumeration state: %u\n\r", enumeration_state);
+                    debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: something wrong happened, shouldn't be here, enumeration state: %u\n\r", enumeration_state);
                     break;
             }
 
@@ -399,7 +399,7 @@ void AP_KDECAN::loop()
         }
 
         if (!_esc_present_bitmask) {
-            debug_can(1, "KDECAN: no valid ESC present");
+            debug_can(AP_CANManager::LOG_ERROR, "KDECAN: no valid ESC present");
             hal.scheduler->delay(1000);
             continue;
         }
@@ -431,20 +431,20 @@ void AP_KDECAN::loop()
         read_select = true;
         write_select = true;
         // Immediately check if rx buffer not empty
-        select_ret = _can_driver->select(read_select, write_select, nullptr, 0);
+        select_ret = _can_iface->select(read_select, write_select, nullptr, 0);
         if (!read_select && !write_select) {
             //wait for any event
             _event_handle.wait(timeout);
         }
         read_select = true;
         write_select = true;
-        select_ret = _can_driver->select(read_select, write_select, nullptr, 0);
-        if (select_ret > 0 && read_select) {
+        select_ret = _can_iface->select(read_select, write_select, nullptr, 0);
+        if (select_ret && read_select) {
             AP_HAL::CanFrame frame;
             uint64_t rx_time;
-            AP_HAL::CANDriver::CanIOFlags flags {};
+            AP_HAL::CANIface::CanIOFlags flags {};
 
-            int16_t res = _can_driver->receive(frame, rx_time, flags);
+            int16_t res = _can_iface->receive(frame, rx_time, flags);
 
             if (res == 1) {
                 frame_id_t id { .value = frame.id & AP_HAL::CanFrame::MaskExtID };
@@ -460,7 +460,7 @@ void AP_KDECAN::loop()
                             }
 
                             if (!_telem_sem.take(1)) {
-                                debug_can(2, "KDECAN: failed to get telemetry semaphore on write\n\r");
+                                debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: failed to get telemetry semaphore on write\n\r");
                                 break;
                             }
 
@@ -489,14 +489,14 @@ void AP_KDECAN::loop()
             if (sending_esc_num > 0) {
                 // currently sending throttle frames, check it didn't timeout
                 if (now - pwm_last_sent > SET_PWM_TIMEOUT_US) {
-                    debug_can(2, "KDECAN: timed-out after sending frame to ESC with ID %d\n\r", sending_esc_num - 1);
+                    debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: timed-out after sending frame to ESC with ID %d\n\r", sending_esc_num - 1);
                     sending_esc_num = 0;
                 }
             }
 
             if (sending_esc_num == 0 && new_output) {
                 if (!_rc_out_sem.take(1)) {
-                    debug_can(2, "KDECAN: failed to get PWM semaphore on read\n\r");
+                    debug_can(AP_CANManager::LOG_ERROR, "KDECAN: failed to get PWM semaphore on read\n\r");
                     continue;
                 }
 
@@ -542,14 +542,14 @@ void AP_KDECAN::loop()
                     write_select = true;
                     read_select = false;
                     //Check if we can transmit this frame
-                    int16_t res = _can_driver->select(read_select, write_select, &frame, 0);
-                    if (res > 0 && write_select) {
-                        res = _can_driver->send(frame, timeout, 0);
+                    bool res = _can_iface->select(read_select, write_select, &frame, 0);
+                    if (res && write_select) {
+                        res = _can_iface->send(frame, timeout, 0);
                     } else {
-                        res = 0;
+                        res = false;
                     }
 
-                    if (res == 1) {
+                    if (res) {
                         if (esc_num == 0) {
                             pwm_last_sent = now;
 
@@ -559,10 +559,8 @@ void AP_KDECAN::loop()
                         }
 
                         sending_esc_num = (esc_num + 1) % _esc_max_node_id;
-                    } else if (res == 0) {
-                        debug_can(1, "KDECAN: strange buffer full when sending message to ESC with ID %d\n\r", esc_num + ESC_NODE_ID_FIRST);
                     } else {
-                        debug_can(1, "KDECAN: error sending message to ESC with ID %d, result %d\n\r", esc_num + ESC_NODE_ID_FIRST, res);
+                        debug_can(AP_CANManager::LOG_ERROR, "KDECAN: error sending message to ESC with ID %d, result %d\n\r", esc_num + ESC_NODE_ID_FIRST, res);
                     }
 
                     break;
@@ -581,9 +579,9 @@ void AP_KDECAN::loop()
                 write_select = true;
                 read_select = false;
                 //Check if we can transmit this frame
-                int16_t res = _can_driver->select(read_select, write_select, &frame, 0);
-                if (res > 0 && write_select) {
-                    res = _can_driver->send(frame, timeout, 0);
+                bool res = _can_iface->select(read_select, write_select, &frame, 0);
+                if (res && write_select) {
+                    res = _can_iface->send(frame, timeout, 0);
                 } else {
                     res = 0;
                 }
@@ -591,9 +589,9 @@ void AP_KDECAN::loop()
                 if (res == 1) {
                     telemetry_last_request = now;
                 } else if (res == 0) {
-                    debug_can(1, "KDECAN: strange buffer full when sending message requesting telemetry\n\r");
+                    debug_can(AP_CANManager::LOG_ERROR, "KDECAN: strange buffer full when sending message requesting telemetry\n\r");
                 } else {
-                    debug_can(1, "KDECAN: error sending message requesting telemetry, result %d\n\r", res);
+                    debug_can(AP_CANManager::LOG_ERROR, "KDECAN: error sending message requesting telemetry, result %d\n\r", res);
                 }
             }
         }
@@ -621,7 +619,7 @@ void AP_KDECAN::update()
         _rc_out_sem.give();
         _new_output.store(true, std::memory_order_release);
     } else {
-        debug_can(2, "KDECAN: failed to get PWM semaphore on write\n\r");
+        debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: failed to get PWM semaphore on write\n\r");
     }
 
     AP_Logger *logger = AP_Logger::get_singleton();
@@ -631,7 +629,7 @@ void AP_KDECAN::update()
     }
 
     if (!_telem_sem.take(1)) {
-        debug_can(2, "KDECAN: failed to get telemetry semaphore on DF read\n\r");
+        debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: failed to get telemetry semaphore on DF read\n\r");
         return;
     }
 
@@ -663,7 +661,7 @@ void AP_KDECAN::update()
 bool AP_KDECAN::pre_arm_check(char* reason, uint8_t reason_len)
 {
     if (!_enum_sem.take(1)) {
-        debug_can(2, "KDECAN: failed to get enumeration semaphore on read\n\r");
+        debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: failed to get enumeration semaphore on read\n\r");
         snprintf(reason, reason_len ,"Enumeration state unknown");
         return false;
     }
@@ -707,7 +705,7 @@ bool AP_KDECAN::pre_arm_check(char* reason, uint8_t reason_len)
 void AP_KDECAN::send_mavlink(uint8_t chan)
 {
     if (!_telem_sem.take(1)) {
-        debug_can(2, "KDECAN: failed to get telemetry semaphore on MAVLink read\n\r");
+        debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: failed to get telemetry semaphore on MAVLink read\n\r");
         return;
     }
 
@@ -755,7 +753,7 @@ void AP_KDECAN::send_mavlink(uint8_t chan)
 bool AP_KDECAN::run_enumeration(bool start_stop)
 {
     if (!_enum_sem.take(1)) {
-        debug_can(2, "KDECAN: failed to get enumeration semaphore on write\n\r");
+        debug_can(AP_CANManager::LOG_DEBUG, "KDECAN: failed to get enumeration semaphore on write\n\r");
         return false;
     }
 

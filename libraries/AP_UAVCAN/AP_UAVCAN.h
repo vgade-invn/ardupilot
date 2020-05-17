@@ -19,9 +19,9 @@
 
 #include <uavcan/uavcan.hpp>
 #include "AP_UAVCAN_DNA_Server.h"
-#include "AP_UAVCAN_Driver.h"
+#include "AP_UAVCAN_IfaceMgr.h"
 #include "AP_UAVCAN_Clock.h"
-#include <AP_CANManager/AP_CANManager.h>
+#include <AP_CANManager/AP_CANDriver.h>
 #include <AP_HAL/Semaphores.h>
 #include <AP_Param/AP_Param.h>
 
@@ -66,7 +66,7 @@ class ESCStatusCb;
 				RegistryBinder(uc, (Registry)ffunc) {} \
 	}
 
-class AP_UAVCAN : public AP::CANProtocol {
+class AP_UAVCAN : public AP_CANDriver {
 public:
     AP_UAVCAN();
     ~AP_UAVCAN();
@@ -77,7 +77,7 @@ public:
     static AP_UAVCAN *get_uavcan(uint8_t driver_index);
 
     void init(uint8_t driver_index, bool enable_filters) override;
-    bool add_interface(AP_HAL::CANDriver* can_iface) override;
+    bool add_interface(AP_HAL::CANIface* can_iface) override;
 
     uavcan::Node<0>* get_node() { return _node; }
     uint8_t get_driver_index() { return _driver_index; }
@@ -156,7 +156,7 @@ private:
 
     uint8_t _driver_index;
 
-    uavcan::CanDriver* _driver;
+    uavcan::CanIfaceMgr* _iface_mgr;
     char _thread_name[13];
     bool _initialized;
     ///// SRV output /////

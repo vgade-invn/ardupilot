@@ -77,21 +77,11 @@ struct AP_HAL::CanFrame
 /**
  * Single non-blocking CAN interface.
  */
-class AP_HAL::CANDriver {
+class AP_HAL::CANIface {
 public:
     /* Driver error codes.
     * These values can be returned from driver functions negated.
     */
-    //static const int16_t ErrUnknown               = 1000; ///< Reserved for future use
-    static const int16_t ErrNotImplemented          = 1001; ///< Feature not implemented
-    static const int16_t ErrInvalidBitRate          = 1002; ///< Bit rate not supported
-    static const int16_t ErrLogic                   = 1003; ///< Internal logic error
-    static const int16_t ErrUnsupportedFrame        = 1004; ///< Frame not supported (e.g. RTR, CAN FD, etc)
-    static const int16_t ErrMsrInakNotSet           = 1005; ///< INAK bit of the MSR register is not 1
-    static const int16_t ErrMsrInakNotCleared       = 1006; ///< INAK bit of the MSR register is not 0
-    static const int16_t ErrBitRateNotDetected      = 1007; ///< Auto bit rate detection could not be finished
-    static const int16_t ErrFilterNumConfigs        = 1008; ///< Number of filters is more than supported
-
     enum OperatingMode {
         PassThroughMode,
         NormalMode,
@@ -99,17 +89,13 @@ public:
     };
 
     typedef uint16_t CanIOFlags;
-    static const CanIOFlags CanIOFlagLoopback = 1;
-    static const CanIOFlags CanIOFlagAbortOnError = 2;
+    static const CanIOFlags Loopback = 1;
+    static const CanIOFlags AbortOnError = 2;
 
     struct CanRxItem {
         uint64_t timestamp_us;
         CanIOFlags flags;
         CanFrame frame;
-        CanRxItem()
-            : timestamp_us(0)
-            , flags(0)
-        {}
     };
 
     struct CanTxItem {
@@ -117,11 +103,10 @@ public:
         CanFrame frame;
         bool loopback;
         bool abort_on_error;
+        bool aborted;
+        bool pushed;
+        bool setup;
         uint8_t index;
-        CanTxItem() :
-            loopback(false),
-            abort_on_error(false)
-        {}
     };
 
     struct CanFilterConfig
@@ -133,23 +118,18 @@ public:
         {
             return rhs.id == id && rhs.mask == mask;
         }
-
-        CanFilterConfig() :
-            id(0),
-            mask(0)
-        { }
     };
 
-    virtual int init(const uint32_t bitrate, const OperatingMode mode) = 0;
+    virtual bool init(const uint32_t bitrate, const OperatingMode mode) = 0;
     
     /******************************************
-     * Select method          *
+     * Select method                          *
      * ****************************************/
-    virtual int16_t select(bool &read, bool &write,
-                    const CanFrame* const pending_tx,
-                    uint64_t blocking_deadline) { return -1; }
+    virtual bool select(bool &read_select, bool &write_select, 
+                        const CanFrame* const pending_tx, uint64_t timeout) { return false; }
     
     virtual bool set_event_handle(EventHandle* evt_handle) { return true; }
+    
     /**
      * Non-blocking transmission.
      *
@@ -186,7 +166,7 @@ public:
      *
      * @return 0 = success, negative for error.
      */
-    virtual int16_t configureFilters(const CanFilterConfig* filter_configs, uint16_t num_configs) { return 0; }
+    virtual bool configureFilters(const CanFilterConfig* filter_configs, uint16_t num_configs) { return 0; }
 
     /**
      * Number of available hardware filters.
@@ -197,7 +177,13 @@ public:
      * Continuously incrementing counter of hardware errors.
      * Arbitration lost should not be treated as a hardware error.
      */
-    virtual uint64_t getErrorCount() const { return 0; }
+    virtual uint32_t getErrorCount() const { return 0; }
+
+    virtual uint32_t get_stats(char* data, uint32_t max_size) { return 0; }
+
+    virtual bool is_busoff() const { return false; }
+
+    virtual void flush() = 0;
 
     virtual bool is_initialized() const = 0;
 };

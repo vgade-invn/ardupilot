@@ -11,8 +11,6 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define debug_flow_uavcan(level_debug, can_driver, fmt, args...) do { if ((level_debug) <= AP::can().get_debug_level_driver(can_driver)) { hal.console->printf(fmt, ##args); }} while (0)
-
 //UAVCAN Frontend Registry Binder
 UC_REGISTRY_BINDER(MeasurementCb, com::hex::equipment::flow::Measurement);
 

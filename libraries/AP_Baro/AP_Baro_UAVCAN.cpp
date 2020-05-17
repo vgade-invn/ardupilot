@@ -12,8 +12,6 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define debug_baro_uavcan(level_debug, can_driver, fmt, args...) do { if ((level_debug) <= AP::can().get_debug_level_driver(can_driver)) { printf(fmt, ##args); }} while (0)
-
 //UAVCAN Frontend Registry Binder
 UC_REGISTRY_BINDER(PressureCb, uavcan::equipment::air_data::StaticPressure);
 UC_REGISTRY_BINDER(TemperatureCb, uavcan::equipment::air_data::StaticTemperature);
@@ -64,11 +62,11 @@ AP_Baro_Backend* AP_Baro_UAVCAN::probe(AP_Baro &baro)
         if (_detected_modules[i].driver == nullptr && _detected_modules[i].ap_uavcan != nullptr) {
             backend = new AP_Baro_UAVCAN(baro);
             if (backend == nullptr) {
-                debug_baro_uavcan(2,
-                                  _detected_modules[i].ap_uavcan->get_driver_index(),
-                                  "Failed register UAVCAN Baro Node %d on Bus %d\n",
-                                  _detected_modules[i].node_id,
-                                  _detected_modules[i].ap_uavcan->get_driver_index());
+                AP::can().log(AP_CANManager::LOG_ERROR,
+                            _detected_modules[i].ap_uavcan->get_driver_index(),
+                            "Failed register UAVCAN Baro Node %d on Bus %d\n",
+                            _detected_modules[i].node_id,
+                            _detected_modules[i].ap_uavcan->get_driver_index());
             } else {
                 _detected_modules[i].driver = backend;
                 backend->_pressure = 0;
@@ -76,11 +74,11 @@ AP_Baro_Backend* AP_Baro_UAVCAN::probe(AP_Baro &baro)
                 backend->_ap_uavcan = _detected_modules[i].ap_uavcan;
                 backend->_node_id = _detected_modules[i].node_id;
                 backend->register_sensor();
-                debug_baro_uavcan(2,
-                                  _detected_modules[i].ap_uavcan->get_driver_index(),
-                                  "Registered UAVCAN Baro Node %d on Bus %d\n",
-                                  _detected_modules[i].node_id,
-                                  _detected_modules[i].ap_uavcan->get_driver_index());
+                AP::can().log(AP_CANManager::LOG_INFO,
+                            _detected_modules[i].ap_uavcan->get_driver_index(),
+                            "Registered UAVCAN Baro Node %d on Bus %d\n",
+                            _detected_modules[i].node_id,
+                            _detected_modules[i].ap_uavcan->get_driver_index());
             }
             break;
         }

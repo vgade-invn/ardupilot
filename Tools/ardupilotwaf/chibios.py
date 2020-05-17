@@ -249,7 +249,7 @@ def setup_can_build(cfg):
     env.CXXFLAGS += [
         '-Wno-error=cast-align',
         '-DMAX_NUMBER_OF_CAN_INTERFACES=2',
-        '-DMAX_NUMBER_OF_CAN_PROTOCOLS=2'
+        '-DMAX_NUMBER_OF_CAN_DRIVERS=2'
         ]
 
     env.DEFINES += [

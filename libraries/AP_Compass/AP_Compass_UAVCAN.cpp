@@ -27,8 +27,6 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define debug_mag_uavcan(level_debug, can_driver, fmt, args...) do { if ((level_debug) <= AP::can().get_debug_level_driver(can_driver)) { printf(fmt, ##args); }} while (0)
-
 
 // Frontend Registry Binders
 UC_REGISTRY_BINDER(MagCb, uavcan::equipment::ahrs::MagneticFieldStrength);
@@ -82,7 +80,7 @@ AP_Compass_Backend* AP_Compass_UAVCAN::probe(uint8_t index)
                 return nullptr;
             }
             _detected_modules[index].driver = driver;
-            debug_mag_uavcan(2,
+            AP::can().log(AP_CANManager::LOG_INFO,
                                 _detected_modules[index].ap_uavcan->get_driver_index(),
                                 "Found Mag Node %d on Bus %d Sensor ID %d\n",
                                 _detected_modules[index].node_id,
@@ -107,7 +105,7 @@ bool AP_Compass_UAVCAN::init()
     set_dev_id(_instance, devid);
     set_external(_instance, true);
 
-    debug_mag_uavcan(2, _ap_uavcan->get_driver_index(),  "AP_Compass_UAVCAN loaded\n\r");
+    AP::can().log(AP_CANManager::LOG_INFO, _ap_uavcan->get_driver_index(),  "AP_Compass_UAVCAN loaded\n\r");
     return true;
 }
 

@@ -31,7 +31,7 @@ namespace AP_HAL {
     class OpticalFlow;
     class DSP;
 
-    class CANDriver;
+    class CANIface;
     class CanFrame;
 
     class Util;

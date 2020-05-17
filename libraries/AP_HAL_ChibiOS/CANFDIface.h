@@ -1,27 +1,4 @@
 /*
- * The MIT License (MIT)
- *
- * Copyright (c) 2014 Pavel Kirienko
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-
-/*
  * This file is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
  * Free Software Foundation, either version 3 of the License, or
@@ -54,7 +31,7 @@ static_assert(HAL_CAN_RX_QUEUE_SIZE <= 254, "Invalid CAN Rx queue size");
  * Single CAN iface.
  * The application shall not use this directly.
  */
-class ChibiOS::CANDriver : public AP_HAL::CANDriver
+class ChibiOS::CANIface : public AP_HAL::CANIface
 {
     static constexpr unsigned long IDE = (0x40000000U); // Identifier Extension
     static constexpr unsigned long STID_MASK = (0x1FFC0000U); // Standard Identifier Mask
@@ -117,7 +94,7 @@ class ChibiOS::CANDriver : public AP_HAL::CANDriver
     ChibiOS::EventHandle* event_handle_;
     const uint8_t self_index_;
 
-    int computeTimings(uint32_t target_bitrate, Timings& out_timings);
+    bool computeTimings(uint32_t target_bitrate, Timings& out_timings);
 
     void setupMessageRam(void);
 
@@ -129,6 +106,8 @@ class ChibiOS::CANDriver : public AP_HAL::CANDriver
 
     bool isRxBufferEmpty() const;
 
+    bool recover_from_busoff();
+
     void pollErrorFlags();
 
     void checkAvailable(bool& read, bool& write, 
@@ -137,13 +116,28 @@ class ChibiOS::CANDriver : public AP_HAL::CANDriver
     static uint32_t FDCAN2MessageRAMOffset_;
     static bool clock_init_;
 
+    bool _detected_bus_off;
+
+    struct {
+        uint32_t tx_requests;
+        uint32_t tx_rejected;
+        uint32_t tx_success;
+        uint32_t tx_timedout;
+        uint32_t tx_abort;
+        uint32_t rx_received;
+        uint32_t rx_overflow;
+        uint32_t rx_errors;
+        uint32_t num_busoff_err;
+        uint32_t num_events;
+    } stats;
+
 public:
     /******************************************
      *   Common CAN methods                   *
      * ****************************************/
-    CANDriver(uint8_t index);
+    CANIface(uint8_t index);
 
-    int init(const uint32_t bitrate, const OperatingMode mode) override;
+    bool init(const uint32_t bitrate, const OperatingMode mode) override;
 
     int16_t send(const AP_HAL::CanFrame& frame, uint64_t tx_deadline,
                  CanIOFlags flags) override;
@@ -151,23 +145,28 @@ public:
     int16_t receive(AP_HAL::CanFrame& out_frame, uint64_t& out_timestamp_us,
                      CanIOFlags& out_flags) override;
 
-    int16_t configureFilters(const CanFilterConfig* filter_configs,
+    bool configureFilters(const CanFilterConfig* filter_configs,
             uint16_t num_configs) override;
+
+    bool is_busoff() const override { return _detected_bus_off; }
+    void flush() override;
 
     uint16_t getNumFilters() const override;
 
-    uint64_t getErrorCount() const override;
+    uint32_t getErrorCount() const override;
 
     bool is_initialized() const override { return initialised_; }
 
     /******************************************
      * Select Method                          *
      * ****************************************/
-    int16_t select(bool &read, bool &write,
-                            const AP_HAL::CanFrame* pending_tx,
+    bool select(bool &read, bool &write,
+                            const AP_HAL::CanFrame* const pending_tx,
                             uint64_t blocking_deadline) override;
 
     bool set_event_handle(AP_HAL::EventHandle* handle) override;
+
+    uint32_t get_stats(char* data, uint32_t max_size) override;
 
     /************************************
      * Methods used inside interrupt    *
@@ -175,8 +174,9 @@ public:
     void handleTxCompleteInterrupt(uint64_t timestamp_us);
 
     void handleRxInterrupt(uint8_t fifo_index);
+    void handleBusOffInterrupt();
     void pollErrorFlagsFromISR(void);
-
+    
     static constexpr CanType* const Can[MAX_NUMBER_OF_CAN_INTERFACES] = {
         reinterpret_cast<CanType*>(FDCAN1_BASE)
     #if MAX_NUMBER_OF_CAN_INTERFACES > 1

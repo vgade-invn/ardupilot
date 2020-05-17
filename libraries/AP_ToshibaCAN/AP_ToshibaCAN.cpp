@@ -31,7 +31,7 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define debug_can(level_debug, fmt, args...) do { if ((level_debug) <= AP::can().get_debug_level_driver(_driver_index)) { printf(fmt, ##args); }} while (0)
+#define debug_can(level_debug, fmt, args...) do { AP::can().log(level_debug, _driver_index,  fmt, #args); } while (0)
 
 // data format for messages from flight controller
 static const uint8_t COMMAND_STOP = 0x0;
@@ -58,7 +58,7 @@ static const uint32_t TOSHIBA_CAN_ESC_UPDATE_MS = 100;
 
 AP_ToshibaCAN::AP_ToshibaCAN()
 {
-    debug_can(2, "ToshibaCAN: constructed\n\r");
+    debug_can(AP_CANManager::LOG_INFO, "ToshibaCAN: constructed\n\r");
     (void)COMMAND_STOP;
     (void)MOTOR_DATA5;
 }
@@ -66,33 +66,33 @@ AP_ToshibaCAN::AP_ToshibaCAN()
 AP_ToshibaCAN *AP_ToshibaCAN::get_tcan(uint8_t driver_index)
 {
     if (driver_index >= AP::can().get_num_drivers() ||
-        AP::can().get_protocol_type(driver_index) != AP_CANManager::Protocol_Type_ToshibaCAN) {
+        AP::can().get_driver_type(driver_index) != AP_CANManager::Driver_Type_ToshibaCAN) {
         return nullptr;
     }
     return static_cast<AP_ToshibaCAN*>(AP::can().get_driver(driver_index));
 }
 
 
-bool AP_ToshibaCAN::add_interface(AP_HAL::CANDriver* can_iface) {
-    if (_can_driver != nullptr) {
-        debug_can(1, "ToshibaCAN: Multiple Interface not supported\n\r");
+bool AP_ToshibaCAN::add_interface(AP_HAL::CANIface* can_iface) {
+    if (_can_iface != nullptr) {
+        debug_can(AP_CANManager::LOG_ERROR, "ToshibaCAN: Multiple Interface not supported\n\r");
         return false;
     }
 
-    _can_driver = can_iface;
+    _can_iface = can_iface;
 
-    if (_can_driver == nullptr) {
-        debug_can(1, "ToshibaCAN: CAN driver not found\n\r");
+    if (_can_iface == nullptr) {
+        debug_can(AP_CANManager::LOG_ERROR, "ToshibaCAN: CAN driver not found\n\r");
         return false;
     }
 
-    if (!_can_driver->is_initialized()) {
-        debug_can(1, "ToshibaCAN: Driver not initialized\n\r");
+    if (!_can_iface->is_initialized()) {
+        debug_can(AP_CANManager::LOG_ERROR, "ToshibaCAN: Driver not initialized\n\r");
         return false;
     }
 
-    if (!_can_driver->set_event_handle(&_event_handle)) {
-        debug_can(1, "ToshibaCAN: Cannot add event handle\n\r");
+    if (!_can_iface->set_event_handle(&_event_handle)) {
+        debug_can(AP_CANManager::LOG_ERROR, "ToshibaCAN: Cannot add event handle\n\r");
         return false;
     }
     return true;
@@ -104,27 +104,27 @@ void AP_ToshibaCAN::init(uint8_t driver_index, bool enable_filters)
 {
     _driver_index = driver_index;
 
-    debug_can(2, "ToshibaCAN: starting init\n\r");
+    debug_can(AP_CANManager::LOG_DEBUG, "ToshibaCAN: starting init\n\r");
 
     if (_initialized) {
-        debug_can(1, "ToshibaCAN: already initialized\n\r");
+        debug_can(AP_CANManager::LOG_ERROR, "ToshibaCAN: already initialized\n\r");
         return;
     }
 
-    if (_can_driver == nullptr) {
-        debug_can(1, "ToshibaCAN: Interface not found\n\r");
+    if (_can_iface == nullptr) {
+        debug_can(AP_CANManager::LOG_ERROR, "ToshibaCAN: Interface not found\n\r");
         return;
     }
 
     // start calls to loop in separate thread
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_ToshibaCAN::loop, void), _thread_name, 4096, AP_HAL::Scheduler::PRIORITY_MAIN, 1)) {
-        debug_can(1, "ToshibaCAN: couldn't create thread\n\r");
+        debug_can(AP_CANManager::LOG_ERROR, "ToshibaCAN: couldn't create thread\n\r");
         return;
     }
 
     _initialized = true;
 
-    debug_can(2, "ToshibaCAN: init done\n\r");
+    debug_can(AP_CANManager::LOG_DEBUG, "ToshibaCAN: init done\n\r");
 
     return;
 }
@@ -138,7 +138,7 @@ void AP_ToshibaCAN::loop()
     while (true) {
         if (!_initialized) {
             // if not initialised wait 2ms
-            debug_can(2, "ToshibaCAN: not initialized\n\r");
+            debug_can(AP_CANManager::LOG_DEBUG, "ToshibaCAN: not initialized\n\r");
             hal.scheduler->delay_microseconds(2000);
             continue;
         }
@@ -403,15 +403,15 @@ bool AP_ToshibaCAN::write_frame(AP_HAL::CanFrame &out_frame, uint64_t timeout)
     bool read_select = false;
     bool write_select = true;
     do {
-        int ret = _can_driver->select(read_select, write_select, &out_frame, timeout);
-        if (ret < 0 || !write_select) {
+        bool ret = _can_iface->select(read_select, write_select, &out_frame, timeout);
+        if (!ret || !write_select) {
             // delay if no space is available to send
             hal.scheduler->delay_microseconds(50);
         }
     } while (!write_select);
 
     // send frame and return success
-    return (_can_driver->send(out_frame, timeout, AP_HAL::CANDriver::CanIOFlagAbortOnError) == 1);
+    return (_can_iface->send(out_frame, timeout, AP_HAL::CANIface::AbortOnError) == 1);
 }
 
 // read frame on CAN bus, returns true on success
@@ -420,16 +420,16 @@ bool AP_ToshibaCAN::read_frame(AP_HAL::CanFrame &recv_frame, uint64_t timeout)
     // wait for space in buffer to read
     bool read_select = true;
     bool write_select = false;
-    int ret = _can_driver->select(read_select, write_select, nullptr, timeout);
-    if (ret < 0 || !read_select) {
+    int ret = _can_iface->select(read_select, write_select, nullptr, timeout);
+    if (!ret || !read_select) {
         // return false if no data is available to read
         return false;
     }
     uint64_t time;
-    AP_HAL::CANDriver::CanIOFlags flags {};
+    AP_HAL::CANIface::CanIOFlags flags {};
 
     // read frame and return success
-    return (_can_driver->receive(recv_frame, time, flags) == 1);
+    return (_can_iface->receive(recv_frame, time, flags) == 1);
 }
 
 // update esc_present_bitmask

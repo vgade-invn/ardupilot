@@ -15,12 +15,12 @@
 
 #pragma once
 
-#include <AP_CANManager/AP_CANManager.h>
+#include <AP_CANManager/AP_CANDriver.h>
 #include <AP_HAL/Semaphores.h>
 
 #define TOSHIBACAN_MAX_NUM_ESCS 12
 
-class AP_ToshibaCAN : public AP::CANProtocol {
+class AP_ToshibaCAN : public AP_CANDriver {
 public:
     AP_ToshibaCAN();
     ~AP_ToshibaCAN();
@@ -34,7 +34,7 @@ public:
 
     // initialise ToshibaCAN bus
     void init(uint8_t driver_index, bool enable_filters) override;
-    bool add_interface(AP_HAL::CANDriver* can_iface) override;
+    bool add_interface(AP_HAL::CANIface* can_iface) override;
 
     // called from SRV_Channels
     void update();
@@ -65,7 +65,7 @@ private:
     bool _initialized;
     char _thread_name[9];
     uint8_t _driver_index;
-    AP_HAL::CANDriver* _can_driver;
+    AP_HAL::CANIface* _can_iface;
     HAL_EventHandle _event_handle;
     // PWM output
     HAL_Semaphore _rc_out_sem;

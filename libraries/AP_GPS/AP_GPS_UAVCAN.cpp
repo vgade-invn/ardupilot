@@ -30,8 +30,6 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define debug_gps_uavcan(level_debug, can_driver, fmt, args...) do { if ((level_debug) <= AP::can().get_debug_level_driver(can_driver)) { printf(fmt, ##args); }} while (0)
-
 UC_REGISTRY_BINDER(FixCb, uavcan::equipment::gnss::Fix);
 UC_REGISTRY_BINDER(Fix2Cb, uavcan::equipment::gnss::Fix2);
 UC_REGISTRY_BINDER(AuxCb, uavcan::equipment::gnss::Auxiliary);
@@ -93,7 +91,7 @@ AP_GPS_Backend* AP_GPS_UAVCAN::probe(AP_GPS &_gps, AP_GPS::GPS_State &_state)
         if (_detected_modules[i].driver == nullptr && _detected_modules[i].ap_uavcan != nullptr) {
             backend = new AP_GPS_UAVCAN(_gps, _state);
             if (backend == nullptr) {
-                debug_gps_uavcan(2,
+                AP::can().log(AP_CANManager::LOG_ERROR,
                                  _detected_modules[i].ap_uavcan->get_driver_index(),
                                  "Failed to register UAVCAN GPS Node %d on Bus %d\n",
                                  _detected_modules[i].node_id,
@@ -101,7 +99,7 @@ AP_GPS_Backend* AP_GPS_UAVCAN::probe(AP_GPS &_gps, AP_GPS::GPS_State &_state)
             } else {
                 _detected_modules[i].driver = backend;
                 backend->_detected_module = i;
-                debug_gps_uavcan(2,
+                AP::can().log(AP_CANManager::LOG_INFO,
                                  _detected_modules[i].ap_uavcan->get_driver_index(),
                                  "Registered UAVCAN GPS Node %d on Bus %d\n",
                                  _detected_modules[i].node_id,

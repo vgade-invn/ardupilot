@@ -5,8 +5,9 @@
 #if MAX_NUMBER_OF_CAN_INTERFACES
 
 #include <AP_Param/AP_Param.h>
-#include "AP_CANProtocol.h"
-#include "AP_SLCANDriver.h"
+#include "AP_SLCANIface.h"
+
+class AP_CANDriver;
 class AP_CANManager {
 public:
     AP_CANManager();
@@ -18,86 +19,96 @@ public:
     static AP_CANManager* get_singleton() {
         return _singleton;
     }
+    
+    enum LogLevel {
+        LOG_NONE,
+        LOG_ERROR,
+        LOG_WARNING,
+        LOG_INFO,
+        LOG_DEBUG,
+    };
 
-    enum Protocol_Type : uint8_t {
-        Protocol_Type_None = 0,
-        Protocol_Type_UAVCAN = 1,
-        Protocol_Type_KDECAN = 2,
-        Protocol_Type_ToshibaCAN = 3,
-        Protocol_Type_PiccoloCAN = 4,
+    enum Driver_Type : uint8_t {
+        Driver_Type_None = 0,
+        Driver_Type_UAVCAN = 1,
+        Driver_Type_KDECAN = 2,
+        Driver_Type_ToshibaCAN = 3,
+        Driver_Type_PiccoloCAN = 4,
+        Driver_Type_TestCAN = 5,
     };
 
     void init(void);
 
-    // returns number of active CAN Protocols
-    uint8_t get_num_drivers(void) const { return _num_protocols; }
-
-    uint8_t get_debug_level_driver(uint8_t interface) { return 2; }
+    // returns number of active CAN Drivers
+    uint8_t get_num_drivers(void) const { return _num_drivers; }
 
     // return driver for index i
-    AP::CANProtocol* get_driver(uint8_t i) const {
+    AP_CANDriver* get_driver(uint8_t i) const {
         if (i < MAX_NUMBER_OF_CAN_INTERFACES) {
-            return _protocols[i]._protocol;
+            return _drivers[i];
         }
         return nullptr;
     }
 
-    // return protocol type index i
-    Protocol_Type get_protocol_type(uint8_t i) const {
+    void log(AP_CANManager::LogLevel loglevel, uint8_t driver_index, const char *fmt, ...);
+    uint32_t log_retrieve(char* data, uint32_t max_size) const;
+
+    // return driver type index i
+    Driver_Type get_driver_type(uint8_t i) const {
         if (i < MAX_NUMBER_OF_CAN_INTERFACES) {
-            return _protocols[i]._protocol_type_cache;
+            return _driver_type_cache[i];
         }
-        return Protocol_Type_None;
+        return Driver_Type_None;
     }
 
     static const struct AP_Param::GroupInfo var_info[];
 
 private:
-    class Interface {
+    class CANIface_Params {
         friend class AP_CANManager;
 
     public:
-        Interface() {
+        CANIface_Params() {
             AP_Param::setup_object_defaults(this, var_info);
         }
 
         static const struct AP_Param::GroupInfo var_info[];
 
     private:
-        AP_Int8 _protocol_number;
-        uint8_t _protocol_number_cache;
+        AP_Int8 _driver_number;
+        uint8_t _driver_number_cache;
         AP_Int32 _bitrate;
     };
 
-    class Protocol {
+    //Object pointers for loading Parameters under CANDriver
+    class CANDriver_Params {
         friend class AP_CANManager;
 
     public:
-        Protocol() {
+        CANDriver_Params() {
             AP_Param::setup_object_defaults(this, var_info);
         }
-
         static const struct AP_Param::GroupInfo var_info[];
 
     private:
-        AP_Int8 _protocol_type;
-        Protocol_Type _protocol_type_cache;
-        AP::CANProtocol* _protocol;
-        AP::CANProtocol* _uavcan;   // UAVCAN
-        AP::CANProtocol* _kdecan;   // KDECAN
-        AP::CANProtocol* _tcan;     // ToshibaCAN
-        AP::CANProtocol* _pcan;     // PiccoloCAN
+        AP_Int8 _driver_type;
+        AP_CANDriver* _testcan;
+        AP_CANDriver* _uavcan;
+        AP_CANDriver* _kdecan;
     };
 
-    Interface _interfaces[MAX_NUMBER_OF_CAN_INTERFACES];
-    Protocol _protocols[MAX_NUMBER_OF_CAN_PROTOCOLS];
-    AP_Int8 _slcan_can_port;
-    AP_Int8 _slcan_ser_port;
-    AP_Int8 _slcan_timeout;
-    AP_Int8 _slcan_mode;
-    uint8_t _num_protocols;
-    SLCAN::CANDriver slcan_driver;
+    CANIface_Params _interfaces[MAX_NUMBER_OF_CAN_INTERFACES];
+    AP_CANDriver* _drivers[MAX_NUMBER_OF_CAN_DRIVERS];
+    CANDriver_Params _drv_param[MAX_NUMBER_OF_CAN_DRIVERS];
+    Driver_Type _driver_type_cache[MAX_NUMBER_OF_CAN_DRIVERS];
+
+    AP_Int8 _loglevel;
+    uint8_t _num_drivers;
+    SLCAN::CANIface _slcan_interface;
     static AP_CANManager *_singleton;
+
+    char* _log_buf;
+    uint32_t _log_pos;
 
     void slcan_passthrough_loop();
 };

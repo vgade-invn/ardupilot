@@ -22,14 +22,16 @@
   #include <AP_UAVCAN/AP_UAVCAN.h>
   #include <AP_ToshibaCAN/AP_ToshibaCAN.h>
   #include <AP_PiccoloCAN/AP_PiccoloCAN.h>
-
+  #include "AP_CANTester.h"
   // To be replaced with macro saying if KDECAN library is included
   #if APM_BUILD_TYPE(APM_BUILD_ArduCopter) || APM_BUILD_TYPE(APM_BUILD_ArduPlane) || APM_BUILD_TYPE(APM_BUILD_ArduSub)
     #include <AP_KDECAN/AP_KDECAN.h>
   #endif
 
+
 // table of user settable CAN bus parameters
-const AP_Param::GroupInfo AP_CANManager::Protocol::var_info[] = {
+const AP_Param::GroupInfo AP_CANManager::CANDriver_Params::var_info[] = {
+
     // @Param: PROTOCOL
     // @DisplayName: Enable use of specific protocol over virtual driver
     // @Description: Enabling this option starts selected protocol that will use this virtual driver
@@ -37,18 +39,22 @@ const AP_Param::GroupInfo AP_CANManager::Protocol::var_info[] = {
     // @Values: 0:Disabled,1:UAVCAN,3:ToshibaCAN,4:PiccoloCAN
     // @User: Advanced
     // @RebootRequired: True
-    AP_GROUPINFO("PROTOCOL", 1, AP_CANManager::Protocol, _protocol_type, AP_CANManager::Protocol_Type_UAVCAN),
+    AP_GROUPINFO("PROTOCOL", 1, AP_CANManager::CANDriver_Params, _driver_type, AP_CANManager::Driver_Type_UAVCAN),
 
     // @Group: UC_
     // @Path: ../AP_UAVCAN/AP_UAVCAN.cpp
-    AP_SUBGROUPPTR(_uavcan, "UC_", 2, AP_CANManager::Protocol, AP_UAVCAN),
+    AP_SUBGROUPPTR(_uavcan, "UC_", 2, AP_CANManager::CANDriver_Params, AP_UAVCAN),
 
 // To be replaced with macro saying if KDECAN library is included
 #if APM_BUILD_TYPE(APM_BUILD_ArduCopter) || APM_BUILD_TYPE(APM_BUILD_ArduPlane) || APM_BUILD_TYPE(APM_BUILD_ArduSub)
     // @Group: KDE_
     // @Path: ../AP_KDECAN/AP_KDECAN.cpp
-    AP_SUBGROUPPTR(_kdecan, "KDE_", 3, AP_CANManager::Protocol, AP_KDECAN),
+    AP_SUBGROUPPTR(_kdecan, "KDE_", 3, AP_CANManager::CANDriver_Params, AP_KDECAN),
 #endif
+
+    // @Group: TST_
+    // @Path: ../AP_CANManager/AP_CANTester.cpp
+    AP_SUBGROUPPTR(_testcan, "TST_", 4, AP_CANManager::CANDriver_Params, CANTester),
 
     AP_GROUPEND
 };

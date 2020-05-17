@@ -11,8 +11,6 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define debug_airspeed_uavcan(level_debug, can_driver, fmt, args...) do { if ((level_debug) <= AP::can().get_debug_level_driver(can_driver)) { printf(fmt, ##args); }} while (0)
-
 // UAVCAN Frontend Registry Binder
 UC_REGISTRY_BINDER(AirspeedCb, uavcan::equipment::air_data::RawAirData);
 
@@ -51,14 +49,14 @@ AP_Airspeed_Backend* AP_Airspeed_UAVCAN::probe(AP_Airspeed &_frontend, uint8_t _
         if (_detected_modules[i].driver == nullptr && _detected_modules[i].ap_uavcan != nullptr) {
             backend = new AP_Airspeed_UAVCAN(_frontend, _instance);
             if (backend == nullptr) {
-                debug_airspeed_uavcan(2,
+                AP::can().log(AP_CANManager::LOG_INFO, 
                                       _detected_modules[i].ap_uavcan->get_driver_index(),
                                       "Failed register UAVCAN Airspeed Node %d on Bus %d\n",
                                       _detected_modules[i].node_id,
                                       _detected_modules[i].ap_uavcan->get_driver_index());
             } else {
                 _detected_modules[i].driver = backend;
-                debug_airspeed_uavcan(2,
+                AP::can().log(AP_CANManager::LOG_INFO, 
                                       _detected_modules[i].ap_uavcan->get_driver_index(),
                                       "Registered UAVCAN Airspeed Node %d on Bus %d\n",
                                       _detected_modules[i].node_id,

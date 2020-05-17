@@ -26,6 +26,6 @@ namespace ChibiOS {
     class Shared_DMA;
     class SoftSigReader;
     class SoftSigReaderInt;
-    class CANDriver;
+    class CANIface;
     class Flash;
 }

@@ -33,7 +33,7 @@ void Plane::init_ardupilot()
 
     // setup any board specific drivers
     BoardConfig.init();
-    hal.scheduler->delay(1000);
+
 #if HAL_WITH_UAVCAN
     can_mgr.init();
 #endif

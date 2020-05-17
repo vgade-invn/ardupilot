@@ -18,7 +18,7 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
-#include <AP_CANManager/AP_CANManager.h>
+#include <AP_CANManager/AP_CANDriver.h>
 #include <AP_HAL/Semaphores.h>
 
 #include "piccolo_protocol/ESCPackets.h"
@@ -33,7 +33,7 @@
 
 #if HAL_PICCOLO_CAN_ENABLE
 
-class AP_PiccoloCAN : public AP::CANProtocol
+class AP_PiccoloCAN : public AP_CANDriver
 {
 public:
     AP_PiccoloCAN();
@@ -65,7 +65,7 @@ public:
 
     // initialize PiccoloCAN bus
     void init(uint8_t driver_index, bool enable_filters) override;
-    bool add_interface(AP_HAL::CANDriver* can_iface) override;
+    bool add_interface(AP_HAL::CANIface* can_iface) override;
 
     // called from SRV_Channels
     void update();
@@ -102,7 +102,7 @@ private:
     bool _initialized;
     char _thread_name[16];
     uint8_t _driver_index;
-    AP_HAL::CANDriver* _can_driver;
+    AP_HAL::CANIface* _can_iface;
     HAL_EventHandle _event_handle;
     HAL_Semaphore _telem_sem;
 

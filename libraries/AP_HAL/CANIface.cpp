@@ -15,7 +15,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "CANDriver.h"
+#include "CANIface.h"
 
 bool AP_HAL::CanFrame::priorityHigherThan(const CanFrame& rhs) const
 {

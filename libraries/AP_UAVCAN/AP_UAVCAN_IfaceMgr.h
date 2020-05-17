@@ -9,10 +9,10 @@ class CanDriver;
 
 class CanIface : public ICanIface, Noncopyable
 {
-    friend class CanDriver;
-    AP_HAL::CANDriver* can_drv_;
+    friend class CanIfaceMgr;
+    AP_HAL::CANIface* can_iface_;
 public:
-    CanIface(AP_HAL::CANDriver *can_drv) : can_drv_(can_drv) {}
+    CanIface(AP_HAL::CANIface *can_iface) : can_iface_(can_iface) {}
 
     virtual int16_t send(const CanFrame& frame, MonotonicTime tx_deadline, 
                             CanIOFlags flags) override;
@@ -31,13 +31,13 @@ public:
 /**
  * Generic CAN driver.
  */
-class CanDriver : public ICanDriver, Noncopyable
+class CanIfaceMgr : public ICanDriver, Noncopyable
 {
     CanIface* ifaces[MAX_NUMBER_OF_CAN_INTERFACES];
     uint8_t num_ifaces;
     HAL_EventHandle _event_handle;
 public:
-    bool add_interface(AP_HAL::CANDriver *can_drv);
+    bool add_interface(AP_HAL::CANIface *can_drv);
 
     ICanIface* getIface(uint8_t iface_index) override;
 

@@ -22,7 +22,7 @@
 #include "Flash.h"
 #include "DSP.h"
 
-#include "CANDriver.h"
+#include "CANIface.h"
 
 #include "utility/BetterStream.h"
 

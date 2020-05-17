@@ -58,9 +58,7 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define DEBUG_LEVEL 2
-
-#define debug_uavcan(level_debug, fmt, args...) do { if ((level_debug) <= DEBUG_LEVEL) { printf(fmt, ##args); }} while (0)
+#define debug_uavcan(level_debug, fmt, args...) do { AP::can().log(level_debug, _driver_index, fmt, ##args); } while (0)
 
 // Translation of all messages from UAVCAN structures into AP structures is done
 // in AP_UAVCAN and not in corresponding drivers.
@@ -142,7 +140,7 @@ AP_UAVCAN::AP_UAVCAN() :
         _SRV_conf[i].servo_pending = false;
     }
 
-    debug_uavcan(2, "AP_UAVCAN constructed\n\r");
+    debug_uavcan(AP_CANManager::LOG_INFO, "AP_UAVCAN constructed\n\r");
 }
 
 AP_UAVCAN::~AP_UAVCAN()
@@ -152,25 +150,25 @@ AP_UAVCAN::~AP_UAVCAN()
 AP_UAVCAN *AP_UAVCAN::get_uavcan(uint8_t driver_index)
 {
     if (driver_index >= AP::can().get_num_drivers() ||
-        AP::can().get_protocol_type(driver_index) != AP_CANManager::Protocol_Type_UAVCAN) {
+        AP::can().get_driver_type(driver_index) != AP_CANManager::Driver_Type_UAVCAN) {
         return nullptr;
     }
     return static_cast<AP_UAVCAN*>(AP::can().get_driver(driver_index));
 }
 
-bool AP_UAVCAN::add_interface(AP_HAL::CANDriver* can_iface) {
+bool AP_UAVCAN::add_interface(AP_HAL::CANIface* can_iface) {
 
-    if (_driver == nullptr) {
-        _driver = new uavcan::CanDriver();
+    if (_iface_mgr == nullptr) {
+        _iface_mgr = new uavcan::CanIfaceMgr();
     }
 
-    if (_driver == nullptr) {
-        debug_uavcan(2, "UAVCAN: can't create UAVCAN interface manager\n\r");
+    if (_iface_mgr == nullptr) {
+        debug_uavcan(AP_CANManager::LOG_ERROR, "UAVCAN: can't create UAVCAN interface manager\n\r");
         return false;
     }
 
-    if (!_driver->add_interface(can_iface)) {
-        debug_uavcan(2, "UAVCAN: can't add UAVCAN interface\n\r");
+    if (!_iface_mgr->add_interface(can_iface)) {
+        debug_uavcan(AP_CANManager::LOG_ERROR, "UAVCAN: can't add UAVCAN interface\n\r");
         return false;   
     }
     return true;
@@ -178,25 +176,27 @@ bool AP_UAVCAN::add_interface(AP_HAL::CANDriver* can_iface) {
 
 void AP_UAVCAN::init(uint8_t driver_index, bool enable_filters)
 {
+    _driver_index = driver_index;
+
     if (_initialized) {
-        debug_uavcan(2, "UAVCAN: init called more than once\n\r");
+        debug_uavcan(AP_CANManager::LOG_ERROR, "UAVCAN: init called more than once\n\r");
         return;
     }
 
-    if (_driver == nullptr) {
-        debug_uavcan(2, "UAVCAN: can't get UAVCAN interface driver\n\r");
+    if (_iface_mgr == nullptr) {
+        debug_uavcan(AP_CANManager::LOG_ERROR, "UAVCAN: can't get UAVCAN interface driver\n\r");
         return;
     }
 
-    _node = new uavcan::Node<0>(*_driver, uavcan::SystemClock::instance(), _node_allocator);
+    _node = new uavcan::Node<0>(*_iface_mgr, uavcan::SystemClock::instance(), _node_allocator);
 
     if (_node == nullptr) {
-        debug_uavcan(1, "UAVCAN: couldn't allocate node\n\r");
+        debug_uavcan(AP_CANManager::LOG_ERROR, "UAVCAN: couldn't allocate node\n\r");
         return;
     }
 
     if (_node->isStarted()) {
-        debug_uavcan(2, "UAVCAN: node was already started?\n\r");
+        debug_uavcan(AP_CANManager::LOG_ERROR, "UAVCAN: node was already started?\n\r");
         return;
     }
 
@@ -235,13 +235,13 @@ void AP_UAVCAN::init(uint8_t driver_index, bool enable_filters)
 
     int start_res = _node->start();
     if (start_res < 0) {
-        debug_uavcan(1, "UAVCAN: node start problem, error %d\n\r", start_res);
+        debug_uavcan(AP_CANManager::LOG_ERROR, "UAVCAN: node start problem, error %d\n\r", start_res);
         return;
     }
 
     //Start Servers
     if (!AP::uavcan_dna_server().init(this)) {
-        debug_uavcan(1, "UAVCAN: Failed to start DNA Server\n\r");
+        debug_uavcan(AP_CANManager::LOG_ERROR, "UAVCAN: Failed to start DNA Server\n\r");
         return;
     }
 
@@ -317,12 +317,12 @@ void AP_UAVCAN::init(uint8_t driver_index, bool enable_filters)
 
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_UAVCAN::loop, void), _thread_name, 4096, AP_HAL::Scheduler::PRIORITY_CAN, 0)) {
         _node->setModeOfflineAndPublish();
-        debug_uavcan(1, "UAVCAN: couldn't create thread\n\r");
+        debug_uavcan(AP_CANManager::LOG_ERROR, "UAVCAN: couldn't create thread\n\r");
         return;
     }
 
     _initialized = true;
-    debug_uavcan(2, "UAVCAN: init done\n\r");
+    debug_uavcan(AP_CANManager::LOG_INFO, "UAVCAN: init done\n\r");
 }
 
 void AP_UAVCAN::loop(void)
