@@ -35,6 +35,10 @@ def build(bld):
         'AP_RangeFinder',
         'AP_ROMFS',
         'AP_CANManager',
+        'AP_InertialSensor',
+        'AP_AccelCal',
+        'AP_Logger',
+        'AC_PID',
         ],
         exclude_src=[
             'libraries/AP_HAL_ChibiOS/Storage.cpp'
