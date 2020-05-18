@@ -142,8 +142,6 @@ void AP_CANManager::init()
             continue;
         }
 
-        Driver_Type drv_type = _driver_type_cache[drv_num] = (Driver_Type) _drv_param[drv_num]._driver_type.get();
-
         log(AP_CANManager::LOG_INFO, drv_num, "CAN Interface %d initialized well\n\r", i + 1);
 
         if (_drivers[drv_num] != nullptr) {
@@ -154,7 +152,10 @@ void AP_CANManager::init()
         }
 
         _num_drivers++;
-        
+
+#ifndef HAL_BUILD_AP_PERIPH
+        Driver_Type prot_type = _drivers[drv_num]._driver_type_cache = (Driver_Type) _drivers[drv_num]._driver_type.get();
+
         if (drv_type == Driver_Type_UAVCAN) {
             _drivers[drv_num] = _drv_param[drv_num]._uavcan = new AP_UAVCAN;
 
@@ -205,6 +206,7 @@ void AP_CANManager::init()
         }
         log(AP_CANManager::LOG_INFO, drv_num, "Adding Interface %d to Driver %d\n\r", i + 1, drv_num + 1);
         _drivers[drv_num]->add_interface(hal.can[i]);
+#endif // HAL_BUILD_AP_PERIPH
     }
 
     for (uint8_t drv_num = 0; drv_num < MAX_NUMBER_OF_CAN_DRIVERS; drv_num++) {

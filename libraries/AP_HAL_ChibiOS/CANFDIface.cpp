@@ -452,7 +452,7 @@ bool CANIface::configureFilters(const CanFilterConfig* filter_configs,
     MessageRam_.EndAddress = SRAMCAN_BASE + (FDCANMessageRAMOffset_ * 4U);
     if (MessageRam_.EndAddress > MESSAGE_RAM_END_ADDR) {
         //We are overflowing the limit of Allocated Message RAM
-        AP_HAL::panic("CANFDIface: Message RAM Overflow!");
+        AP_HAL::panic("CANFDIface: Message RAM Overflow1!");
     }
 
     can_->CCCR &= ~FDCAN_CCCR_INIT; // Leave init mode
@@ -597,7 +597,7 @@ void CANIface::setupMessageRam()
     MessageRam_.EndAddress = SRAMCAN_BASE + (FDCANMessageRAMOffset_ * 4U);
     if (MessageRam_.EndAddress > MESSAGE_RAM_END_ADDR) {
         //We are overflowing the limit of Allocated Message RAM
-        AP_HAL::panic("CANFDIface: Message RAM Overflow!");
+        AP_HAL::panic("CANFDIface: Message RAM Overflow2!");
         return;
     }
 }

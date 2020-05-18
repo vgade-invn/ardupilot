@@ -523,7 +523,6 @@ int16_t SLCAN::CANIface::receive(AP_HAL::CanFrame& out_frame, uint64_t& rx_time,
 
 
 void SLCAN::CANIface::slcan_passthrough_loop() {
-    uint8_t drv_num = _slcan_can_port - 1; 
     AP_HAL::CanFrame frame;
     bool read_select;
     bool write_select;
@@ -551,7 +550,7 @@ void SLCAN::CANIface::slcan_passthrough_loop() {
             }
             _port->lock_port(_serial_lock_key, _serial_lock_key);
             prev_ser_port = _slcan_ser_port_cache;
-            gcs().send_text(MAV_SEVERITY_INFO, "CANManager: Starting SLCAN Passthrough on Serial %d with CAN%d", _slcan_ser_port_cache, drv_num);
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "CANManager: Starting SLCAN Passthrough on Serial %d with CAN%d", _slcan_ser_port_cache, _slcan_can_port-1);
             last_had_activity = AP_HAL::millis();
         }
         read_select = true;

@@ -41,6 +41,7 @@ const AP_Param::GroupInfo AP_CANManager::CANDriver_Params::var_info[] = {
     // @RebootRequired: True
     AP_GROUPINFO("PROTOCOL", 1, AP_CANManager::CANDriver_Params, _driver_type, AP_CANManager::Driver_Type_UAVCAN),
 
+#ifndef HAL_BUILD_AP_PERIPH
     // @Group: UC_
     // @Path: ../AP_UAVCAN/AP_UAVCAN.cpp
     AP_SUBGROUPPTR(_uavcan, "UC_", 2, AP_CANManager::CANDriver_Params, AP_UAVCAN),
@@ -55,6 +56,8 @@ const AP_Param::GroupInfo AP_CANManager::CANDriver_Params::var_info[] = {
     // @Group: TST_
     // @Path: ../AP_CANManager/AP_CANTester.cpp
     AP_SUBGROUPPTR(_testcan, "TST_", 4, AP_CANManager::CANDriver_Params, CANTester),
+
+#endif // HAL_BUILD_AP_PERIPH
 
     AP_GROUPEND
 };
