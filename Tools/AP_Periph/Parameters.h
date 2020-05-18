@@ -15,7 +15,7 @@ public:
         k_param_gps,
         k_param_compass,
         k_param_can_node,
-        k_param_can_baudrate,
+        // k_param_can_baudrate, unused
         k_param_baro,
         k_param_buzz_volume,
         k_param_led_brightness,
@@ -28,6 +28,7 @@ public:
         k_param_hardpoint_rate,
         k_param_baro_enable,
         k_param_esc_number,
+        k_param_can_mgr,
     };
 
     AP_Int16 format_version;

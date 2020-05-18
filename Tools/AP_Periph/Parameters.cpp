@@ -31,9 +31,6 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     // can node number, 0 for dynamic node allocation
     GSCALAR(can_node,         "CAN_NODE", HAL_CAN_DEFAULT_NODE_ID),
 
-    // can node baudrate
-    GSCALAR(can_baudrate,     "CAN_BAUDRATE", 1000000),
-
 #if !defined(HAL_NO_FLASH_SUPPORT) && !defined(HAL_NO_ROMFS_SUPPORT)
     // trigger bootloader flash
     GSCALAR(flash_bootloader,     "FLASH_BOOTLOADER", 0),
@@ -98,6 +95,10 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
 #ifdef HAL_PERIPH_ENABLE_HWESC
     GSCALAR(esc_number, "ESC_NUMBER", 0),
 #endif
+
+    // @Group: CAN_
+    // @Path: ../libraries/AP_CANManager/AP_CANManager.cpp
+    GOBJECT(can_mgr,  "CAN_",       AP_CANManager),
     
     AP_VAREND
 };
@@ -108,7 +109,6 @@ void AP_Periph_FW::load_parameters(void)
     AP_Param::setup_sketch_defaults();
 
     if (!AP_Param::check_var_info()) {
-        hal.console->printf("Bad parameter table\n");
         AP_HAL::panic("Bad parameter table");
     }
     if (!g.format_version.load() ||

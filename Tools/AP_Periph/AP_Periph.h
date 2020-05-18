@@ -7,6 +7,7 @@
 #include <AP_RangeFinder/AP_RangeFinder.h>
 #include "../AP_Bootloader/app_comms.h"
 #include "hwing_esc.h"
+#include <AP_CANManager/AP_CANManager.h>
 
 #if defined(HAL_PERIPH_NEOPIXEL_COUNT) || defined(HAL_PERIPH_ENABLE_NCP5623_LED)
 #define AP_PERIPH_HAVE_LED
@@ -96,6 +97,7 @@ public:
     uint32_t last_gps_update_ms;
     uint32_t last_baro_update_ms;
     uint32_t last_airspeed_update_ms;
+    AP_CANManager can_mgr;
 };
 
 extern AP_Periph_FW periph;
