@@ -19,6 +19,8 @@
 
 #define AP_ACCELCAL_POSITION_REQUEST_INTERVAL_MS 1000
 
+#ifndef HAL_NO_GCS
+
 #define _printf(fmt, args ...) do {                                     \
         if (_gcs != nullptr) {                                          \
             _gcs->send_text(MAV_SEVERITY_CRITICAL, fmt, ## args);       \
@@ -382,3 +384,5 @@ bool AP_AccelCal::gcs_vehicle_position(float position)
 
     return false;
 }
+
+#endif // HAL_NO_GCS
