@@ -264,7 +264,7 @@ void AP_CANManager::log(AP_CANManager::LogLevel loglevel, uint8_t driver_index, 
 uint32_t AP_CANManager::log_retrieve(char* data, uint32_t max_size) const
 {
     if (_loglevel == AP_CANManager::LOG_NONE || _log_buf == nullptr) {
-        gcs().send_text(MAV_SEVERITY_ERROR, "Log buffer not available");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Log buffer not available");
         return 0;
     }
     uint32_t read_len = MIN(max_size, _log_pos);

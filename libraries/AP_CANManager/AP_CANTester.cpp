@@ -121,38 +121,38 @@ void CANTester::main_thread() {
         {
         case CANTester::TEST_LOOPBACK:
             if (_can_ifaces[1] != nullptr) {
-                gcs().send_text(MAV_SEVERITY_ALERT, "********Running Loopback Test*******");
+                GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "********Running Loopback Test*******");
                 if (test_loopback(_loop_rate)) {
-                    gcs().send_text(MAV_SEVERITY_ALERT, "********Loopback Test Pass*******");
+                    GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "********Loopback Test Pass*******");
                 } else {
-                    gcs().send_text(MAV_SEVERITY_ALERT, "********Loopback Test Fail*******");
+                    GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "********Loopback Test Fail*******");
                 }
             } else {
-                gcs().send_text(MAV_SEVERITY_ALERT, "Can't do Loopback Test with single iface");
+                GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "Can't do Loopback Test with single iface");
             }
             break;
         case CANTester::TEST_BUSOFF_RECOVERY:
             if (_can_ifaces[1] != nullptr) {
-                gcs().send_text(MAV_SEVERITY_ALERT, "********Running Busoff Recovery Test********");
+                GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "********Running Busoff Recovery Test********");
                 if (test_busoff_recovery()) {
-                    gcs().send_text(MAV_SEVERITY_ALERT, "********Busoff Recovery Test Pass********");
+                    GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "********Busoff Recovery Test Pass********");
                 } else {
-                    gcs().send_text(MAV_SEVERITY_ALERT, "********Busoff Recovery Test Fail********");
+                    GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "********Busoff Recovery Test Fail********");
                 }
             } else {
-                gcs().send_text(MAV_SEVERITY_ALERT, "Can't do Busoff Recovery Test with single iface");
+                GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "Can't do Busoff Recovery Test with single iface");
             }
             break;
         case CANTester::TEST_UAVCAN_DNA:
             if (_can_ifaces[1] == nullptr) {
-                gcs().send_text(MAV_SEVERITY_ALERT, "********Running UAVCAN DNA Test********");
+                GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "********Running UAVCAN DNA Test********");
                 if (test_uavcan_dna()) {
-                    gcs().send_text(MAV_SEVERITY_ALERT, "********UAVCAN DNA Test Pass********");
+                    GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "********UAVCAN DNA Test Pass********");
                 } else {
-                    gcs().send_text(MAV_SEVERITY_ALERT, "********UAVCAN DNA Test Fail********");
+                    GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "********UAVCAN DNA Test Fail********");
                 }
             } else {
-                gcs().send_text(MAV_SEVERITY_ALERT, "Only one iface needs to be set for UAVCAN_DNA_TEST");
+                GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "Only one iface needs to be set for UAVCAN_DNA_TEST");
             }
             break;
         default:
@@ -192,10 +192,10 @@ bool CANTester::test_loopback(uint32_t loop_rate) {
         hal.scheduler->delay_microseconds(loop_rate);
     }
     for (uint8_t i = 0; i < _num_ifaces; i++) {
-        gcs().send_text(MAV_SEVERITY_ALERT, "Loopback Test Results %d->%d:", i, (i+1)%2);
-        gcs().send_text(MAV_SEVERITY_ALERT, "num_tx: %lu, failed_tx: %lu",
+        GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "Loopback Test Results %d->%d:", i, (i+1)%2);
+        GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "num_tx: %lu, failed_tx: %lu",
                                 _loopback_stats[i].num_tx, _loopback_stats[i].failed_tx);
-        gcs().send_text(MAV_SEVERITY_ALERT, "num_rx: %lu, bad_rx_data: %lu, bad_rx_seq: %lu", 
+        GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "num_rx: %lu, bad_rx_data: %lu, bad_rx_seq: %lu", 
                                 _loopback_stats[i].num_rx, _loopback_stats[i].bad_rx_data, _loopback_stats[i].bad_rx_seq);
         if (_loopback_stats[i].num_rx < 0.9f * _loopback_stats[i].num_tx) {
             return false;
@@ -259,7 +259,7 @@ bool CANTester::test_busoff_recovery()
     bo_frame.dlc = AP_HAL::CanFrame::MaxDataLen;
     bool bus_off_detected = false;
     // Bus Fault can be introduced by shorting CANH and CANL
-    gcs().send_text(MAV_SEVERITY_ERROR, "Introduce Bus Off Fault on the bus.");
+    GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Introduce Bus Off Fault on the bus.");
     while (num_busoff_runs--) {
         if (bus_off_detected) {
             break;
@@ -273,12 +273,12 @@ bool CANTester::test_busoff_recovery()
         hal.scheduler->delay_microseconds(50);
     }
     if (!bus_off_detected) {
-        gcs().send_text(MAV_SEVERITY_ERROR, "BusOff not detected on the bus");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "BusOff not detected on the bus");
         return false;
     }
-    gcs().send_text(MAV_SEVERITY_ERROR, "BusOff detected remove Fault.");
+    GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "BusOff detected remove Fault.");
     hal.scheduler->delay(1000);
-    gcs().send_text(MAV_SEVERITY_ERROR, "Running Loopback test.");
+    GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Running Loopback test.");
     //Send Dummy Frames to clear the error
     _can_ifaces[0]->send(bo_frame, AP_HAL::micros()+1000, 0);
     bo_frame.id += 1;
@@ -299,7 +299,7 @@ bool CANTester::test_uavcan_dna() {
     uavcan::CanIfaceMgr _uavcan_iface_mgr {};
 
     if (!_uavcan_iface_mgr.add_interface(_can_ifaces[0])) {
-        gcs().send_text(MAV_SEVERITY_CRITICAL, "Failed to add iface");
+        GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "Failed to add iface");
         return false;
     }
 
@@ -324,7 +324,7 @@ bool CANTester::test_uavcan_dna() {
     const int node_start_res = node.start();
     if (node_start_res < 0)
     {
-        gcs().send_text(MAV_SEVERITY_CRITICAL, "Failed to start the node");
+        GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "Failed to start the node");
         return false;
     }
 
@@ -339,27 +339,27 @@ bool CANTester::test_uavcan_dna() {
                                         expected_node_id);
     if (client_start_res < 0)
     {
-        gcs().send_text(MAV_SEVERITY_ALERT,"Failed to start the dynamic node");
+        GCS_SEND_TEXT(MAV_SEVERITY_ALERT,"Failed to start the dynamic node");
     }
 
     /*
      * Waiting for the client to obtain for us a node ID.
      * This may take a few seconds.
      */
-    gcs().send_text(MAV_SEVERITY_ALERT, "Allocation is in progress");
+    GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "Allocation is in progress");
     uint32_t num_runs = 50;
     while (!client.isAllocationComplete() && num_runs--) {
         const int res = node.spin(uavcan::MonotonicDuration::fromMSec(200));    // Spin duration doesn't matter
         if (res < 0)
         {
-            gcs().send_text(MAV_SEVERITY_ALERT, "Transient failure");
+            GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "Transient failure");
         }
     }
-    gcs().send_text(MAV_SEVERITY_ALERT, "Dynamic node ID %d allocated node ID %d", 
+    GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "Dynamic node ID %d allocated node ID %d", 
                                         int(client.getAllocatedNodeID().get()), 
                                         int(client.getAllocatorNodeID().get()));
     if (client.getAllocatedNodeID().get() != expected_node_id) {
-        gcs().send_text(MAV_SEVERITY_ALERT, "Unexpected Node Id, expected %d", expected_node_id);
+        GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "Unexpected Node Id, expected %d", expected_node_id);
         return false;
     }
     return true;
