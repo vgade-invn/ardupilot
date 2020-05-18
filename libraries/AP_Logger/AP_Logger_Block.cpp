@@ -204,7 +204,7 @@ void AP_Logger_Block::EraseAll()
         return;
     }
 
-    gcs().send_text(MAV_SEVERITY_INFO, "Chip erase started");
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Chip erase started");
     // reset the format version and wrapped status so that any incomplete erase will be caught
     Sector4kErase(get_sector(df_NumPages));
 
@@ -291,10 +291,12 @@ void AP_Logger_Block::validate_log_structure()
     }
 
     if (file != 0xFFFF && file != next_file && page <= df_NumPages && page > 0) {
-        gcs().send_text(MAV_SEVERITY_WARNING, "Found corrupt log %d at 0x%04X, erasing", int(file), unsigned(page));
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Found corrupt log %d at 0x%04X, erasing", int(file), unsigned(page));
         df_EraseFrom = page;
     } else if (next_file != 0xFFFF && page > 0 && next_file > 1) { // chip is empty
-        gcs().send_text(MAV_SEVERITY_INFO, "Found %d complete logs at 0x%04X-0x%04X", int(next_file - first_file), unsigned(page_start), unsigned(page - 1));
+        (void)page_start;
+        (void)first_file;
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Found %d complete logs at 0x%04X-0x%04X", int(next_file - first_file), unsigned(page_start), unsigned(page - 1));
     }
 }
 
@@ -611,7 +613,7 @@ uint32_t AP_Logger_Block::find_last_page_of_log(uint16_t log_number)
         return bottom;
     }
 
-    gcs().send_text(MAV_SEVERITY_ERROR, "No last page of log %d at top=%X or bot=%X", int(log_number), unsigned(top), unsigned(bottom));
+    GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "No last page of log %d at top=%X or bot=%X", int(log_number), unsigned(top), unsigned(bottom));
     return 0;
 }
 
@@ -669,7 +671,7 @@ void AP_Logger_Block::io_timer(void)
         memcpy(buffer, &version, sizeof(version));
         FinishWrite();
         erase_started = false;
-        gcs().send_text(MAV_SEVERITY_INFO, "Chip erase complete");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Chip erase complete");
         return;
     }
 
@@ -688,7 +690,7 @@ void AP_Logger_Block::io_timer(void)
             SectorErase(next_sector / sectors_in_64k);
             next_sector += sectors_in_64k;
         }
-        gcs().send_text(MAV_SEVERITY_WARNING, "Log recovery complete, erased %d blocks", unsigned(blocks_erased));
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Log recovery complete, erased %d blocks", unsigned(blocks_erased));
         df_EraseFrom = 0;
     }
 

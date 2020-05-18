@@ -121,7 +121,7 @@ AP_Logger::AP_Logger(const AP_Int32 &log_bitmask)
 void AP_Logger::Init(const struct LogStructure *structures, uint8_t num_types)
 {
     if (hal.util->was_watchdog_armed()) {
-        gcs().send_text(MAV_SEVERITY_INFO, "Forcing logging for watchdog reset");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Forcing logging for watchdog reset");
         _params.log_disarmed.set(1);
     }
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
@@ -727,7 +727,9 @@ void AP_Logger::handle_mavlink_msg(GCS_MAVLINK &link, const mavlink_message_t &m
 {
     switch (msg.msgid) {
     case MAVLINK_MSG_ID_REMOTE_LOG_BLOCK_STATUS:
+#if LOGGER_MAVLINK_SUPPORT
         FOR_EACH_BACKEND(remote_log_block_status_msg(link.get_chan(), msg));
+#endif
         break;
     case MAVLINK_MSG_ID_LOG_REQUEST_LIST:
         FALLTHROUGH;
