@@ -521,7 +521,9 @@ AP_InertialSensor::AP_InertialSensor() :
         _accel_vibe_filter[i].set_cutoff_frequency(AP_INERTIAL_SENSOR_ACCEL_VIBE_FILT_HZ);
     }
 
+#ifndef HAL_NO_GCS
     AP_AccelCal::register_client(this);
+#endif
 }
 
 /*
