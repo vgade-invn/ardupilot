@@ -5,7 +5,7 @@
  */
 #pragma once
 
-#define LOGGER_MAVLINK_SUPPORT 1
+#define LOGGER_MAVLINK_SUPPORT !defined(HAL_NO_GCS)
 
 #if LOGGER_MAVLINK_SUPPORT
 
