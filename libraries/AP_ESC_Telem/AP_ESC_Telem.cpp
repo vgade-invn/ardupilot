@@ -23,6 +23,7 @@
   #include <AP_UAVCAN/AP_UAVCAN.h>
   #include <AP_KDECAN/AP_KDECAN.h>
   #include <AP_ToshibaCAN/AP_ToshibaCAN.h>
+  #include <AP_CANAeroSpace/AP_CANAeroSpace.h>
 #endif
 
 extern const AP_HAL::HAL& hal;
