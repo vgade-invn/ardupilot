@@ -862,6 +862,9 @@ bool AP_Arming::can_checks(bool report)
                     // initialised" prearm check.
                     break;
                 }
+                case AP_BoardConfig_CAN::Protocol_Type_CANAeroSpace:
+                    // no prearm checks
+                    break;
                 case AP_BoardConfig_CAN::Protocol_Type_None:
                     break;
             }
