@@ -65,6 +65,7 @@
   #endif
   #include <AP_ToshibaCAN/AP_ToshibaCAN.h>
   #include <AP_PiccoloCAN/AP_PiccoloCAN.h>
+  #include <AP_CANAeroSpace/AP_CANAeroSpace.h>
 #endif
 
 #include <AP_BattMonitor/AP_BattMonitor.h>
