@@ -34,6 +34,7 @@
 #include <AP_UAVCAN/AP_UAVCAN_SLCAN.h>
 #include <AP_UAVCAN/AP_UAVCAN.h>
 #include <AP_KDECAN/AP_KDECAN.h>
+#include <AP_CANAeroSpace/AP_CANAeroSpace.h>
 #include <AP_ToshibaCAN/AP_ToshibaCAN.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_PiccoloCAN/AP_PiccoloCAN.h>
@@ -184,6 +185,17 @@ void AP_BoardConfig_CAN::init()
                     AP_BoardConfig::config_error("PiccoloCAN init failed");
                     continue;
                 }
+#endif
+            } else if (prot_type == Protocol_Type_CANAeroSpace) {
+#if APM_BUILD_TYPE(APM_BUILD_ArduCopter) || APM_BUILD_TYPE(APM_BUILD_ArduPlane) || APM_BUILD_TYPE(APM_BUILD_ArduSub)
+                _drivers[i]._driver = _drivers[i]._canaerospace =  new AP_CANAeroSpace;
+
+                 if (_drivers[i]._driver == nullptr) {
+                    AP_HAL::panic("Failed to allocate CANAeroSpace %d\n\r", i + 1);
+                    continue;
+                }
+
+                AP_Param::load_object_from_eeprom(_drivers[i]._canaerospace, AP_CANAeroSpace::var_info);
 #endif
             } else {
                 continue;

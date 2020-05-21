@@ -28,6 +28,7 @@ public:
         Protocol_Type_KDECAN = 2,
         Protocol_Type_ToshibaCAN = 3,
         Protocol_Type_PiccoloCAN = 4,
+        Protocol_Type_CANAeroSpace = 5,
     };
 
     void init(void);
@@ -131,6 +132,7 @@ private:
         AP_HAL::CANProtocol* _kdecan;   // KDECAN
         AP_HAL::CANProtocol* _tcan;     // ToshibaCAN
         AP_HAL::CANProtocol* _pcan;     // PiccoloCAN
+        AP_HAL::CANProtocol* _canaerospace; // CANAeroSpace
     };
 
 #if AP_UAVCAN_SLCAN_ENABLED

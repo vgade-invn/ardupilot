@@ -22,6 +22,7 @@
   #include <AP_UAVCAN/AP_UAVCAN.h>
   #include <AP_ToshibaCAN/AP_ToshibaCAN.h>
   #include <AP_PiccoloCAN/AP_PiccoloCAN.h>
+  #include <AP_CANAeroSpace/AP_CANAeroSpace.h>
 
   // To be replaced with macro saying if KDECAN library is included
   #if APM_BUILD_TYPE(APM_BUILD_ArduCopter) || APM_BUILD_TYPE(APM_BUILD_ArduPlane) || APM_BUILD_TYPE(APM_BUILD_ArduSub)
@@ -50,6 +51,10 @@ const AP_Param::GroupInfo AP_BoardConfig_CAN::Driver::var_info[] = {
     AP_SUBGROUPPTR(_kdecan, "KDE_", 3, AP_BoardConfig_CAN::Driver, AP_KDECAN),
 #endif
 
+    // @Group: CAS_
+    // @Path: ../AP_CANAeroSpace/AP_CANAeroSpace.cpp
+    AP_SUBGROUPPTR(_canaerospace, "CAS_", 4, AP_BoardConfig_CAN::Driver, AP_CANAeroSpace),
+    
     AP_GROUPEND
 };
 #endif
