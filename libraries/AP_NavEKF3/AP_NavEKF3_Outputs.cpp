@@ -51,6 +51,16 @@ float NavEKF3_core::errorScore() const
     return score;
 }
 
+void NavEKF3_core::updateCoreError()
+{
+    runningError += NavEKF3_core::errorScore();
+}
+
+float NavEKF3_core::getCoreError() const
+{
+    return runningError;
+}
+
 // return data for debugging optical flow fusion
 void NavEKF3_core::getFlowDebug(float &varFlow, float &gndOffset, float &flowInnovX, float &flowInnovY, float &auxInnov, float &HAGL, float &rngInnov, float &range, float &gndOffsetErr) const
 {

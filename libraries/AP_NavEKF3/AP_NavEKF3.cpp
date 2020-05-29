@@ -815,12 +815,18 @@ void NavEKF3::UpdateFilter(void)
         }
         runCoreSelection = (imuSampleTime_us - lastUnhealthyTime_us) > 1E7;
     }
+
+    //start updating errors for all cores after core selection logic is true
+    if(runCoreSelection) {
+        updateCoreErrors();
+    }
+
     float primaryErrorScore = core[primary].errorScore();
     if ((primaryErrorScore > 1.0f || !core[primary].healthy()) && runCoreSelection) {
-        float lowestErrorScore = 0.67f * primaryErrorScore;
+        float primaryCoreError = core[primary].getCoreError();
         uint8_t newPrimaryIndex = primary; // index for new primary
         for (uint8_t coreIndex=0; coreIndex<num_cores; coreIndex++) {
-
+            
             if (coreIndex != primary) {
                 // an alternative core is available for selection only if healthy and if states have been updated on this time step
                 bool altCoreAvailable = core[coreIndex].healthy() && statePredictEnabled[coreIndex];
@@ -828,10 +834,10 @@ void NavEKF3::UpdateFilter(void)
                 // If the primary core is unhealthy and another core is available, then switch now
                 // If the primary core is still healthy,then switching is optional and will only be done if
                 // a core with a significantly lower error score can be found
-                float altErrorScore = core[coreIndex].errorScore();
-                if (altCoreAvailable && (!core[newPrimaryIndex].healthy() || altErrorScore < lowestErrorScore)) {
+                float altCoreError = core[coreIndex].getCoreError();
+                if (altCoreAvailable && (!core[newPrimaryIndex].healthy() || altCoreError < primaryCoreError)) {
                     newPrimaryIndex = coreIndex;
-                    lowestErrorScore = altErrorScore;
+                    primaryCoreError = altCoreError;
                 }
             }
         }
@@ -904,6 +910,13 @@ void NavEKF3::requestYawReset(void)
 {
     for (uint8_t i = 0; i < num_cores; i++) {
         core[primary].EKFGSF_requestYawReset();
+    }
+}
+
+void NavEKF3::updateCoreErrors(void)
+{
+    for (uint8_t i = 0; i < num_cores; i++) {
+        core[i].updateCoreError();
     }
 }
 

@@ -102,6 +102,12 @@ public:
     // Intended to be used by the front-end to determine which is the primary EKF
     float errorScore(void) const;
 
+    // Update Running Error score for the core
+    void updateCoreError();
+
+    // Return the core running error value
+    float getCoreError() const;
+
     // Write the last calculated NE position relative to the reference point (m).
     // If a calculated solution is not available, use the best available data and return false
     // If false returned, do not use for flight control
@@ -1115,6 +1121,7 @@ private:
     Vector3f posOffsetNED;          // This adds to the earth frame position estimate at the IMU to give the position at the body origin (m)
     uint32_t firstInitTime_ms;      // First time the initialise function was called (msec)
     uint32_t lastInitFailReport_ms; // Last time the buffer initialisation failure report was sent (msec)
+    float runningError;             // accrued error to decide between EKF lanes
 
     // Specify source of data to be used for a partial state reset
     // Checking the availability and quality of the data source specified is the responsibility of the caller

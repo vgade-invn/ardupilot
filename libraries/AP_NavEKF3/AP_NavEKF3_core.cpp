@@ -335,6 +335,7 @@ void NavEKF3_core::InitialiseVariables()
     memset(&velPosObs, 0, sizeof(velPosObs));
     posResetSource = DEFAULT;
     velResetSource = DEFAULT;
+    runningError = 0;
 
     // range beacon fusion variables
     memset((void *)&rngBcnDataNew, 0, sizeof(rngBcnDataNew));
