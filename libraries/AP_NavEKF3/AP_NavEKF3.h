@@ -63,7 +63,10 @@ public:
     bool all_cores_healthy(void) const;
 
     // Update error scores for all available cores
-    void updateCoreErrors(void);
+    void updateCoreErrors(float primaryCoreError);
+
+    // Reset error scores for all available cores
+    void resetCoreErrors(void);
 
     // returns the index of the primary core
     // return -1 if no primary core selected
@@ -557,9 +560,10 @@ private:
         float core_delta;             // the amount of D position change between cores when a change happened
     } pos_down_reset_data;
 
-    bool runCoreSelection; // true when the primary core has stabilised and the core selection logic can be started
-    bool coreSetupRequired[7]; // true when this core index needs to be setup
-    uint8_t coreImuIndex[7];   // IMU index used by this core
+    bool runCoreSelection;        // true when the primary core has stabilised and the core selection logic can be started
+    bool coreSetupRequired[7];    // true when this core index needs to be setup
+    uint8_t coreImuIndex[7];      // IMU index used by this core
+    float relativeCoreError[7];   // relative errors of cores with respect to primary
 
     bool inhibitGpsVertVelUse;  // true when GPS vertical velocity use is prohibited
 

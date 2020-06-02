@@ -757,6 +757,9 @@ bool NavEKF3::InitialiseFilter(void)
         return false;
     }
 
+    // initialize relative error scores for all cores to 0
+    resetCoreErrors();
+
     // Set the primary initially to be the lowest index
     primary = 0;
 
@@ -816,17 +819,16 @@ void NavEKF3::UpdateFilter(void)
         runCoreSelection = (imuSampleTime_us - lastUnhealthyTime_us) > 1E7;
     }
 
+    float primaryErrorScore = core[primary].errorScore();
     //start updating errors for all cores after core selection logic is true
     if(runCoreSelection) {
-        updateCoreErrors();
+        updateCoreErrors(primaryErrorScore);
     }
 
-    float primaryErrorScore = core[primary].errorScore();
     if ((primaryErrorScore > 1.0f || !core[primary].healthy()) && runCoreSelection) {
-        float primaryCoreError = core[primary].getCoreError();
+        float primaryCoreError = relativeCoreError[primary];
         uint8_t newPrimaryIndex = primary; // index for new primary
         for (uint8_t coreIndex=0; coreIndex<num_cores; coreIndex++) {
-            
             if (coreIndex != primary) {
                 // an alternative core is available for selection only if healthy and if states have been updated on this time step
                 bool altCoreAvailable = core[coreIndex].healthy() && statePredictEnabled[coreIndex];
@@ -834,7 +836,7 @@ void NavEKF3::UpdateFilter(void)
                 // If the primary core is unhealthy and another core is available, then switch now
                 // If the primary core is still healthy,then switching is optional and will only be done if
                 // a core with a significantly lower error score can be found
-                float altCoreError = core[coreIndex].getCoreError();
+                float altCoreError = relativeCoreError[coreIndex];
                 if (altCoreAvailable && (!core[newPrimaryIndex].healthy() || altCoreError < primaryCoreError)) {
                     newPrimaryIndex = coreIndex;
                     primaryCoreError = altCoreError;
@@ -846,6 +848,7 @@ void NavEKF3::UpdateFilter(void)
             updateLaneSwitchYawResetData(newPrimaryIndex, primary);
             updateLaneSwitchPosResetData(newPrimaryIndex, primary);
             updateLaneSwitchPosDownResetData(newPrimaryIndex, primary);
+            resetCoreErrors();
             primary = newPrimaryIndex;
             lastLaneSwitch_ms = AP_HAL::millis();
         }
@@ -913,10 +916,25 @@ void NavEKF3::requestYawReset(void)
     }
 }
 
-void NavEKF3::updateCoreErrors(void)
+/*
+  Update the error for all running cores. Error is accumulated relative to the primary core's error.
+  A positive relative error for a core means it has been more erroneous than the existing primary.
+  A negative relative error indicates a better core which can be switched to.
+*/
+void NavEKF3::updateCoreErrors(float primaryCoreError)
 {
     for (uint8_t i = 0; i < num_cores; i++) {
-        core[i].updateCoreError();
+        if(i!=primary) {
+            relativeCoreError[i] += core[i].errorScore() - primaryCoreError;
+        }
+    }
+}
+
+// Reset the relative error values
+void NavEKF3::resetCoreErrors(void)
+{
+    for (uint8_t i = 0; i < num_cores; i++) {
+        relativeCoreError[i] = 0;
     }
 }
 
