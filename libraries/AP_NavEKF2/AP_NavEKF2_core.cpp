@@ -334,6 +334,9 @@ void NavEKF2_core::InitialiseVariables()
     EKFGSF_yaw_reset_request_ms = 0;
     EKFGSF_yaw_reset_count = 0;
     EKFGSF_run_filterbank = false;
+
+    // control of airspeed fusion
+    airDataFusionWindOnly = false;
 }
 
 

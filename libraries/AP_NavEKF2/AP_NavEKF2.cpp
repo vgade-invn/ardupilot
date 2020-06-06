@@ -1057,12 +1057,15 @@ void NavEKF2::getAccelZBias(int8_t instance, float &zbias) const
 }
 
 // return the NED wind speed estimates in m/s (positive is air moving in the direction of the axis)
-void NavEKF2::getWind(int8_t instance, Vector3f &wind) const
+// returns true if wind state estimation is active
+bool NavEKF2::getWind(int8_t instance, Vector3f &wind) const
 {
+    bool ret = false;
     if (instance < 0 || instance >= num_cores) instance = primary;
     if (core) {
-        core[instance].getWind(wind);
+        ret = core[instance].getWind(wind);
     }
+    return ret;
 }
 
 // return earth magnetic field estimates in measurement units / 1000
@@ -1638,14 +1641,14 @@ void NavEKF2::requestYawReset(void)
     }
 }
 
-// Writes the default equivalent airspeed in m/s to be used in forward flight if a measured airspeed is required and not available.
-void NavEKF2::writeDefaultAirSpeed(float airspeed)
+// Writes the default equivalent airspeed and 1-sigma uncertainty in m/s to be used in forward flight if a measured airspeed is required and not available.
+void NavEKF2::writeDefaultAirSpeed(const float airspeed, float uncertainty)
 {
-    AP::dal().log_writeDefaultAirSpeed2(airspeed);
+    AP::dal().log_writeDefaultAirSpeed2(airspeed, uncertainty);
 
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
-            core[i].writeDefaultAirSpeed(airspeed);
+            core[i].writeDefaultAirSpeed(airspeed, uncertainty);
         }
     }
 }

@@ -128,8 +128,9 @@ public:
     void getAccelZBias(int8_t instance, float &zbias) const;
 
     // return the NED wind speed estimates in m/s (positive is air moving in the direction of the axis)
-    // An out of range instance (eg -1) returns data for the primary instance
-    void getWind(int8_t instance, Vector3f &wind) const;
+    // An out of range instance (eg -1) returns data for the the primary instance
+    // returns true if wind state estimation is active
+    bool getWind(int8_t instance, Vector3f &wind) const;
 
     // return earth magnetic field estimates in measurement units / 1000 for the specified instance
     // An out of range instance (eg -1) returns data for the primary instance
@@ -331,8 +332,8 @@ public:
     // check if configured to use GPS for horizontal position estimation
     bool configuredToUseGPSForPosXY(void) const;
 
-    // Writes the default equivalent airspeed in m/s to be used in forward flight if a measured airspeed is required and not available.
-    void writeDefaultAirSpeed(float airspeed);
+    // Writes the default equivalent airspeed and 1-sigma uncertainty in m/s to be used in forward flight if a measured airspeed is required and not available.
+    void writeDefaultAirSpeed(float airspeed, float uncertainty);
 
 private:
     uint8_t num_cores; // number of allocated cores
@@ -432,6 +433,7 @@ private:
     const float gndEffectBaroScaler = 4.0f;        // scaler applied to the barometer observation variance when ground effect mode is active
     const uint8_t fusionTimeStep_ms = 10;          // The minimum time interval between covariance predictions and measurement fusions in msec
     const float maxYawEstVelInnov = 2.0f;          // Maximum acceptable length of the velocity innovation returned by the EKF-GSF yaw estimator (m/s)
+    const uint16_t deadReckonDeclare_ms = 1000;    // Time without equivalent position or velocity observation to constrain drift beore dead reckoning is declared (msec)
 
     // origin set by one of the cores
     struct Location common_EKF_origin;

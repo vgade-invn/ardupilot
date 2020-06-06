@@ -141,7 +141,8 @@ public:
     void getAccelZBias(float &zbias) const;
 
     // return the NED wind speed estimates in m/s (positive is air moving in the direction of the axis)
-    void getWind(Vector3f &wind) const;
+    // returns true if wind state estimation is active
+    bool getWind(Vector3f &wind) const;
 
     // return earth magnetic field estimates in measurement units / 1000
     void getMagNED(Vector3f &magNED) const;
@@ -330,8 +331,8 @@ public:
     // return true when external nav data is also being used as a yaw observation
     bool isExtNavUsedForYaw(void);
 
-    // Writes the default equivalent airspeed in m/s to be used in forward flight if a measured airspeed is required and not available.
-    void writeDefaultAirSpeed(float airspeed);
+    // Writes the default equivalent airspeed and 1-sigma uncertainty in m/s to be used in forward flight if a measured airspeed is required and not available.
+    void writeDefaultAirSpeed(float airspeed, float uncertainty);
 
     // request a reset the yaw to the EKF-GSF value
     void EKFGSF_requestYawReset();
@@ -841,6 +842,7 @@ private:
     ftype innovVtas;                // innovation output from fusion of airspeed measurements
     ftype varInnovVtas;             // innovation variance output from fusion of airspeed measurements
     bool magFusePerformed;          // boolean set to true when magnetometer fusion has been performed in that time step
+    float externalEasDefault;       // externally settable default value of EAS used for fusion when no direct measurement is available (m/s)
     uint32_t prevTasStep_ms;        // time stamp of last TAS fusion step
     uint32_t prevBetaStep_ms;       // time stamp of last synthetic sideslip fusion step
     uint32_t lastMagUpdate_us;      // last time compass was updated in usec
@@ -868,6 +870,7 @@ private:
     Vector3f magTestRatio;          // sum of squares of magnetometer innovations divided by fail threshold
     float tasTestRatio;             // sum of squares of true airspeed innovation divided by fail threshold
     float defaultAirSpeed;          // default equivalent airspeed in m/s to be used if the measurement is unavailable. Do not use if not positive.
+    float defaultAirSpeedVariance;  // default equivalent airspeed variance in (m/s)**2 to be used when defaultAirSpeed is specified. 
     bool inhibitWindStates;         // true when wind states and covariances are to remain constant
     bool inhibitMagStates;          // true when magnetic field states and covariances are to remain constant
     bool lastInhibitMagStates;      // previous inhibitMagStates
@@ -921,6 +924,7 @@ private:
     bool optFlowFusionDelayed;      // true when the optical flow fusion has been delayed
     bool airSpdFusionDelayed;       // true when the air speed fusion has been delayed
     bool sideSlipFusionDelayed;     // true when the sideslip fusion has been delayed
+    bool airDataFusionWindOnly;     // true when  sideslip and airspeed fusion is only allowed to modify the wind states
     Vector3f lastMagOffsets;        // Last magnetometer offsets from COMPASS_ parameters. Used to detect parameter changes.
     bool lastMagOffsetsValid;       // True when lastMagOffsets has been initialized
     Vector2f posResetNE;            // Change in North/East position due to last in-flight reset in metres. Returned by getLastPosNorthEastReset

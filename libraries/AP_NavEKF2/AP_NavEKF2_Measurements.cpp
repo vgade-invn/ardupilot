@@ -1031,10 +1031,11 @@ void NavEKF2_core::learnInactiveBiases(void)
 #endif
 }
 
-// Writes the default equivalent airspeed in m/s to be used in forward flight if a measured airspeed is required and not available.
-void NavEKF2_core::writeDefaultAirSpeed(float airspeed)
+// Writes the default equivalent airspeed and 1-sigma uncertainty in m/s to be used in forward flight if a measured airspeed is required and not available.
+void NavEKF2_core::writeDefaultAirSpeed(float airspeed, float uncertainty)
 {
     defaultAirSpeed = airspeed;
+    defaultAirSpeedVariance = sq(uncertainty);
 }
 
 void NavEKF2_core::writeExtNavVelData(const Vector3f &vel, float err, uint32_t timeStamp_ms, uint16_t delay_ms)
