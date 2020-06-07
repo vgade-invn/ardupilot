@@ -159,11 +159,12 @@ def git_submodule_post_fun(bld):
 
 def _git_head_hash(ctx, path, short=False):
     cmd = [ctx.env.get_flat('GIT'), 'rev-parse']
-    if short:
-        cmd.append('--short=8')
     cmd.append('HEAD')
     out = ctx.cmd_and_log(cmd, quiet=Context.BOTH, cwd=path)
-    return out.strip()
+    ret = out.strip()
+    if short:
+        ret = ret[:8]
+    return ret
 
 @conf
 def git_submodule_head_hash(self, name, short=False):
