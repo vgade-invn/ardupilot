@@ -39,6 +39,7 @@ def build(bld):
         'AP_AccelCal',
         'AP_Logger',
         'AC_PID',
+        'AP_RAMTRON',
         ],
         exclude_src=[
             'libraries/AP_HAL_ChibiOS/Storage.cpp'
