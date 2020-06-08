@@ -560,10 +560,13 @@ private:
         float core_delta;             // the amount of D position change between cores when a change happened
     } pos_down_reset_data;
 
-    bool runCoreSelection;        // true when the primary core has stabilised and the core selection logic can be started
-    bool coreSetupRequired[7];    // true when this core index needs to be setup
-    uint8_t coreImuIndex[7];      // IMU index used by this core
-    float relativeCoreError[7];   // relative errors of cores with respect to primary
+#define MAX_EKF_CORES 3 // maximum allowed EKF Cores to be instantiated
+#define CORE_ERR_LIM  1 // -LIM to LIM relative error range for a core
+
+    bool runCoreSelection;                    // true when the primary core has stabilised and the core selection logic can be started
+    bool coreSetupRequired[MAX_EKF_CORES];    // true when this core index needs to be setup
+    uint8_t coreImuIndex[MAX_EKF_CORES];      // IMU index used by this core
+    float relativeCoreError[MAX_EKF_CORES];   // relative errors of cores with respect to primary
 
     bool inhibitGpsVertVelUse;  // true when GPS vertical velocity use is prohibited
 

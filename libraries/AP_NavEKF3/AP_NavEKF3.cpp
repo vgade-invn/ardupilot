@@ -704,14 +704,14 @@ bool NavEKF3::InitialiseFilter(void)
         _imuMask.set(_imuMask.get() & mask);
         
         // initialise the setup variables
-        for (uint8_t i=0; i<7; i++) {
+        for (uint8_t i=0; i<MAX_EKF_CORES; i++) {
             coreSetupRequired[i] = false;
             coreImuIndex[i] = 0;
         }
         num_cores = 0;
 
         // count IMUs from mask
-        for (uint8_t i=0; i<7; i++) {
+        for (uint8_t i=0; i<MAX_EKF_CORES; i++) {
             if (_imuMask & (1U<<i)) {
                 coreSetupRequired[num_cores] = true;
                 coreImuIndex[num_cores] = i;
@@ -782,7 +782,10 @@ bool NavEKF3::InitialiseFilter(void)
     return ret;
 }
 
-// Update Filter States - this should be called whenever new IMU data is available
+/* 
+  Update Filter States - this should be called whenever new IMU data is available
+  Execution speed governed by SCHED_LOOP_RATE
+*/
 void NavEKF3::UpdateFilter(void)
 {
     if (!core) {
@@ -819,39 +822,51 @@ void NavEKF3::UpdateFilter(void)
         runCoreSelection = (imuSampleTime_us - lastUnhealthyTime_us) > 1E7;
     }
 
-    float primaryErrorScore = core[primary].errorScore();
-    //start updating errors for all cores after core selection logic is true
     if(runCoreSelection) {
-        updateCoreErrors(primaryErrorScore);
-    }
+        float primaryErrorScore = core[primary].errorScore();
 
-    if ((primaryErrorScore > 1.0f || !core[primary].healthy()) && runCoreSelection) {
-        float primaryCoreError = relativeCoreError[primary];
+        // update the relative error scores for all active cores
+        updateCoreErrors(primaryErrorScore);
+
+        bool betterCore = false;
+        bool altCoreAvailable = false;
+        float maxCoreError = relativeCoreError[primary];
         uint8_t newPrimaryIndex = primary; // index for new primary
+
+        // loop through all available cores to find if an alternative core is available
         for (uint8_t coreIndex=0; coreIndex<num_cores; coreIndex++) {
             if (coreIndex != primary) {
-                // an alternative core is available for selection only if healthy and if states have been updated on this time step
-                bool altCoreAvailable = core[coreIndex].healthy() && statePredictEnabled[coreIndex];
-
-                // If the primary core is unhealthy and another core is available, then switch now
-                // If the primary core is still healthy,then switching is optional and will only be done if
-                // a core with a significantly lower error score can be found
                 float altCoreError = relativeCoreError[coreIndex];
-                if (altCoreAvailable && (!core[newPrimaryIndex].healthy() || altCoreError < primaryCoreError)) {
+
+                // an alternative core is available for selection based on 2 conditions -
+                // 1. healthy and states have been updated on this time step
+                // 2. has relative error less than primary core error
+                altCoreAvailable = core[coreIndex].healthy() && statePredictEnabled[coreIndex] && altCoreError < maxCoreError; // should be < some_thresh*maxCoreError
+
+                if(altCoreAvailable) {
+                    // if this core has a significantly lower relative error to the active primary, we consider it as a 
+                    // better core and would like to switch to it even if the current primary is healthy
+                    betterCore = (0.5 + altCoreError) < relativeCoreError[primary]; // 0.5 is half of max error, arbitrary right now
+                    maxCoreError = altCoreError;
                     newPrimaryIndex = coreIndex;
-                    primaryCoreError = altCoreError;
-                }
+                } 
             }
         }
-        // update the yaw and position reset data to capture changes due to the lane switch
-        if (newPrimaryIndex != primary) {
+        altCoreAvailable = newPrimaryIndex != primary;
+
+        // Switch cores if another core is available and the active primary core meets one of the following conditions - 
+        // 1. has a bad error score
+        // 2. is unhealthy
+        // 3. is still healthy, but a better core is available
+        // also update the yaw and position reset data to capture changes due to the lane switch
+        if (altCoreAvailable && (primaryErrorScore > 1.0f || !core[primary].healthy() || betterCore)) {
             updateLaneSwitchYawResetData(newPrimaryIndex, primary);
             updateLaneSwitchPosResetData(newPrimaryIndex, primary);
             updateLaneSwitchPosDownResetData(newPrimaryIndex, primary);
             resetCoreErrors();
             primary = newPrimaryIndex;
             lastLaneSwitch_ms = AP_HAL::millis();
-        }
+        }       
     }
 
     if (primary != 0 && core[0].healthy() && !hal.util->get_soft_armed()) {
@@ -921,11 +936,17 @@ void NavEKF3::requestYawReset(void)
   A positive relative error for a core means it has been more erroneous than the existing primary.
   A negative relative error indicates a better core which can be switched to.
 */
-void NavEKF3::updateCoreErrors(float primaryCoreError)
+void NavEKF3::updateCoreErrors(float primaryErrorScore)
 {
+    float error = 0;
     for (uint8_t i = 0; i < num_cores; i++) {
         if(i!=primary) {
-            relativeCoreError[i] += core[i].errorScore() - primaryCoreError;
+            error = core[i].errorScore() - primaryErrorScore;
+            // if(error >= 0 && error < 0.2) {
+            //     error = 0;
+            // }
+            relativeCoreError[i] += error;
+            relativeCoreError[i] = constrain_float(relativeCoreError[i], -CORE_ERR_LIM, CORE_ERR_LIM);
         }
     }
 }
