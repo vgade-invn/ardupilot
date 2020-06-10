@@ -7,7 +7,7 @@
 #include <AP_GPS/AP_GPS.h>
 #include <AP_VisualOdom/AP_VisualOdom.h>
 #include <new>
-// #include <stdio.h>
+#include <stdio.h>
 
 /*
   parameter defaults for different types of vehicle. The
@@ -830,8 +830,20 @@ void NavEKF3::UpdateFilter(void)
         // update the relative error scores for all active cores
         updateCoreErrors(primaryErrorScore);
 
-        AP::logger().Write("RERR", "TimeUS,RE0,RE1,RE2", "Qfff", AP_HAL::micros64(), relativeCoreError[0], relativeCoreError[1], relativeCoreError[2]);
-        // ::printf("0 : %.3f 1 : %.3f 2 : %.3f\n", relativeCoreError[0], relativeCoreError[1], relativeCoreError[2]);
+        AP::logger().Write("RERR", "TimeUS,C,RE0,RE1,RE2,E0,E1,E2", "QBffffff",
+                           AP_HAL::micros64(),
+                           primary,
+                           relativeCoreError[0],
+                           relativeCoreError[1],
+                           relativeCoreError[2],
+                           core[0].errorScore(),
+                           core[1].errorScore(),
+                           core[2].errorScore());
+        ::printf("ERR: %u 0:%.2f/%.2f 1:%.2f/%.2f 2:%.2f/%.2f\n",
+                 primary,
+                 core[0].errorScore(),relativeCoreError[0],
+                 core[1].errorScore(),relativeCoreError[1],
+                 core[2].errorScore(),relativeCoreError[2]);
 
         bool betterCore = false;
         bool altCoreAvailable = false;
