@@ -942,11 +942,14 @@ void NavEKF3::updateCoreErrors(float primaryErrorScore)
     for (uint8_t i = 0; i < num_cores; i++) {
         if(i!=primary) {
             error = core[i].errorScore() - primaryErrorScore;
+            const float threshold = 0.2;
+            if(error > 0 || error < -threshold) {
             // if(error >= 0 && error < 0.2) {
             //     error = 0;
             // }
-            relativeCoreError[i] += error;
-            relativeCoreError[i] = constrain_float(relativeCoreError[i], -CORE_ERR_LIM, CORE_ERR_LIM);
+                relativeCoreError[i] += error;
+                relativeCoreError[i] = constrain_float(relativeCoreError[i], -CORE_ERR_LIM, CORE_ERR_LIM);
+            }
         }
     }
 }
