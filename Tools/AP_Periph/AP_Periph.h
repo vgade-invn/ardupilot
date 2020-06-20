@@ -5,6 +5,7 @@
 #include <AP_Baro/AP_Baro.h>
 #include <AP_Airspeed/AP_Airspeed.h>
 #include <AP_RangeFinder/AP_RangeFinder.h>
+#include <AP_InertialSensor/AP_InertialSensor.h>
 #include "../AP_Bootloader/app_comms.h"
 #include "hwing_esc.h"
 #include <AP_CANManager/AP_CANManager.h>
@@ -33,6 +34,7 @@ public:
     void can_mag_update();
     void can_gps_update();
     void can_baro_update();
+    void can_ins_update();
     void can_airspeed_update();
     void can_rangefinder_update();
 
@@ -86,6 +88,10 @@ public:
 #ifdef HAL_PERIPH_ENABLE_HWESC
     HWESC_Telem hwesc_telem;
     void hwesc_telem_update();
+#endif
+
+#ifdef HAL_PERIPH_ENABLE_IMU
+    AP_InertialSensor ins;
 #endif
     
     // setup the var_info table

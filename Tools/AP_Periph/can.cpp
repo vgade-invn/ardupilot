@@ -42,6 +42,7 @@
 #include <ardupilot/indication/SafetyState.h>
 #include <ardupilot/indication/Button.h>
 #include <ardupilot/equipment/trafficmonitor/TrafficReport.h>
+#include <ardupilot/imu/FastIMU.h>
 #include <uavcan/equipment/gnss/RTCMStream.h>
 #include <uavcan/protocol/debug/LogMessage.h>
 #include <stdio.h>
@@ -292,6 +293,9 @@ static void handle_param_executeopcode(CanardInstance* ins, CanardRxTransfer* tr
 #endif
 #ifdef HAL_PERIPH_ENABLE_RANGEFINDER
         AP_Param::setup_object_defaults(&periph.rangefinder, periph.rangefinder.var_info);
+#endif
+#ifdef HAL_PERIPH_ENABLE_IMU
+        AP_Param::setup_object_defaults(&periph.ins, periph.ins.var_info);
 #endif
     }
 
@@ -1117,6 +1121,7 @@ void AP_Periph_FW::can_update()
     can_mag_update();
     can_gps_update();
     can_baro_update();
+    can_ins_update();
     can_airspeed_update();
     can_rangefinder_update();
 #ifdef HAL_PERIPH_ENABLE_BUZZER
@@ -1399,6 +1404,44 @@ void AP_Periph_FW::can_gps_update(void)
                         total_size);
     }
 #endif // HAL_PERIPH_ENABLE_GPS
+}
+
+/*
+  update CAN IMU
+ */
+void AP_Periph_FW::can_ins_update(void)
+{
+#ifdef HAL_PERIPH_ENABLE_IMU
+    ins.update();
+    if (!ins.wait_for_sample()) {
+        return;
+    }
+    ardupilot_imu_FastIMU pkt {};
+    static uint8_t id;
+    pkt.sensor_id = 0;
+    pkt.counter = id++;
+    pkt.accel_scale = 1;
+    pkt.gyro_scale = 1;
+    const Vector3f &accel = ins.get_accel(0);
+    const Vector3f &gyro = ins.get_gyro(0);
+    pkt.accel[0] = accel.x * INT16_MAX / (10.0 * pkt.accel_scale);
+    pkt.accel[1] = accel.y * INT16_MAX / (10.0 * pkt.accel_scale);
+    pkt.accel[2] = accel.z * INT16_MAX / (10.0 * pkt.accel_scale);
+    pkt.gyro[0] = gyro.x * INT16_MAX / pkt.accel_scale;
+    pkt.gyro[1] = gyro.y * INT16_MAX / pkt.gyro_scale;
+    pkt.gyro[2] = gyro.z * INT16_MAX / pkt.gyro_scale;
+
+    uint8_t buffer[ARDUPILOT_IMU_FASTIMU_MAX_SIZE];
+    uint16_t total_size = ardupilot_imu_FastIMU_encode(&pkt, buffer);
+
+    canardBroadcast(&canard,
+                    ARDUPILOT_IMU_FASTIMU_SIGNATURE,
+                    ARDUPILOT_IMU_FASTIMU_ID,
+                    &transfer_id,
+                    CANARD_TRANSFER_PRIORITY_LOW,
+                    &buffer[0],
+                    total_size);
+#endif
 }
 
 /*

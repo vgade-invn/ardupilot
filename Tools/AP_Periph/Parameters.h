@@ -29,6 +29,7 @@ public:
         k_param_baro_enable,
         k_param_esc_number,
         k_param_can_mgr,
+        k_param_ins,
     };
 
     AP_Int16 format_version;
