@@ -1,0 +1,18 @@
+#
+# IMU data with scale factors to keep high accuracy with low bus bandwidth cost
+
+# which sensor from this node
+uint8 sensor_id
+
+# counter to detect packet loss
+uint8 counter
+
+# scale factors. These vary for each packet to keep the data within the range of an int16 on all axes
+uint8 accel_scale
+uint8 gyro_scale
+
+# accelerometer data. Value in m/s/s is (10 * accel[i] * accel_scale / INT16_MAX)
+int16[3] accel
+
+# accelerometer data. Value in rad/sec is (gyro[i] * gyro_scale / INT16_MAX)
+int16[3] gyro
