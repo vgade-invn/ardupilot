@@ -723,9 +723,11 @@ AP_InertialSensor::init(uint16_t loop_rate)
     }
 
     // calibrate gyros unless gyro calibration has been disabled
+#ifndef HAL_BUILD_AP_PERIPH
     if (gyro_calibration_timing() != GYRO_CAL_NEVER) {
         init_gyro();
     }
+#endif
 
     _sample_period_usec = 1000*1000UL / _loop_rate;
 
@@ -1434,12 +1436,12 @@ void AP_InertialSensor::update(void)
   delays occur we need to cope with them. The long term sum of
   _delta_time should be exactly equal to the wall clock elapsed time
  */
-void AP_InertialSensor::wait_for_sample(void)
+bool AP_InertialSensor::wait_for_sample(bool non_blocking)
 {
     if (_have_sample) {
         // the user has called wait_for_sample() again without
         // consuming the sample with update()
-        return;
+        return true;
     }
 
     uint32_t now = AP_HAL::micros();
@@ -1453,6 +1455,9 @@ void AP_InertialSensor::wait_for_sample(void)
 
     // see how long it is till the next sample is due
     if (_next_sample_usec - now <=_sample_period_usec) {
+        if (non_blocking) {
+            return false;
+        }
         // we're ahead on time, schedule next sample at expected period
         uint32_t wait_usec = _next_sample_usec - now;
         hal.scheduler->delay_microseconds_boost(wait_usec);
@@ -1536,6 +1541,10 @@ check_sample:
                 }
             }
 
+            if (non_blocking) {
+                return false;
+            }
+            
             hal.scheduler->delay_microseconds_boost(100);
             wait_counter++;
         }
@@ -1569,6 +1578,7 @@ check_sample:
 #endif
 
     _have_sample = true;
+    return true;
 }
 
 
