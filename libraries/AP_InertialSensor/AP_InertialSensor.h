@@ -197,7 +197,7 @@ public:
     void update(void);
 
     // wait for a sample to be available
-    void wait_for_sample(void);
+    bool wait_for_sample(bool non_blocking=false);
 
     // class level parameters
     static const struct AP_Param::GroupInfo var_info[];
