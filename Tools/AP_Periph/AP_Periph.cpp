@@ -225,6 +225,19 @@ void AP_Periph_FW::update()
 #ifdef HAL_PERIPH_NEOPIXEL_COUNT
         hal.rcout->set_serial_led_num_LEDs(HAL_PERIPH_NEOPIXEL_CHAN, HAL_PERIPH_NEOPIXEL_COUNT, AP_HAL::RCOutput::MODE_NEOPIXEL);
 #endif
+#ifdef HAL_OTG1_CONFIG
+        while (hal.console->available() >= 7) {
+            // support uploader.py triggering reboot
+            char buf[30] {};
+            uint8_t n = MIN(sizeof(buf), hal.console->available());
+            for (uint8_t i=0; i<n; i++) {
+                buf[i] = hal.console->read();
+            }
+            if (strstr(buf, "reboot\n")) {
+                hal.scheduler->reboot(true);
+            }
+        }
+#endif
     }
     can_update();
     hal.scheduler->delay(1);
