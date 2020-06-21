@@ -69,7 +69,7 @@ void AP_InertialSensor::BatchSampler::init()
         data_x = nullptr;
         data_y = nullptr;
         data_z = nullptr;
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Failed to allocate %u bytes for IMU batch sampling", (unsigned int)total_allocation);
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Failed to allocate %u bytes for IMU batch sampling", unsigned(3*_required_count*sizeof(uint16_t)));
         return;
     }
 

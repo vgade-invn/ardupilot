@@ -24,6 +24,7 @@
 #include "AP_InertialSensor_BMI088.h"
 #include "AP_InertialSensor_Invensensev2.h"
 #include "AP_InertialSensor_ADIS1647x.h"
+#include "AP_InertialSensor_UAVCAN.h"
 
 /* Define INS_TIMING_DEBUG to track down scheduling issues with the main loop.
  * Output is on the debug console. */
@@ -636,6 +637,11 @@ void AP_InertialSensor::_start_backends()
 
     for (uint8_t i = 0; i < _backend_count; i++) {
         _backends[i]->start();
+        if (_gyro_count == INS_MAX_INSTANCES &&
+            _accel_count == INS_MAX_INSTANCES) {
+            // this can happen with UAVCAN backends and 3 SPI IMUs
+            break;
+        }
     }
 
     if (_gyro_count == 0 || _accel_count == 0) {
@@ -814,6 +820,11 @@ AP_InertialSensor::detect_backends(void)
         ADD_BACKEND(AP_InertialSensor_HIL::detect(*this));
         return;
     }
+
+#if HAL_ENABLE_LIBUAVCAN_DRIVERS
+    ADD_BACKEND(AP_InertialSensor_UAVCAN::probe(*this));
+#endif
+
 #if defined(HAL_INS_PROBE_LIST)
     // IMUs defined by IMU lines in hwdef.dat
     HAL_INS_PROBE_LIST;
