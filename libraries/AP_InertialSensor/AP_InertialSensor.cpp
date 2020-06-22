@@ -619,6 +619,11 @@ void AP_InertialSensor::_start_backends()
 
     for (uint8_t i = 0; i < _backend_count; i++) {
         _backends[i]->start();
+        if (_gyro_count == INS_MAX_INSTANCES &&
+            _accel_count == INS_MAX_INSTANCES) {
+            // this can happen with UAVCAN backends and 3 SPI IMUs
+            break;
+        }
     }
 
     if (_gyro_count == 0 || _accel_count == 0) {
