@@ -114,6 +114,10 @@ public:
         DEVTYPE_INS_ADIS1647X = 0x31,
     };
 
+    HAL_Semaphore &get_semaphore(void) {
+        return _sem;
+    }
+
 protected:
     // access to frontend
     AP_InertialSensor &_imu;
