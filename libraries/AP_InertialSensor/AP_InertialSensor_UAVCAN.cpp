@@ -61,14 +61,6 @@ AP_InertialSensor_Backend* AP_InertialSensor_UAVCAN::probe(AP_InertialSensor &in
                 _detected_modules[i].driver = backend;
                 backend->_ap_uavcan = _detected_modules[i].ap_uavcan;
                 backend->_node_id = _detected_modules[i].node_id;
-
-                uint32_t devid = AP_HAL::Device::make_bus_id(AP_HAL::Device::BUS_TYPE_UAVCAN,
-                                                             backend->_ap_uavcan->get_driver_index(),
-                                                             backend->_node_id,
-                                                             0);
-                ::printf("registering UAVCAN backend %u\n", i);
-                backend->accel_instance = ins.register_accel(BACKEND_SAMPLE_RATE, devid);
-                backend->gyro_instance = ins.register_gyro(BACKEND_SAMPLE_RATE,  devid);
             }
             break;
         }
@@ -137,10 +129,13 @@ void AP_InertialSensor_UAVCAN::handle_FastIMU(AP_UAVCAN* ap_uavcan, uint8_t node
         last_counter = msg->counter;
 
         Vector3f accel(msg->accel[0], msg->accel[1], msg->accel[2]);
-        accel *= (10.0 * msg->accel_scale * msg->accel[2]) / INT16_MAX;
+        accel *= (10.0 * (1+msg->accel_scale)) / INT16_MAX;
 
         Vector3f gyro(msg->gyro[0], msg->gyro[1], msg->gyro[2]);
-        gyro *= float(msg->gyro_scale) / INT16_MAX;
+        gyro *= float(1+msg->gyro_scale) / INT16_MAX;
+
+        WITH_SEMAPHORE(driver->_sem);
+        driver->sample_time_us = msg->time_us;
 
         driver->_rotate_and_correct_accel(driver->accel_instance, accel);
         driver->_notify_new_accel_raw_sample(driver->accel_instance, accel);
@@ -153,6 +148,7 @@ void AP_InertialSensor_UAVCAN::handle_FastIMU(AP_UAVCAN* ap_uavcan, uint8_t node
 // Read the sensor
 bool AP_InertialSensor_UAVCAN::update(void)
 {
+    WITH_SEMAPHORE(_sem);
     update_accel(accel_instance);
     update_gyro(gyro_instance);
     return true;
@@ -160,6 +156,15 @@ bool AP_InertialSensor_UAVCAN::update(void)
 
 void AP_InertialSensor_UAVCAN::start()
 {
+    if (sample_time_us != 0) {
+        uint32_t devid = AP_HAL::Device::make_bus_id(AP_HAL::Device::BUS_TYPE_UAVCAN,
+                                                     _ap_uavcan->get_driver_index(),
+                                                     _node_id,
+                                                     0);
+        ::printf("registering UAVCAN IMU for %u\n", _node_id);
+        accel_instance = _imu.register_accel(1e6/sample_time_us, devid);
+        gyro_instance = _imu.register_gyro(1e6/sample_time_us,  devid);
+    }
 }
 
 

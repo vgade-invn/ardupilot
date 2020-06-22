@@ -41,6 +41,7 @@ private:
 
     AP_UAVCAN* _ap_uavcan;
     uint8_t _node_id;
+    uint16_t sample_time_us;
     
     // Module Detection Registry
     static struct DetectedModules {
