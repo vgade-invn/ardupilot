@@ -149,6 +149,9 @@ bool AP_InertialSensor_ADIS1647x::check_product_id(void)
 
 bool AP_InertialSensor_ADIS1647x::init()
 {
+    // give time to come out of reset
+    hal.scheduler->delay(T_RESET_MS);
+
     WITH_SEMAPHORE(dev->get_semaphore());
     if (!check_product_id()) {
         return false;
