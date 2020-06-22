@@ -104,6 +104,7 @@ public:
     uint32_t last_baro_update_ms;
     uint32_t last_airspeed_update_ms;
     AP_CANManager can_mgr;
+    bool done_fwok;
 };
 
 extern AP_Periph_FW periph;

@@ -142,7 +142,9 @@ void AP_Periph_FW::init()
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_IMU
-    ins.init(500);
+    // we ask for a bit faster rate than the hw will give so we don't
+    // end up waiting for samples
+    ins.init(2100);
 #endif
     
     start_ms = AP_HAL::millis();
@@ -244,7 +246,7 @@ void AP_Periph_FW::update()
 #endif
     }
     can_update();
-    hal.scheduler->delay(1);
+    hal.scheduler->delay_microseconds(100);
 #if defined(HAL_PERIPH_NEOPIXEL_COUNT) && HAL_PERIPH_NEOPIXEL_COUNT == 8
     update_rainbow();
 #endif
