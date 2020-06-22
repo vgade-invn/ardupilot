@@ -281,6 +281,8 @@ void AP_InertialSensor_ADIS1647x::read_sensor(void)
     accel *= accel_scale;
     gyro *= gyro_scale;
 
+    WITH_SEMAPHORE(_sem);
+
     _rotate_and_correct_accel(accel_instance, accel);
     _notify_new_accel_raw_sample(accel_instance, accel, sample_start_us);
 
