@@ -1,0 +1,9 @@
+include ../CubeBlack/hwdef-bl.dat
+
+# force AUX pins low in bootloader
+PE14 AUX1 OUTPUT LOW
+PE13 AUX2 OUTPUT LOW
+PE11 AUX3 OUTPUT LOW
+PE9  AUX4 OUTPUT LOW
+PD13 AUX5 OUTPUT LOW
+PD14 AUX6 OUTPUT LOW
