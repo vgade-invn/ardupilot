@@ -144,7 +144,8 @@ void AP_Periph_FW::init()
 #ifdef HAL_PERIPH_ENABLE_IMU
     // we ask for a bit faster rate than the hw will give so we don't
     // end up waiting for samples
-    ins.init(2100);
+    ins.init(g.imu_rate);
+    ins.set_board_orientation((enum Rotation)g.imu_orientation.get());
 #endif
     
     start_ms = AP_HAL::millis();
