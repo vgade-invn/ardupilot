@@ -100,6 +100,8 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_IMU
+    GSCALAR(imu_orientation, "IMU_ORIENTATION", 0),
+    GSCALAR(imu_rate, "IMU_RATE", 2100),
     GOBJECT(ins,        "INS_", AP_InertialSensor),
 #endif
     

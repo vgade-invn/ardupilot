@@ -1485,6 +1485,7 @@ void AP_Periph_FW::can_ins_update(void)
         imu_count = 0;
         last_imu_us = now;
         long_cnt = 0;
+        ins.set_board_orientation((enum Rotation)g.imu_orientation.get());
     }
 
     ardupilot_imu_FastIMU pkt {};

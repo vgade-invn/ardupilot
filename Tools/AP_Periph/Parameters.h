@@ -29,6 +29,8 @@ public:
         k_param_baro_enable,
         k_param_esc_number,
         k_param_ins,
+        k_param_imu_orientation,
+        k_param_imu_rate,
     };
 
     AP_Int16 format_version;
@@ -63,7 +65,11 @@ public:
 #ifdef HAL_PERIPH_ENABLE_HWESC
     AP_Int8 esc_number;
 #endif
-    
+
+#ifdef HAL_PERIPH_ENABLE_IMU
+    AP_Int8 imu_orientation;
+    AP_Float imu_rate;
+#endif
     Parameters() {}
 };
 
