@@ -4915,6 +4915,16 @@ class AutoTestCopter(AutoTest):
 
         self.fly_rangefinder_mavlink()
 
+    def fly_ground_movement(self):
+        # explicit test for the mavlink driver as it doesn't play so nice:
+        self.wait_groundspeed(0, 2)
+        self.set_parameter("SIM_GNDMOVE_SPD", 10)
+        self.set_parameter("SIM_GNDMOVE_DIR", 135);
+        self.wait_groundspeed(9, 11)
+        self.takeoff(10)
+        self.wait_groundspeed(0, 2)
+        self.land_and_disarm()
+        self.wait_groundspeed(9, 11)
 
     def test_parameter_validation(self):
         self.progress("invalid; min must be less than max:")
@@ -5114,6 +5124,10 @@ class AutoTestCopter(AutoTest):
             ("Button",
              "Test Buttons",
              self.test_button),
+
+            ("GroundMovement",
+             "Fly Simulated Ground Movement",
+             self.fly_ground_movement),
 
             ("RangeFinder",
              "Test RangeFinder Basic Functionality",
