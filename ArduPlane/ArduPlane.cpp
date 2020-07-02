@@ -751,4 +751,58 @@ bool Plane::get_target_location(Location& target_loc)
     return false;
 }
 
+/*
+  access to follow_target information from Lua scripts
+*/
+bool Plane::set_follow_sysid(uint8_t sysid)
+{
+    follow_target.sys_id = sysid;
+    return true;
+}
+
+/*
+  get the local timestamp of the last GLOBAL_POSITION_INT matching
+  sysid
+ */
+uint32_t Plane::get_follow_last_update_ms(void) const
+{
+    return follow_target.last_update_ms;
+}
+
+/*
+  get Location from last GLOBAL_POSITION_INT
+ */
+bool Plane::get_follow_location(Location &loc) const
+{
+    if (follow_target.last_update_ms == 0) {
+        return false;
+    }
+    loc = follow_target.loc;
+    return true;
+}
+
+/*
+  get NED velocity from last GLOBAL_POSITION_INT
+ */
+bool Plane::get_follow_velocity(Vector3f &vel) const
+{
+    if (follow_target.last_update_ms == 0) {
+        return false;
+    }
+    vel = follow_target.velocity;
+    return true;
+
+}
+
+/*
+  get heading in centi-degrees, or UINT16_T if unknown
+ */
+uint16_t Plane::get_follow_heading(void) const
+{
+    if (follow_target.last_update_ms == 0) {
+        return UINT16_MAX;
+    }
+    return follow_target.heading_cd;
+}
+
 AP_HAL_MAIN_CALLBACKS(&plane);

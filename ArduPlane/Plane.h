@@ -789,6 +789,26 @@ private:
     bool non_auto_terrain_disable;
     bool terrain_disabled();
 
+    /*
+      support for handling GLOBAL_POSITION_INT messages for a follow
+      target. This is for use by Lua scripts in GUIDED mode to
+      implement new moving landing target systems and follow systems
+     */
+    struct {
+        uint8_t sys_id;
+        Location loc;
+        Vector3f velocity;
+        uint16_t heading_cd; // UINT16_MAX if unknown
+        uint32_t last_update_ms;
+    } follow_target;
+
+    // access to follow_target information from Lua scripts
+    bool set_follow_sysid(uint8_t sysid) override;
+    uint32_t get_follow_last_update_ms(void) const override;
+    bool get_follow_location(Location &loc) const override;
+    bool get_follow_velocity(Vector3f &vel) const override;
+    uint16_t get_follow_heading(void) const override;
+    
     // Attitude.cpp
     void adjust_nav_pitch_throttle(void);
     void update_load_factor(void);
