@@ -500,6 +500,13 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @RebootRequired: False
     AP_GROUPINFO("FWD_MANTHR_MAX", 20, QuadPlane, fwd_thr_max, 0),
 
+    // @Param: LAND_SYSID
+    // @DisplayName: Landing beacon MAVLink system ID
+    // @Description: When this is non-zero and Q_OPTIONS has SHIP_LANDING enabled then this MAVLink system ID will be listened on for the landing location (the ship beacon location)
+    // @Range: 0 254
+    // @RebootRequired: False
+    AP_GROUPINFO("LAND_SYSID", 21, QuadPlane, ship_landing.sysid, 0),
+    
     AP_GROUPEND
 };
 
@@ -776,6 +783,10 @@ bool QuadPlane::setup(void)
 
     // param count will have changed
     AP_Param::invalidate_count();
+
+    if (ship_landing.sysid != 0) {
+        plane.land_target.sys_id = ship_landing.sysid;
+    }
 
     gcs().send_text(MAV_SEVERITY_INFO, "QuadPlane initialised");
     initialised = true;
@@ -2328,6 +2339,13 @@ void QuadPlane::vtol_position_controller(void)
         } else {
             poscontrol.max_speed = target_speed;
         }
+
+        if (plane.land_target.sys_id) {
+            plane.next_WP_loc = plane.land_target.loc;
+            target_speed_xy.x += plane.land_target.velocity.x;
+            target_speed_xy.y += plane.land_target.velocity.y;
+        }
+
         pos_control->set_desired_velocity_xy(target_speed_xy.x*100,
                                              target_speed_xy.y*100);
 
@@ -2393,10 +2411,23 @@ void QuadPlane::vtol_position_controller(void)
         plane.nav_controller->update_waypoint(plane.prev_WP_loc, loc);
         FALLTHROUGH;
 
-    case QPOS_LAND_FINAL:
+    case QPOS_LAND_FINAL: {
 
+        Location origin;
+        if (ahrs.get_origin(origin)) {
+            const Vector2f diff2d = origin.get_distance_NE(plane.next_WP_loc);
+            poscontrol.target.x = diff2d.x * 100;
+            poscontrol.target.y = diff2d.y * 100;
+        }
+        
         // set position controller desired velocity and acceleration to zero
-        pos_control->set_desired_velocity_xy(0.0f,0.0f);
+        Vector2f target_vel(0,0);
+        if (plane.land_target.sys_id) {
+            plane.next_WP_loc = plane.land_target.loc;
+            target_vel.x = plane.land_target.velocity.x;
+            target_vel.y = plane.land_target.velocity.y;
+        }
+        pos_control->set_desired_velocity_xy(target_vel.x*100, target_vel.y*100);
         pos_control->set_desired_accel_xy(0.0f,0.0f);
 
         // set position control target and update
@@ -2416,6 +2447,7 @@ void QuadPlane::vtol_position_controller(void)
                                                                       plane.nav_pitch_cd,
                                                                       get_pilot_input_yaw_rate_cds() + get_weathervane_yaw_rate_cds());
         break;
+    }
 
     case QPOS_LAND_COMPLETE:
         // nothing to do
@@ -3371,4 +3403,15 @@ bool QuadPlane::in_vtol_land_final(void) const
 bool QuadPlane::in_vtol_land_sequence(void) const
 {
     return in_vtol_land_approach() || in_vtol_land_descent() || in_vtol_land_final();
+}
+
+/*
+  should we switch to QRTL on RTL completion
+*/
+bool QuadPlane::rtl_qrtl_enabled(void) const
+{
+    if (ship_landing_enabled() && ship_landing.stage != ship_landing.APPROACH) {
+        return false;
+    }
+    return rtl_mode == 1;
 }

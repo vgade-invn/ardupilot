@@ -789,6 +789,18 @@ private:
     bool non_auto_terrain_disable;
     bool terrain_disabled();
 
+    /*
+      support for handling GLOBAL_POSITION_INT messages for a ship
+      landing target.
+     */
+    struct {
+        uint8_t sys_id;
+        Location loc;
+        Vector3f velocity;
+        uint16_t heading_cd; // UINT16_MAX if unknown
+        uint32_t last_update_ms;
+    } land_target;
+
     // Attitude.cpp
     void adjust_nav_pitch_throttle(void);
     void update_load_factor(void);

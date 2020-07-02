@@ -709,6 +709,28 @@ void GCS_MAVLINK_Plane::packetReceived(const mavlink_status_t &status,
                                        const mavlink_message_t &msg)
 {
     plane.avoidance_adsb.handle_msg(msg);
+    switch (msg.msgid) {
+    case MAVLINK_MSG_ID_GLOBAL_POSITION_INT: {
+        auto &target = plane.land_target;
+        if (msg.sysid != 0 && msg.sysid == target.sys_id) {
+            // decode packet
+            mavlink_global_position_int_t packet;
+            mavlink_msg_global_position_int_decode(&msg, &packet);
+
+            // stash away data for use by Lua scripts
+            target.loc.lat = packet.lat;
+            target.loc.lng = packet.lon;
+            target.loc.alt = packet.alt*0.1;
+            target.velocity.x = packet.vx*0.01;
+            target.velocity.y = packet.vy*0.01;
+            target.velocity.z = packet.vz*0.01;
+            target.heading_cd = packet.hdg;
+            target.last_update_ms = correct_offboard_timestamp_usec_to_ms(packet.time_boot_ms*1000ULL,
+                                                                          PAYLOAD_SIZE(chan, GLOBAL_POSITION_INT));
+        }
+        break;
+    }
+    }
     GCS_MAVLINK::packetReceived(status, msg);
 }
 
