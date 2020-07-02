@@ -567,6 +567,16 @@ private:
 
     float last_land_final_agl;
 
+    struct {
+        AP_Int8 sysid;
+        uint32_t last_update_ms;
+        enum {
+            HOLDOFF,
+            APPROACH
+        } stage;
+        bool reached_alt;
+    } ship_landing;
+
     /*
       return true if current mission item is a vtol takeoff
      */
@@ -610,6 +620,27 @@ public:
     MAV_RESULT mavlink_motor_test_start(mavlink_channel_t chan, uint8_t motor_seq, uint8_t throttle_type,
                                         uint16_t throttle_value, float timeout_sec,
                                         uint8_t motor_count);
+
+    /*
+      is ship landing enabled
+     */
+    bool ship_landing_enabled(void) const;
+
+    /*
+      handle RTL init for ship landing
+     */
+    void ship_landing_RTL_init(void);
+
+    /*
+      handle RTL update for ship landing
+     */
+    void ship_landing_RTL_update(void);
+
+    /*
+      should we switch to QRTL on RTL completion
+     */
+    bool rtl_qrtl_enabled(void) const;
+
 private:
     void motor_test_stop();
 };

@@ -708,6 +708,8 @@ MAV_RESULT GCS_MAVLINK_Plane::_handle_command_preflight_calibration(const mavlin
 void GCS_MAVLINK_Plane::packetReceived(const mavlink_status_t &status,
                                        const mavlink_message_t &msg)
 {
+    // pass message to follow library
+    plane.g2.follow.handle_msg(msg);
     plane.avoidance_adsb.handle_msg(msg);
     GCS_MAVLINK::packetReceived(status, msg);
 }
@@ -938,6 +940,14 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_int_packet(const mavlink_command_in
     plane.Log_Write_MavCmdI(packet);
 
     switch(packet.command) {
+
+    case MAV_CMD_DO_FOLLOW:
+        // param1: sysid of target to follow
+        if ((packet.param1 > 0) && (packet.param1 <= 255)) {
+            plane.g2.follow.set_target_sysid((uint8_t)packet.param1);
+            return MAV_RESULT_ACCEPTED;
+        }
+        return MAV_RESULT_UNSUPPORTED;
 
     case MAV_CMD_DO_REPOSITION:
         return handle_command_int_do_reposition(packet);
