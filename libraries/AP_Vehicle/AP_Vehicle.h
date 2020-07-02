@@ -180,6 +180,13 @@ public:
     // set steering and throttle (-1 to +1) (for use by scripting with Rover)
     virtual bool set_steering_and_throttle(float steering, float throttle) { return false; }
 
+    // methods for Lua based vehicle follow and moving landing targets
+    virtual bool set_follow_sysid(uint8_t sysid) { return false; }
+    virtual uint32_t get_follow_last_update_ms(void) const { return 0; }
+    virtual bool get_follow_location(Location &loc) const { return false; }
+    virtual bool get_follow_velocity(Vector3f &vel) const { return false; }
+    virtual uint16_t get_follow_heading(void) const { return UINT16_MAX; }
+
     // write out harmonic notch log messages
     void write_notch_log_messages() const;
     // update the harmonic notch
