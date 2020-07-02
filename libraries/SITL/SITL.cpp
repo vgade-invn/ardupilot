@@ -77,6 +77,7 @@ const AP_Param::GroupInfo SITL::var_info[] = {
     AP_GROUPINFO("FLOW_POS",      56, SITL,  optflow_pos_offset, 0),
     AP_GROUPINFO("ACC2_BIAS",     57, SITL,  accel2_bias, 0),
     AP_GROUPINFO("ENGINE_FAIL",   58, SITL,  engine_fail,  0),
+    AP_SUBGROUPINFO(shipsim, "SHIP_", 59, SITL, ShipSim),
     AP_SUBGROUPEXTENSION("",      60, SITL,  var_mag),
     AP_SUBGROUPEXTENSION("",      61, SITL,  var_gps),
     AP_SUBGROUPEXTENSION("",      62, SITL,  var_info3),
@@ -222,9 +223,6 @@ const AP_Param::GroupInfo SITL::var_info3[] = {
     AP_GROUPINFO("VICON_VGLI",    21, SITL,  vicon_vel_glitch, 0),
 
     AP_GROUPINFO("RATE_HZ",  22, SITL,  loop_rate_hz, 1200),
-
-    AP_GROUPINFO("GNDMOVE_SPD",   31, SITL, ground_movement_speed, 0),
-    AP_GROUPINFO("GNDMOVE_DIR",   32, SITL, ground_movement_direction, 0),
 
     AP_GROUPEND
 

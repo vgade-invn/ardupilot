@@ -16,6 +16,7 @@
 #include "SIM_Sprayer.h"
 #include "SIM_ToneAlarm.h"
 #include "SIM_EFI_MegaSquirt.h"
+#include "SIM_Ship.h"
 
 namespace SITL {
 
@@ -201,8 +202,6 @@ public:
     AP_Int32 mag_devid[MAX_CONNECTED_MAGS]; // Mag devid
     AP_Float buoyancy; // submarine buoyancy in Newtons
     AP_Int16 loop_rate_hz;
-    AP_Float ground_movement_speed;  // movement of the ground (for ship takeoff/landing)
-    AP_Float ground_movement_direction;  // direction of ground movement
 
     // EFI type
     enum EFIType {
@@ -349,6 +348,9 @@ public:
     static Vector3f convert_earth_frame(const Matrix3f &dcm, const Vector3f &gyro);
 
     Sprayer sprayer_sim;
+
+    // simulated ship takeoffs
+    ShipSim shipsim;
 
     Gripper_Servo gripper_sim;
     Gripper_EPM gripper_epm_sim;

@@ -533,9 +533,9 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
         position.z = -(ground_level + frame_height - home.alt * 0.01f + ground_height_difference());
 
         // get speed of ground movement (for ship takeoff/landing)
-        const Vector3f gnd_movement(cosf(radians(sitl->ground_movement_direction)) * sitl->ground_movement_speed,
-                                    sinf(radians(sitl->ground_movement_direction)) * sitl->ground_movement_speed, 0);
-        
+        Vector2f ship_movement = sitl->shipsim.get_ground_speed_adjustment(location);
+        const Vector3f gnd_movement(ship_movement.x, ship_movement.y, 0);
+
         switch (ground_behavior) {
         case GROUND_BEHAVIOR_NONE:
             break;
@@ -827,6 +827,8 @@ void Aircraft::update_external_payload(const struct sitl_input &input)
     if (precland && precland->is_enabled()) {
         precland->update(get_location(), get_position());
     }
+
+    sitl->shipsim.update();
 }
 
 void Aircraft::add_shove_forces(Vector3f &rot_accel, Vector3f &body_accel)
