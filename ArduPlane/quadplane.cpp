@@ -2329,6 +2329,14 @@ void QuadPlane::vtol_position_controller(void)
         } else {
             poscontrol.max_speed = target_speed;
         }
+
+        Vector3f targ_vel;
+        if (ship_landing_enabled() &&
+            plane.g2.follow.get_target_location_and_velocity(plane.next_WP_loc, targ_vel)) {
+            target_speed_xy.x += targ_vel.x;
+            target_speed_xy.y += targ_vel.y;
+        }
+
         pos_control->set_desired_velocity_xy(target_speed_xy.x*100,
                                              target_speed_xy.y*100);
 
@@ -2394,10 +2402,21 @@ void QuadPlane::vtol_position_controller(void)
         plane.nav_controller->update_waypoint(plane.prev_WP_loc, loc);
         FALLTHROUGH;
 
-    case QPOS_LAND_FINAL:
+    case QPOS_LAND_FINAL: {
 
+        Location origin;
+        if (ahrs.get_origin(origin)) {
+            const Vector2f diff2d = origin.get_distance_NE(plane.next_WP_loc);
+            poscontrol.target.x = diff2d.x * 100;
+            poscontrol.target.y = diff2d.y * 100;
+        }
+        
         // set position controller desired velocity and acceleration to zero
-        pos_control->set_desired_velocity_xy(0.0f,0.0f);
+        Vector3f target_vel {};
+        if (ship_landing_enabled()) {
+            plane.g2.follow.get_target_location_and_velocity(plane.next_WP_loc, target_vel);
+        }
+        pos_control->set_desired_velocity_xy(target_vel.x*100, target_vel.y*100);
         pos_control->set_desired_accel_xy(0.0f,0.0f);
 
         // set position control target and update
@@ -2417,6 +2436,7 @@ void QuadPlane::vtol_position_controller(void)
                                                                       plane.nav_pitch_cd,
                                                                       get_pilot_input_yaw_rate_cds() + get_weathervane_yaw_rate_cds());
         break;
+    }
 
     case QPOS_LAND_COMPLETE:
         // nothing to do
@@ -3372,4 +3392,15 @@ bool QuadPlane::in_vtol_land_final(void) const
 bool QuadPlane::in_vtol_land_sequence(void) const
 {
     return in_vtol_land_approach() || in_vtol_land_descent() || in_vtol_land_final();
+}
+
+/*
+  should we switch to QRTL on RTL completion
+*/
+bool QuadPlane::rtl_qrtl_enabled(void) const
+{
+    if (ship_landing_enabled() && ship_landing.stage != ship_landing.APPROACH) {
+        return false;
+    }
+    return rtl_mode == 1;
 }
