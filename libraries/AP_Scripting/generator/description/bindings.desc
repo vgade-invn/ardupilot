@@ -167,6 +167,12 @@ singleton AP_Vehicle method set_target_velocity_NED boolean Vector3f
 singleton AP_Vehicle method set_target_angle_and_climbrate boolean float -180 180 float -90 90 float -360 360 float -FLT_MAX FLT_MAX boolean float -FLT_MAX FLT_MAX
 singleton AP_Vehicle method set_steering_and_throttle boolean float -1 1 float -1 1
 
+singleton AP_Vehicle method set_follow_sysid boolean uint8_t 0 UINT8_MAX
+singleton AP_Vehicle method get_follow_last_update_ms uint32_t
+singleton AP_Vehicle method get_follow_location boolean Location'Null
+singleton AP_Vehicle method get_follow_velocity boolean Vector3f'Null
+singleton AP_Vehicle method get_follow_heading uint16_t
+
 include AP_SerialLED/AP_SerialLED.h
 singleton AP_SerialLED alias serialLED
 singleton AP_SerialLED method set_num_neopixel boolean uint8_t 1 16 uint8_t 0 AP_SERIALLED_MAX_LEDS
