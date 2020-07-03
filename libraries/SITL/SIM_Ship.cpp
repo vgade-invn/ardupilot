@@ -163,9 +163,22 @@ void ShipSim::send_report(void)
     pos.time_boot_ms = now;
     pos.lat = loc.lat;
     pos.lon = loc.lng;
-    pos.alt = 0;
     pos.relative_alt = 0;
     pos.hdg = ship.heading_deg*100;
+
+    bool have_alt = false;
+#if AP_TERRAIN_AVAILABLE
+    auto &terrain = AP::terrain();
+    float height;
+    if (terrain.enabled() && terrain.height_amsl(loc, height, true)) {
+        pos.alt = height * 1000;
+        have_alt = true;
+    }
+#endif
+    if (!have_alt) {
+        // assume home altitude
+        pos.alt = home.alt;
+    }
 
     chan0_status->current_tx_seq = mavlink.seq;
     len = mavlink_msg_global_position_int_encode(sys_id,
