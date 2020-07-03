@@ -166,6 +166,11 @@ void ShipSim::send_report(void)
     pos.relative_alt = 0;
     pos.hdg = ship.heading_deg*100;
 
+    Vector2f vel(speed, 0);
+    vel.rotate(radians(ship.heading_deg));
+    pos.vx = vel.x*100;
+    pos.vy = vel.y*100;
+
     bool have_alt = false;
 #if AP_TERRAIN_AVAILABLE
     auto &terrain = AP::terrain();
