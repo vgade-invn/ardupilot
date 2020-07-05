@@ -211,7 +211,7 @@ float AC_Loiter::get_angle_max_cd() const
 }
 
 /// run the loiter controller
-void AC_Loiter::update()
+void AC_Loiter::update(Vector3f target)
 {
     // calculate dt
     float dt = _pos_control.time_since_last_xy_update();
@@ -223,7 +223,7 @@ void AC_Loiter::update()
     _pos_control.set_max_speed_xy(_speed_cms);
     _pos_control.set_max_accel_xy(_accel_cmss);
 
-    _pos_control.update_baseline_velocity(dt);
+    _pos_control.update_baseline_velocity(dt, target*100.0);
     calc_desired_velocity(dt);
     _pos_control.update_xy_controller();
 }
