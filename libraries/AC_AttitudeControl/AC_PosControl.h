@@ -320,7 +320,7 @@ public:
     void init_baseline_velocity();
 
     // update baseline velocity
-    void update_baseline_velocity(float dt);
+    void update_baseline_velocity(float dt, Vector3f target);
 
     static const struct AP_Param::GroupInfo var_info[];
 
