@@ -1352,9 +1352,8 @@ bool AC_PosControl::set_baseline_state(enum VelBaselineState baselineState)
 }
 
 /// Proportional controller with piecewise sqrt sections to constrain second derivative
-void AC_PosControl::update_baseline_velocity(float dt)
+void AC_PosControl::update_baseline_velocity(float dt, Vector3f target)
 {
-    Vector3f target;
     switch (_baselineState) {
     case OFF:
         // Slew baseline velocity to zero
@@ -1368,7 +1367,7 @@ void AC_PosControl::update_baseline_velocity(float dt)
 
     case SET:
         // Slew baseline velocity to current velocity
-        target = _inav.get_velocity();
+//        target = _inav.get_velocity();
         break;
 
     case ZERO:
