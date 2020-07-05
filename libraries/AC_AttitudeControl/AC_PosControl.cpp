@@ -2,6 +2,7 @@
 #include "AC_PosControl.h"
 #include <AP_Math/AP_Math.h>
 #include <AP_Logger/AP_Logger.h>
+#include <AP_Follow/AP_Follow.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -273,6 +274,9 @@ void AC_PosControl::set_dt(float delta_sec)
 /// To-Do: call this in the main code as part of flight mode initialisation
 void AC_PosControl::set_max_speed_z(float speed_down, float speed_up)
 {
+    //const auto &follow = AP::follow();
+    //hal.console->printf("Follow: %s\n", follow.enabled()?"enabled":"disabled");
+
     // ensure speed_down is always negative
     speed_down = -fabsf(speed_down);
 
@@ -1367,7 +1371,7 @@ void AC_PosControl::update_baseline_velocity(float dt, Vector3f target)
 
     case SET:
         // Slew baseline velocity to current velocity
-//        target = _inav.get_velocity();
+        //target = AP::follow();
         break;
 
     case ZERO:
