@@ -8,6 +8,8 @@ local HOLD_HEIGHT = 50
 
 -- flight mode numbers for plane
 local MODE_GUIDED = 15
+local MODE_RTL = 11
+local MODE_QRTL = 21
 
 -- standoff distance for loiter
 local STANDOFF_DIST = 150
@@ -49,27 +51,32 @@ function update_target()
 end
 
 function update()
-   -- only do anything if in GUIDED mode
-   if vehicle:get_mode() ~= MODE_GUIDED then
-      return update, 200
-   end
-
    -- get updated target info
    if not update_target() then
       gcs:send_text(0, "no target")
       return update, 200
    end
 
-   local home = ahrs:get_home()
    local current = ahrs:get_position()
    if not current then
       return update, 200
    end
 
-   -- advnce target by time delta to account for comms lag
+   -- advance target by time delta to account for comms lag
    local dt = (millis() - last_update_ms):tofloat() * 0.001
    local dpos = target_velocity:scale(dt)
    target:offset(dpos:x(), dpos:y())
+
+   -- set home to ship
+   local mode = vehicle:get_mode()
+   if mode == MODE_GUIDED or mode == MODE_RTL or mode == MODE_QRTL then
+      ahrs:set_home(target)
+   end
+
+   -- only do the rest if in GUIDED mode
+   if mode ~= MODE_GUIDED then
+      return update, 200
+   end
 
    -- hold at HOLD_HEIGHT above target
    target:alt(target:alt() + HOLD_HEIGHT*100)
