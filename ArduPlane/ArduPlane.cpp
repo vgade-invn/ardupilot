@@ -808,14 +808,12 @@ uint16_t Plane::get_follow_heading(void) const
 // set_home hook for vehicle code to update landing
 bool Plane::set_home(const Location &loc)
 {
-    bool was_target = next_WP_loc.get_distance(loc) < 1;
+    bool was_target = next_WP_loc.get_distance(loc) < 1 || control_mode == &mode_rtl;
     if (!AP::ahrs().set_home(loc)) {
         return false;
     }
     if (was_target) {
         next_WP_loc = loc;
-        setup_terrain_target_alt(next_WP_loc);
-        set_target_altitude_location(next_WP_loc);
     }
     return true;
 }
