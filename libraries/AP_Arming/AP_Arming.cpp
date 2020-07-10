@@ -744,6 +744,7 @@ bool AP_Arming::can_checks(bool report)
 #endif
                 }
                 case AP_BoardConfig_CAN::Protocol_Type_UAVCAN:
+                case AP_BoardConfig_CAN::Protocol_Type_NWPMU:
                 case AP_BoardConfig_CAN::Protocol_Type_None:
                 default:
                     break;
