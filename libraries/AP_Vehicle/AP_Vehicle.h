@@ -187,6 +187,11 @@ public:
     virtual bool get_follow_velocity(Vector3f &vel) const { return false; }
     virtual uint16_t get_follow_heading(void) const { return UINT16_MAX; }
 
+    // set_home hook for vehicle code to update landing
+    virtual bool set_home(const Location &loc) {
+        return AP::ahrs().set_home(loc);
+    }
+
     // write out harmonic notch log messages
     void write_notch_log_messages() const;
     // update the harmonic notch
