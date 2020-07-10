@@ -26,6 +26,7 @@ singleton AP_AHRS method get_pitch float
 singleton AP_AHRS method get_yaw float
 singleton AP_AHRS method get_position boolean Location'Null
 singleton AP_AHRS method get_home Location
+singleton AP_AHRS method set_home boolean Location
 singleton AP_AHRS method get_gyro Vector3f
 singleton AP_AHRS method get_hagl boolean float'Null
 singleton AP_AHRS method wind_estimate Vector3f
@@ -173,6 +174,7 @@ singleton AP_Vehicle method get_follow_last_update_ms uint32_t
 singleton AP_Vehicle method get_follow_location boolean Location'Null
 singleton AP_Vehicle method get_follow_velocity boolean Vector3f'Null
 singleton AP_Vehicle method get_follow_heading uint16_t
+singleton AP_Vehicle method set_home boolean Location
 
 include AP_SerialLED/AP_SerialLED.h
 singleton AP_SerialLED alias serialLED
