@@ -808,7 +808,8 @@ private:
     bool get_follow_location(Location &loc) const override;
     bool get_follow_velocity(Vector3f &vel) const override;
     uint16_t get_follow_heading(void) const override;
-    
+    bool set_home(const Location &loc) override;
+
     // Attitude.cpp
     void adjust_nav_pitch_throttle(void);
     void update_load_factor(void);

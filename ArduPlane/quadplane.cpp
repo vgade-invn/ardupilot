@@ -2311,6 +2311,13 @@ void QuadPlane::vtol_position_controller(void)
         } else {
             poscontrol.max_speed = target_speed;
         }
+
+        if (plane.follow_target.sys_id) {
+            plane.next_WP_loc = plane.follow_target.loc;
+            target_speed_xy.x += plane.follow_target.velocity.x;
+            target_speed_xy.y += plane.follow_target.velocity.y;
+        }
+
         pos_control->set_desired_velocity_xy(target_speed_xy.x*100,
                                              target_speed_xy.y*100);
 
@@ -2376,10 +2383,23 @@ void QuadPlane::vtol_position_controller(void)
         plane.nav_controller->update_waypoint(plane.prev_WP_loc, loc);
         FALLTHROUGH;
 
-    case QPOS_LAND_FINAL:
+    case QPOS_LAND_FINAL: {
 
+        Location origin;
+        if (ahrs.get_origin(origin)) {
+            const Vector2f diff2d = origin.get_distance_NE(plane.next_WP_loc);
+            poscontrol.target.x = diff2d.x * 100;
+            poscontrol.target.y = diff2d.y * 100;
+        }
+        
         // set position controller desired velocity and acceleration to zero
-        pos_control->set_desired_velocity_xy(0.0f,0.0f);
+        Vector2f target_vel(0,0);
+        if (plane.follow_target.sys_id) {
+            plane.next_WP_loc = plane.follow_target.loc;
+            target_vel.x = plane.follow_target.velocity.x;
+            target_vel.y = plane.follow_target.velocity.y;
+        }
+        pos_control->set_desired_velocity_xy(target_vel.x*100, target_vel.y*100);
         pos_control->set_desired_accel_xy(0.0f,0.0f);
 
         // set position control target and update
@@ -2399,6 +2419,7 @@ void QuadPlane::vtol_position_controller(void)
                                                                       plane.nav_pitch_cd,
                                                                       get_pilot_input_yaw_rate_cds() + get_weathervane_yaw_rate_cds());
         break;
+    }
 
     case QPOS_LAND_COMPLETE:
         // nothing to do
