@@ -70,7 +70,7 @@ function update()
    -- set home to ship
    local mode = vehicle:get_mode()
    if mode == MODE_GUIDED or mode == MODE_RTL or mode == MODE_QRTL then
-      ahrs:set_home(target)
+      vehicle:set_home(target)
    end
 
    -- only do the rest if in GUIDED mode
