@@ -1204,6 +1204,16 @@ bool QuadPlane::should_relax(void)
         landing_detect.lower_limit_start_ms = tnow;
     }
 
+    if (plane.g.rangefinder_landing &&
+        plane.rangefinder_state.in_range &&
+        ship_landing_enabled() &&
+        plane.rangefinder_state.height_estimate > 2) {
+        // while ship landing we can hit lower limit of throttle while
+        // still well above the ground. Disable the relax code for
+        // that case
+        return false;
+    }
+
     return (tnow - landing_detect.lower_limit_start_ms) > 1000;
 }
 
