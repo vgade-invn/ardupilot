@@ -197,6 +197,8 @@ const AP_Param::GroupInfo SITL::var_info2[] = {
 
     AP_GROUPINFO("MAG_SCALING",    60, SITL,  mag_scaling, 1),
 
+    AP_GROUPINFO("MAG_OFS2",       61, SITL,  mag_ofs2, 0),
+
     AP_GROUPEND
 
 };

@@ -138,6 +138,7 @@ public:
     AP_Float mag_error;   // in degrees
     AP_Vector3f mag_mot;  // in mag units per amp
     AP_Vector3f mag_ofs;  // in mag units
+    AP_Vector3f mag_ofs2;  // in mag units
     AP_Vector3f mag_diag;  // diagonal corrections
     AP_Vector3f mag_offdiag;  // off-diagonal corrections
     AP_Int8 mag_orient;   // external compass orientation
