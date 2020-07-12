@@ -107,7 +107,6 @@ void AP_Compass_SITL::_timer()
     _setup_eliptical_correcion();        
     
     new_mag_data = _eliptical_corr * new_mag_data;
-    new_mag_data -= _sitl->mag_ofs.get();
 
     for (uint8_t i=0; i<SITL_NUM_COMPASSES; i++) {
         Vector3f f = new_mag_data;
@@ -118,6 +117,9 @@ void AP_Compass_SITL::_timer()
 
             // scale the first compass to simulate sensor scale factor errors
             f *= _sitl->mag_scaling;
+            f -= _sitl->mag_ofs.get();
+        } else {
+            f -= _sitl->mag_ofs2.get();
         }
         
         accumulate_sample(f, _compass_instance[i], 10);
