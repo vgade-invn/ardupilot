@@ -36,6 +36,7 @@ def build(bld):
         'AP_ROMFS',
         'AP_InertialSensor',
         'AP_AccelCal',
+        'AP_RAMTRON',
         ],
         exclude_src=[
             'libraries/AP_HAL_ChibiOS/Storage.cpp'
