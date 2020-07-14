@@ -34,6 +34,8 @@ def build(bld):
         'AP_Airspeed',
         'AP_RangeFinder',
         'AP_ROMFS',
+        'AP_InertialSensor',
+        'AP_AccelCal',
         ],
         exclude_src=[
             'libraries/AP_HAL_ChibiOS/Storage.cpp'
