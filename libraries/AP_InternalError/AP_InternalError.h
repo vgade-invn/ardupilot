@@ -101,5 +101,9 @@ extern "C" {
     void AP_stack_overflow(const char *thread_name);
 }
 
+#ifndef HAL_BUILD_AP_PERIPH
 #define INTERNAL_ERROR(error_number) \
     AP::internalerror().error(error_number, __LINE__);
+#else
+#define INTERNAL_ERROR(error_number) do {} while (0)
+#endif
