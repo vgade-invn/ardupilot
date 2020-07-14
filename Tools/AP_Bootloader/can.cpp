@@ -17,7 +17,7 @@
  */
 #include <AP_HAL/AP_HAL.h>
 
-#if HAL_USE_CAN == TRUE
+#if HAL_NUM_CAN_IFACES > 0
 #include <AP_Math/AP_Math.h>
 #include <AP_Math/crc.h>
 #include <canard.h>
@@ -31,11 +31,12 @@
 #include <uavcan/protocol/GetNodeInfo.h>
 #include "can.h"
 #include "bl_protocol.h"
-#include <drivers/stm32/canard_stm32.h>
 #include "app_comms.h"
 #include <AP_HAL_ChibiOS/hwdef/common/watchdog.h>
 #include <stdio.h>
+#include <AP_HAL_ChibiOS/CANIface.h>
 
+extern const AP_HAL::HAL& hal;
 
 static CanardInstance canard;
 static uint32_t canard_memory_pool[4096/4];
@@ -46,11 +47,6 @@ static uint8_t initial_node_id = HAL_CAN_DEFAULT_NODE_ID;
 
 // can config for 1MBit
 static uint32_t baudrate = 1000000U;
-
-static CANConfig cancfg = {
-    CAN_MCR_ABOM | CAN_MCR_AWUM | CAN_MCR_TXFP,
-    0 // filled in below
-};
 
 #ifndef CAN_APP_VERSION_MAJOR
 #define CAN_APP_VERSION_MAJOR                                           1
@@ -66,7 +62,7 @@ static uint8_t node_id_allocation_transfer_id;
 static uavcan_protocol_NodeStatus node_status;
 static uint32_t send_next_node_id_allocation_request_at_ms;
 static uint8_t node_id_allocation_unique_id_offset;
-static uint32_t app_first_word = 0xFFFFFFFF;
+static uint32_t app_first_words[8];
 
 static struct {
     uint64_t ofs;
@@ -220,11 +216,11 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
         flash_func_erase_sector(fw_update.sector+1);
     }
     for (uint16_t i=0; i<len/4; i++) {
-        if (i == 0 && fw_update.sector == 0 && fw_update.ofs == 0) {
+        if (fw_update.sector == 0 && (fw_update.ofs+i*4) < sizeof(app_first_words)) {
             // keep first word aside, to be flashed last
-            app_first_word = buf32[0];
+            app_first_words[i] = buf32[i];
         } else {
-            flash_func_write_word(fw_update.ofs+i*4, buf32[i]);
+            flash_write_buffer(fw_update.ofs+i*4, &buf32[i], 1);
         }
     }
     fw_update.ofs += len;
@@ -236,7 +232,8 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
     if (len < UAVCAN_PROTOCOL_FILE_READ_RESPONSE_DATA_MAX_LENGTH) {
         fw_update.node_id = 0;
         // now flash the first word
-        flash_func_write_word(0, app_first_word);
+        flash_write_buffer(0, app_first_words, ARRAY_SIZE(app_first_words));
+        flash_write_flush();
         if (can_check_firmware()) {
             jump_to_app();
         }
@@ -257,6 +254,9 @@ static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* 
     if (transfer->payload_len < 1 || transfer->payload_len > sizeof(fw_update.path)+1) {
         return;
     }
+
+    memset(app_first_words, 0xff, sizeof(app_first_words));
+
     if (fw_update.node_id == 0) {
         uint32_t offset = 0;
         canardDecodeScalar(transfer, 0, 8, false, (void*)&fw_update.node_id);
@@ -429,13 +429,8 @@ static void processTx(void)
 {
     static uint8_t fail_count;
     for (const CanardCANFrame* txf = NULL; (txf = canardPeekTxQueue(&canard)) != NULL;) {
-        CANTxFrame txmsg {};
-        txmsg.DLC = txf->data_len;
-        memcpy(txmsg.data8, txf->data, 8);
-        txmsg.EID = txf->id & CANARD_CAN_EXT_ID_MASK;
-        txmsg.IDE = 1;
-        txmsg.RTR = 0;
-        if (canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE) == MSG_OK) {
+        AP_HAL::CANFrame txmsg(txf->id, txf->data, txf->data_len);
+        if (hal.can[0]->send(txmsg, AP_HAL::micros64() + 1000U, 0) == 1) {
             canardPopTxQueue(&canard);
             fail_count = 0;
         } else {
@@ -453,19 +448,22 @@ static void processTx(void)
 
 static void processRx(void)
 {
-    CANRxFrame rxmsg {};
-    while (canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE) == MSG_OK) {
+    while (true) {
         CanardCANFrame rx_frame {};
-
+        uint64_t timestamp;
+        AP_HAL::CANFrame rxmsg {};
+        AP_HAL::CANIface::CanIOFlags flags = 0;
+        int16_t n = hal.can[0]->receive(rxmsg, timestamp, flags);
+        if (n <= 0) {
+            break;
+        }
         palToggleLine(HAL_GPIO_PIN_LED_BOOTLOADER);
-
-        const uint64_t timestamp = AP_HAL::micros64();
-        memcpy(rx_frame.data, rxmsg.data8, 8);
-        rx_frame.data_len = rxmsg.DLC;
-        if(rxmsg.IDE) {
-            rx_frame.id = CANARD_CAN_FRAME_EFF | rxmsg.EID;
+        memcpy(rx_frame.data, rxmsg.data, 8);
+        rx_frame.data_len = rxmsg.dlc;
+        if (rxmsg.isExtended()) {
+            rx_frame.id = CANARD_CAN_FRAME_EFF | (rxmsg.id & AP_HAL::CANFrame::MaskExtID);
         } else {
-            rx_frame.id = rxmsg.SID;
+            rx_frame.id = rxmsg.id & AP_HAL::CANFrame::MaskStdID;
         }
         canardHandleRxFrame(&canard, &rx_frame, timestamp);
     }
@@ -624,14 +622,8 @@ void can_start()
 {
     node_status.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE;
 
-    // calculate optimal CAN timings given PCLK1 and baudrate
-    CanardSTM32CANTimings timings {};
-    canardSTM32ComputeCANTimings(STM32_PCLK1, baudrate, &timings);
-    cancfg.btr = CAN_BTR_SJW(0) |
-        CAN_BTR_TS2(timings.bit_segment_2-1) |
-        CAN_BTR_TS1(timings.bit_segment_1-1) |
-        CAN_BTR_BRP(timings.bit_rate_prescaler-1);
-    canStart(&CAND1, &cancfg);
+    const_cast <AP_HAL::HAL&> (hal).can[0] = new ChibiOS::CANIface(0);
+    hal.can[0]->init(baudrate, AP_HAL::CANIface::NormalMode);
 
     canardInit(&canard, (uint8_t *)canard_memory_pool, sizeof(canard_memory_pool),
                onTransferReceived, shouldAcceptTransfer, NULL);

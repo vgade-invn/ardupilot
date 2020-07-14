@@ -33,6 +33,10 @@
 #include "can.h"
 #include <stdio.h>
 
+#if HAL_NUM_CAN_IFACES > 0
+const AP_HAL::HAL& hal = AP_HAL::get_HAL();
+#endif
+
 extern "C" {
     int main(void);
 }
@@ -79,7 +83,7 @@ int main(void)
         try_boot = true;
         timeout = 0;
     }
-#if HAL_USE_CAN == TRUE
+#if HAL_NUM_CAN_IFACES > 0
     else if ((m & 0xFFFFFF00) == RTC_BOOT_CANBL) {
         try_boot = false;
         timeout = 10000;
@@ -125,12 +129,12 @@ int main(void)
 #if defined(BOOTLOADER_DEV_LIST)
     init_uarts();
 #endif
-#if HAL_USE_CAN == TRUE
+#if HAL_NUM_CAN_IFACES > 0
     can_start();
 #endif
     flash_init();
 
-#if defined(BOOTLOADER_DEV_LIST)
+#if HAL_NUM_CAN_IFACES == 0
     while (true) {
         bootloader(timeout);
         jump_to_app();

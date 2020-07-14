@@ -20,7 +20,9 @@ def build(bld):
         name= 'AP_Bootloader_libs',
         ap_vehicle='AP_Bootloader',
         ap_libraries= [
-        'AP_Math'
+        'AP_Math',
+        'AP_HAL',
+        'AP_HAL_Empty',
         ])
     
     bld(
