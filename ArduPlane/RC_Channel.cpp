@@ -111,6 +111,7 @@ void RC_Channel_Plane::init_aux_function(const RC_Channel::aux_func_t ch_option,
         break;
 
     case AUX_FUNC::TER_DISABLE:
+    case AUX_FUNC::VELOCITY_MATCH:
         do_aux_function(ch_option, ch_flag);
         break;
 
@@ -192,6 +193,23 @@ void RC_Channel_Plane::do_aux_function(const aux_func_t ch_option, const AuxSwit
             gcs().send_text(MAV_SEVERITY_INFO, "NON AUTO TERRN: %s", plane.non_auto_terrain_disable?"OFF":"ON");
         break;
 
+    case AUX_FUNC::VELOCITY_MATCH:
+        if (!plane.quadplane.available()) {
+            // not functional if no quadplane available
+            return;
+        }
+        switch (ch_flag) {
+        case AuxSwitchPos::HIGH:
+            plane.quadplane.pos_control->set_velmatch_state_off();
+            break;
+        case AuxSwitchPos::MIDDLE:
+            plane.quadplane.pos_control->set_velmatch_state_hold();
+            break;
+        case AuxSwitchPos::LOW:
+            plane.quadplane.pos_control->set_velmatch_state_set();
+            break;
+        }
+        break;
 
     default:
         RC_Channel::do_aux_function(ch_option, ch_flag);
