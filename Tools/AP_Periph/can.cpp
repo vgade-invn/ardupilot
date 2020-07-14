@@ -928,11 +928,12 @@ static void process1HzTasks(uint64_t timestamp_usec)
     }
 #endif
 
-    if (AP_HAL::millis() > 30000) {
+    if (!periph.done_fwok && AP_HAL::millis() > 30000) {
         // use RTC to mark that we have been running fine for
         // 30s. This is used along with watchdog resets to ensure the
         // user has a chance to load a fixed firmware
         set_fast_reboot(RTC_BOOT_FWOK);
+        periph.done_fwok = true;
     }
 }
 
@@ -1453,29 +1454,95 @@ void AP_Periph_FW::can_gps_update(void)
 }
 
 /*
+  return maximum across all axes of a Vector3f
+ */
+static float vector3f_max_abs(const Vector3f &v)
+{
+    return MAX(MAX(fabsf(v.x), fabsf(v.y)), fabsf(v.z));
+}
+
+/*
   update CAN IMU
  */
 void AP_Periph_FW::can_ins_update(void)
 {
 #ifdef HAL_PERIPH_ENABLE_IMU
-    ins.update();
-    if (!ins.wait_for_sample()) {
+    if (!ins.wait_for_sample(false)) {
         return;
     }
+    ins.update();
+
+    static uint32_t last_imu_us;
+    static uint32_t imu_count;
+    static uint32_t long_cnt;
+
+    imu_count++;
+
+    uint32_t now = AP_HAL::micros();
+    if (now - last_imu_us >= 1000000UL) {
+        float dt = (now - last_imu_us) * 1.0e-6;
+        hal.console->printf("%.2f pkts/sec long_cnt=%u\n", imu_count/dt, unsigned(long_cnt));
+        imu_count = 0;
+        last_imu_us = now;
+        long_cnt = 0;
+    }
+
     ardupilot_imu_FastIMU pkt {};
     static uint8_t id;
     pkt.sensor_id = 0;
     pkt.counter = id++;
-    pkt.accel_scale = 1;
-    pkt.gyro_scale = 1;
-    const Vector3f &accel = ins.get_accel(0);
-    const Vector3f &gyro = ins.get_gyro(0);
-    pkt.accel[0] = accel.x * INT16_MAX / (10.0 * pkt.accel_scale);
-    pkt.accel[1] = accel.y * INT16_MAX / (10.0 * pkt.accel_scale);
-    pkt.accel[2] = accel.z * INT16_MAX / (10.0 * pkt.accel_scale);
-    pkt.gyro[0] = gyro.x * INT16_MAX / pkt.accel_scale;
-    pkt.gyro[1] = gyro.y * INT16_MAX / pkt.gyro_scale;
-    pkt.gyro[2] = gyro.z * INT16_MAX / pkt.gyro_scale;
+    pkt.accel_scale = 0;
+    pkt.gyro_scale = 0;
+
+    /*
+      use deltas to avoid filtering
+     */
+    Vector3f gyro, accel;
+    if (!ins.get_delta_angle(gyro) || !ins.get_delta_velocity(accel)) {
+        return;
+    }
+    const float dt = ins.get_delta_angle_dt();
+    const float dt2 = ins.get_delta_velocity_dt();
+    if (!is_equal(dt, dt2)) {
+        // we assume gyro and accel sample at the same rate
+        hal.console->printf("IMU dt mismatch %f %f\n", dt, dt2);
+        return;
+    }
+    if (g.imu_rate >= 2000) {
+        if (dt > 900*1.0e-6) {
+            long_cnt++;
+        }
+        if (dt > 1100*1.0e-6) {
+            hal.console->printf("v long %f\n", dt);
+        }
+    }
+    gyro /= dt;
+    accel /= dt;
+
+    pkt.time_us = int16_t(dt * 1.0e6 + 0.5);
+
+    /*
+      work out scaling factors to keep the values in range
+     */
+
+    const float accel_max = vector3f_max_abs(accel);
+
+    while (10.0*(pkt.accel_scale+1) < accel_max) {
+        pkt.accel_scale += 1;
+    }
+    const float accel_scale = INT16_MAX / (10 * (1+pkt.accel_scale));
+    pkt.accel[0] = int16_t(accel.x * accel_scale + 0.5);
+    pkt.accel[1] = int16_t(accel.y * accel_scale + 0.5);
+    pkt.accel[2] = int16_t(accel.z * accel_scale + 0.5);
+
+    const float gyro_max = vector3f_max_abs(gyro);
+    while (float(pkt.gyro_scale+1) < gyro_max) {
+        pkt.gyro_scale += 1;
+    }
+    const float gyro_scale = INT16_MAX / float(pkt.gyro_scale+1);
+    pkt.gyro[0] = int16_t(gyro.x * gyro_scale + 0.5);
+    pkt.gyro[1] = int16_t(gyro.y * gyro_scale + 0.5);
+    pkt.gyro[2] = int16_t(gyro.z * gyro_scale + 0.5);
 
     uint8_t buffer[ARDUPILOT_IMU_FASTIMU_MAX_SIZE];
     uint16_t total_size = ardupilot_imu_FastIMU_encode(&pkt, buffer);
