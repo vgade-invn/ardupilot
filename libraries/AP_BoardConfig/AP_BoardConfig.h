@@ -113,7 +113,11 @@ public:
 
     // get number of PWM outputs enabled on FMU
     static uint8_t get_pwm_count(void) {
+#if defined(HAL_BOOTLOADER_BUILD)
+        return 0;
+#else
         return _singleton?_singleton->pwm_count.get():8;
+#endif
     }
 
     // get alternative config selection
