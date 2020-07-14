@@ -140,6 +140,10 @@ void AP_Periph_FW::init()
 #ifdef HAL_PERIPH_ENABLE_HWESC
     hwesc_telem.init(hal.uartB);
 #endif
+
+#ifdef HAL_PERIPH_ENABLE_IMU
+    ins.init(500);
+#endif
     
     start_ms = AP_HAL::millis();
 }
