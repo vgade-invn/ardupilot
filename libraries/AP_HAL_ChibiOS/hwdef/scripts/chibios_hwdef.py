@@ -645,7 +645,7 @@ def write_mcu_config(f):
         f.write('#define HAL_USE_SERIAL_USB TRUE\n')
     if 'OTG2' in bytype:
         f.write('#define STM32_USB_USE_OTG2                  TRUE\n')
-    if have_type_prefix('CAN') and 'AP_PERIPH' not in env_vars:
+    if have_type_prefix('CAN') and ('AP_PERIPH' not in env_vars or mcu_series.startswith("STM32H7")):
         if 'CAN1' in bytype and 'CAN2' in bytype:
             enable_can(f, 2)
         else:
@@ -759,6 +759,13 @@ def write_mcu_config(f):
 #define HAL_NO_PRINTF
 #define HAL_NO_CCM
 #define CH_DBG_STATISTICS FALSE
+#define HAL_USE_I2C FALSE
+#define HAL_USE_PWM FALSE
+#define CH_DBG_ENABLE_STACK_CHECK FALSE
+''')
+
+    if args.bootloader and not mcu_series.startswith("STM32H7"):
+        f.write('''
 #define CH_CFG_USE_TM FALSE
 #define CH_CFG_USE_REGISTRY FALSE
 #define CH_CFG_USE_WAITEXIT FALSE
@@ -777,10 +784,8 @@ def write_mcu_config(f):
 #define CH_CFG_USE_MAILBOXES FALSE
 #define CH_CFG_USE_FACTORY FALSE
 #define CH_CFG_USE_MEMCORE FALSE
-#define HAL_USE_I2C FALSE
-#define HAL_USE_PWM FALSE
-#define CH_DBG_ENABLE_STACK_CHECK FALSE
 ''')
+
     if env_vars.get('ROMFS_UNCOMPRESSED', False):
         f.write('#define HAL_ROMFS_UNCOMPRESSED\n')
 
