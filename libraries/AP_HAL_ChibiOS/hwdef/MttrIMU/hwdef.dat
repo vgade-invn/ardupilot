@@ -1,0 +1,147 @@
+# hw definition file for processing by chibios_hwdef.py
+# mRo Nexus CAN flight controller
+# A Dual CAN based flight controller / CAN IMU
+# 36mm x 36mm, 31.5mm x 31.5mm grommeted mounting holes
+# M10084
+
+# MCU class and specific type
+MCU STM32H7xx STM32H743xx
+
+# board ID for firmware load
+APJ_BOARD_ID 1015
+
+# crystal disabled
+OSCILLATOR_HZ 0
+
+FLASH_SIZE_KB 2048
+
+# with 2M flash we can afford to optimize for speed
+env OPTIMIZE -O2
+
+# start on 2th sector (1st sector for bootloader)
+FLASH_RESERVE_START_KB 128
+
+define HAL_STORAGE_SIZE 16384
+# use last 2 pages for flash storage
+# H743 has 16 pages of 128k each
+define STORAGE_FLASH_PAGE 14
+
+# USB setup
+USB_STRING_MANUFACTURER "mRo"
+
+# order of UARTs (and USB)
+# UART7 SERIAL1
+
+SERIAL_ORDER UART7
+
+# UART7 SERIAL1 (debug)
+PE7 UART7_RX UART7
+PE8 UART7_TX UART7
+
+# VDD sense pin for the External 5v Supply
+PA4 BATT_VOLTAGE_SENS ADC1 SCALE(1.65)
+
+#SPI2 SPIBus0 (1 device ADIS16470 6DOF)
+PB13 SPI2_SCK SPI2
+PB14 SPI2_MISO SPI2
+PB15 SPI2_MOSI SPI2
+
+#SPI4 SPIBus2 (FM25V02 FRAM)
+PE2 SPI4_SCK SPI4
+PE5 SPI4_MISO SPI4
+PE6 SPI4_MOSI SPI4
+
+# These are the pins for SWD debugging with a STlinkv2 or black-magic probe.
+PA13 JTMS-SWDIO SWD
+PA14 JTCK-SWCLK SWD
+
+# CS pins for sensors
+PB12 CS_ADIS16470 CS
+
+# The CS pin for FRAM (ramtron). This one is marked as using
+# SPEED_VERYLOW, which matches the HAL_PX4 setup.
+PE4 CS_FRAM CS SPEED_VERYLOW
+
+# the CAN bus
+PB9 CAN1_TX CAN1
+PB8 CAN1_RX CAN1
+
+PE0 GPIO_CAN1_SILENT OUTPUT PUSHPULL LOW GPIO(72)
+
+# ADIS data ready
+PD8  DRDY_ADIS16470 INPUT GPIO(93)
+
+define HAL_DRDY_ADIS16470_PIN 93
+
+# This is the reset line for the adis16470
+PB1 nRST_ADIS OUTPUT HIGH GPIO(74)
+
+SPIDEV adis16470  SPI2 DEVID1  CS_ADIS16470      MODE3  1*MHZ  2*MHZ
+
+# blue LED
+PB0 LED_B OUTPUT HIGH GPIO(0)
+
+define HAL_GPIO_A_LED_PIN 0
+
+# 1 IMU (Analog Devices ADIS16470)
+IMU ADIS1647x      SPI:adis16470 ROTATION_ROLL_180 HAL_DRDY_ADIS16470_PIN
+
+# setup build for a peripheral firmware
+env AP_PERIPH 1
+
+define PERIPH_FW TRUE
+
+define HAL_BUILD_AP_PERIPH
+
+undef COMPASS
+undef BARO
+
+define HAL_PERIPH_ENABLE_IMU
+
+# use the app descriptor needed by MissionPlanner for CAN upload
+env APP_DESCRIPTOR MissionPlanner
+
+define HAL_NO_GCS
+define HAL_NO_LOGGING
+define HAL_NO_MONITOR_THREAD
+
+define HAL_DISABLE_LOOP_DELAY
+
+define HAL_USE_RTC FALSE
+define DISABLE_SERIAL_ESC_COMM TRUE
+define NO_DATAFLASH TRUE
+
+define HAL_NO_RCIN_THREAD
+
+define HAL_BARO_ALLOW_INIT_NO_BARO
+
+define HAL_USE_ADC FALSE
+define STM32_ADC_USE_ADC1 FALSE
+define HAL_DISABLE_ADC_DRIVER TRUE
+
+# define HAL_USE_CAN TRUE
+# define STM32_CAN_USE_CAN1 TRUE
+
+define HAL_CAN_DEFAULT_NODE_ID 0
+
+define CAN_APP_NODE_NAME "org.ardupilot.MttrIMU"
+
+# reserve 256 bytes for comms between app and bootloader
+RAM_RESERVE_START 256
+
+env DISABLE_SCRIPTING 1
+
+# use blue LED
+define HAL_GPIO_PIN_LED HAL_GPIO_PIN_LED_B
+
+MAIN_STACK 0x2000
+PROCESS_STACK 0x6000
+
+define HAL_WITH_UAVCAN 1
+env HAL_WITH_UAVCAN 1
+
+define HAL_CAN_DRIVER_DEFAULT 1
+define HAL_PERIPH_ENABLE_IMU
+
+# keep ROMFS uncompressed
+env ROMFS_UNCOMPRESSED True
