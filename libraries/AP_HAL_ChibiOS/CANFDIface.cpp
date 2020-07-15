@@ -69,7 +69,7 @@ static_assert(STM32_FDCANCLK <= 80U*1000U*1000U, "FDCAN clock must be max 80MHz"
 
 using namespace ChibiOS;
 
-#ifndef HAL_BOOTLOADER_BUILD
+#if !defined(HAL_BOOTLOADER_BUILD) && !defined(HAL_BUILD_AP_PERIPH)
 #define Debug(fmt, args...) do { AP::can().log_text(AP_CANManager::LOG_DEBUG, "CANFDIface", fmt, ##args); } while (0)
 #else
 #define Debug(fmt, args...) do {} while (0)
