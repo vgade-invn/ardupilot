@@ -71,6 +71,16 @@ int main(void)
     AFIO->MAPR = mapr | AFIO_MAPR_CAN_REMAP_REMAP2 | AFIO_MAPR_SPI3_REMAP;
 #endif
 
+    flash_init();
+
+#if 0
+    // this erase is useful for H7 if it gets stuck with corrupted
+    // flash
+    for (uint8_t i=0; i<15; i++) {
+        flash_func_erase_sector(i);
+    }
+#endif
+    
 #ifndef NO_FASTBOOT
     enum rtc_boot_magic m = check_fast_reboot();
     bool was_watchdog = stm32_was_watchdog_reset();
@@ -132,7 +142,6 @@ int main(void)
 #if HAL_NUM_CAN_IFACES > 0
     can_start();
 #endif
-    flash_init();
 
 #if HAL_NUM_CAN_IFACES == 0
     while (true) {
