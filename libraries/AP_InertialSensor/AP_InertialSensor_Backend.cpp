@@ -274,6 +274,7 @@ void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
 
 void AP_InertialSensor_Backend::log_gyro_raw(uint8_t instance, const uint64_t sample_us, const Vector3f &gyro)
 {
+#ifndef HAL_NO_LOGGING
     AP_Logger *logger = AP_Logger::get_singleton();
     if (logger == nullptr) {
         // should not have been called
@@ -295,6 +296,7 @@ void AP_InertialSensor_Backend::log_gyro_raw(uint8_t instance, const uint64_t sa
             _imu.batchsampler.sample(instance, AP_InertialSensor::IMU_SENSOR_TYPE_GYRO, sample_us, gyro);
         }
     }
+#endif
 }
 
 /*
@@ -431,6 +433,7 @@ void AP_InertialSensor_Backend::_notify_new_gyro_sensor_rate_sample(uint8_t inst
 
 void AP_InertialSensor_Backend::log_accel_raw(uint8_t instance, const uint64_t sample_us, const Vector3f &accel)
 {
+#ifndef HAL_NO_LOGGING
     AP_Logger *logger = AP_Logger::get_singleton();
     if (logger == nullptr) {
         // should not have been called
@@ -452,6 +455,7 @@ void AP_InertialSensor_Backend::log_accel_raw(uint8_t instance, const uint64_t s
             _imu.batchsampler.sample(instance, AP_InertialSensor::IMU_SENSOR_TYPE_ACCEL, sample_us, accel);
         }
     }
+#endif
 }
 
 void AP_InertialSensor_Backend::_set_accel_max_abs_offset(uint8_t instance,
@@ -585,6 +589,7 @@ void AP_InertialSensor_Backend::update_accel(uint8_t instance)
 
 bool AP_InertialSensor_Backend::should_log_imu_raw() const
 {
+#ifndef HAL_NO_LOGGING
     if (_imu._log_raw_bit == (uint32_t)-1) {
         // tracker does not set a bit
         return false;
@@ -597,5 +602,8 @@ bool AP_InertialSensor_Backend::should_log_imu_raw() const
         return false;
     }
     return true;
+#else
+    return false;
+#endif
 }
 
