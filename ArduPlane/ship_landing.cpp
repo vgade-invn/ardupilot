@@ -99,3 +99,28 @@ void QuadPlane::ship_landing_RTL_update(void)
 
     plane.next_WP_loc = loc;
 }
+
+/*
+  update takeoff controller for moving takeoffs
+ */
+void QuadPlane::ship_takeoff_update(void)
+{
+    Location loc;
+    Vector3f vel;
+    Vector3f pos;
+    if (!plane.g2.follow.get_target_location_and_velocity(loc, vel)) {
+        return;
+    }
+    Location origin;
+    if (!ahrs.get_origin(origin)) {
+        return;
+    }
+    const Vector2f diff2d = origin.get_distance_NE(plane.next_WP_loc);
+    pos.x = diff2d.x*100;
+    pos.y = diff2d.y*100;
+    pos.z = 0;
+    vel *= 100;
+    vel.z = 0;
+
+    pos_control->input_pos_vel_accel_xy(pos, vel, 5, 1, 1);
+}

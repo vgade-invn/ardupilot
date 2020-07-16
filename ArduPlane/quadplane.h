@@ -638,6 +638,11 @@ public:
     void ship_landing_RTL_update(void);
 
     /*
+      update takeoff controller for ship takeoff
+     */
+    void ship_takeoff_update(void);
+    
+    /*
       should we switch to QRTL on RTL completion
      */
     bool rtl_qrtl_enabled(void) const;
