@@ -166,6 +166,9 @@ static void send_fw_read(void)
     }
     fw_update.last_ms = now;
 
+    flash_set_keep_unlocked(true);
+    uprintf("fw read %s %u\n", fw_update.path, unsigned(fw_update.ofs));
+
     uint8_t buffer[UAVCAN_PROTOCOL_FILE_READ_REQUEST_MAX_SIZE];
     canardEncodeScalar(buffer, 0, 40, &fw_update.ofs);
     uint32_t offset = 40;
@@ -210,15 +213,19 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
     const uint32_t sector_size = flash_func_sector_size(fw_update.sector);
 
     if (fw_update.sector_ofs == 0) {
+        uprintf("flash erase %u\n", fw_update.sector);
         flash_func_erase_sector(fw_update.sector);
     }
     if (fw_update.sector_ofs+len > sector_size) {
+        uprintf("flash erase %u\n", fw_update.sector+1);
         flash_func_erase_sector(fw_update.sector+1);
     }
+    uprintf("flash write sect=%u ofs=%u len=%u\n", fw_update.sector, unsigned(fw_update.ofs), unsigned(len));
     for (uint16_t i=0; i<len/4; i++) {
         if (fw_update.sector == 0 && (fw_update.ofs+i*4) < sizeof(app_first_words)) {
             // keep first word aside, to be flashed last
             app_first_words[i] = buf32[i];
+            uprintf("flash app %u 0x%08x\n", i, unsigned(buf32[i]));
         } else {
             flash_write_buffer(fw_update.ofs+i*4, &buf32[i], 1);
         }
@@ -232,10 +239,16 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
     if (len < UAVCAN_PROTOCOL_FILE_READ_RESPONSE_DATA_MAX_LENGTH) {
         fw_update.node_id = 0;
         // now flash the first word
+        uprintf("flash flush\n");
         flash_write_buffer(0, app_first_words, ARRAY_SIZE(app_first_words));
         flash_write_flush();
+        uprintf("flash lock\n");
+        flash_set_keep_unlocked(false);
         if (can_check_firmware()) {
+            uprintf("flash check OK\n");
             jump_to_app();
+        } else {
+            uprintf("flash check failed %u\n", node_status.vendor_specific_status_code);
         }
     }
 
@@ -255,7 +268,9 @@ static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* 
         return;
     }
 
+    uprintf("flash fw start\n");
     memset(app_first_words, 0xff, sizeof(app_first_words));
+    flash_set_keep_unlocked(true);
 
     if (fw_update.node_id == 0) {
         uint32_t offset = 0;

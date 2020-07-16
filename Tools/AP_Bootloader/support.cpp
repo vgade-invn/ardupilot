@@ -18,7 +18,7 @@
 #include "mcu_h7.h"
 
 // optional uprintf() code for debug
-// #define BOOTLOADER_DEBUG SD1
+#define BOOTLOADER_DEBUG SD7
 
 #if defined(BOOTLOADER_DEV_LIST)
 static BaseChannel *uarts[] = { BOOTLOADER_DEV_LIST };
@@ -337,7 +337,7 @@ void uprintf(const char *fmt, ...)
     char umsg[200];
     if (!initialised) {
         initialised = true;
-        debug_sercfg.speed = 57600;
+        debug_sercfg.speed = 115200;
         sdStart(&BOOTLOADER_DEBUG, &debug_sercfg);
     }
     va_start(ap, fmt);
