@@ -2548,15 +2548,20 @@ void QuadPlane::takeoff_controller(void)
     */
     check_attitude_relax();
 
-    setup_target_position();
 
-    // set position controller desired velocity and acceleration to zero
-    pos_control->set_desired_velocity_xy(0.0f,0.0f);
-    pos_control->set_desired_accel_xy(0.0f,0.0f);
+    if (ship_landing_enabled()) {
+        ship_takeoff_update();
+    } else {
+        setup_target_position();
+        // set position controller desired velocity and acceleration to zero
+        pos_control->set_desired_velocity_xy(0.0f,0.0f);
+        pos_control->set_desired_accel_xy(0.0f,0.0f);
 
-    // set position control target and update
-    pos_control->set_xy_target(poscontrol.target.x, poscontrol.target.y);
-    pos_control->update_xy_controller();
+        // set position control target and update
+        pos_control->set_xy_target(poscontrol.target.x, poscontrol.target.y);
+
+        pos_control->update_xy_controller();
+    }
 
     // nav roll and pitch are controller by position controller
     plane.nav_roll_cd = pos_control->get_roll();
