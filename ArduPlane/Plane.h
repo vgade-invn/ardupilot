@@ -524,6 +524,9 @@ private:
 
         // highest barometric altitude seen (for ALTITUDE_WAIT)
         float highest_baro_alt;
+
+        // have we started an emergency landing?
+        bool started_landing;
     } auto_state;
 
     struct {
@@ -1023,6 +1026,8 @@ private:
 #if SOARING_ENABLED == ENABLED
     void update_soaring();
 #endif
+
+    bool in_auto_land(void);
 
     bool reversed_throttle;
     bool have_reverse_throttle_rc_option;
