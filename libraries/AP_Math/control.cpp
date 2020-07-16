@@ -47,7 +47,7 @@ void update_pos_vel_accel_xy(Vector3f& pos, Vector3f& vel, Vector3f& accel, floa
     Vector2f pos_2f = Vector2f(pos.x, pos.y);
     Vector2f vel_2f = Vector2f(vel.x, vel.y);
     Vector2f accel_2f = Vector2f(accel.x, accel.y);
-    update_pos_vel_accel_xy(pos, vel, accel, dt);
+    update_pos_vel_accel_xy(pos_2f, vel_2f, accel_2f, dt);
     pos.x = pos_2f.x;
     pos.y = pos_2f.y;
     vel.x = vel_2f.x;
