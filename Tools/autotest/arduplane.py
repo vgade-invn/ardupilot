@@ -1765,6 +1765,87 @@ class AutoTestPlane(AutoTest):
 
         self.fly_mission("ap-terrain.txt", mission_timeout=600)
 
+    def ekf_lane_switch(self):
+
+        # new lane swtich available only with EK3
+        self.set_parameter("EK3_ENABLE", 1)
+        self.set_parameter("EK2_ENABLE", 0)
+        self.set_parameter("AHRS_EKF_TYPE", 3)
+        self.set_parameter("EK3_AFFINITY", 15) # enable affinity for all sensors
+        self.set_parameter("EK3_IMU_MASK", 3) # use only 2 IMUs
+        self.set_parameter("GPS_TYPE2", 1)
+        self.set_parameter("SIM_GPS2_DISABLE", 0)
+        self.set_parameter("SIM_BARO2_DISABL", 0)
+        self.set_parameter("SIM_BARO_COUNT", 2)
+        self.set_parameter("ARSPD2_TYPE", 2)
+        self.set_parameter("ARSPD2_USE", 1)
+        self.set_parameter("ARSPD2_PIN", 2)
+
+        # some parameters need reboot to take effect
+        self.reboot_sitl()
+        
+        # get flying
+        self.takeoff(alt=25)
+        self.change_mode('CIRCLE')
+
+        self.context_push()
+        ex = None
+        try:
+            self.start_subtest("Checking Lane Switching trigger from all sensors")
+
+            # accelerometer
+            self.progress("ACCELEROMETER: Applying offset to z - axis")
+            self.context_push()
+            self.wait_statustext(text="lane switch", timeout=3, the_function=self.set_parameter("INS_ACCOFFS_Z", 5))
+            self.context_pop()
+            self.wait_heading(0, accuracy=10, timeout=60)
+            self.wait_heading(180, accuracy=10, timeout=60)
+
+            self.progress("GPS: Applying glitch to 2nd GPS")
+            self.context_push()
+            self.wait_statustext(text="lane switch", timeout=3, the_function=self.set_parameter("SIM_GPS2_GLTCH_X", 1))
+            self.context_pop()
+            self.wait_heading(0, accuracy=10, timeout=60)
+            self.wait_heading(180, accuracy=10, timeout=60)
+
+            self.progress("BAROMETER: Applying noise to 1st Barometer")
+            self.context_push()
+            self.wait_statustext(text="lane switch", timeout=3, the_function=self.set_parameter("SIM_BARO_RND", 100))
+            self.context_pop()
+            self.wait_heading(0, accuracy=10, timeout=60)
+            self.wait_heading(180, accuracy=10, timeout=60)
+            
+            self.progress("AIRSPEED: Applying offset to 2nd Airspeed Sensor")
+            self.context_push()
+            self.wait_statustext(text="lane switch", timeout=3, the_function=self.set_parameter("SIM_ARSPD2_OFS", 1500))
+            self.context_pop()
+            self.wait_heading(0, accuracy=10, timeout=60)
+            self.wait_heading(180, accuracy=10, timeout=60)
+
+            self.progress("MAGNETOMETER: Applying offset to 1st Compass")
+            self.context_push()
+            self.wait_statustext(text="lane switch", timeout=3, the_function=self.set_parameter("SIM_MAG_OFS_X", 150))
+            self.context_pop()
+            self.wait_heading(0, accuracy=10, timeout=60)
+            self.wait_heading(180, accuracy=10, timeout=60)
+
+            self.progress("Gyroscope: Applying offset to 2nd Gyroscope")
+            self.context_push()
+            self.wait_statustext(text="lane switch", timeout=10, the_function=self.set_parameter("INS_GYR2OFFS_Y", 1))
+            self.context_pop()
+            self.wait_heading(0, accuracy=10, timeout=60)
+            self.wait_heading(180, accuracy=10, timeout=60)
+            
+            self.disarm_vehicle()
+            
+        except Exception as e:
+            self.progress("Caught exception: %s" % self.get_exception_stacktrace(e))
+            ex = e
+
+        self.context_pop()
+        if ex is not None:
+            raise ex
+
     def tests(self):
         '''return list of all tests'''
         ret = super(AutoTestPlane, self).tests()
@@ -1881,5 +1962,9 @@ class AutoTestPlane(AutoTest):
             ("LogUpload",
              "Log upload",
              self.log_upload),
+
+            ("EKFlaneswitch",
+             "ekf_lane_switch",
+             self.ekf_lane_switch),
         ])
         return ret
