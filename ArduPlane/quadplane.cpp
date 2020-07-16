@@ -2526,7 +2526,9 @@ void QuadPlane::setup_target_position(void)
     if (!loc.same_latlon_as(last_auto_target) ||
         plane.next_WP_loc.alt != last_auto_target.alt ||
         now - last_loiter_ms > 500) {
+        float alt_target = pos_control->get_alt_target();
         wp_nav->set_wp_destination(poscontrol.target);
+        pos_control->set_alt_target(alt_target);
         last_auto_target = loc;
     }
     last_loiter_ms = now;
