@@ -269,10 +269,10 @@ static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* 
     }
 
     uprintf("flash fw start\n");
-    memset(app_first_words, 0xff, sizeof(app_first_words));
-    flash_set_keep_unlocked(true);
 
     if (fw_update.node_id == 0) {
+        memset(app_first_words, 0xff, sizeof(app_first_words));
+        flash_set_keep_unlocked(true);
         uint32_t offset = 0;
         canardDecodeScalar(transfer, 0, 8, false, (void*)&fw_update.node_id);
         offset += 8;
