@@ -638,9 +638,9 @@ public:
     void ship_landing_RTL_update(void);
 
     /*
-      update takeoff controller for ship takeoff
+      update xy controller for ship takeoff/landing
      */
-    void ship_takeoff_update(void);
+    void ship_update_xy(void);
     
     /*
       should we switch to QRTL on RTL completion

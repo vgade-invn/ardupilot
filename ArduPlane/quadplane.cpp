@@ -2396,6 +2396,7 @@ void QuadPlane::vtol_position_controller(void)
             poscontrol.state = QPOS_POSITION2;
             loiter_nav->clear_pilot_desired_acceleration();
             loiter_nav->init_target();
+            pos_control->init_pos_vel_xy();
             gcs().send_text(MAV_SEVERITY_INFO,"VTOL position2 started v=%.1f d=%.1f",
                                     (double)ahrs.groundspeed(), (double)plane.auto_state.wp_distance);
         }
@@ -2422,20 +2423,20 @@ void QuadPlane::vtol_position_controller(void)
         }
         
         // set position controller desired velocity and acceleration to zero
-        Vector3f target_vel {};
         if (ship_landing_enabled()) {
-            plane.g2.follow.get_target_location_and_velocity(plane.next_WP_loc, target_vel);
-        }
-        pos_control->set_desired_velocity_xy(target_vel.x*100, target_vel.y*100);
-        pos_control->set_desired_accel_xy(0.0f,0.0f);
-
-        // set position control target and update
-        if (should_relax()) {
-            loiter_nav->soften_for_landing();
+            ship_update_xy();
         } else {
-            pos_control->set_xy_target(poscontrol.target.x, poscontrol.target.y);
+            pos_control->set_desired_velocity_xy(0.0f,0.0f);
+            pos_control->set_desired_accel_xy(0.0f,0.0f);
+
+            // set position control target and update
+            if (should_relax()) {
+                loiter_nav->soften_for_landing();
+            } else {
+                pos_control->set_xy_target(poscontrol.target.x, poscontrol.target.y);
+            }
+            pos_control->update_xy_controller();
         }
-        pos_control->update_xy_controller();
 
         // nav roll and pitch are controller by position controller
         plane.nav_roll_cd = pos_control->get_roll();
@@ -2527,7 +2528,7 @@ void QuadPlane::setup_target_position(void)
         plane.next_WP_loc.alt != last_auto_target.alt ||
         now - last_loiter_ms > 500) {
         float alt_target = pos_control->get_alt_target();
-        wp_nav->set_wp_destination(poscontrol.target);
+//        wp_nav->set_wp_destination(poscontrol.target);
         pos_control->set_alt_target(alt_target);
         last_auto_target = loc;
     }
@@ -2548,9 +2549,8 @@ void QuadPlane::takeoff_controller(void)
     */
     check_attitude_relax();
 
-
     if (ship_landing_enabled()) {
-        ship_takeoff_update();
+        ship_update_xy();
     } else {
         setup_target_position();
         // set position controller desired velocity and acceleration to zero

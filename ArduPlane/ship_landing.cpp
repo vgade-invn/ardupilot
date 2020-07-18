@@ -101,26 +101,32 @@ void QuadPlane::ship_landing_RTL_update(void)
 }
 
 /*
-  update takeoff controller for moving takeoffs
+  update xy controller for moving takeoffs and landings
  */
-void QuadPlane::ship_takeoff_update(void)
+void QuadPlane::ship_update_xy(void)
 {
     Location loc;
     Vector3f vel;
     Vector3f pos;
+
     if (!plane.g2.follow.get_target_location_and_velocity(loc, vel)) {
         return;
     }
-    Location origin;
-    if (!ahrs.get_origin(origin)) {
+
+    if (!loc.get_vector_from_origin_NEU(pos)) {
         return;
     }
-    const Vector2f diff2d = origin.get_distance_NE(plane.next_WP_loc);
-    pos.x = diff2d.x*100;
-    pos.y = diff2d.y*100;
+
     pos.z = 0;
     vel *= 100;
     vel.z = 0;
 
-    pos_control->input_pos_vel_accel_xy(pos, vel, 5, 1, 1);
+    AP::logger().Write("SHXY", "TimeUS,px,py,vx,vy", "Qffff",
+                       AP_HAL::micros64(),
+                       double(pos.x * 0.01f),
+                       double(pos.y * 0.01f),
+                       double(vel.x * 0.01f),
+                       double(vel.y * 0.01f));
+
+    pos_control->input_pos_vel_xy(pos, vel, 500, 500, 1);
 }
