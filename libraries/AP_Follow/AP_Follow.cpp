@@ -125,8 +125,8 @@ const AP_Param::GroupInfo AP_Follow::var_info[] = {
     // @Param: _PATH_TC
     // @DisplayName: Follow time constant
     // @Description: Time constant used to generate the kinematically consistent path
-    // @Units: m
-    // @Range: 1 1000
+    // @Units: s
+    // @Range: 0.1 10
     // @User: Standard
     AP_GROUPINFO("_PATH_TC", 11, AP_Follow, _path_tc, 5.0f),
 
