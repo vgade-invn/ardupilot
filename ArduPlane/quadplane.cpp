@@ -2404,13 +2404,20 @@ void QuadPlane::vtol_position_controller(void)
     }
 
     case QPOS_POSITION2:
-    case QPOS_LAND_DESCEND:
+    case QPOS_LAND_DESCEND: {
         /*
           for final land repositioning and descent we run the position controller
          */
 
+        Vector3f targ_vel;
+        if (ship_landing_enabled()) {
+            // allow for moving target on landing
+            plane.g2.follow.get_target_location_and_velocity(plane.next_WP_loc, targ_vel);
+        }
+        
         // also run fixed wing navigation
         plane.nav_controller->update_waypoint(plane.prev_WP_loc, loc);
+    }
         FALLTHROUGH;
 
     case QPOS_LAND_FINAL: {

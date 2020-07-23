@@ -83,18 +83,22 @@ void QuadPlane::ship_landing_RTL_update(void)
         int16_t throttle_in = plane.channel_throttle->get_control_in();
         if (throttle_in <= 0) {
             // go to approach stage when throttle is low, we are
-            // pointing at the ship and have reached target alt
+            // pointing at the ship and have reached target alt.
+            // Also require we are within 2.5 radius of the ship, and our heading is within 20
+            // degrees of the target heading
             float target_bearing_deg = wrap_180(degrees(plane.current_loc.get_bearing(loc0)));
             float ground_bearing_deg = wrap_180(degrees(plane.ahrs.groundspeed_vector().angle()));
             const float margin = 10;
             if (ship_landing.reached_alt &&
-                fabsf(wrap_180(target_bearing_deg - ground_bearing_deg)) < margin) {
+                fabsf(wrap_180(target_bearing_deg - ground_bearing_deg)) < margin &&
+                plane.current_loc.get_distance(loc0) < 2.5*holdoff_dist &&
+                fabsf(wrap_180(ground_bearing_deg - heading_deg)) < 2*margin) {
                 ship_landing.stage = ship_landing.APPROACH;
             }
         }
     } else if (ship_landing.stage == ship_landing.APPROACH) {
         // fly directly towards the ship, at QRTL_ALT
-        loc.alt += qrtl_alt;
+        loc.alt += qrtl_alt * 100;
     }
 
     plane.next_WP_loc = loc;
@@ -128,5 +132,7 @@ void QuadPlane::ship_update_xy(void)
                        double(vel.x * 0.01f),
                        double(vel.y * 0.01f));
 
-    pos_control->input_pos_vel_xy(pos, vel, 500, 500, 1);
+    pos_control->input_pos_vel_xy(pos, vel,
+                                  wp_nav->get_default_speed_xy(),
+                                  wp_nav->get_wp_acceleration(), 1);
 }
