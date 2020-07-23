@@ -2571,7 +2571,7 @@ void QuadPlane::takeoff_controller(void)
                                                                   plane.nav_pitch_cd,
                                                                   get_pilot_input_yaw_rate_cds() + get_weathervane_yaw_rate_cds());
 
-    pos_control->set_alt_target_from_climb_rate(wp_nav->get_default_speed_up(), plane.G_Dt, true);
+    pos_control->set_alt_target_from_climb_rate(wp_nav->get_default_speed_up(), plane.G_Dt, false);
     run_z_controller();
 }
 
@@ -2733,6 +2733,12 @@ bool QuadPlane::do_vtol_takeoff(const AP_Mission::Mission_Command& cmd)
     takeoff_start_time_ms = millis();
     takeoff_time_limit_ms = MAX(travel_time * takeoff_failure_scalar * 1000, 5000); // minimum time 5 seconds
 
+    // ensure no I terms on takeoff
+    attitude_control->reset_rate_controller_I_terms();
+
+    // init pos controller
+    pos_control->init_pos_vel_xy();
+
     return true;
 }
 
@@ -2783,6 +2789,12 @@ bool QuadPlane::verify_vtol_takeoff(const AP_Mission::Mission_Command &cmd)
     // reset takeoff start time if we aren't armed, as we won't have made any progress
     if (!hal.util->get_soft_armed()) {
         takeoff_start_time_ms = now;
+
+        // allow for change in target position
+        pos_control->init_pos_vel_xy();
+
+        // zero rate controller I terms on first part of takeoff
+        attitude_control->reset_rate_controller_I_terms();
         return false;
     }
 
