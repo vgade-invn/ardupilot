@@ -23,6 +23,7 @@ extern const AP_HAL::HAL& hal;
  # define POSCONTROL_VEL_XY_IMAX                1000.0f // horizontal velocity controller IMAX gain default
  # define POSCONTROL_VEL_XY_FILT_HZ             5.0f    // horizontal velocity controller input filter
  # define POSCONTROL_VEL_XY_FILT_D_HZ           5.0f    // horizontal velocity controller input filter for D
+ # define WITH_VELMATCH_SUPPORT 1
 #elif APM_BUILD_TYPE(APM_BUILD_ArduSub)
  // default gains for Sub
  # define POSCONTROL_POS_Z_P                    3.0f    // vertical position controller P gain default
@@ -40,6 +41,7 @@ extern const AP_HAL::HAL& hal;
  # define POSCONTROL_VEL_XY_IMAX                1000.0f // horizontal velocity controller IMAX gain default
  # define POSCONTROL_VEL_XY_FILT_HZ             5.0f    // horizontal velocity controller input filter
  # define POSCONTROL_VEL_XY_FILT_D_HZ           5.0f    // horizontal velocity controller input filter for D
+ # define WITH_VELMATCH_SUPPORT 0
 #else
  // default gains for Copter / TradHeli
  # define POSCONTROL_POS_Z_P                    1.0f    // vertical position controller P gain default
@@ -57,6 +59,7 @@ extern const AP_HAL::HAL& hal;
  # define POSCONTROL_VEL_XY_IMAX                1000.0f // horizontal velocity controller IMAX gain default
  # define POSCONTROL_VEL_XY_FILT_HZ             5.0f    // horizontal velocity controller input filter
  # define POSCONTROL_VEL_XY_FILT_D_HZ           5.0f    // horizontal velocity controller input filter for D
+ # define WITH_VELMATCH_SUPPORT 1
 #endif
 
 // vibration compensation gains
@@ -1032,7 +1035,9 @@ void AC_PosControl::write_log()
                        double(accel_x * 0.01f),
                        double(accel_y * 0.01f));
 
+#if WITH_VELMATCH_SUPPORT
     write_velmatch_log();
+#endif
 }
 
 /// init_vel_controller_xyz - initialise the velocity controller - should be called once before the caller attempts to use the controller
@@ -1369,6 +1374,7 @@ bool AC_PosControl::pre_arm_checks(const char *param_prefix,
     return true;
 }
 
+#if WITH_VELMATCH_SUPPORT
 /// Initialises the velmatch velocity based on its state.
 void AC_PosControl::init_velmatch_velocity()
 {
@@ -1490,3 +1496,10 @@ void AC_PosControl::write_velmatch_log()
                            double(_vel_velmatch.y * 0.01f));
     }
 }
+
+#else // WITH_VELMATCH_SUPPORT
+
+void AC_PosControl::init_velmatch_velocity() {}
+void AC_PosControl::update_velmatch_velocity(float dt) {}
+
+#endif // WITH_VELMATCH_SUPPORT
