@@ -890,6 +890,10 @@ void SITL_State::set_height_agl(void)
         home_alt = _sitl->state.altitude;
     }
 
+    struct Location location;
+    location.lat = _sitl->state.latitude*1.0e7;
+    location.lng = _sitl->state.longitude*1.0e7;
+
 #if AP_TERRAIN_AVAILABLE
     if (_terrain != nullptr &&
         _sitl != nullptr &&
@@ -897,12 +901,10 @@ void SITL_State::set_height_agl(void)
         // get height above terrain from AP_Terrain. This assumes
         // AP_Terrain is working
         float terrain_height_amsl;
-        struct Location location;
-        location.lat = _sitl->state.latitude*1.0e7;
-        location.lng = _sitl->state.longitude*1.0e7;
 
         if (_terrain->height_amsl(location, terrain_height_amsl, false)) {
             _sitl->height_agl = _sitl->state.altitude - terrain_height_amsl;
+            _sitl->height_agl -= _sitl->shipsim.get_ground_alt_adjustment(location);
             return;
         }
     }
@@ -911,6 +913,7 @@ void SITL_State::set_height_agl(void)
     if (_sitl != nullptr) {
         // fall back to flat earth model
         _sitl->height_agl = _sitl->state.altitude - home_alt;
+        _sitl->height_agl -= _sitl->shipsim.get_ground_alt_adjustment(location);
     }
 }
 
