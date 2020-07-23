@@ -54,7 +54,7 @@ void QuadPlane::ship_landing_RTL_update(void)
 
     Location loc0;
     Vector3f vel;
-    if (!plane.g2.follow.get_target_location_and_velocity(loc0, vel)) {
+    if (!plane.g2.follow.get_target_location_and_velocity(loc0, vel, true)) {
         return;
     }
     Location loc = loc0;

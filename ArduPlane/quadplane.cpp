@@ -3123,7 +3123,7 @@ float QuadPlane::get_weathervane_yaw_rate_cds(void)
         return 0;
     }
 
-    float roll = wp_nav->get_roll() / 100.0f;
+    float roll = pos_control->get_roll() / 100.0f;
     if (fabsf(roll) < weathervane.min_roll) {
         weathervane.last_output = 0;
         return 0;        
