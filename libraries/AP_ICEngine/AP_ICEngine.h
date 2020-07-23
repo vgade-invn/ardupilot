@@ -116,6 +116,10 @@ private:
 
     // idle governor
     float idle_governor_integrator;
+
+    // start_chan debounce
+    uint16_t start_chan_last_value = 1500;
+    uint32_t start_chan_last_ms;
 };
 
 
