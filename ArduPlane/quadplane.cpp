@@ -2783,6 +2783,7 @@ bool QuadPlane::verify_vtol_takeoff(const AP_Mission::Mission_Command &cmd)
     // reset takeoff start time if we aren't armed, as we won't have made any progress
     if (!hal.util->get_soft_armed()) {
         takeoff_start_time_ms = now;
+        return false;
     }
 
     // check for failure conditions
