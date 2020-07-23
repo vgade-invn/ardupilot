@@ -155,7 +155,7 @@ void AP_Follow::clear_offsets_if_required()
 }
 
 // get target's estimated location
-bool AP_Follow::get_target_location_and_velocity(Location &loc, Vector3f &vel_ned) const
+bool AP_Follow::get_target_location_and_velocity(Location &loc, Vector3f &vel_ned, bool force_absolute_alt) const
 {
     // exit immediately if not enabled
     if (!_enabled) {
@@ -177,6 +177,13 @@ bool AP_Follow::get_target_location_and_velocity(Location &loc, Vector3f &vel_ne
 
     // project the vehicle position
     Location last_loc = _target_location;
+
+    if (force_absolute_alt) {
+        // allow caller to request absolute altitude
+        last_loc.alt = _target_alt_cm;
+        last_loc.relative_alt = false;
+    }
+
     last_loc.offset(vel_ned.x * dt, vel_ned.y * dt);
     last_loc.alt -= vel_ned.z * 100.0f * dt; // convert m/s to cm/s, multiply by dt.  minus because NED
 
@@ -358,7 +365,10 @@ void AP_Follow::handle_msg(const mavlink_message_t &msg)
         _target_location.lat = packet.lat;
         _target_location.lng = packet.lon;
 
-        // select altitude source based on FOLL_ALT_TYPE param 
+        // remember absolute alt
+        _target_alt_cm = packet.alt / 10;
+
+        // select altitude source based on FOLL_ALT_TYPE param
         if (_alt_type == AP_FOLLOW_ALTITUDE_TYPE_RELATIVE) {
             // relative altitude
             _target_location.alt = packet.relative_alt / 10;        // convert millimeters to cm
