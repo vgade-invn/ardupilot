@@ -649,7 +649,11 @@ private:
       return true when ship takeoff is active
      */
     bool in_ship_takeoff(void) const;
-    
+
+    /*
+      get pilot throttle in for landing code. Return value on scale of 0 to 1
+     */
+    float get_pilot_land_throttle(void) const;
     
     // Q assist state, can be enabled, disabled or force. Default to enabled
     Q_ASSIST_STATE_ENUM q_assist_state = Q_ASSIST_STATE_ENUM::Q_ASSIST_ENABLED;

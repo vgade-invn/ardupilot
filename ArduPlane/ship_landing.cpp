@@ -81,8 +81,8 @@ void QuadPlane::ship_landing_RTL_update(void)
             ship_landing.reached_alt = true;
         }
 
-        int16_t throttle_in = plane.channel_throttle->get_control_in();
-        if (throttle_in <= 0) {
+        float thr_in = get_pilot_land_throttle();
+        if (thr_in <= 0) {
             // go to approach stage when throttle is low, we are
             // pointing at the ship and have reached target alt.
             // Also require we are within 2.5 radius of the ship, and our heading is within 20

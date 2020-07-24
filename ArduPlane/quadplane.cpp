@@ -1076,6 +1076,24 @@ float QuadPlane::get_pilot_throttle()
 }
 
 /*
+  get pilot throttle in for landing code. Return value on scale of 0 to 1
+*/
+float QuadPlane::get_pilot_land_throttle(void) const
+{
+    if (plane.rc_failsafe_active()) {
+        // assume zero throttle if lost RC
+        return 0;
+    }
+    // get scaled throttle input
+    float throttle_in = plane.channel_throttle->get_control_in();
+
+    // normalize to [0,1]
+    throttle_in /= plane.channel_throttle->get_range();
+
+    return constrain_float(throttle_in, 0, 1);
+}
+
+/*
   control QACRO mode
  */
 void QuadPlane::control_qacro(void)
@@ -1260,11 +1278,11 @@ float QuadPlane::landing_descent_rate_cms(float height_above_ground) const
                                    land_final_alt, land_final_alt+6);
     if ((options & OPTION_THR_LANDING_CONTROL) != 0) {
         // allow throttle control for landing speed
-        float thr_in = MAX(0, plane.channel_throttle->get_control_in());
-        const float dz = 10.0;
-        const float thresh1 = 50+dz;
-        const float thresh2 = 50-dz;
-        const float scaling = 1.0 / (50 - dz);
+        float thr_in = get_pilot_land_throttle();
+        const float dz = 0.1;
+        const float thresh1 = 0.5+dz;
+        const float thresh2 = 0.5-dz;
+        const float scaling = 1.0 / (0.5 - dz);
         if (thr_in > thresh1) {
             // start climbing
             ret = -(thr_in - thresh1)*scaling*max_climb_speed;
@@ -2290,9 +2308,9 @@ void QuadPlane::update_land_positioning(void)
     const float scale = 1.0 / 4500;
     float roll_in = plane.channel_roll->get_control_in() * scale;
     float pitch_in = plane.channel_pitch->get_control_in() * scale;
-    float thr_in = MAX(0, plane.channel_throttle->get_control_in());
-    const float dz = 10.0;
-    if (thr_in < 50-dz || thr_in>50+dz) {
+    float thr_in = get_pilot_land_throttle();
+    const float dz = 0.1;
+    if (thr_in < 0.5-dz || thr_in>0.5+dz) {
         // only allow pilot reposition when pilot has stopped descent
         roll_in = pitch_in = 0;
     }
