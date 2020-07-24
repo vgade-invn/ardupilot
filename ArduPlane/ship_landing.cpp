@@ -126,7 +126,7 @@ void QuadPlane::ship_update_xy(void)
 
     // add in offset for takeoff position and landing repositioning
     if (in_ship_landing() || in_ship_takeoff()) {
-        pos += ship_landing.offset;
+        pos += ship_landing.offset * 100;
     }
 
     pos.z = 0;
