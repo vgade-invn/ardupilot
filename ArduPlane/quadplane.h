@@ -577,6 +577,7 @@ private:
         } stage;
         bool reached_alt;
         Vector3f offset;
+        bool pilot_correction_active;
     } ship_landing;
 
     /*

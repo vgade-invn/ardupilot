@@ -2283,16 +2283,42 @@ bool QuadPlane::in_vtol_posvel_mode(void) const
  */
 void QuadPlane::update_land_positioning(void)
 {
+    if ((options & OPTION_THR_LANDING_CONTROL) == 0) {
+        // not enabled
+        return;
+    }
     const float scale = 1.0 / 4500;
     float roll_in = plane.channel_roll->get_control_in() * scale;
     float pitch_in = plane.channel_pitch->get_control_in() * scale;
-    const float speed_max = wp_nav->get_default_speed_xy() * 0.01;
+    float thr_in = MAX(0, plane.channel_throttle->get_control_in());
+    const float dz = 10.0;
+    if (thr_in < 50-dz || thr_in>50+dz) {
+        // only allow pilot reposition when pilot has stopped descent
+        roll_in = pitch_in = 0;
+    }
+    // limit correction speed to 25% of wp max speed
+    const float speed_max = wp_nav->get_default_speed_xy() * 0.01 * 0.25;
     const float dt = plane.scheduler.get_loop_period_s();
     Vector2f pos_change(-pitch_in, roll_in);
     pos_change *= dt * speed_max;
     pos_change.rotate(plane.ahrs.yaw);
     ship_landing.offset.x += pos_change.x;
     ship_landing.offset.y += pos_change.y;
+
+    bool correction_active = (fabsf(roll_in) > 0 || fabsf(pitch_in) > 0);
+    if (!correction_active && ship_landing.pilot_correction_active) {
+        // sticks have stopped input, limit offset to 1m of current
+        // position
+        const float correction_stop_limit = 1.0;
+        Vector2f offset = plane.next_WP_loc.get_distance_NE(plane.current_loc);
+        ship_landing.offset.x = constrain_float(ship_landing.offset.x,
+                                                offset.x-correction_stop_limit,
+                                                offset.x+correction_stop_limit);
+        ship_landing.offset.y = constrain_float(ship_landing.offset.y,
+                                                offset.x-correction_stop_limit,
+                                                offset.x+correction_stop_limit);
+    }
+    ship_landing.pilot_correction_active = correction_active;
 }
 
 /*
