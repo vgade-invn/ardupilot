@@ -125,7 +125,9 @@ void QuadPlane::ship_update_xy(void)
     }
 
     // add in offset for takeoff position and landing repositioning
-    pos += ship_landing.offset;
+    if (in_ship_landing() || in_ship_takeoff()) {
+        pos += ship_landing.offset;
+    }
 
     pos.z = 0;
     vel *= 100;
@@ -172,6 +174,27 @@ bool QuadPlane::in_ship_landing(void) const
         return false;
     }
     return plane.control_mode == &plane.mode_qrtl || in_vtol_land_sequence();
+}
+
+/*
+  return true when ship takeoff is active
+*/
+bool QuadPlane::in_ship_takeoff(void) const
+{
+    if (!ship_landing_enabled() ||
+        !in_vtol_takeoff() ||
+        !plane.g2.follow.have_target()) {
+        return false;
+    }
+    Location loc;
+    Vector3f vel;
+    if (!plane.g2.follow.get_target_location_and_velocity_ofs_abs(loc, vel)) {
+        return false;
+    }
+    if (loc.get_distance(plane.current_loc) > plane.aparm.loiter_radius) {
+        return false;
+    }
+    return true;
 }
 
 /*

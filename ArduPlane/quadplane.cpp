@@ -2586,7 +2586,7 @@ void QuadPlane::takeoff_controller(void)
     */
     check_attitude_relax();
 
-    if (ship_landing_enabled()) {
+    if (in_ship_takeoff()) {
         ship_update_xy();
     } else {
         setup_target_position();

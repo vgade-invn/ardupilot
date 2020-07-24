@@ -639,6 +639,17 @@ private:
      */
     void ship_set_takeoff_offset(void);
 
+    /*
+      return true when ship landing is active
+     */
+    bool in_ship_landing(void) const;
+
+    /*
+      return true when ship takeoff is active
+     */
+    bool in_ship_takeoff(void) const;
+    
+    
     // Q assist state, can be enabled, disabled or force. Default to enabled
     Q_ASSIST_STATE_ENUM q_assist_state = Q_ASSIST_STATE_ENUM::Q_ASSIST_ENABLED;
 
@@ -663,11 +674,6 @@ public:
      */
     void ship_landing_RTL_update(void);
 
-    /*
-      return true when ship landing is active
-     */
-    bool in_ship_landing(void) const;
-    
     /*
       should we switch to QRTL on RTL completion
      */
