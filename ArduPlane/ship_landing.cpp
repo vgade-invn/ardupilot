@@ -213,3 +213,17 @@ void QuadPlane::ship_landing_check_abort(void)
     }
 }
 
+
+/*
+  report beacon status
+*/
+void QuadPlane::ship_report_beacon(void)
+{
+    bool ok = plane.g2.follow.have_target();
+    if (ok && !ship_landing.have_beacon) {
+        gcs().send_text(MAV_SEVERITY_INFO, "Beacon OK");
+    } else if (!ok && ship_landing.have_beacon) {
+        gcs().send_text(MAV_SEVERITY_INFO, "Beacon lost");
+    }
+    ship_landing.have_beacon = ok;
+}

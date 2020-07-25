@@ -578,6 +578,7 @@ private:
         bool reached_alt;
         Vector3f offset;
         bool pilot_correction_active;
+        bool have_beacon;
     } ship_landing;
 
     /*
@@ -683,6 +684,11 @@ public:
       should we switch to QRTL on RTL completion
      */
     bool rtl_qrtl_enabled(void) const;
+
+    /*
+      report beacon status
+     */
+    void ship_report_beacon(void);
 
 private:
     void motor_test_stop();
