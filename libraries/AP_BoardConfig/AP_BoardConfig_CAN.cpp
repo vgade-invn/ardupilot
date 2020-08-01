@@ -37,6 +37,7 @@
 #include <AP_ToshibaCAN/AP_ToshibaCAN.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_PiccoloCAN/AP_PiccoloCAN.h>
+#include <AP_EFI/AP_EFI_NWPMU.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -182,6 +183,21 @@ void AP_BoardConfig_CAN::init()
 
                 if (_drivers[i]._driver == nullptr) {
                     AP_BoardConfig::config_error("PiccoloCAN init failed");
+                    continue;
+                }
+#endif
+#if EFI_ENABLED && HAL_WITH_EFI_NMPMU
+            } else if (prot_type == Protocol_Type_NWPMU) {
+                AP_EFI *efi = AP::EFI();
+                if (efi == nullptr) {
+                    AP_BoardConfig::sensor_config_error("NWPMU init failed (no EFI)");
+                    continue;
+                }
+
+                _drivers[i]._driver = new AP_EFI_NWPMU(*efi);
+
+                if (_drivers[i]._driver == nullptr) {
+                    AP_BoardConfig::sensor_config_error("NWPMU init failed");
                     continue;
                 }
 #endif
