@@ -479,7 +479,7 @@ void RC_Channel::init_aux_function(const aux_func_t ch_option, const aux_switch_
         break;
     default:
         gcs().send_text(MAV_SEVERITY_WARNING, "Failed to initialise RC function (%u)", (unsigned)ch_option);
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL && !defined(__CYGWIN__) && !defined(__CYGWIN64__)
         AP_HAL::panic("RC function (%u) initialisation not handled", (unsigned)ch_option);
 #endif
         break;
