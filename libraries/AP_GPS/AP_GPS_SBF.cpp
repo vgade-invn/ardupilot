@@ -62,6 +62,9 @@ AP_GPS_SBF::AP_GPS_SBF(AP_GPS &_gps, AP_GPS::GPS_State &_state,
 
     port->write((const uint8_t*)_port_enable, strlen(_port_enable));
     _config_last_ack_time = AP_HAL::millis();
+
+    // if we ever parse RTK observations it will always be of type NED, so set it once
+    state.rtk_baseline_coords_type = RTK_BASELINE_COORDINATE_SYSTEM_NED;
 }
 
 AP_GPS_SBF::~AP_GPS_SBF (void) {
@@ -409,6 +412,41 @@ AP_GPS_SBF::process_message(void)
         } else {
             state.have_speed_accuracy = false;
         }
+        break;
+    }
+    case BaseVectorGeod:
+    {
+        const msg4028 &temp = sbf_msg.data.msg4028u;
+
+        // just breakout the const's we need for DNU's
+        const double doubleDNU = -2e-10;
+
+        check_new_itow(temp.TOW, sbf_msg.length);
+
+        if (temp.N == 0) { // no sub blocks so just bail, we can't do anything useful here
+            break;
+        }
+
+        state.rtk_num_sats = temp.info.NrSV;
+
+        if (temp.info.CorrAge != 65535) {
+            state.rtk_age_ms = ((uint32_t)temp.info.CorrAge) * 10;
+        }
+
+        // copy the position as long as the data isn't DNU
+        // Suppress -Wfloat-equal as it's false positive when testing for DNU values
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+        if (temp.info.DeltaEast != doubleDNU) {
+            state.rtk_baseline_y_mm = temp.info.DeltaEast * 1e3;
+        }
+        if (temp.info.DeltaNorth != doubleDNU) {
+            state.rtk_baseline_x_mm = temp.info.DeltaNorth * 1e3;
+        }
+        if (temp.info.DeltaUp != doubleDNU) {
+            state.rtk_baseline_z_mm = temp.info.DeltaUp * 1e3;
+        }
+#pragma GCC diagnostic pop
         break;
     }
     }
