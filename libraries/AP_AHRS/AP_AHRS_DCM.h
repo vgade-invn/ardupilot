@@ -91,8 +91,8 @@ public:
     void get_relative_position_D_home(float &posD) const override;
 
     // return an airspeed estimate if available. return true
-    // if we have an estimate
-    bool airspeed_estimate(float &airspeed_ret) const override;
+    // if we have an estimate from a specific sensor index
+    bool airspeed_estimate(int8_t airspeed_index, float &airspeed_ret) const;
 
     // return a synthetic airspeed estimate (one derived from sensors
     // other than an actual airspeed sensor), if available. return
