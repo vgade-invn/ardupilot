@@ -311,8 +311,8 @@ void SITL_State::_update_gps_ubx(const struct gps_data *d, uint8_t instance)
     pos.latitude  = d->latitude * 1.0e7;
     pos.altitude_ellipsoid = d->altitude * 1000.0f;
     pos.altitude_msl = d->altitude * 1000.0f;
-    pos.horizontal_accuracy = 1500;
-    pos.vertical_accuracy = 2000;
+    pos.horizontal_accuracy = 1;
+    pos.vertical_accuracy = 1;
 
     status.time = time_week_ms;
     status.fix_type = d->have_lock?3:0;
@@ -332,7 +332,7 @@ void SITL_State::_update_gps_ubx(const struct gps_data *d, uint8_t instance)
     if (velned.heading_2d < 0.0f) {
         velned.heading_2d += 360.0f * 100000.0f;
     }
-    velned.speed_accuracy = 40;
+    velned.speed_accuracy = 1;
     velned.heading_accuracy = 4;
 
     memset(&sol, 0, sizeof(sol));
@@ -369,14 +369,14 @@ void SITL_State::_update_gps_ubx(const struct gps_data *d, uint8_t instance)
     pvt.lat  = d->latitude * 1.0e7;
     pvt.height = d->altitude * 1000.0f;
     pvt.h_msl = d->altitude * 1000.0f;
-    pvt.h_acc = 200;
-    pvt.v_acc = 200; 
+    pvt.h_acc = 10;
+    pvt.v_acc = 10;
     pvt.velN = 1000.0f * d->speedN;
     pvt.velE = 1000.0f * d->speedE;
     pvt.velD = 1000.0f * d->speedD;
     pvt.gspeed = norm(d->speedN, d->speedE) * 1000; 
     pvt.head_mot = ToDeg(atan2f(d->speedE, d->speedN)) * 1.0e5; 
-    pvt.s_acc = 40; 
+    pvt.s_acc = 5;
     pvt.head_acc = 38 * 1.0e5; 
     pvt.p_dop = 65535; 
     memset(pvt.reserved1, '\0', ARRAY_SIZE(pvt.reserved1));
