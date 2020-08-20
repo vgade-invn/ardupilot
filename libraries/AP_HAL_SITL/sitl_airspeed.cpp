@@ -25,16 +25,24 @@ using namespace HALSITL;
  */
 void SITL_State::_update_airspeed(float airspeed)
 {
+    float airspeed2;
     const float airspeed_ratio = 1.9936f;
     
-    float airspeed2 = airspeed;
+    // calculate correct differential pressure for this airspeed
+    const float diff_pressure = sq(airspeed)*0.5;
+
+    // apply noise to the differential pressure. This emulates the way
+    // airspeed noise reduces with speed
+    airspeed = sqrtf(fabsf(2*(diff_pressure + _sitl->arspd_noise * rand_float())));
+    airspeed2 = sqrtf(fabsf(2*(diff_pressure + _sitl->arspd2_noise * rand_float())));
 
     // Check sensor failure
-    airspeed = is_zero(_sitl->arspd_fail) ? airspeed : _sitl->arspd_fail;
-    airspeed2 = is_zero(_sitl->arspd2_fail) ? airspeed2 : _sitl->arspd2_fail;
-    // Add noise
-    airspeed = airspeed + (_sitl->arspd_noise * rand_float());
-    airspeed2 = airspeed2 + (_sitl->arspd2_noise * rand_float());
+    if (is_positive(_sitl->arspd_fail)) {
+        airspeed = _sitl->arspd_fail;
+    }
+    if (is_positive(_sitl->arspd2_fail)) {
+        airspeed2 = _sitl->arspd2_fail;
+    }
 
     if (!is_zero(_sitl->arspd_fail_pressure)) {
         // compute a realistic pressure report given some level of trapper air pressure in the tube and our current altitude
