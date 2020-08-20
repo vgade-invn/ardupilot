@@ -1780,6 +1780,8 @@ class AutoTestPlane(AutoTest):
         self.set_parameter("ARSPD2_TYPE", 2)
         self.set_parameter("ARSPD2_USE", 1)
         self.set_parameter("ARSPD2_PIN", 2)
+        self.set_parameter("SIM_SPEEDUP", 20)
+        self.set_parameter("SIM_RATE_HZ", 200)
 
         # some parameters need reboot to take effect
         self.reboot_sitl()
@@ -1788,6 +1790,20 @@ class AutoTestPlane(AutoTest):
         self.takeoff(alt=25)
         self.change_mode('CIRCLE')
 
+        self.lane_switches = []
+
+        # add a EKF lane switch hook
+        def statustext_hook(mav, message):
+            if message.get_type() != 'STATUSTEXT':
+                return
+            # example msg: EKF3 lane switch 1
+            if not message.text.startswith("EKF3 lane switch "):
+                return
+            newlane = int(message.text[-1])
+            self.lane_switches.append(newlane)
+
+        self.install_message_hook(statustext_hook)
+        
         self.context_push()
         ex = None
         try:
@@ -1797,14 +1813,20 @@ class AutoTestPlane(AutoTest):
             self.progress("ACCELEROMETER: Applying offset to z - axis")
             self.context_push()
             self.wait_statustext(text="lane switch", timeout=3, the_function=self.set_parameter("INS_ACCOFFS_Z", 5))
+            if self.lane_switches != [1]:
+                raise NotAchievedException("Expected lane switch 1, got %s" % str(self.lane_switches))
             self.context_pop()
+            self.lane_switches = []
             self.wait_heading(0, accuracy=10, timeout=60)
             self.wait_heading(180, accuracy=10, timeout=60)
 
             self.progress("GPS: Applying glitch to 2nd GPS")
             self.context_push()
             self.wait_statustext(text="lane switch", timeout=3, the_function=self.set_parameter("SIM_GPS2_GLTCH_X", 1))
+            if self.lane_switches != [0]:
+                raise NotAchievedException("Expected lane switch 0, got %s" % str(self.lane_switches))
             self.context_pop()
+            self.lane_switches = []
             self.wait_heading(0, accuracy=10, timeout=60)
             self.wait_heading(180, accuracy=10, timeout=60)
 
