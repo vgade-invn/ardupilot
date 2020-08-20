@@ -295,7 +295,7 @@ public:
     // return true if airspeed comes from a specific airspeed sensor, as
     // opposed to an IMU estimate
     bool airspeed_sensor_enabled(int8_t airspeed_index) const {
-        return _airspeed != nullptr && _airspeed->use(airspeed_index) && _airspeed->healthy(airspeed_index);
+        return airspeed_index >= 0 && _airspeed != nullptr && _airspeed->use(airspeed_index) && _airspeed->healthy(airspeed_index);
     }
 
     // return the parameter AHRS_WIND_MAX in metres per second
