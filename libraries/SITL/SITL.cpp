@@ -231,14 +231,14 @@ const AP_Param::GroupInfo SITL::var_info3[] = {
     AP_GROUPINFO("BARO_COUNT",    48, SITL,  baro_count, 1),
 
     // user settable parameters for the 1st airspeed sensor
-    AP_GROUPINFO("ARSPD_RND",     50, SITL,  arspd_noise, 0.5f),
+    AP_GROUPINFO("ARSPD_RND",     50, SITL,  arspd_noise, 2.0),
     AP_GROUPINFO("ARSPD_OFS",     51, SITL,  arspd_offset, 2013),
     AP_GROUPINFO("ARSPD_FAIL",    52, SITL,  arspd_fail, 0),
     AP_GROUPINFO("ARSPD_FAILP",   53, SITL,  arspd_fail_pressure, 0),
     AP_GROUPINFO("ARSPD_PITOT",   54, SITL,  arspd_fail_pitot_pressure, 0),
 
     // user settable parameters for the 2nd airspeed sensor
-    AP_GROUPINFO("ARSPD2_RND",    56, SITL,  arspd2_noise, 0.5f),
+    AP_GROUPINFO("ARSPD2_RND",    56, SITL,  arspd2_noise, 2.0),
     AP_GROUPINFO("ARSPD2_OFS",    57, SITL,  arspd2_offset, 2013),
     AP_GROUPINFO("ARSPD2_FAIL",   58, SITL,  arspd2_fail, 0),
     AP_GROUPINFO("ARSPD2_FAILP",  59, SITL,  arspd2_fail_pressure, 0),
