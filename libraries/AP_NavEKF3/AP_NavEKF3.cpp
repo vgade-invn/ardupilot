@@ -886,7 +886,7 @@ void NavEKF3::UpdateFilter(void)
             coreLastTimePrimary_us[primary] = imuSampleTime_us;
             primary = newPrimaryIndex;
             lastLaneSwitch_ms = AP_HAL::millis();
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "NavEKF3: lane switch %u", primary);
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF3 lane switch %u", primary);
         }       
     }
 
@@ -941,7 +941,7 @@ void NavEKF3::checkLaneSwitch(void)
         updateLaneSwitchPosDownResetData(newPrimaryIndex, primary);
         primary = newPrimaryIndex;
         lastLaneSwitch_ms = now;
-        gcs().send_text(MAV_SEVERITY_CRITICAL, "NavEKF3: lane switch %u", primary);
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF3 lane switch %u", primary);
     }
 }
 
