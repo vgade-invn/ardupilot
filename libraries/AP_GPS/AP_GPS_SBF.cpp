@@ -416,10 +416,12 @@ AP_GPS_SBF::process_message(void)
     }
     case BaseVectorGeod:
     {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal" // suppress -Wfloat-equal as it's false positive when testing for DNU values
         const msg4028 &temp = sbf_msg.data.msg4028u;
 
-        // just breakout the const's we need for DNU's
-        const double doubleDNU = -2e-10;
+        // just breakout any consts we need for Do Not Use (DNU) reasons
+        constexpr double doubleDNU = pow(-2,-10);
 
         check_new_itow(temp.TOW, sbf_msg.length);
 
@@ -434,9 +436,6 @@ AP_GPS_SBF::process_message(void)
         }
 
         // copy the position as long as the data isn't DNU
-        // Suppress -Wfloat-equal as it's false positive when testing for DNU values
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
         if (temp.info.DeltaEast != doubleDNU) {
             state.rtk_baseline_y_mm = temp.info.DeltaEast * 1e3;
         }
@@ -444,7 +443,7 @@ AP_GPS_SBF::process_message(void)
             state.rtk_baseline_x_mm = temp.info.DeltaNorth * 1e3;
         }
         if (temp.info.DeltaUp != doubleDNU) {
-            state.rtk_baseline_z_mm = temp.info.DeltaUp * 1e3;
+            state.rtk_baseline_z_mm = temp.info.DeltaUp * -1e3;
         }
 #pragma GCC diagnostic pop
         break;
