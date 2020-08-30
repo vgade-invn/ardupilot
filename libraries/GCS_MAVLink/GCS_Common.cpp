@@ -541,6 +541,26 @@ void GCS_MAVLINK::handle_mission_clear_all(const mavlink_message_t &msg)
     mavlink_msg_mission_clear_all_decode(&msg, &packet);
 
     const MAV_MISSION_TYPE mission_type = (MAV_MISSION_TYPE)packet.mission_type;
+    if (mission_type == MAV_MISSION_TYPE_ALL) {
+        // special handling for MAV_MISSION_TYPE_ALL, which only works
+        // with MISSION_CLEAR_ALL
+        bool supported = false;
+        const MAV_MISSION_TYPE types[] = {MAV_MISSION_TYPE_MISSION,
+                                          MAV_MISSION_TYPE_FENCE,
+                                          MAV_MISSION_TYPE_RALLY};
+        for (auto t: types) {
+            MissionItemProtocol *prot = gcs().get_prot_for_mission_type(t);
+            if (prot) {
+                supported = true;
+                prot->handle_mission_clear_all(*this, msg);
+            }
+        }
+        if (!supported) {
+            send_mission_ack(msg, mission_type, MAV_MISSION_UNSUPPORTED);
+        }
+        return;
+    }
+
     MissionItemProtocol *prot = gcs().get_prot_for_mission_type(mission_type);
     if (prot == nullptr) {
         send_mission_ack(msg, mission_type, MAV_MISSION_UNSUPPORTED);
