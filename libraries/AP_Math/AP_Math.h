@@ -291,3 +291,41 @@ Vector3f get_vel_correction_for_sensor_offset(const Vector3f &sensor_offset_bf, 
 void fill_nanf(float *f, uint16_t count);
 #endif
 
+
+
+/*
+  subtracting two 16 bit timestamps must cast the result to uint16_t
+  or it does not handle wrap correctly. Using this inline function
+  produces the correct result
+ */
+static inline uint16_t time_diff16(uint16_t curr_t, uint16_t prev_t)
+{
+    uint16_t delta = curr_t - prev_t;
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    if (delta > 0xF000U) {
+        // very likely a bug, subtracting a newer timestamp from an
+        // older one
+        AP_HAL::panic("bad time16 subtraction");
+    }
+#endif
+    return delta;
+}
+
+/*
+  subtracting two 32 bit timestamps needs to be done carefully to get
+  the wrap handling correct. If the resulting time difference is very
+  large then this is almost certainly a bug and we throw an internal
+  error
+ */
+static inline uint32_t time_diff32(uint32_t curr_t, uint32_t prev_t)
+{
+    uint32_t delta = curr_t - prev_t;
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    if (delta > 0xF0000000U) {
+        // very likely a bug, subtracting a newer timestamp from an
+        // older one
+        AP_HAL::panic("bad time32 subtraction");
+    }
+#endif
+    return delta;
+}
