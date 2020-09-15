@@ -906,7 +906,7 @@ void GCS_MAVLINK::find_next_bucket_to_send()
             continue;
         }
         const uint16_t interval = get_reschedule_interval_ms(deferred_message_bucket[i]);
-        const uint16_t ms_since_last_sent = now16_ms - deferred_message_bucket[i].last_sent_ms;
+        const uint16_t ms_since_last_sent = time_diff16(now16_ms, deferred_message_bucket[i].last_sent_ms);
         uint16_t ms_before_send_this_bucket;
         if (ms_since_last_sent > interval) {
             // should already have sent this bucket!
@@ -942,7 +942,7 @@ ap_message GCS_MAVLINK::next_deferred_bucket_message_to_send()
     }
 
     const uint16_t now16_ms = AP_HAL::millis16();
-    const uint16_t ms_since_last_sent = now16_ms - deferred_message_bucket[sending_bucket_id].last_sent_ms;
+    const uint16_t ms_since_last_sent = time_diff16(now16_ms, deferred_message_bucket[sending_bucket_id].last_sent_ms);
     if (ms_since_last_sent < get_reschedule_interval_ms(deferred_message_bucket[sending_bucket_id])) {
         // not time to send this bucket
         return no_message_to_send;
@@ -1016,7 +1016,7 @@ int8_t GCS_MAVLINK::deferred_message_to_send_index()
             if (interval_ms == 0) {
                 continue;
             }
-            const uint16_t ms_since_last_sent = now16_ms - deferred_message[i].last_sent_ms;
+            const uint16_t ms_since_last_sent = time_diff16(now16_ms, deferred_message[i].last_sent_ms);
             uint16_t ms_before_send_this_message;
             if (ms_since_last_sent > interval_ms) {
                 // should already have sent this one!
@@ -1039,7 +1039,7 @@ int8_t GCS_MAVLINK::deferred_message_to_send_index()
         return -1;
     }
 
-    const uint16_t ms_since_last_sent = now16_ms - deferred_message[next_deferred_message_to_send_cache].last_sent_ms;
+    const uint16_t ms_since_last_sent = time_diff16(now16_ms, deferred_message[next_deferred_message_to_send_cache].last_sent_ms);
     if (ms_since_last_sent < deferred_message[next_deferred_message_to_send_cache].interval_ms) {
         return -1;
     }
@@ -1091,14 +1091,14 @@ void GCS_MAVLINK::update_send()
                 const uint16_t interval_ms = deferred_message[next].interval_ms;
                 deferred_message[next].last_sent_ms += interval_ms;
                 // but we do not want to try to catch up too much:
-                if (start16 - deferred_message[next].last_sent_ms > interval_ms) {
+                if (time_diff16(start16, deferred_message[next].last_sent_ms) > interval_ms) {
                     deferred_message[next].last_sent_ms = start16;
                 }
 
                 next_deferred_message_to_send_cache = -1; // deferred_message_to_send will recalculate
 #if GCS_DEBUG_SEND_MESSAGE_TIMINGS
                 const uint32_t stop = AP_HAL::micros();
-                const uint32_t delta = stop - retry_deferred_body_start;
+                const uint32_t delta = time_diff32(stop, retry_deferred_body_start);
                 if (delta > try_send_message_stats.max_retry_deferred_body_us) {
                     try_send_message_stats.max_retry_deferred_body_us = delta;
                     try_send_message_stats.max_retry_deferred_body_type = 1;
@@ -1140,14 +1140,14 @@ void GCS_MAVLINK::update_send()
                 const uint16_t interval_ms = get_reschedule_interval_ms(deferred_message_bucket[sending_bucket_id]);
                 deferred_message_bucket[sending_bucket_id].last_sent_ms += interval_ms;
                 // but we do not want to try to catch up too much:
-                if (start16 - deferred_message_bucket[sending_bucket_id].last_sent_ms > interval_ms) {
+                if (time_diff16(start16, deferred_message_bucket[sending_bucket_id].last_sent_ms) > interval_ms) {
                     deferred_message_bucket[sending_bucket_id].last_sent_ms = start16;
                 }
                 find_next_bucket_to_send();
             }
 #if GCS_DEBUG_SEND_MESSAGE_TIMINGS
                 const uint32_t stop = AP_HAL::micros();
-                const uint32_t delta = stop - retry_deferred_body_start;
+                const uint32_t delta = time_diff32(stop, retry_deferred_body_start);
                 if (delta > try_send_message_stats.max_retry_deferred_body_us) {
                     try_send_message_stats.max_retry_deferred_body_us = delta;
                     try_send_message_stats.max_retry_deferred_body_type = 3;
@@ -1450,7 +1450,7 @@ GCS_MAVLINK::update_receive(uint32_t max_time_us)
 
     const uint16_t now16_ms{AP_HAL::millis16()};
 
-    if (uint16_t(now16_ms - try_send_message_stats.statustext_last_sent_ms) > 10000U) {
+    if (time_diff16(now16_ms - try_send_message_stats.statustext_last_sent_ms) > 10000U) {
         if (try_send_message_stats.longest_time_us) {
             gcs().send_text(MAV_SEVERITY_INFO,
                             "GCS.chan(%u): ap_msg=%u took %uus to send",
