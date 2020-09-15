@@ -1067,7 +1067,7 @@ void GCS_MAVLINK::update_send()
 
     const uint32_t start = AP_HAL::millis();
     const uint16_t start16 = AP_HAL::millis16();
-    while (AP_HAL::millis() - start < 5) { // spend a max of 5ms sending messages.  This should never trigger - out_of_time() should become true
+    while (time_diff32(AP_HAL::millis(),start) < 5) { // spend a max of 5ms sending messages.  This should never trigger - out_of_time() should become true
         if (gcs().out_of_time()) {
 #if GCS_DEBUG_SEND_MESSAGE_TIMINGS
             try_send_message_stats.out_of_time++;
@@ -1089,11 +1089,9 @@ void GCS_MAVLINK::update_send()
                 // we try to keep output on a regular clock to avoid
                 // user support questions:
                 const uint16_t interval_ms = deferred_message[next].interval_ms;
-                deferred_message[next].last_sent_ms += interval_ms;
-                // but we do not want to try to catch up too much:
-                if (time_diff16(start16, deferred_message[next].last_sent_ms) > interval_ms) {
-                    deferred_message[next].last_sent_ms = start16;
-                }
+                uint16_t delta_ms = time_diff16(start16, deferred_message[next].last_sent_ms) % interval_ms;
+                delta_ms = MAX(delta_ms, 1);
+                deferred_message[next].last_sent_ms = start16 - delta_ms;
 
                 next_deferred_message_to_send_cache = -1; // deferred_message_to_send will recalculate
 #if GCS_DEBUG_SEND_MESSAGE_TIMINGS
@@ -1138,11 +1136,9 @@ void GCS_MAVLINK::update_send()
                 // we try to keep output on a regular clock to avoid
                 // user support questions:
                 const uint16_t interval_ms = get_reschedule_interval_ms(deferred_message_bucket[sending_bucket_id]);
-                deferred_message_bucket[sending_bucket_id].last_sent_ms += interval_ms;
-                // but we do not want to try to catch up too much:
-                if (time_diff16(start16, deferred_message_bucket[sending_bucket_id].last_sent_ms) > interval_ms) {
-                    deferred_message_bucket[sending_bucket_id].last_sent_ms = start16;
-                }
+                uint16_t delta_ms = time_diff16(start16, deferred_message_bucket[sending_bucket_id].last_sent_ms) % interval_ms;
+                delta_ms = MAX(delta_ms, 1);
+                deferred_message_bucket[sending_bucket_id].last_sent_ms = start16 - delta_ms;
                 find_next_bucket_to_send();
             }
 #if GCS_DEBUG_SEND_MESSAGE_TIMINGS
