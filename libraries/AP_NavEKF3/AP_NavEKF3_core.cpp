@@ -590,8 +590,8 @@ void NavEKF3_core::CovarianceInit()
     Vector3f rot_vec_var;
     rot_vec_var.x = rot_vec_var.y = rot_vec_var.z = sq(0.1f);
 
-    // update the quaternion state covariances
-    initialiseQuatCovariances(rot_vec_var);
+    // reset the quaternion state covariances
+    CovariancePrediction(&rot_vec_var);
 
     // velocities
     P[4][4]   = sq(frontend->_gpsHorizVelNoise);
@@ -666,7 +666,7 @@ void NavEKF3_core::UpdateFilter(bool predict)
         UpdateStrapdownEquationsNED();
 
         // Predict the covariance growth
-        CovariancePrediction();
+        CovariancePrediction(nullptr);
 
         // Run the IMU prediction step for the GSF yaw estimator algorithm
         // using IMU and optionally true airspeed data.
@@ -964,8 +964,10 @@ void NavEKF3_core::calcOutputStates()
  * Calculate the predicted state covariance matrix using algebraic equations generated with Matlab symbolic toolbox.
  * The script file used to generate these and other equations in this filter can be found here:
  * https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/GenerateNavFilterEquations.m
+ * Argument rotVarVecPtr is pointer to a vector defining the earth frame uncertainty variance of the quaternion states
+ * used to perform a reset of the quaternion state covariances only. Set to null for normal operation.
 */
-void NavEKF3_core::CovariancePrediction()
+void NavEKF3_core::CovariancePrediction(Vector3f *rotVarVecPtr)
 {
     hal.util->perf_begin(_perf_CovariancePrediction);
     float daxVar;       // X axis delta angle noise variance rad^2
@@ -1067,8 +1069,26 @@ void NavEKF3_core::CovariancePrediction()
     dvx_b = stateStruct.accel_bias.x;
     dvy_b = stateStruct.accel_bias.y;
     dvz_b = stateStruct.accel_bias.z;
-    float _gyrNoise = constrain_float(frontend->_gyrNoise, 0.0f, 1.0f);
-    daxVar = dayVar = dazVar = sq(dt*_gyrNoise);
+
+    bool quatCovResetOnly = false;
+    if (rotVarVecPtr != nullptr) {
+        // handle special case where we are initialising the quaternion covarianfces using an earth frame
+        // vector defining the varaince of the angular alignment uncertainty
+        // use the exisiting gyro error propagation mechanism to define an equivalent gyro error variance
+        Vector3f rotVarVec = *rotVarVecPtr;
+        Matrix3f Tnb;
+        stateStruct.quat.inverse().rotation_matrix(Tnb);
+        rotVarVec = rotVarVec * Tnb;
+        daxVar = rotVarVec.x;
+        dayVar = rotVarVec.y;
+        dazVar = rotVarVec.z;
+        quatCovResetOnly = true;
+        zeroRows(P,0,3);
+        zeroCols(P,0,3);
+    } else {
+        float _gyrNoise = constrain_float(frontend->_gyrNoise, 0.0f, 1.0f);
+        daxVar = dayVar = dazVar = sq(dt*_gyrNoise);
+    }
     float _accNoise = constrain_float(frontend->_accNoise, 0.0f, 10.0f);
     dvxVar = dvyVar = dvzVar = sq(dt*_accNoise);
 
@@ -1146,6 +1166,22 @@ void NavEKF3_core::CovariancePrediction()
     nextP[1][3] = P[1][3] + SQ[4] + P[0][3]*SF[8] + P[2][3]*SF[7] + P[3][3]*SF[11] - P[12][3]*SF[15] + P[11][3]*SPP[10] - (P[10][3]*q0)/2 + SF[7]*(P[1][0] + P[0][0]*SF[8] + P[2][0]*SF[7] + P[3][0]*SF[11] - P[12][0]*SF[15] + P[11][0]*SPP[10] - (P[10][0]*q0)/2) + SF[6]*(P[1][1] + P[0][1]*SF[8] + P[2][1]*SF[7] + P[3][1]*SF[11] - P[12][1]*SF[15] + P[11][1]*SPP[10] - (P[10][1]*q0)/2) + SF[9]*(P[1][2] + P[0][2]*SF[8] + P[2][2]*SF[7] + P[3][2]*SF[11] - P[12][2]*SF[15] + P[11][2]*SPP[10] - (P[10][2]*q0)/2) + SF[15]*(P[1][10] + P[0][10]*SF[8] + P[2][10]*SF[7] + P[3][10]*SF[11] - P[12][10]*SF[15] + P[11][10]*SPP[10] - (P[10][10]*q0)/2) - SF[14]*(P[1][11] + P[0][11]*SF[8] + P[2][11]*SF[7] + P[3][11]*SF[11] - P[12][11]*SF[15] + P[11][11]*SPP[10] - (P[10][11]*q0)/2) - (q0*(P[1][12] + P[0][12]*SF[8] + P[2][12]*SF[7] + P[3][12]*SF[11] - P[12][12]*SF[15] + P[11][12]*SPP[10] - (P[10][12]*q0)/2))/2;
     nextP[2][3] = P[2][3] + SQ[3] + P[0][3]*SF[6] + P[1][3]*SF[10] + P[3][3]*SF[8] + P[12][3]*SF[14] - P[10][3]*SPP[10] - (P[11][3]*q0)/2 + SF[7]*(P[2][0] + P[0][0]*SF[6] + P[1][0]*SF[10] + P[3][0]*SF[8] + P[12][0]*SF[14] - P[10][0]*SPP[10] - (P[11][0]*q0)/2) + SF[6]*(P[2][1] + P[0][1]*SF[6] + P[1][1]*SF[10] + P[3][1]*SF[8] + P[12][1]*SF[14] - P[10][1]*SPP[10] - (P[11][1]*q0)/2) + SF[9]*(P[2][2] + P[0][2]*SF[6] + P[1][2]*SF[10] + P[3][2]*SF[8] + P[12][2]*SF[14] - P[10][2]*SPP[10] - (P[11][2]*q0)/2) + SF[15]*(P[2][10] + P[0][10]*SF[6] + P[1][10]*SF[10] + P[3][10]*SF[8] + P[12][10]*SF[14] - P[10][10]*SPP[10] - (P[11][10]*q0)/2) - SF[14]*(P[2][11] + P[0][11]*SF[6] + P[1][11]*SF[10] + P[3][11]*SF[8] + P[12][11]*SF[14] - P[10][11]*SPP[10] - (P[11][11]*q0)/2) - (q0*(P[2][12] + P[0][12]*SF[6] + P[1][12]*SF[10] + P[3][12]*SF[8] + P[12][12]*SF[14] - P[10][12]*SPP[10] - (P[11][12]*q0)/2))/2;
     nextP[3][3] = P[3][3] + P[0][3]*SF[7] + P[1][3]*SF[6] + P[2][3]*SF[9] + P[10][3]*SF[15] - P[11][3]*SF[14] + (dayVar*SQ[10])/4 + dazVar*SQ[9] - (P[12][3]*q0)/2 + SF[7]*(P[3][0] + P[0][0]*SF[7] + P[1][0]*SF[6] + P[2][0]*SF[9] + P[10][0]*SF[15] - P[11][0]*SF[14] - (P[12][0]*q0)/2) + SF[6]*(P[3][1] + P[0][1]*SF[7] + P[1][1]*SF[6] + P[2][1]*SF[9] + P[10][1]*SF[15] - P[11][1]*SF[14] - (P[12][1]*q0)/2) + SF[9]*(P[3][2] + P[0][2]*SF[7] + P[1][2]*SF[6] + P[2][2]*SF[9] + P[10][2]*SF[15] - P[11][2]*SF[14] - (P[12][2]*q0)/2) + SF[15]*(P[3][10] + P[0][10]*SF[7] + P[1][10]*SF[6] + P[2][10]*SF[9] + P[10][10]*SF[15] - P[11][10]*SF[14] - (P[12][10]*q0)/2) - SF[14]*(P[3][11] + P[0][11]*SF[7] + P[1][11]*SF[6] + P[2][11]*SF[9] + P[10][11]*SF[15] - P[11][11]*SF[14] - (P[12][11]*q0)/2) + (daxVar*sq(q2))/4 - (q0*(P[3][12] + P[0][12]*SF[7] + P[1][12]*SF[6] + P[2][12]*SF[9] + P[10][12]*SF[15] - P[11][12]*SF[14] - (P[12][12]*q0)/2))/2;
+
+    if (quatCovResetOnly) {
+        // covariance matrix is symmetrical, so copy diagonals and copy lower half in nextP
+        // to lower and upper half in P
+        for (uint8_t row = 0; row <= 3; row++) {
+            // copy diagonals
+            P[row][row] = nextP[row][row];
+            // copy off diagonals
+            for (uint8_t column = 0 ; column < row; column++) {
+                P[row][column] = P[column][row] = nextP[column][row];
+            }
+        }
+        ConstrainVariances();
+        return;
+    }
+
     nextP[0][4] = P[0][4] + P[1][4]*SF[9] + P[2][4]*SF[11] + P[3][4]*SF[10] + P[10][4]*SF[14] + P[11][4]*SF[15] + P[12][4]*SPP[10] + SF[5]*(P[0][0] + P[1][0]*SF[9] + P[2][0]*SF[11] + P[3][0]*SF[10] + P[10][0]*SF[14] + P[11][0]*SF[15] + P[12][0]*SPP[10]) + SF[3]*(P[0][1] + P[1][1]*SF[9] + P[2][1]*SF[11] + P[3][1]*SF[10] + P[10][1]*SF[14] + P[11][1]*SF[15] + P[12][1]*SPP[10]) - SF[4]*(P[0][3] + P[1][3]*SF[9] + P[2][3]*SF[11] + P[3][3]*SF[10] + P[10][3]*SF[14] + P[11][3]*SF[15] + P[12][3]*SPP[10]) + SPP[0]*(P[0][2] + P[1][2]*SF[9] + P[2][2]*SF[11] + P[3][2]*SF[10] + P[10][2]*SF[14] + P[11][2]*SF[15] + P[12][2]*SPP[10]) + SPP[3]*(P[0][13] + P[1][13]*SF[9] + P[2][13]*SF[11] + P[3][13]*SF[10] + P[10][13]*SF[14] + P[11][13]*SF[15] + P[12][13]*SPP[10]) + SPP[6]*(P[0][14] + P[1][14]*SF[9] + P[2][14]*SF[11] + P[3][14]*SF[10] + P[10][14]*SF[14] + P[11][14]*SF[15] + P[12][14]*SPP[10]) - SPP[9]*(P[0][15] + P[1][15]*SF[9] + P[2][15]*SF[11] + P[3][15]*SF[10] + P[10][15]*SF[14] + P[11][15]*SF[15] + P[12][15]*SPP[10]);
     nextP[1][4] = P[1][4] + P[0][4]*SF[8] + P[2][4]*SF[7] + P[3][4]*SF[11] - P[12][4]*SF[15] + P[11][4]*SPP[10] - (P[10][4]*q0)/2 + SF[5]*(P[1][0] + P[0][0]*SF[8] + P[2][0]*SF[7] + P[3][0]*SF[11] - P[12][0]*SF[15] + P[11][0]*SPP[10] - (P[10][0]*q0)/2) + SF[3]*(P[1][1] + P[0][1]*SF[8] + P[2][1]*SF[7] + P[3][1]*SF[11] - P[12][1]*SF[15] + P[11][1]*SPP[10] - (P[10][1]*q0)/2) - SF[4]*(P[1][3] + P[0][3]*SF[8] + P[2][3]*SF[7] + P[3][3]*SF[11] - P[12][3]*SF[15] + P[11][3]*SPP[10] - (P[10][3]*q0)/2) + SPP[0]*(P[1][2] + P[0][2]*SF[8] + P[2][2]*SF[7] + P[3][2]*SF[11] - P[12][2]*SF[15] + P[11][2]*SPP[10] - (P[10][2]*q0)/2) + SPP[3]*(P[1][13] + P[0][13]*SF[8] + P[2][13]*SF[7] + P[3][13]*SF[11] - P[12][13]*SF[15] + P[11][13]*SPP[10] - (P[10][13]*q0)/2) + SPP[6]*(P[1][14] + P[0][14]*SF[8] + P[2][14]*SF[7] + P[3][14]*SF[11] - P[12][14]*SF[15] + P[11][14]*SPP[10] - (P[10][14]*q0)/2) - SPP[9]*(P[1][15] + P[0][15]*SF[8] + P[2][15]*SF[7] + P[3][15]*SF[11] - P[12][15]*SF[15] + P[11][15]*SPP[10] - (P[10][15]*q0)/2);
     nextP[2][4] = P[2][4] + P[0][4]*SF[6] + P[1][4]*SF[10] + P[3][4]*SF[8] + P[12][4]*SF[14] - P[10][4]*SPP[10] - (P[11][4]*q0)/2 + SF[5]*(P[2][0] + P[0][0]*SF[6] + P[1][0]*SF[10] + P[3][0]*SF[8] + P[12][0]*SF[14] - P[10][0]*SPP[10] - (P[11][0]*q0)/2) + SF[3]*(P[2][1] + P[0][1]*SF[6] + P[1][1]*SF[10] + P[3][1]*SF[8] + P[12][1]*SF[14] - P[10][1]*SPP[10] - (P[11][1]*q0)/2) - SF[4]*(P[2][3] + P[0][3]*SF[6] + P[1][3]*SF[10] + P[3][3]*SF[8] + P[12][3]*SF[14] - P[10][3]*SPP[10] - (P[11][3]*q0)/2) + SPP[0]*(P[2][2] + P[0][2]*SF[6] + P[1][2]*SF[10] + P[3][2]*SF[8] + P[12][2]*SF[14] - P[10][2]*SPP[10] - (P[11][2]*q0)/2) + SPP[3]*(P[2][13] + P[0][13]*SF[6] + P[1][13]*SF[10] + P[3][13]*SF[8] + P[12][13]*SF[14] - P[10][13]*SPP[10] - (P[11][13]*q0)/2) + SPP[6]*(P[2][14] + P[0][14]*SF[6] + P[1][14]*SF[10] + P[3][14]*SF[8] + P[12][14]*SF[14] - P[10][14]*SPP[10] - (P[11][14]*q0)/2) - SPP[9]*(P[2][15] + P[0][15]*SF[6] + P[1][15]*SF[10] + P[3][15]*SF[8] + P[12][15]*SF[14] - P[10][15]*SPP[10] - (P[11][15]*q0)/2);
@@ -1803,119 +1839,3 @@ Vector3f NavEKF3_core::calcRotVecVariances()
 
     return rotVarVec;
 }
-
-// initialise the quaternion covariances using rotation vector variances
-void NavEKF3_core::initialiseQuatCovariances(const Vector3f &rotVarVec)
-{
-    // calculate an equivalent rotation vector from the quaternion
-    float q0 = stateStruct.quat[0];
-    float q1 = stateStruct.quat[1];
-    float q2 = stateStruct.quat[2];
-    float q3 = stateStruct.quat[3];
-    if (q0 < 0) {
-        q0 = -q0;
-        q1 = -q1;
-        q2 = -q2;
-        q3 = -q3;
-    }
-    float delta = 2.0f*acosf(q0);
-    float scaler;
-    if (fabsf(delta) > 1e-6f) {
-        scaler = (delta/sinf(delta*0.5f));
-    } else {
-        scaler = 2.0f;
-    }
-    float rotX = scaler*q1;
-    float rotY = scaler*q2;
-    float rotZ = scaler*q3;
-
-    // autocode generated using matlab symbolic toolbox
-    float t2 = rotX*rotX;
-    float t4 = rotY*rotY;
-    float t5 = rotZ*rotZ;
-    float t6 = t2+t4+t5;
-    if (t6 > 1e-9f) {
-        float t7 = sqrtf(t6);
-        float t8 = t7*0.5f;
-        float t3 = sinf(t8);
-        float t9 = t3*t3;
-        float t10 = 1.0f/t6;
-        float t11 = 1.0f/sqrtf(t6);
-        float t12 = cosf(t8);
-        float t13 = 1.0f/powf(t6,1.5f);
-        float t14 = t3*t11;
-        float t15 = rotX*rotY*t3*t13;
-        float t16 = rotX*rotZ*t3*t13;
-        float t17 = rotY*rotZ*t3*t13;
-        float t18 = t2*t10*t12*0.5f;
-        float t27 = t2*t3*t13;
-        float t19 = t14+t18-t27;
-        float t23 = rotX*rotY*t10*t12*0.5f;
-        float t28 = t15-t23;
-        float t20 = rotY*rotVarVec.y*t3*t11*t28*0.5f;
-        float t25 = rotX*rotZ*t10*t12*0.5f;
-        float t31 = t16-t25;
-        float t21 = rotZ*rotVarVec.z*t3*t11*t31*0.5f;
-        float t22 = t20+t21-rotX*rotVarVec.x*t3*t11*t19*0.5f;
-        float t24 = t15-t23;
-        float t26 = t16-t25;
-        float t29 = t4*t10*t12*0.5f;
-        float t34 = t3*t4*t13;
-        float t30 = t14+t29-t34;
-        float t32 = t5*t10*t12*0.5f;
-        float t40 = t3*t5*t13;
-        float t33 = t14+t32-t40;
-        float t36 = rotY*rotZ*t10*t12*0.5f;
-        float t39 = t17-t36;
-        float t35 = rotZ*rotVarVec.z*t3*t11*t39*0.5f;
-        float t37 = t15-t23;
-        float t38 = t17-t36;
-        float t41 = rotVarVec.x*(t15-t23)*(t16-t25);
-        float t42 = t41-rotVarVec.y*t30*t39-rotVarVec.z*t33*t39;
-        float t43 = t16-t25;
-        float t44 = t17-t36;
-
-        // zero all the quaternion covariances
-        zeroRows(P,0,3);
-        zeroCols(P,0,3);
-
-        // Update the quaternion internal covariances using auto-code generated using matlab symbolic toolbox
-        P[0][0] = rotVarVec.x*t2*t9*t10*0.25f+rotVarVec.y*t4*t9*t10*0.25f+rotVarVec.z*t5*t9*t10*0.25f;
-        P[0][1] = t22;
-        P[0][2] = t35+rotX*rotVarVec.x*t3*t11*(t15-rotX*rotY*t10*t12*0.5f)*0.5f-rotY*rotVarVec.y*t3*t11*t30*0.5f;
-        P[0][3] = rotX*rotVarVec.x*t3*t11*(t16-rotX*rotZ*t10*t12*0.5f)*0.5f+rotY*rotVarVec.y*t3*t11*(t17-rotY*rotZ*t10*t12*0.5f)*0.5f-rotZ*rotVarVec.z*t3*t11*t33*0.5f;
-        P[1][0] = t22;
-        P[1][1] = rotVarVec.x*(t19*t19)+rotVarVec.y*(t24*t24)+rotVarVec.z*(t26*t26);
-        P[1][2] = rotVarVec.z*(t16-t25)*(t17-rotY*rotZ*t10*t12*0.5f)-rotVarVec.x*t19*t28-rotVarVec.y*t28*t30;
-        P[1][3] = rotVarVec.y*(t15-t23)*(t17-rotY*rotZ*t10*t12*0.5f)-rotVarVec.x*t19*t31-rotVarVec.z*t31*t33;
-        P[2][0] = t35-rotY*rotVarVec.y*t3*t11*t30*0.5f+rotX*rotVarVec.x*t3*t11*(t15-t23)*0.5f;
-        P[2][1] = rotVarVec.z*(t16-t25)*(t17-t36)-rotVarVec.x*t19*t28-rotVarVec.y*t28*t30;
-        P[2][2] = rotVarVec.y*(t30*t30)+rotVarVec.x*(t37*t37)+rotVarVec.z*(t38*t38);
-        P[2][3] = t42;
-        P[3][0] = rotZ*rotVarVec.z*t3*t11*t33*(-0.5f)+rotX*rotVarVec.x*t3*t11*(t16-t25)*0.5f+rotY*rotVarVec.y*t3*t11*(t17-t36)*0.5f;
-        P[3][1] = rotVarVec.y*(t15-t23)*(t17-t36)-rotVarVec.x*t19*t31-rotVarVec.z*t31*t33;
-        P[3][2] = t42;
-        P[3][3] = rotVarVec.z*(t33*t33)+rotVarVec.x*(t43*t43)+rotVarVec.y*(t44*t44);
-
-    } else {
-        // the equations are badly conditioned so use a small angle approximation
-        P[0][0] = 0.0f;
-        P[0][1] = 0.0f;
-        P[0][2] = 0.0f;
-        P[0][3] = 0.0f;
-        P[1][0] = 0.0f;
-        P[1][1] = 0.25f*rotVarVec.x;
-        P[1][2] = 0.0f;
-        P[1][3] = 0.0f;
-        P[2][0] = 0.0f;
-        P[2][1] = 0.0f;
-        P[2][2] = 0.25f*rotVarVec.y;
-        P[2][3] = 0.0f;
-        P[3][0] = 0.0f;
-        P[3][1] = 0.0f;
-        P[3][2] = 0.0f;
-        P[3][3] = 0.25f*rotVarVec.z;
-
-    }
-}
-
