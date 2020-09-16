@@ -189,7 +189,6 @@ void NavEKF3_core::alignYawAngle()
 
     // set the yaw angle variance reflect the yaw sensor single sample uncertainty in yaw
     // assume tilt uncertainty split equally between roll and pitch
-    const float tiltErrorVariance = constrain_float(calcTiltErrorVariance(), 0.0f, sq(radians(30.0f)));
     Vector3f angleErrVarVec = Vector3f(0.5f * tiltErrorVariance, 0.5f * tiltErrorVariance, sq(yawAngDataDelayed.yawAngErr));
     CovariancePrediction(&angleErrVarVec);
 
@@ -1561,7 +1560,6 @@ void NavEKF3_core::resetQuatStateYawOnly(float yaw, float yawVariance, rotationO
     StoreQuatRotate(quat_delta);
 
     // assume tilt uncertainty split equally between roll and pitch
-    const float tiltErrorVariance = constrain_float(calcTiltErrorVariance(), 0.0f, sq(radians(30.0f)));
     Vector3f angleErrVarVec = Vector3f(0.5f * tiltErrorVariance, 0.5f * tiltErrorVariance, yawVariance);
     CovariancePrediction(&angleErrVarVec);
 
