@@ -968,8 +968,8 @@ private:
     // effective value of MAG_CAL
     MagCal effective_magCal(void) const;
 
-    // calculate the variances for the rotation vector equivalent
-    Vector3f calcRotVecVariances(void);
+    // calculate the tilt error variance
+    float calcTiltErrorVariance(void);
     
     // update timing statistics structure
     void updateTimingStatistics(void);

@@ -1,0 +1,51 @@
+const float PS0 = dq1 + q1;
+const float PS1 = q0*q1 + q2*q3;
+const float PS2 = PS0*PS1;
+const float PS3 = dq0 + q0;
+const float PS4 = powf(q0, 2) - powf(q1, 2) - powf(q2, 2) + powf(q3, 2);
+const float PS5 = PS3*PS4;
+const float PS6 = 2*PS2 + PS5;
+const float PS7 = dq2 + q2;
+const float PS8 = PS1*PS7;
+const float PS9 = dq3 + q3;
+const float PS10 = PS4*PS9;
+const float PS11 = PS10 + 2*PS8;
+const float PS12 = PS1*PS9;
+const float PS13 = PS4*PS7;
+const float PS14 = -2*PS12 + PS13;
+const float PS15 = PS1*PS3;
+const float PS16 = PS0*PS4;
+const float PS17 = 2*PS15 - PS16;
+const float PS18 = q0*q2 - q1*q3;
+const float PS19 = PS18*PS7;
+const float PS20 = 2*PS19 + PS5;
+const float PS21 = PS11*P[2][2];
+const float PS22 = PS0*PS18;
+const float PS23 = -PS10 + 2*PS22;
+const float PS24 = PS6*P[1][1];
+const float PS25 = PS18*PS9;
+const float PS26 = PS16 + 2*PS25;
+const float PS27 = PS14*P[3][3];
+const float PS28 = PS18*PS3;
+const float PS29 = -PS13 + 2*PS28;
+const float PS30 = PS17*P[0][0];
+const float PS31 = 4*PS20*PS21 + 4*PS23*PS24 - 4*PS26*PS27 + 4*PS29*PS30;
+const float PS32 = PS12 + PS28;
+const float PS33 = PS19 + PS2;
+const float PS34 = PS15 - PS25;
+const float PS35 = PS22 - PS8;
+const float PS36 = -8*PS21*PS34 + 8*PS24*PS32 + 8*PS27*PS33 - 8*PS30*PS35;
+const float PS37 = -8*PS20*PS34*P[2][2] + 8*PS23*PS32*P[1][1] - 8*PS26*PS33*P[3][3] - 8*PS29*PS35*P[0][0];
+
+
+tiltErrCovMat[0][0] = 4*powf(PS11, 2)*P[2][2] + 4*powf(PS14, 2)*P[3][3] + 4*powf(PS17, 2)*P[0][0] + 4*powf(PS6, 2)*P[1][1];
+tiltErrCovMat[1][0] = PS31;
+tiltErrCovMat[2][0] = PS36;
+tiltErrCovMat[0][1] = PS31;
+tiltErrCovMat[1][1] = 4*powf(PS20, 2)*P[2][2] + 4*powf(PS23, 2)*P[1][1] + 4*powf(PS26, 2)*P[3][3] + 4*powf(PS29, 2)*P[0][0];
+tiltErrCovMat[2][1] = PS37;
+tiltErrCovMat[0][2] = PS36;
+tiltErrCovMat[1][2] = PS37;
+tiltErrCovMat[2][2] = 16*powf(PS32, 2)*P[1][1] + 16*powf(PS33, 2)*P[3][3] + 16*powf(PS34, 2)*P[2][2] + 16*powf(PS35, 2)*P[0][0];
+
+
