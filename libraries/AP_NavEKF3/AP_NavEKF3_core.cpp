@@ -1073,9 +1073,7 @@ void NavEKF3_core::CovariancePrediction(Vector3f *rotVarVecPtr)
         // vector defining the varaince of the angular alignment uncertainty
         // use the exisiting gyro error propagation mechanism to define an equivalent gyro error variance
         Vector3f rotVarVec = *rotVarVecPtr;
-        Matrix3f Tnb;
-        stateStruct.quat.inverse().rotation_matrix(Tnb);
-        rotVarVec = rotVarVec * Tnb;
+        stateStruct.quat.inverse().earth_to_body(rotVarVec);
         daxVar = rotVarVec.x;
         dayVar = rotVarVec.y;
         dazVar = rotVarVec.z;
