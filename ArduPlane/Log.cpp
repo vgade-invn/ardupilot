@@ -35,6 +35,12 @@ void Plane::Log_Write_Attitude(void)
     logger.Write_PID(LOG_PIDY_MSG, yawController.get_pid_info());
     logger.Write_PID(LOG_PIDS_MSG, steerController.get_pid_info());
 
+    logger.Write_PID(LOG_PID_AC_R_MSG, rollController.get_ac_pid_info());
+    logger.Write_PID(LOG_PID_OLD_R_MSG, rollController.get_old_pid_info());
+
+    logger.Write_PID(LOG_PID_AC_P_MSG, pitchController.get_ac_pid_info());
+    logger.Write_PID(LOG_PID_OLD_P_MSG, pitchController.get_old_pid_info());
+    
 #if AP_AHRS_NAVEKF_AVAILABLE
     AP::ahrs_navekf().Log_Write();
     logger.Write_AHRS2();
