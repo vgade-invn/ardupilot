@@ -207,6 +207,9 @@ public:
         FWD_THR =            209, // VTOL manual forward throttle
         AIRBRAKE =           210, // manual airbrake control
 
+        // temporary for AC_PID in plane
+        AC_PID =             220,
+
         // inputs for the use of onboard lua scripting
         SCRIPTING_1 =        300,
         SCRIPTING_2 =        301,
