@@ -156,6 +156,7 @@ void RC_Channel_Plane::init_aux_function(const RC_Channel::aux_func_t ch_option,
     case AUX_FUNC::Q_ASSIST:
     case AUX_FUNC::SOARING:
     case AUX_FUNC::AIRMODE:
+    case AUX_FUNC::AC_PID:
         do_aux_function(ch_option, ch_flag);
         break;
 
@@ -281,6 +282,23 @@ void RC_Channel_Plane::do_aux_function(const aux_func_t ch_option, const AuxSwit
        do_aux_function_flare(ch_flag);
        break;
 
+    case AUX_FUNC::AC_PID:
+        switch (ch_flag) {
+        case AuxSwitchPos::HIGH:
+            plane.rollController.set_ac_pid(true);
+            plane.pitchController.set_ac_pid(true);
+            gcs().send_text(MAV_SEVERITY_INFO, "ACPID ENABLED");
+            break;
+        case AuxSwitchPos::MIDDLE:
+            break;
+        case AuxSwitchPos::LOW:
+            gcs().send_text(MAV_SEVERITY_INFO, "ACPID DISABLED");
+            plane.rollController.set_ac_pid(false);
+            plane.pitchController.set_ac_pid(false);
+            break;
+        }
+        break;
+        
     default:
         RC_Channel::do_aux_function(ch_option, ch_flag);
         break;
