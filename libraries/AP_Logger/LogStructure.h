@@ -2656,6 +2656,14 @@ struct PACKED log_PSC {
       "PIDA", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS }, \
     { LOG_PIDS_MSG, sizeof(log_PID), \
       "PIDS", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS }, \
+    { LOG_PID_AC_R_MSG, sizeof(log_PID), \
+      "PIAR", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS }, \
+    { LOG_PID_OLD_R_MSG, sizeof(log_PID), \
+      "PIOR", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS }, \
+    { LOG_PID_AC_P_MSG, sizeof(log_PID), \
+      "PIAP", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS }, \
+    { LOG_PID_OLD_P_MSG, sizeof(log_PID), \
+      "PIOP", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS }, \
     { LOG_DSTL_MSG, sizeof(log_DSTL), \
       "DSTL", "QBfLLeccfeffff", "TimeUS,Stg,THdg,Lat,Lng,Alt,XT,Travel,L1I,Loiter,Des,P,I,D", "s??DUm--------", "F??000--------" }, \
     { LOG_BAR2_MSG, sizeof(log_BARO), \
@@ -2817,6 +2825,10 @@ enum LogMessages : uint8_t {
     LOG_PIDY_MSG,
     LOG_PIDA_MSG,
     LOG_PIDS_MSG,
+    LOG_PID_AC_R_MSG,
+    LOG_PID_AC_P_MSG,
+    LOG_PID_OLD_R_MSG,
+    LOG_PID_OLD_P_MSG,
     LOG_DSTL_MSG,
     LOG_VIBE_MSG,
     LOG_IMUDT_MSG,
