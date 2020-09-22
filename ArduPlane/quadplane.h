@@ -517,6 +517,7 @@ private:
         OPTION_RESPECT_TAKEOFF_FRAME=(1<<3),
         OPTION_MISSION_LAND_FW_APPROACH=(1<<4),
         OPTION_FS_QRTL=(1<<5),
+        OPTION_GROUND_EFFECT_COMP=(1<<12),
     };
 
     AP_Float takeoff_failure_scalar;
