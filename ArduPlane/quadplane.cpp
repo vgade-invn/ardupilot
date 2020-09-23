@@ -1927,6 +1927,7 @@ void QuadPlane::motors_output(bool run_rate_controller)
 
         // log RATE at main loop rate
         plane.logger.Write_Rate(ahrs_view, *motors, *attitude_control, *pos_control);
+        plane.Log_Write_Attitude();
 
         // log QTUN at 25 Hz
         if (now - last_qtun_log_ms > 40) {
