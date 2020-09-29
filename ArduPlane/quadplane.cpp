@@ -329,7 +329,7 @@ const AP_Param::GroupInfo QuadPlane::var_info[] = {
     // @Param: OPTIONS
     // @DisplayName: quadplane options
     // @Description: This provides a set of additional control options for quadplanes. LevelTransition means that the wings should be held level to within LEVEL_ROLL_LIMIT degrees during transition to fixed wing flight, and the vehicle will not use the vertical lift motors to climb during the transition. If AllowFWTakeoff bit is not set then fixed wing takeoff on quadplanes will instead perform a VTOL takeoff. If AllowFWLand bit is not set then fixed wing land on quadplanes will instead perform a VTOL land. If respect takeoff frame is not set the vehicle will interpret all takeoff waypoints as an altitude above the corrent position. When Use QRTL is set it will replace QLAND with QRTL for failsafe actions when in VTOL modes.
-    // @Bitmask: 0:LevelTransition,1:AllowFWTakeoff,2:AllowFWLand,3:Respect takeoff frame types,4:Use a fixed wing approach for VTOL landings,5:Use QRTL instead of QLAND for failsafe when in VTOL modes.
+    // @Bitmask: 0:LevelTransition,1:AllowFWTakeoff,2:AllowFWLand,3:Respect takeoff frame types,4:Use a fixed wing approach for VTOL landings,5:Use QRTL instead of QLAND for failsafe when in VTOL modes,12:GroundEffect compensation
     AP_GROUPINFO("OPTIONS", 58, QuadPlane, options, 0),
 
     AP_SUBGROUPEXTENSION("",59, QuadPlane, var_info2),
@@ -2328,6 +2328,9 @@ void QuadPlane::vtol_position_controller(void)
 
     case QPOS_LAND_FINAL:
         pos_control->set_alt_target_from_climb_rate(-land_speed_cms, plane.G_Dt, true);
+        if ((options & OPTION_GROUND_EFFECT_COMP) != 0) {
+            ahrs.setTouchdownExpected(true);
+        }
         break;
         
     case QPOS_LAND_COMPLETE:
@@ -2613,6 +2616,11 @@ bool QuadPlane::verify_vtol_takeoff(const AP_Mission::Mission_Command &cmd)
     // reset takeoff start time if we aren't armed, as we won't have made any progress
     if (!hal.util->get_soft_armed()) {
         takeoff_start_time_ms = now;
+    }
+    
+    if (now - takeoff_start_time_ms < 3000 &&
+        (options & OPTION_GROUND_EFFECT_COMP) != 0) {
+        ahrs.setTakeoffExpected(true);
     }
 
     // check for failure conditions
@@ -3037,6 +3045,9 @@ bool QuadPlane::do_user_takeoff(float takeoff_altitude)
     motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
     guided_start();
     guided_takeoff = true;
+    if ((options & OPTION_GROUND_EFFECT_COMP) != 0) {
+        ahrs.setTakeoffExpected(true);
+    }
     return true;
 }
 
