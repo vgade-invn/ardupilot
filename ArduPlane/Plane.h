@@ -975,6 +975,7 @@ private:
     void set_servos_old_elevons(void);
     void set_servos_flaps(void);
     void set_landing_gear(void);
+    void set_min_throttle(void);
     void dspoiler_update(void);
     void servo_output_mixers(void);
     void servos_output(void);
