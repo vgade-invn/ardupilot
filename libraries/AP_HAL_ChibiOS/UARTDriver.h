@@ -214,6 +214,7 @@ private:
 #endif
     static void rxbuff_full_irq(void* self, uint32_t flags);
     static void tx_complete(void* self, uint32_t flags);
+    void handle_tx_timeout1(void);
     static void handle_tx_timeout(void *arg);
 
 #ifndef HAL_UART_NODMA
