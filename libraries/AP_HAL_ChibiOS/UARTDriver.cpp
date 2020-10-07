@@ -747,22 +747,12 @@ void UARTDriver::handle_tx_timeout(void *arg)
     chSysLockFromISR();
     if (!uart_drv->tx_bounce_buf_ready) {
         dmaStreamDisable(uart_drv->txdma);
-        uart_drv->tx_len -= dmaStreamGetTransactionSize(uart_drv->txdma);
+        const uint32_t tx_size = dmaStreamGetTransactionSize(uart_drv->txdma);
+        uart_drv->tx_len -= MIN(uart_drv->tx_len, tx_size);
         uart_drv->tx_bounce_buf_ready = true;
         uart_drv->dma_handle->unlock_from_IRQ();
     }
     chSysUnlockFromISR();
-}
-
-void UARTDriver::handle_tx_timeout1(void)
-{
-    UARTDriver* uart_drv = this;
-    if (!uart_drv->tx_bounce_buf_ready) {
-        dmaStreamDisable(uart_drv->txdma);
-        uart_drv->tx_len -= dmaStreamGetTransactionSize(uart_drv->txdma);
-        uart_drv->tx_bounce_buf_ready = true;
-        uart_drv->dma_handle->unlock_from_IRQ();
-    }
 }
 
 /*
@@ -801,17 +791,12 @@ void UARTDriver::write_pending_bytes_DMA(uint32_t n)
         }
     }
 
+    chSysLock();
     dmaStreamDisable(txdma);
     tx_bounce_buf_ready = false;
     osalDbgAssert(txdma != nullptr, "UART TX DMA allocation failed");
     stm32_cacheBufferFlush(tx_bounce_buf, tx_len);
     dmaStreamSetMemory0(txdma, tx_bounce_buf);
-#if 0
-    static uint32_t xxx;
-    if (++xxx > 20000) {
-        handle_tx_timeout1();
-    }
-#endif
     dmaStreamSetTransactionSize(txdma, tx_len);
     uint32_t dmamode = STM32_DMA_CR_DMEIE | STM32_DMA_CR_TEIE;
     dmamode |= STM32_DMA_CR_CHSEL(sdef.dma_tx_channel_id);
@@ -822,6 +807,7 @@ void UARTDriver::write_pending_bytes_DMA(uint32_t n)
     uint32_t timeout_us = ((1000000UL * (tx_len+2) * 10) / _baudrate) + 500;
     timeout_us = 1 + (get_random16() % timeout_us);
     chVTSet(&tx_timeout, chTimeUS2I(timeout_us), handle_tx_timeout, this);
+    chSysUnlock();
 }
 #endif // HAL_UART_NODMA
 
