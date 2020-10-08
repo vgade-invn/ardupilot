@@ -568,8 +568,13 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
 
     if (steer_state.hold_course_cd != -1) {
         if (auto_state.crosstrack) {
-            // user has enabled cross-tracking to NAV_TAKEOFF waypoint location
-            nav_controller->update_waypoint(prev_WP_loc, cmd.content.location);
+            // user has enabled cross-tracking to NAV_TAKEOFF waypoint
+            // location. Keep projecting 200m ahead of the current
+            // distance
+            const float dist = prev_WP_loc.get_distance(current_loc);
+            Location loc = prev_WP_loc;
+            loc.offset_bearing(steer_state.hold_course_cd*0.01, dist+200);
+            nav_controller->update_waypoint(prev_WP_loc, loc);
         } else {
             // call navigation controller for heading hold
             nav_controller->update_heading_hold(steer_state.hold_course_cd);
