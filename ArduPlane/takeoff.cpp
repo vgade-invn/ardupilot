@@ -152,6 +152,9 @@ void Plane::takeoff_calc_pitch(void)
         // we have not reached rotate speed, use the specified
         // takeoff run target pitch angle.
         nav_pitch_cd = int32_t(100.0f * g.takeoff_ground_pitch);
+
+        // reset pitch integrator when below rotate speed
+        plane.pitchController.reset_I();
         return;
     }
 
