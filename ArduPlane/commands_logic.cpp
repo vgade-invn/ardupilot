@@ -216,7 +216,7 @@ bool Plane::verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
         if (quadplane.is_vtol_takeoff(cmd.id)) {
             return quadplane.verify_vtol_takeoff(cmd);
         }
-        return verify_takeoff();
+        return verify_takeoff(cmd);
 
     case MAV_CMD_NAV_WAYPOINT:
         return verify_nav_wp(cmd);
@@ -353,6 +353,10 @@ void Plane::do_takeoff(const AP_Mission::Mission_Command& cmd)
     steer_state.locked_course_err = 0;
     steer_state.hold_course_cd = -1;
     auto_state.baro_takeoff_alt = barometer.get_altitude();
+
+    // by default no cross-tracking in takeoff
+    auto_state.crosstrack = false;
+    takeoff_state.start_loc.zero();
 }
 
 void Plane::do_nav_wp(const AP_Mission::Mission_Command& cmd)
@@ -511,8 +515,14 @@ void Plane::do_loiter_to_alt(const AP_Mission::Mission_Command& cmd)
 /********************************************************************************/
 //  Verify Nav (Must) commands
 /********************************************************************************/
-bool Plane::verify_takeoff()
+bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
 {
+    if (!throttle_suppressed && takeoff_state.start_loc.is_zero()) {
+        // get takeoff start location when we first unsuppress the
+        // throttle
+        takeoff_state.start_loc = current_loc;
+        prev_WP_loc = takeoff_state.start_loc;
+    }
     if (ahrs.yaw_initialised() && steer_state.hold_course_cd == -1) {
         const float min_gps_speed = 5;
         if (auto_state.takeoff_speed_time_ms == 0 && 
@@ -530,8 +540,25 @@ bool Plane::verify_takeoff()
             // rotate, and also allows us to cope with arbitrary
             // compass errors for auto takeoff
             float takeoff_course = wrap_PI(radians(gps.ground_course_cd()*0.01f)) - steer_state.locked_course_err;
+
+            /*
+              optionally take course from location of takeoff waypoint
+             */
+            if ((g2.flight_options & FlightOptions::USE_TAKEOFF_LOC) &&
+                !takeoff_state.start_loc.is_zero()) {
+                float loc_course_rad = takeoff_state.start_loc.get_bearing(cmd.content.location);
+                const float margin = radians(15);
+                if (fabsf(wrap_PI(loc_course_rad - takeoff_course)) < margin) {
+                    takeoff_course = loc_course_rad;
+                    if (g2.flight_options & FlightOptions::TAKEOFF_XTRACK) {
+                        auto_state.crosstrack = true;
+                    }
+                }
+            }
+
             takeoff_course = wrap_PI(takeoff_course);
             steer_state.hold_course_cd = wrap_360_cd(degrees(takeoff_course)*100);
+
             gcs().send_text(MAV_SEVERITY_INFO, "Holding course %d at %.1fm/s (%.1f)",
                               (int)steer_state.hold_course_cd,
                               (double)gps.ground_speed(),
@@ -540,8 +567,13 @@ bool Plane::verify_takeoff()
     }
 
     if (steer_state.hold_course_cd != -1) {
-        // call navigation controller for heading hold
-        nav_controller->update_heading_hold(steer_state.hold_course_cd);
+        if (auto_state.crosstrack) {
+            // user has enabled cross-tracking to NAV_TAKEOFF waypoint location
+            nav_controller->update_waypoint(prev_WP_loc, cmd.content.location);
+        } else {
+            // call navigation controller for heading hold
+            nav_controller->update_heading_hold(steer_state.hold_course_cd);
+        }
     } else {
         nav_controller->update_level_flight();        
     }

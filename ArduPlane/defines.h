@@ -152,6 +152,8 @@ enum FlightOptions {
     DISABLE_TOFF_ATTITUDE_CHK = (1 << 2),
     CRUISE_TRIM_AIRSPEED = (1 << 3),
     USE_THR_MIN_ZERO = (1 << 4),
+    USE_TAKEOFF_LOC = (1 << 5),
+    TAKEOFF_XTRACK = (1 << 6),
 };
 
 enum CrowFlapOptions {

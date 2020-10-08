@@ -425,6 +425,7 @@ private:
         uint8_t accel_event_counter;
         uint32_t accel_event_ms;
         uint32_t start_time_ms;
+        Location start_loc; // when we started the takeoff
     } takeoff_state;
 
     // ground steering controller state
@@ -860,7 +861,7 @@ private:
     // set home location and store it persistently:
     bool set_home_persistently(const Location &loc) WARN_IF_UNUSED;
     void do_RTL(int32_t alt);
-    bool verify_takeoff();
+    bool verify_takeoff(const AP_Mission::Mission_Command &cmd);
     bool verify_loiter_unlim(const AP_Mission::Mission_Command &cmd);
     bool verify_loiter_time();
     bool verify_loiter_turns(const AP_Mission::Mission_Command &cmd);
