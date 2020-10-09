@@ -737,6 +737,8 @@ void UARTDriver::check_dma_tx_completion(void)
     chSysUnlock();
 }
 
+static volatile uint32_t dma_setup_error;
+
 /*
   handle a TX timeout. This can happen with using hardware flow
   control if CTS pin blocks transmit
@@ -744,11 +746,14 @@ void UARTDriver::check_dma_tx_completion(void)
 void UARTDriver::handle_tx_timeout(void *arg)
 {
     UARTDriver* uart_drv = (UARTDriver*)arg;
+    if (uart_drv->in_dma_setup) {
+        dma_setup_error++;
+    }
     chSysLockFromISR();
+    uart_drv->dma_timeouts++;
     if (!uart_drv->tx_bounce_buf_ready) {
         dmaStreamDisable(uart_drv->txdma);
-        const uint32_t tx_size = dmaStreamGetTransactionSize(uart_drv->txdma);
-        uart_drv->tx_len -= MIN(uart_drv->tx_len, tx_size);
+        uart_drv->tx_len -= dmaStreamGetTransactionSize(uart_drv->txdma);
         uart_drv->tx_bounce_buf_ready = true;
         uart_drv->dma_handle->unlock_from_IRQ();
     }
@@ -791,10 +796,19 @@ void UARTDriver::write_pending_bytes_DMA(uint32_t n)
         }
     }
 
-    chSysLock();
+    in_dma_setup = true;
     dmaStreamDisable(txdma);
     tx_bounce_buf_ready = false;
     osalDbgAssert(txdma != nullptr, "UART TX DMA allocation failed");
+#if 0
+    static uint32_t xx;
+    if (++xx % 1073 == 0) {
+        dmaStreamDisable(txdma);
+        tx_len -= dmaStreamGetTransactionSize(txdma);
+        tx_bounce_buf_ready = true;
+        dma_handle->unlock();
+    }
+#endif
     stm32_cacheBufferFlush(tx_bounce_buf, tx_len);
     dmaStreamSetMemory0(txdma, tx_bounce_buf);
     dmaStreamSetTransactionSize(txdma, tx_len);
@@ -805,8 +819,9 @@ void UARTDriver::write_pending_bytes_DMA(uint32_t n)
                      STM32_DMA_CR_MINC | STM32_DMA_CR_TCIE);
     dmaStreamEnable(txdma);
     uint32_t timeout_us = ((1000000UL * (tx_len+2) * 10) / _baudrate) + 500;
-    chVTSetI(&tx_timeout, chTimeUS2I(timeout_us), handle_tx_timeout, this);
-    chSysUnlock();
+    timeout_us = 1 + get_random16() % timeout_us;
+    in_dma_setup = false;
+    chVTSet(&tx_timeout, chTimeUS2I(timeout_us), handle_tx_timeout, this);
 }
 #endif // HAL_UART_NODMA
 
@@ -949,6 +964,15 @@ void UARTDriver::half_duplex_setup_tx(void)
 void UARTDriver::_timer_tick(void)
 {
     if (!_initialised) return;
+
+    static uint32_t last_err_ms;
+    uint32_t now_ms = AP_HAL::millis();
+    if (now_ms - last_err_ms > 2000) {
+        last_err_ms = now_ms;
+        if ((dma_timeouts || dma_setup_error) && !sdef.is_usb) {
+            hal.console->printf("dma_setup_error %u timeouts %u\n", dma_setup_error, dma_timeouts);
+        }
+    }
 
 #ifdef HAVE_USB_SERIAL
     if (hd_tx_active && (chEvtGetAndClearFlags(&hd_listener) & CHN_OUTPUT_EMPTY) != 0) {
