@@ -263,10 +263,12 @@ void RC_Channel_Plane::do_aux_function(const aux_func_t ch_option, const AuxSwit
         case AuxSwitchPos::HIGH:
             plane.rollController.set_ac_pid(true);
             plane.pitchController.set_ac_pid(true);
+            gcs().send_text(MAV_SEVERITY_INFO, "ACPID ENABLED");
             break;
         case AuxSwitchPos::MIDDLE:
             break;
         case AuxSwitchPos::LOW:
+            gcs().send_text(MAV_SEVERITY_INFO, "ACPID DISABLED");
             plane.rollController.set_ac_pid(false);
             plane.pitchController.set_ac_pid(false);
             break;
