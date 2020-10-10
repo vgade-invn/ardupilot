@@ -524,45 +524,59 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
         prev_WP_loc = takeoff_state.start_loc;
     }
     if (ahrs.yaw_initialised() && steer_state.hold_course_cd == -1) {
-        const float min_gps_speed = 5;
-        if (auto_state.takeoff_speed_time_ms == 0 && 
-            gps.status() >= AP_GPS::GPS_OK_FIX_3D && 
-            gps.ground_speed() > min_gps_speed &&
-            hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED) {
-            auto_state.takeoff_speed_time_ms = millis();
-        }
-        if (auto_state.takeoff_speed_time_ms != 0 &&
-            millis() - auto_state.takeoff_speed_time_ms >= 2000) {
-            // once we reach sufficient speed for good GPS course
-            // estimation we save our current GPS ground course
-            // corrected for summed yaw to set the take off
-            // course. This keeps wings level until we are ready to
-            // rotate, and also allows us to cope with arbitrary
-            // compass errors for auto takeoff
-            float takeoff_course = wrap_PI(radians(gps.ground_course_cd()*0.01f)) - steer_state.locked_course_err;
-
-            /*
-              optionally take course from location of takeoff waypoint
-             */
-            if ((g2.flight_options & FlightOptions::USE_TAKEOFF_LOC) &&
-                !takeoff_state.start_loc.is_zero()) {
-                float loc_course_rad = takeoff_state.start_loc.get_bearing(cmd.content.location);
-                const float margin = radians(15);
-                if (fabsf(wrap_PI(loc_course_rad - takeoff_course)) < margin) {
-                    takeoff_course = loc_course_rad;
-                    if (g2.flight_options & FlightOptions::TAKEOFF_XTRACK) {
-                        auto_state.crosstrack = true;
-                    }
+        /*
+         optionally take course from location of takeoff waypoint
+         and do not wait for velocity to build
+        */
+       bool takeoff_heading_set = false;
+       float takeoff_heading = ahrs.yaw;
+        if ((g2.flight_options & FlightOptions::USE_TAKEOFF_LOC) &&
+            !takeoff_state.start_loc.is_zero()) {
+            const float loc_course_rad = takeoff_state.start_loc.get_bearing(cmd.content.location);
+            const float margin = radians(15);
+            // sanity check that will fail if aircraft is badly misaligned with runway
+            // or there is a large nav yaw error
+            if (fabsf(wrap_PI(loc_course_rad - takeoff_heading)) < margin) {
+                takeoff_heading = wrap_PI(loc_course_rad);
+                takeoff_heading_set = true;
+                if (g2.flight_options & FlightOptions::TAKEOFF_XTRACK) {
+                    auto_state.crosstrack = true;
                 }
             }
-
-            takeoff_course = wrap_PI(takeoff_course);
-            steer_state.hold_course_cd = wrap_360_cd(degrees(takeoff_course)*100);
-
-            gcs().send_text(MAV_SEVERITY_INFO, "Holding course %d at %.1fm/s (%.1f)",
-                              (int)steer_state.hold_course_cd,
-                              (double)gps.ground_speed(),
-                              (double)degrees(steer_state.locked_course_err));
+        } else {
+            const float min_gps_speed = 5;
+            if (auto_state.takeoff_speed_time_ms == 0 &&
+                gps.status() >= AP_GPS::GPS_OK_FIX_3D &&
+                gps.ground_speed() > min_gps_speed &&
+                hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED) {
+                auto_state.takeoff_speed_time_ms = millis();
+            }
+            if (auto_state.takeoff_speed_time_ms != 0 &&
+                millis() - auto_state.takeoff_speed_time_ms >= 2000) {
+                // once we reach sufficient speed for good GPS course
+                // estimation we save our current GPS ground course
+                // corrected for summed yaw to set the take off
+                // course. This keeps wings level until we are ready to
+                // rotate, and also allows us to cope with arbitrary
+                // compass errors for auto takeoff
+                takeoff_heading = wrap_PI(radians(gps.ground_course_cd()*0.01f)) - steer_state.locked_course_err;
+                takeoff_heading = wrap_PI(takeoff_heading);
+                takeoff_heading_set = true;
+            }
+        }
+        if (takeoff_heading_set) {
+            steer_state.hold_course_cd = wrap_360_cd(degrees(takeoff_heading)*100);
+            if (auto_state.crosstrack) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Holding course %d at %.1fm/s (%.1f)",
+                                (int)steer_state.hold_course_cd,
+                                (double)gps.ground_speed(),
+                                (double)degrees(steer_state.locked_course_err));
+            } else {
+                gcs().send_text(MAV_SEVERITY_INFO, "Holding heading %d at %.1fm/s (%.1f)",
+                                (int)steer_state.hold_course_cd,
+                                (double)gps.ground_speed(),
+                                (double)degrees(steer_state.locked_course_err));
+            }
         }
     }
 
