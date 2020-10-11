@@ -809,6 +809,12 @@ void AP_TECS::_update_pitch(void)
     
     float SPE_weighting = 2.0f - SKE_weighting;
 
+    // Allow each weighting to fade to zero, but do not increase past 1.0 as this causes
+    // feeback gains to increase and feed forward compensation to be incorrect making the
+    // height control harder to tune when speed weight is less than 1.0
+    SKE_weighting = MIN(SKE_weighting, 1.0f);
+    SPE_weighting = MIN(SPE_weighting, 1.0f);
+
     // Calculate Specific Energy Balance demand, and error
     float SEB_dem      = _SPE_dem * SPE_weighting - _SKE_dem * SKE_weighting;
     float SEBdot_dem   = _SPEdot_dem * SPE_weighting - _SKEdot_dem * SKE_weighting;
