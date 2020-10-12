@@ -269,11 +269,17 @@ private:
 
         // true when we have reached target speed in takeoff
         bool reached_speed_takeoff:1;
+
+        // true when the lower pitch angle limit is being raised during landing approach
+        bool pitch_limit_raise_active;
     };
     union {
         struct flags _flags;
         uint8_t _flags_byte;
     };
+
+    // height that we started riasing the pitch limit during landing approach
+    float _pitch_lim_raise_height;
 
     // time when underspeed started
     uint32_t _underspeed_start_ms;

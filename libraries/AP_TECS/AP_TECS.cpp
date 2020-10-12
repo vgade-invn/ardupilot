@@ -934,6 +934,8 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _DT                = 0.1f; // when first starting TECS, use a
         // small time constant
         _need_reset = false;
+        _pitch_lim_raise_height = 0.0f;
+        _flags.pitch_limit_raise_active = false;
     }
     else if (_flight_stage == AP_Vehicle::FixedWing::FLIGHT_TAKEOFF || _flight_stage == AP_Vehicle::FixedWing::FLIGHT_ABORT_LAND)
     {
@@ -944,6 +946,8 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _TAS_dem_adj       = _TAS_dem;
         _flags.underspeed        = false;
         _flags.badDescent  = false;
+        _pitch_lim_raise_height = 0.0f;
+        _flags.pitch_limit_raise_active = false;
     }
     
     if (_flight_stage != AP_Vehicle::FixedWing::FLIGHT_TAKEOFF && _flight_stage != AP_Vehicle::FixedWing::FLIGHT_ABORT_LAND) {
@@ -1022,64 +1026,58 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
         _pitch_max_limit = 90;
     }
 
-    if (!_landing.is_on_approach()) {
+    if (!_landing.is_on_approach() && !_landing.is_flaring()) {
         // reset land pitch min when not landing
         _land_pitch_min = _PITCHminf;
     }
     
     if (_landing.is_flaring()) {
-        // in flare use min pitch from LAND_PITCH_CD
-        _PITCHminf = MAX(_PITCHminf, _landing.get_pitch_cd() * 0.01f);
-
-        // and use max pitch from TECS_LAND_PMAX
+        // use max pitch from TECS_LAND_PMAX
+        // note that this allows a flare pitch outside the normal TECS auto limits
         if (_land_pitch_max != 0) {
-            // note that this allows a flare pitch outside the normal TECS auto limits
             _PITCHmaxf = _land_pitch_max;
         }
 
         // and allow zero throttle
         _THRminf = 0;
-    } else if (_landing.is_on_approach() && (-_climb_rate) > _land_sink) {
-        // constrain the pitch in landing as we get close to the flare
-        // point. Use a simple linear limit from 15 meters after the
-        // landing point
-        float time_to_flare = (- hgt_afe / _climb_rate) - _landing.get_flare_sec();
-        if (time_to_flare < 0) {
-            // we should be flaring already
-            _PITCHminf = MAX(_PITCHminf, _landing.get_pitch_cd() * 0.01f);
-        } else if (time_to_flare < timeConstant()*2) {
-            // smoothly move the min pitch to the flare min pitch over
-            // twice the time constant
-            float p = time_to_flare/(2*timeConstant());
-            float pitch_limit_cd = p*aparm.pitch_limit_min_cd + (1-p)*_landing.get_pitch_cd();
-#if 0
-            ::printf("ttf=%.1f hgt_afe=%.1f _PITCHminf=%.1f pitch_limit=%.1f climb=%.1f\n",
-                     time_to_flare, hgt_afe, _PITCHminf, pitch_limit_cd*0.01f, _climb_rate);
-#endif
-            _PITCHminf = MAX(_PITCHminf, pitch_limit_cd*0.01f);
-        }
     }
 
-    if (_landing.is_on_approach()) {
-        // don't allow the lower bound of pitch to decrease, nor allow
-        // it to increase rapidly. This prevents oscillation of pitch
-        // demand while in landing approach based on rapidly changing
-        // time to flare estimate
-        if (_land_pitch_min <= -90) {
-            _land_pitch_min = _PITCHminf;
+    // Constrain the pitch lower limit in landing as we get close to the ground
+    // Use a linear variation with height
+    if (_landing.is_on_approach() || _landing.is_flaring()) {
+        if ((-_climb_rate) > 0.001f) {
+            float p = 1.0f; // varies continuously between 1 in air and 0 when on ground
+            float time_to_touchdown = (- hgt_afe / _climb_rate);
+            const float height_lag = 0.5f * _climb_rate; // allow for 0.5 second pitch loop time constant
+            if (time_to_touchdown < 0) {
+                // on the ground
+                p = 0.0f;
+                _PITCHminf = MAX(_PITCHminf, _landing.get_pitch_cd() * 0.01f);
+            } else if (time_to_touchdown < timeConstant()*2 && !_flags.pitch_limit_raise_active) {
+                _flags.pitch_limit_raise_active = true;
+                _pitch_lim_raise_height = MAX(hgt_afe + height_lag, 0.001f);
+            }
+
+            if (_flags.pitch_limit_raise_active) {
+                p = constrain_float((hgt_afe + height_lag) / _pitch_lim_raise_height, 0.0f, 1.0f);
+            }
+
+            float pitch_limit_cd = p * aparm.pitch_limit_min_cd + (1 - p) * _landing.get_pitch_cd();
+            _PITCHminf = MAX(_PITCHminf, pitch_limit_cd * 0.01f);
+
+            // don't allow the lower bound of pitch to decrease, nor allow
+            // it to increase rapidly. This prevents oscillation of pitch
+            // demand while in landing approach if pitch demand is on lower
+            // limit
+            if (_land_pitch_min <= -90) {
+                _land_pitch_min = _PITCHminf;
+            }
+            const float flare_pitch_range = 20;
+            const float delta_per_loop = (flare_pitch_range/_landTimeConst) * _DT;
+            _PITCHminf = MIN(_PITCHminf, _land_pitch_min+delta_per_loop);
+            _land_pitch_min = MAX(_land_pitch_min, _PITCHminf);
         }
-        const float flare_pitch_range = 20;
-        const float delta_per_loop = (flare_pitch_range/_landTimeConst) * _DT;
-        _PITCHminf = MIN(_PITCHminf, _land_pitch_min+delta_per_loop);
-        _land_pitch_min = MAX(_land_pitch_min, _PITCHminf);
         _PITCHminf = MAX(_land_pitch_min, _PITCHminf);
-    }
-
-    if (_landing.is_flaring()) {
-        // ensure we don't violate the limits for flare pitch
-        if (_land_pitch_max != 0) {
-            _PITCHmaxf = MIN(_land_pitch_max, _PITCHmaxf);
-        }
     }
 
     if (flight_stage == AP_Vehicle::FixedWing::FLIGHT_TAKEOFF || flight_stage == AP_Vehicle::FixedWing::FLIGHT_ABORT_LAND) {
