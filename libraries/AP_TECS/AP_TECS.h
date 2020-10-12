@@ -245,6 +245,7 @@ private:
     float _hgt_rate_dem;
     float _hgt_dem_prev;
     float _land_hgt_dem;
+    float _land_hgt_rate; // derivative of _land_hgt_dem
 
     // Speed demand after application of rate limiting
     // This is the demand tracked by the TECS control loops
@@ -278,7 +279,7 @@ private:
         uint8_t _flags_byte;
     };
 
-    // height that we started riasing the pitch limit during landing approach
+    // height that we started raising the pitch limit during landing approach
     float _pitch_lim_raise_height;
 
     // time when underspeed started
@@ -319,7 +320,10 @@ private:
     float _DT;
 
     // counter for demanded sink rate on land final
-    uint8_t _flare_counter;
+    uint16_t _flare_counter;
+
+    // last lag compensation offset applied to height demand
+    float _lag_comp_hgt_offset;
 
     // slew height demand lag filter value when transition to land
     float hgt_dem_lag_filter_slew;
