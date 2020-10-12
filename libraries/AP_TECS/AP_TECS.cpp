@@ -272,7 +272,7 @@ void AP_TECS::update_50hz(void)
 {
     // Implement third order complementary filter for height and height rate
     // estimated height rate = _climb_rate
-    // estimated height above field elevation  = _height
+    // estimated height above datum  = _height
     // Reference Paper :
     // Optimizing the Gains of the Baro-Inertial Vertical Channel
     // Widnall W.S, Sinha P.K,
@@ -981,7 +981,8 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
     _flight_stage = flight_stage;
 
     // Convert inputs
-    _hgt_dem = hgt_dem_cm * 0.01f;
+    logging.hgt_afe = hgt_afe;
+    _hgt_dem = logging.hgt_dem_raw = hgt_dem_cm * 0.01f;
     _EAS_dem = EAS_dem_cm * 0.01f;
 
     // Update the speed estimate using a 2nd order complementary filter
@@ -1159,15 +1160,17 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
         (double)_TAS_rate_dem,
         (double)logging.SKE_weighting,
         _flags_byte);
-    AP::logger().Write("TEC2", "TimeUS,pmax,pmin,KErr,PErr,EDelta,LF",
-                       "s------",
-                       "F------",
-                       "Qffffff",
+    AP::logger().Write("TEC2", "TimeUS,pmax,pmin,KErr,PErr,EDelta,LF,hdr,hafe",
+                       "s--------",
+                       "F--------",
+                       "Qffffffff",
                        now,
                        (double)degrees(_PITCHmaxf),
                        (double)degrees(_PITCHminf),
                        (double)logging.SKE_error,
                        (double)logging.SPE_error,
                        (double)logging.SEB_delta,
-                       (double)load_factor);
+                       (double)load_factor,
+                       (double)logging.hgt_dem_raw,
+                       (double)logging.hgt_afe);
 }

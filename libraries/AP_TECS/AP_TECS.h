@@ -180,7 +180,7 @@ private:
     // temporary _pitch_max_limit. Cleared on each loop. Clear when >= 90
     int8_t _pitch_max_limit = 90;
     
-    // current height estimate (above field elevation)
+    // current height above datum
     float _height;
 
     // throttle demand in the range from -1.0 to 1.0, usually positive unless reverse thrust is enabled via _THRminf < 0
@@ -334,6 +334,8 @@ private:
         float SPE_error;
         float SKE_error;
         float SEB_delta;
+        float hgt_afe;
+        float hgt_dem_raw;
     } logging;
 
     AP_Int8 _use_synthetic_airspeed;
