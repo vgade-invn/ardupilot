@@ -272,6 +272,8 @@ int32_t Plane::relative_target_altitude_cm(void)
     int32_t relative_alt = target_altitude.amsl_cm - home.alt;
     relative_alt += mission_alt_offset()*100;
     relative_alt += rangefinder_correction() * 100;
+    // want relative_alt to be zero when UC is touching the ground
+    relative_alt -= rangefinder.ground_clearance_cm_orient(ROTATION_PITCH_270);
     return relative_alt;
 }
 
