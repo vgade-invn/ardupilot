@@ -601,6 +601,17 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
             nav_controller->update_heading_hold(steer_state.hold_course_cd);
         }
     } else {
+        if (g2.flight_options & FlightOptions::USE_TAKEOFF_LOC && gps.ground_speed() > 3.0) {
+            // Yaw error has prevented setting a ground course from the mission plan
+            // so abort the takeoff. Speed threshold allows for manual repositioning
+            // without false triggering.
+            if (takeoff_state.start_time_ms !=0) {
+                plane.arming.disarm();
+                mission.reset();
+                takeoff_state.start_time_ms = 0;
+                gcs().send_text(MAV_SEVERITY_INFO, "Takeoff aborted - yaw error");
+           }
+        }
         nav_controller->update_level_flight();        
     }
 
