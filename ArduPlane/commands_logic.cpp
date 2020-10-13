@@ -581,6 +581,13 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
     }
 
     if (steer_state.hold_course_cd != -1) {
+        // Don't attempt cross-track when below slow taxi speed as it can result in limit cycling depending on
+        // location of the IMU wrt the main UC wheels. USe hysteresis on speed threshold.
+        if ((g2.flight_options & FlightOptions::TAKEOFF_XTRACK) && !auto_state.crosstrack && gps.ground_speed() > 2.0f) {
+            auto_state.crosstrack = true;
+        } else if (!(g2.flight_options & FlightOptions::TAKEOFF_XTRACK) || gps.ground_speed() < 1.0f) {
+            auto_state.crosstrack = false;
+        }
         if (auto_state.crosstrack) {
             // user has enabled cross-tracking to NAV_TAKEOFF waypoint
             // location. Keep projecting 200m ahead of the current
