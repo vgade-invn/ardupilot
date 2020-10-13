@@ -177,6 +177,9 @@ private:
         OPTION_GLIDER_ONLY=(1<<0),
     };
 
+    // lag of fist order filter applied to height demand (sec)
+    const float _hgt_dem_lag = 2.0f;
+
     // temporary _pitch_max_limit. Cleared on each loop. Clear when >= 90
     int8_t _pitch_max_limit = 90;
     
@@ -246,6 +249,9 @@ private:
     float _hgt_dem_prev;
     float _land_hgt_dem;
     float _land_hgt_rate; // derivative of _land_hgt_dem
+
+    // offset applied to height demand post takeoff to compensate for height demand filter lag
+    float _post_TO_hgt_offset;
 
     // Speed demand after application of rate limiting
     // This is the demand tracked by the TECS control loops

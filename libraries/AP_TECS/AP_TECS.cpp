@@ -473,8 +473,12 @@ void AP_TECS::_update_height_demand(void)
     }
     _hgt_dem_prev = _hgt_dem;
 
-    // Apply first order lag to height demand
-    _hgt_dem_adj = 0.05f * _hgt_dem + 0.95f * _hgt_dem_adj_last;
+    // Apply 2 second first order lag to height demand and compensate for lag when commencing height
+    // control after takeoff to prevent plane pushing nose to level before climbing again. Post takeoff
+    // compensation offset is decayed using the same time constant as the height demand filter.
+    const float coef = MIN(_DT / _hgt_dem_lag, 1.0f);
+    _post_TO_hgt_offset *= (1.0f - coef);
+    _hgt_dem_adj = (_hgt_dem + _post_TO_hgt_offset) * coef + (1.0f - coef) * _hgt_dem_adj_last;
 
     // when flaring force height rate demand to the
     // configured sink rate and adjust the demanded height to
@@ -505,6 +509,13 @@ void AP_TECS::_update_height_demand(void)
     } else {
         _hgt_rate_dem = (_hgt_dem_adj - _hgt_dem_adj_last) / _DT;
         _flare_counter = 0;
+
+        /*
+        TODO - re-write this section to be consistent with actual _DT value and _hgt_dem_lag
+        becasue the current implementation over compennsates and should be correcting for the
+        actual LPF lag of _hgt_dem_lag only due to feed-forward term making timeConstant()
+        irrelevant. It also assumes a _DT of 0.1.
+        */
 
         // for landing approach we will predict ahead by the time constant
         // plus the lag produced by the first order filter. This avoids a
@@ -956,6 +967,7 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _pitch_lim_raise_height = 0.0f;
         _flags.pitch_limit_raise_active = false;
         _lag_comp_hgt_offset = 0.0f;
+        _post_TO_hgt_offset = 0.0f;
     }
     else if (_flight_stage == AP_Vehicle::FixedWing::FLIGHT_TAKEOFF || _flight_stage == AP_Vehicle::FixedWing::FLIGHT_ABORT_LAND)
     {
@@ -963,6 +975,7 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _hgt_dem_adj_last  = hgt_afe;
         _hgt_dem_adj       = _hgt_dem_adj_last;
         _hgt_dem_prev      = _hgt_dem_adj_last;
+        _post_TO_hgt_offset = _climb_rate * _hgt_dem_lag;
         _TAS_dem_adj       = _TAS_dem;
         _flags.underspeed        = false;
         _flags.badDescent  = false;
