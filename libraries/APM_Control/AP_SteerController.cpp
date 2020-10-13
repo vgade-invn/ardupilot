@@ -130,7 +130,9 @@ int32_t AP_SteerController::get_steering_out_rate(float desired_rate)
 	_last_t = tnow;
 
     float speed = _ahrs.groundspeed();
+    float stop_scaler = 1.0f; // scaler applied to D gain when very slow
     if (speed < _minspeed) {
+        stop_scaler *= (speed / _minspeed);
         // assume a minimum speed. This stops oscillations when first starting to move
         speed = _minspeed;
     }
@@ -183,7 +185,7 @@ int32_t AP_SteerController::get_steering_out_rate(float desired_rate)
     // Constrain the integrator state
     _pid_info.I = constrain_float(_pid_info.I, -intLimScaled, intLimScaled);
 
-    _pid_info.D = rate_error * _K_D * 4.0f; 
+    _pid_info.D = rate_error * _K_D * 4.0f * stop_scaler;
     _pid_info.P = (ToRad(desired_rate) * kp_ff) * scaler;
     _pid_info.FF = (ToRad(desired_rate) * k_ff) * scaler;
 	
