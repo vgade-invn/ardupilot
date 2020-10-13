@@ -480,7 +480,6 @@ void AP_TECS::_update_height_demand(void)
     // configured sink rate and adjust the demanded height to
     // be kinematically consistent with the height rate.
     if (_landing.is_flaring()) {
-        _integSEB_state = 0;
         if (_flare_counter == 0) {
             _land_hgt_rate = _climb_rate;
             _land_hgt_dem = _hgt_dem_adj;
@@ -893,8 +892,21 @@ void AP_TECS::_update_pitch(void)
     integSEB_min = MIN(integSEB_min, _integSEB_state);
     integSEB_max = MAX(integSEB_max, _integSEB_state);
 
-    // integrate
-    _integSEB_state = constrain_float(_integSEB_state + integSEB_delta, integSEB_min, integSEB_max);
+    // when flaring apply a stricter constraint that prevents any integrator wind-up
+    // in the direction of a saturating pitch limit
+    bool inhibit_integrator = false;
+    if (_landing.is_flaring()) {
+        const float ptch_dem_predicted = (temp + _integSEB_state + integSEB_delta) / gainInv;
+        if (((ptch_dem_predicted - _PITCHmaxf) * integSEB_delta > 0.0f) || // saturating against upper limit
+            ((ptch_dem_predicted - _PITCHminf) * integSEB_delta > 0.0f)) { // saturating against lower limit
+            inhibit_integrator = true;
+        }
+    }
+
+    if (!inhibit_integrator) {
+        // integrate
+        _integSEB_state = constrain_float(_integSEB_state + integSEB_delta, integSEB_min, integSEB_max);
+    }
 
     // Calculate pitch demand from specific energy balance signals
     _pitch_dem_unc = (temp + _integSEB_state) / gainInv;
