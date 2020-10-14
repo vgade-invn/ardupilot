@@ -100,10 +100,16 @@ bool AP_Landing::type_slope_verify_land(const Location &prev_WP_loc, Location &n
             if (is_flying && (AP_HAL::millis()-last_flying_ms) > 3000) {
                 gcs().send_text(MAV_SEVERITY_CRITICAL, "Flare crash detected: speed=%.1f", (double)gps.ground_speed());
             } else {
-                gcs().send_text(MAV_SEVERITY_INFO, "Flare %.1fm sink=%.2f speed=%.1f dist=%.1f",
+                const AP_Airspeed *aspeed = ahrs.get_airspeed();
+                float ias = 0.0f;
+                if (aspeed && aspeed->enabled()) {
+                    ias = aspeed->get_airspeed();
+                }
+                gcs().send_text(MAV_SEVERITY_INFO, "Flare h=%.1fm sink=%.2f spd=%.1f dist=%i IAS=%.1f",
                                   (double)height, (double)sink_rate,
                                   (double)gps.ground_speed(),
-                                  (double)current_loc.get_distance(next_WP_loc));
+                                  (int)current_loc.get_distance(next_WP_loc),
+                                  (double)ias);
             }
             
             type_slope_stage = SLOPE_STAGE_FINAL;
