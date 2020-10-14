@@ -523,6 +523,9 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
         takeoff_state.start_loc = current_loc;
         prev_WP_loc = takeoff_state.start_loc;
     }
+
+    int16_t wp_takeoff_heading = -1; // used for reporting purposes only
+
     if (ahrs.yaw_initialised() && steer_state.hold_course_cd == -1) {
         /*
          optionally take course from location of takeoff waypoint
@@ -533,6 +536,7 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
         if ((g2.flight_options & FlightOptions::USE_TAKEOFF_LOC) &&
             !takeoff_state.start_loc.is_zero()) {
             const float loc_course_rad = takeoff_state.start_loc.get_bearing(cmd.content.location);
+            wp_takeoff_heading = wrap_360(degrees(loc_course_rad));
             const float margin = radians(15);
             // sanity check that will fail if aircraft is badly misaligned with runway
             // or there is a large nav yaw error
@@ -606,10 +610,12 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
             // so abort the takeoff. Speed threshold allows for manual repositioning
             // without false triggering.
             if (takeoff_state.start_time_ms !=0) {
-                plane.arming.disarm();
+                gcs().send_text(MAV_SEVERITY_INFO, "Takeoff aborted, yaw=%i deg (requires %i +-15)",
+                                (int)wrap_360(degrees(ahrs.yaw)),
+                                wp_takeoff_heading);
                 mission.reset();
                 takeoff_state.start_time_ms = 0;
-                gcs().send_text(MAV_SEVERITY_INFO, "Takeoff aborted - yaw error");
+                set_mode(mode_fbwa, ModeReason::UNKNOWN);
            }
         }
         nav_controller->update_level_flight();        
