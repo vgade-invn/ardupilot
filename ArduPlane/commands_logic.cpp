@@ -524,7 +524,31 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
         prev_WP_loc = takeoff_state.start_loc;
     }
 
+
+    if (!takeoff_state.decision_speed_achieved) {
+        // use ground speed if airspeed not available
+        float speed;
+        if (!ahrs.airspeed_estimate(&speed)) {
+            speed = ahrs.groundspeed();
+        }
+        // use 90% of TKOFF_ROTATE_SPD if set, otherwise set to 80% of stall speed assuming ARSPD_FBW_MIN is set to 1.2Vstall
+        const float decision_spd = is_positive(g.takeoff_rotate_speed) ? 0.9f * g.takeoff_rotate_speed : 0.67f * (float)aparm.airspeed_min;
+        takeoff_state.decision_speed_achieved = speed > decision_spd;
+    }
+
     int16_t wp_takeoff_heading = -1; // used for reporting purposes only
+
+    if ((g2.flight_options & FlightOptions::USE_TAKEOFF_LOC) &&
+        !ahrs.yaw_initialised() &&
+        !takeoff_state.ekf_yaw_aligned_to_wp &&
+        !takeoff_state.start_loc.is_zero()) {
+        // Send a yaw alignment command to the EKF's assuming the vehicle
+        // is starting takeoff pointing towards the takeoff waypoint
+        // without a yaw sensor. This will be ignored if the EKF already
+        // has aligned the yaw.
+        const float loc_course_rad = takeoff_state.start_loc.get_bearing(cmd.content.location);
+        takeoff_state.ekf_yaw_aligned_to_wp = ahrs.set_ekf_yaw_alignment(loc_course_rad);
+    }
 
     if (ahrs.yaw_initialised() && steer_state.hold_course_cd == -1) {
         /*
@@ -540,7 +564,7 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
             const float margin = radians(15);
             // sanity check that will fail if aircraft is badly misaligned with runway
             // or there is a large nav yaw error
-            if (fabsf(wrap_PI(loc_course_rad - takeoff_heading)) < margin) {
+            if (fabsf(wrap_PI(loc_course_rad - takeoff_heading)) < margin || takeoff_state.ekf_yaw_aligned_to_wp) {
                 takeoff_heading = wrap_PI(loc_course_rad);
                 takeoff_heading_set = true;
                 if (g2.flight_options & FlightOptions::TAKEOFF_XTRACK) {
@@ -585,6 +609,23 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
     }
 
     if (steer_state.hold_course_cd != -1) {
+        // abort takeoff if alignment of EKF to WP heading causes loss of navigation
+        if(takeoff_state.ekf_yaw_aligned_to_wp && !takeoff_state.decision_speed_achieved) {
+            float position_variance, vel_variance, height_variance, tas_variance;
+            Vector3f mag_variance;
+            Vector2f offset;
+            if(ahrs.get_variances(vel_variance, position_variance, height_variance, mag_variance, tas_variance, offset)) {
+                if (vel_variance > 0.7f ) {
+                    // bad variance could be casued by vehicle not aligned with mission
+                    // so abort takeoff.
+                    gcs().send_text(MAV_SEVERITY_INFO, "Takeoff aborted - bad yaw alignment");
+                    mission.reset();
+                    takeoff_state.start_time_ms = 0;
+                    set_mode(mode_fbwa, ModeReason::UNKNOWN);
+                }
+            }
+        }
+
         // Don't attempt cross-track when below slow taxi speed as it can result in limit cycling depending on
         // location of the IMU wrt the main UC wheels. USe hysteresis on speed threshold.
         if ((g2.flight_options & FlightOptions::TAKEOFF_XTRACK) && !auto_state.crosstrack && gps.ground_speed() > 2.0f) {
