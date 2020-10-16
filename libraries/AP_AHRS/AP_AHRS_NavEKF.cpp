@@ -1229,6 +1229,21 @@ void AP_AHRS_NavEKF::writeExtNavData(const Vector3f &sensOffset, const Vector3f 
     EKF2.writeExtNavData(sensOffset, pos, quat, posErr, angErr, timeStamp_ms, resetTime_ms);
 }
 
+// Sets the yaw alignment angle in radians to be used only when no previous
+// yaw alignment has occurred and the vehicle is on the ground
+// Returns true if accepted
+bool AP_AHRS_NavEKF::set_ekf_yaw_alignment(float initial_yaw)
+{
+    switch (ekf_type()) {
+    case 0:
+        return false;
+    case 2:
+        return EKF2.setYawAlignAngle(initial_yaw);
+    case 3:
+        return false;
+    }
+    return false;
+}
 
 // inhibit GPS usage
 uint8_t AP_AHRS_NavEKF::setInhibitGPS(void)

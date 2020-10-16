@@ -271,6 +271,11 @@ public:
     // check whether compass can be bypassed for arming check in case when external navigation data is available 
     bool is_ext_nav_used_for_yaw(void) const;
 
+    // Sets the yaw alignment angle in radians to be used only when no previous
+    // yaw alignment has occurred and the vehicle is on the ground
+    // Returns true if accepted
+    bool set_ekf_yaw_alignment(float yaw);
+
 private:
     enum EKF_TYPE {EKF_TYPE_NONE=0,
                    EKF_TYPE3=3,
