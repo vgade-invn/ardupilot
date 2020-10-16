@@ -171,6 +171,11 @@ public:
     // Returns false if the filter has rejected the attempt to set the origin
     bool setOriginLLH(const Location &loc);
 
+    // Sets the yaw alignment angle in radians to be used only when no previous
+    // yaw alignment has occurred and the vehicle is on the ground
+    // Returns true if the yaw alignment has been accepted
+    bool setYawAlignAngle(float yaw);
+
     // return estimated height above ground level
     // return false if ground height is not being estimated.
     bool getHAGL(float &HAGL) const;

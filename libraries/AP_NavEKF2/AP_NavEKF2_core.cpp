@@ -1567,8 +1567,9 @@ void NavEKF2_core::calcEarthRateNED(Vector3f &omega, int32_t latitude) const
     omega.z  = -earthRate*sinf(lat_rad);
 }
 
-// initialise the earth magnetic field states using declination, suppled roll/pitch
-// and magnetometer measurements and return initial attitude quaternion
+// Sets the yaw akignment angle in radians to be used only when no previous
+// yaw alignment has occurred and the vehicle is on the ground
+// Returns true if the yaw alignment has been accepted
 Quaternion NavEKF2_core::calcQuatAndFieldStates(float roll, float pitch)
 {
     // declare local variables required to calculate initial orientation and magnetic field

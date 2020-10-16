@@ -1122,6 +1122,22 @@ bool NavEKF2::setOriginLLH(const Location &loc)
     return ret;
 }
 
+// Sets the yaw alignment angle in radians to be used only when no previous
+// yaw alignment has occurred and the vehicle is on the ground
+// Returns true if the yaw alignment has been accepted by all cores
+bool NavEKF2::setYawAlignAngle(float yaw)
+{
+    if (!core) {
+        return false;
+    }
+    bool ret = true;
+    for (uint8_t i=0; i<num_cores; i++) {
+        ret &= core[i].setYawAlignAngle(yaw);
+    }
+    // return true if both cores accept the new yaw alignment angle
+    return ret;
+}
+
 // return estimated height above ground level
 // return false if ground height is not being estimated.
 bool NavEKF2::getHAGL(float &HAGL) const

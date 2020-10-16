@@ -322,6 +322,11 @@ public:
     // allow the enable flag to be set by Replay
     void set_enable(bool enable) { _enable.set(enable); }
 
+    // Sets the yaw alignment angle in radians to be used only when no previous
+    // yaw alignment has occurred and the vehicle is on the ground
+    // Returns true if the yaw alignment has been accepted by all cores
+    bool setYawAlignAngle(float yaw);
+
     // are we doing sensor logging inside the EKF?
     bool have_ekf_logging(void) const { return logging.enabled && _logging_mask != 0; }
 

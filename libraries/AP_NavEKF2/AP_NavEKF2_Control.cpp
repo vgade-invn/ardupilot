@@ -520,3 +520,45 @@ void  NavEKF2_core::updateFilterStatus(void)
     filterStatus.flags.gps_quality_good = gpsGoodToAlign;
 }
 
+// Sets the yaw alignment angle in radians to be used only when no previous
+// yaw alignment has occurred and the vehicle is on the ground
+// Returns true if the yaw alignment has been accepted
+bool NavEKF2_core::setYawAlignAngle(float yaw)
+{
+    if (yawAlignComplete || !onGround) {
+        return false;
+    }
+
+    // previous value used to calculate a reset delta
+    Quaternion prevQuat = stateStruct.quat;
+
+    // get the euler angles from the current state estimate
+    Vector3f eulerAngles;
+    stateStruct.quat.to_euler(eulerAngles.x, eulerAngles.y, eulerAngles.z);
+
+    // calculate new filter quaternion states from Euler angles
+    stateStruct.quat.from_euler(eulerAngles.x, eulerAngles.y, yaw);
+
+    // zero the attitude covariances because the correlations will now be invalid
+    zeroAttCovOnly();
+
+    // record the yaw reset event
+    recordYawReset();
+
+    // calculate the change in the quaternion state and apply it to the ouput history buffer
+    prevQuat = stateStruct.quat / prevQuat;
+    StoreQuatRotate(prevQuat);
+
+    // send initial alignment status to console
+    gcs().send_text(MAV_SEVERITY_INFO, "EKF2 IMU%u aligned to ext yaw = %.1f deg", (unsigned)imu_index, degrees(yaw));
+
+    // update the yaw reset completed status
+    recordYawReset();
+
+    // clear all pending yaw reset requests
+    gpsYawResetRequest = false;
+    magYawResetRequest = false;
+
+    return true;
+
+}
