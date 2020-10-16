@@ -525,7 +525,7 @@ void  NavEKF2_core::updateFilterStatus(void)
 // Returns true if the yaw alignment has been accepted
 bool NavEKF2_core::setYawAlignAngle(float yaw)
 {
-    if (yawAlignComplete || !onGround) {
+    if (!tiltAlignComplete || yawAlignComplete || !onGround) {
         return false;
     }
 
