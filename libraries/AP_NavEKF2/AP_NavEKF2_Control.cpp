@@ -542,9 +542,6 @@ bool NavEKF2_core::setYawAlignAngle(float yaw)
     // zero the attitude covariances because the correlations will now be invalid
     zeroAttCovOnly();
 
-    // record the yaw reset event
-    recordYawReset();
-
     // calculate the change in the quaternion state and apply it to the ouput history buffer
     prevQuat = stateStruct.quat / prevQuat;
     StoreQuatRotate(prevQuat);
