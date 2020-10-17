@@ -425,10 +425,10 @@ private:
         uint8_t accel_event_counter;
         uint32_t accel_event_ms;
         uint32_t start_time_ms;
-        Location start_loc; // when we started the takeoff
-        bool ekf_yaw_aligned_to_wp;
-        bool decision_speed_achieved;
-        uint32_t yaw_align_time_ms;
+        Location start_loc; // where we started the takeoff
+        bool yaw_aligned_to_wp; // latches true when FlightOptions::USE_TAKEOFF_LOC has been used to align yaw
+        bool decision_speed_achieved; // latches true when too fast for automatic takeoff abort
+        uint32_t yaw_align_time_ms;  // last time yaw_aligned_to_wp latched to true
     } takeoff_state;
 
     // ground steering controller state

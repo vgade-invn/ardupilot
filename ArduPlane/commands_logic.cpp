@@ -357,6 +357,10 @@ void Plane::do_takeoff(const AP_Mission::Mission_Command& cmd)
     // by default no cross-tracking in takeoff
     auto_state.crosstrack = false;
     takeoff_state.start_loc.zero();
+
+    takeoff_state.decision_speed_achieved = false;
+    takeoff_state.yaw_align_time_ms = 0;
+    takeoff_state.yaw_aligned_to_wp = false;
 }
 
 void Plane::do_nav_wp(const AP_Mission::Mission_Command& cmd)
@@ -517,15 +521,6 @@ void Plane::do_loiter_to_alt(const AP_Mission::Mission_Command& cmd)
 /********************************************************************************/
 bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
 {
-    if (!throttle_suppressed && takeoff_state.start_loc.is_zero()) {
-        // get takeoff start location when we first unsuppress the
-        // throttle
-        takeoff_state.start_loc = current_loc;
-        prev_WP_loc = takeoff_state.start_loc;
-        takeoff_state.decision_speed_achieved = false;
-    }
-
-
     if (!takeoff_state.decision_speed_achieved) {
         // use ground speed if airspeed not available or if a ground speed threshold has been specified
         float speed;
@@ -540,86 +535,99 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
             decision_spd = (float)g2.takeoff_abort_spd;
         }
         if (speed > decision_spd) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Takeoff decision speed reached at %.1f",(double)speed);
+            gcs().send_text(MAV_SEVERITY_INFO, "Takeoff decision at %.1f m/s",(double)speed);
             takeoff_state.decision_speed_achieved = true;
         }
     }
 
-    int16_t wp_takeoff_heading = -1; // used for reporting purposes only
+    float takeoff_heading = ahrs.yaw;
+    bool takeoff_heading_set = false;
 
-    if ((g2.flight_options & FlightOptions::USE_TAKEOFF_LOC) &&
-        !ahrs.yaw_initialised() &&
-        !takeoff_state.ekf_yaw_aligned_to_wp &&
-        !takeoff_state.start_loc.is_zero()) {
-        // Send a yaw alignment command to the EKF's assuming the vehicle is starting takeoff pointing
-        // towards the takeoff waypoint without a yaw sensor
-        const float loc_course_rad = takeoff_state.start_loc.get_bearing(cmd.content.location);
-        takeoff_state.ekf_yaw_aligned_to_wp = ahrs.set_ekf_yaw_alignment(loc_course_rad);
-        if (takeoff_state.ekf_yaw_aligned_to_wp) {
-            takeoff_state.yaw_align_time_ms = AP_HAL::millis();
+    // Set demanded takeoff course using bearing to takeoff waypoint at start of takeoff roll
+    if (g2.flight_options & FlightOptions::USE_TAKEOFF_LOC && !throttle_suppressed) {
+        bool abort_takeoff = false;
+
+        // align nav yaw
+        if (!takeoff_state.yaw_aligned_to_wp) {
+            // check GPS quality using EKF internal checks
+            nav_filter_status filt_status;
+            ahrs.get_filter_status(filt_status);
+            if (gps.location().is_zero() || !filt_status.flags.gps_quality_good) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Takeoff aborted - bad GPS");
+                abort_takeoff = true;
+            } else {
+                takeoff_state.start_loc = gps.location();
+                prev_WP_loc = takeoff_state.start_loc;
+                // Send a yaw alignment command to the EKF's assuming the vehicle is starting takeoff pointing
+                // towards the takeoff waypoint. This enables bad compass errors to be corrected at start of takeoff.
+                const float loc_course_rad = gps.location().get_bearing(cmd.content.location);
+                takeoff_state.yaw_aligned_to_wp = ahrs.set_ekf_yaw_alignment(loc_course_rad);
+                if (!takeoff_state.yaw_aligned_to_wp) {
+                    gcs().send_text(MAV_SEVERITY_INFO, "Takeoff aborted - yaw alignment rejected");
+                    abort_takeoff = true;
+                } else {
+                    takeoff_heading = wrap_PI(loc_course_rad);
+                    takeoff_heading_set = true;
+                    if (g2.flight_options & FlightOptions::TAKEOFF_XTRACK) {
+                        auto_state.crosstrack = true;
+                    }
+                    takeoff_state.yaw_align_time_ms = AP_HAL::millis();
+                }
+            }
+        }
+
+        if (abort_takeoff) {
+            mission.reset();
+            takeoff_state.start_time_ms = 0;
+            takeoff_state.decision_speed_achieved = false;
+            takeoff_state.yaw_align_time_ms = 0;
+            takeoff_state.yaw_aligned_to_wp = false;
+            set_mode(mode_fbwa, ModeReason::UNKNOWN);
         }
     }
 
+    // Set demanded takeoff course using initial GPS velocity vector
     if (ahrs.yaw_initialised() && steer_state.hold_course_cd == -1) {
-        /*
-         optionally take course from location of takeoff waypoint
-         and do not wait for velocity to build
-        */
-       bool takeoff_heading_set = false;
-       float takeoff_heading = ahrs.yaw;
-        if ((g2.flight_options & FlightOptions::USE_TAKEOFF_LOC) &&
-            !takeoff_state.start_loc.is_zero()) {
-            const float loc_course_rad = takeoff_state.start_loc.get_bearing(cmd.content.location);
-            wp_takeoff_heading = wrap_360(degrees(loc_course_rad));
-            const float margin = radians(15);
-            // sanity check that will fail if aircraft is badly misaligned with runway
-            // or there is a large nav yaw error
-            if (fabsf(wrap_PI(loc_course_rad - takeoff_heading)) < margin || takeoff_state.ekf_yaw_aligned_to_wp) {
-                takeoff_heading = wrap_PI(loc_course_rad);
-                takeoff_heading_set = true;
-                if (g2.flight_options & FlightOptions::TAKEOFF_XTRACK) {
-                    auto_state.crosstrack = true;
-                }
-            }
-        } else {
-            const float min_gps_speed = 5;
-            if (auto_state.takeoff_speed_time_ms == 0 &&
-                gps.status() >= AP_GPS::GPS_OK_FIX_3D &&
-                gps.ground_speed() > min_gps_speed &&
-                hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED) {
-                auto_state.takeoff_speed_time_ms = millis();
-            }
-            if (auto_state.takeoff_speed_time_ms != 0 &&
-                millis() - auto_state.takeoff_speed_time_ms >= 2000) {
-                // once we reach sufficient speed for good GPS course
-                // estimation we save our current GPS ground course
-                // corrected for summed yaw to set the take off
-                // course. This keeps wings level until we are ready to
-                // rotate, and also allows us to cope with arbitrary
-                // compass errors for auto takeoff
-                takeoff_heading = wrap_PI(radians(gps.ground_course_cd()*0.01f)) - steer_state.locked_course_err;
-                takeoff_heading = wrap_PI(takeoff_heading);
-                takeoff_heading_set = true;
-            }
+        const float min_gps_speed = 5;
+        if (auto_state.takeoff_speed_time_ms == 0 &&
+            gps.status() >= AP_GPS::GPS_OK_FIX_3D &&
+            gps.ground_speed() > min_gps_speed &&
+            hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED) {
+            auto_state.takeoff_speed_time_ms = millis();
         }
-        if (takeoff_heading_set) {
-            steer_state.hold_course_cd = wrap_360_cd(degrees(takeoff_heading)*100);
-            if (auto_state.crosstrack) {
-                gcs().send_text(MAV_SEVERITY_INFO, "Holding course %d at %.1fm/s (%.1f)",
-                                (int)steer_state.hold_course_cd,
-                                (double)gps.ground_speed(),
-                                (double)degrees(steer_state.locked_course_err));
-            } else {
-                gcs().send_text(MAV_SEVERITY_INFO, "Holding heading %d at %.1fm/s (%.1f)",
-                                (int)steer_state.hold_course_cd,
-                                (double)gps.ground_speed(),
-                                (double)degrees(steer_state.locked_course_err));
-            }
+        if (!takeoff_heading_set &&
+            auto_state.takeoff_speed_time_ms != 0 &&
+            millis() - auto_state.takeoff_speed_time_ms >= 2000) {
+            // once we reach sufficient speed for good GPS course
+            // estimation we save our current GPS ground course
+            // corrected for summed yaw to set the take off
+            // course. This keeps wings level until we are ready to
+            // rotate, and also allows us to cope with arbitrary
+            // compass errors for auto takeoff
+            takeoff_heading = wrap_PI(radians(gps.ground_course_cd()*0.01f)) - steer_state.locked_course_err;
+            takeoff_heading = wrap_PI(takeoff_heading);
+            takeoff_heading_set = true;
+        }
+    }
+
+    // set steer_state and report status
+    if (takeoff_heading_set) {
+        steer_state.hold_course_cd = wrap_360_cd(degrees(takeoff_heading)*100);
+        if (auto_state.crosstrack) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Tracking course %d at %.1fm/s (%.1f)",
+                            (int)steer_state.hold_course_cd,
+                            (double)gps.ground_speed(),
+                            (double)degrees(steer_state.locked_course_err));
+        } else {
+            gcs().send_text(MAV_SEVERITY_INFO, "Holding course %d at %.1fm/s (%.1f)",
+                            (int)steer_state.hold_course_cd,
+                            (double)gps.ground_speed(),
+                            (double)degrees(steer_state.locked_course_err));
         }
     }
 
     if (steer_state.hold_course_cd != -1) {
-        // abort takeoff if there is current or preducted loss of navigation
+        // abort takeoff if there is current or predicted loss of navigation
         if(!takeoff_state.decision_speed_achieved) {
             // check to ensure that EKF has gone into the required navigation mode allowing
             // for delay from yaw alignment to commencement of GPS use
@@ -669,19 +677,6 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
             nav_controller->update_heading_hold(steer_state.hold_course_cd);
         }
     } else {
-        if (g2.flight_options & FlightOptions::USE_TAKEOFF_LOC && gps.ground_speed() > 3.0) {
-            // Yaw error has prevented setting a ground course from the mission plan
-            // so abort the takeoff. Speed threshold allows for manual repositioning
-            // without false triggering.
-            if (takeoff_state.start_time_ms !=0) {
-                gcs().send_text(MAV_SEVERITY_INFO, "Takeoff aborted, yaw=%i deg (requires %i +-15)",
-                                (int)wrap_360(degrees(ahrs.yaw)),
-                                wp_takeoff_heading);
-                mission.reset();
-                takeoff_state.start_time_ms = 0;
-                set_mode(mode_fbwa, ModeReason::UNKNOWN);
-           }
-        }
         nav_controller->update_level_flight();        
     }
 
