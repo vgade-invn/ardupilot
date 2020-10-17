@@ -520,11 +520,11 @@ void  NavEKF2_core::updateFilterStatus(void)
     filterStatus.flags.gps_quality_good = gpsGoodToAlign;
 }
 
-// Sets the yaw alignment angle in radians to be used only when the vehicle is on the ground
+// Sets the yaw alignment angle in radians to be used only when the vehicle is not flying
 // Returns true if the yaw alignment has been accepted
 bool NavEKF2_core::setYawAlignAngle(float yaw)
 {
-    if (!tiltAlignComplete || !onGround) {
+    if (!tiltAlignComplete || inFlight) {
         return false;
     }
 
