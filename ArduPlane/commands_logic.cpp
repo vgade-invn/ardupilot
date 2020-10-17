@@ -522,18 +522,27 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
         // throttle
         takeoff_state.start_loc = current_loc;
         prev_WP_loc = takeoff_state.start_loc;
+        takeoff_state.decision_speed_achieved = false;
     }
 
 
     if (!takeoff_state.decision_speed_achieved) {
-        // use ground speed if airspeed not available
+        // use ground speed if airspeed not available or if a ground speed threshold has been specified
         float speed;
-        if (!ahrs.airspeed_estimate(&speed)) {
-            speed = ahrs.groundspeed();
+        float decision_spd;
+        if (g2.takeoff_abort_spd == 0 && ahrs.airspeed_estimate(&speed)) {
+            // using airspeed
+            // use 90% of TKOFF_ROTATE_SPD if set, otherwise set to 80% of stall speed assuming ARSPD_FBW_MIN is set to 1.2Vstall
+            decision_spd = is_positive(g.takeoff_rotate_speed) ? 0.9f * g.takeoff_rotate_speed : 0.67f * (float)aparm.airspeed_min;
+        } else {
+            // using ground speed
+            speed = gps.ground_speed();
+            decision_spd = (float)g2.takeoff_abort_spd;
         }
-        // use 90% of TKOFF_ROTATE_SPD if set, otherwise set to 80% of stall speed assuming ARSPD_FBW_MIN is set to 1.2Vstall
-        const float decision_spd = is_positive(g.takeoff_rotate_speed) ? 0.9f * g.takeoff_rotate_speed : 0.67f * (float)aparm.airspeed_min;
-        takeoff_state.decision_speed_achieved = speed > decision_spd;
+        if (speed > decision_spd) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Takeoff decision speed reached at %.1f",(double)speed);
+            takeoff_state.decision_speed_achieved = true;
+        }
     }
 
     int16_t wp_takeoff_heading = -1; // used for reporting purposes only
@@ -542,12 +551,13 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
         !ahrs.yaw_initialised() &&
         !takeoff_state.ekf_yaw_aligned_to_wp &&
         !takeoff_state.start_loc.is_zero()) {
-        // Send a yaw alignment command to the EKF's assuming the vehicle
-        // is starting takeoff pointing towards the takeoff waypoint
-        // without a yaw sensor. This will be ignored if the EKF already
-        // has aligned the yaw.
+        // Send a yaw alignment command to the EKF's assuming the vehicle is starting takeoff pointing
+        // towards the takeoff waypoint without a yaw sensor
         const float loc_course_rad = takeoff_state.start_loc.get_bearing(cmd.content.location);
         takeoff_state.ekf_yaw_aligned_to_wp = ahrs.set_ekf_yaw_alignment(loc_course_rad);
+        if (takeoff_state.ekf_yaw_aligned_to_wp) {
+            takeoff_state.yaw_align_time_ms = AP_HAL::millis();
+        }
     }
 
     if (ahrs.yaw_initialised() && steer_state.hold_course_cd == -1) {
@@ -609,8 +619,21 @@ bool Plane::verify_takeoff(const AP_Mission::Mission_Command &cmd)
     }
 
     if (steer_state.hold_course_cd != -1) {
-        // abort takeoff if alignment of EKF to WP heading causes loss of navigation
-        if(takeoff_state.ekf_yaw_aligned_to_wp && !takeoff_state.decision_speed_achieved) {
+        // abort takeoff if there is current or preducted loss of navigation
+        if(!takeoff_state.decision_speed_achieved) {
+            // check to ensure that EKF has gone into the required navigation mode allowing
+            // for delay from yaw alignment to commencement of GPS use
+            nav_filter_status filt_status;
+            ahrs.get_filter_status(filt_status);
+            if (takeoff_state.yaw_align_time_ms != 0 && AP_HAL::millis() - takeoff_state.yaw_align_time_ms > 1000 && !filt_status.flags.horiz_pos_abs) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Takeoff aborted - EKF not started");
+                mission.reset();
+                takeoff_state.start_time_ms = 0;
+                set_mode(mode_fbwa, ModeReason::UNKNOWN);
+            }
+
+            // check if EKF has a large inconsistency between GPS and inertial predicted velocity
+            // which will cause loss of navigation if takeoff continues
             float position_variance, vel_variance, height_variance, tas_variance;
             Vector3f mag_variance;
             Vector2f offset;

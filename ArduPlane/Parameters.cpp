@@ -1285,6 +1285,15 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(guidedHeading, "GUIDED_", 28, ParametersG2, AC_PID),
 #endif // OFFBOARD_GUIDED == ENABLED
 
+    // @Param: TKOFF_ABORT_SPD
+    // @DisplayName: Takeoff abort decision speed
+    // @Description: This sets the maximum ground speed threshold for an automatic takeoff abort into FBWA. If TKOFF_ABORT_SPD is zero, an airspeed check will used instead. The airspeed check threshold is set to 90% of TKOFF_ROTATE_SPD (if TKOFF_ROTATE_SPD is a positive number), otherwise it is set to 67% of ARSPD_FBW_MIN.
+    // @Range: 0 120
+    // @Increment: 1
+    // @Units: m/s
+    // @User: User
+    AP_GROUPINFO("TKOFF_ABORT_SPD", 30, ParametersG2, takeoff_abort_spd, 10),
+
     AP_GROUPEND
 };
 

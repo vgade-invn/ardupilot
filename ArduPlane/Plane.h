@@ -428,6 +428,7 @@ private:
         Location start_loc; // when we started the takeoff
         bool ekf_yaw_aligned_to_wp;
         bool decision_speed_achieved;
+        uint32_t yaw_align_time_ms;
     } takeoff_state;
 
     // ground steering controller state

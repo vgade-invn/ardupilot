@@ -555,6 +555,7 @@ public:
 
     AP_Int8 takeoff_throttle_accel_count;
     AP_Int8 takeoff_timeout;
+    AP_Int8 takeoff_abort_spd;
 
 #if LANDING_GEAR_ENABLED == ENABLED
     AP_LandingGear landing_gear;
