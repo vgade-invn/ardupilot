@@ -457,14 +457,26 @@ void NavEKF2_core::recordYawReset()
     }
 }
 
-// return true and set the class variable true if the delta angle bias has been learned
+// return true and set the class variable true if the delta angle bias
+// perpendicular to the gravity vector has been learned
 bool NavEKF2_core::checkGyroCalStatus(void)
 {
-    // check delta angle bias variances
+    // create 3x3 covaraicen matrix for body frame delta angle covariances
+    Matrix3f delAngCovBodyFrame;
+    for (uint8_t row=0; row<3; row++) {
+        for (uint8_t col=0; col<3; col++) {
+            delAngCovBodyFrame[row][col] = P[row+9][col+9];
+        }
+    }
+
+    // rotate into navigation frame where prevTnb is a rotation from nav to body frame
+    Matrix3f delAngCovNavFrame = prevTnb.transposed() * delAngCovBodyFrame * prevTnb;
+
+    // don't check vertical because rotaton about gravity vector can be large
+    // if operating without a yaw sensor
     const float delAngBiasVarMax = sq(radians(0.15f * dtEkfAvg));
-    delAngBiasLearned =  (P[9][9] <= delAngBiasVarMax) &&
-                            (P[10][10] <= delAngBiasVarMax) &&
-                            (P[11][11] <= delAngBiasVarMax);
+    delAngBiasLearned = (delAngCovNavFrame[0][0] <= delAngBiasVarMax) &&
+                        (delAngCovNavFrame[1][1] <= delAngBiasVarMax);
     return delAngBiasLearned;
 }
 
