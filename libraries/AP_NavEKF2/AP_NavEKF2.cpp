@@ -1122,8 +1122,7 @@ bool NavEKF2::setOriginLLH(const Location &loc)
     return ret;
 }
 
-// Sets the yaw alignment angle in radians to be used only when no previous
-// yaw alignment has occurred and the vehicle is on the ground
+// Sets the yaw alignment angle in radians to be used only when the vehicle is on the ground
 // Returns true if the yaw alignment has been accepted by all cores
 bool NavEKF2::setYawAlignAngle(float yaw)
 {
