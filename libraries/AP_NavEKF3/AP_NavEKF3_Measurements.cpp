@@ -331,7 +331,6 @@ void NavEKF3_core::readMagData()
     if (use_compass() &&
         compass.healthy(magSelectIndex) &&
         ((compass.last_update_usec(magSelectIndex) - lastMagUpdate_us) > 1000 * frontend->sensorIntervalMin_ms)) {
-        frontend->logging.log_compass = true;
 
         // detect changes to magnetometer offset parameters and reset states
         Vector3f nowMagOffsets = compass.get_offsets(magSelectIndex);
@@ -715,7 +714,6 @@ bool NavEKF3_core::readDeltaAngle(uint8_t ins_index, Vector3f &dAng) {
 
     if (ins_index < ins.get_gyro_count()) {
         ins.get_delta_angle(ins_index,dAng);
-        frontend->logging.log_imu = true;
         return true;
     }
     return false;
@@ -733,7 +731,6 @@ void NavEKF3_core::readBaroData()
     // limit update rate to avoid overflowing the FIFO buffer
     const AP_Baro &baro = AP::baro();
     if (baro.get_last_update(selected_baro) - lastBaroReceived_ms > frontend->sensorIntervalMin_ms) {
-        frontend->logging.log_baro = true;
 
         baroDataNew.hgt = baro.get_altitude(selected_baro);
 
