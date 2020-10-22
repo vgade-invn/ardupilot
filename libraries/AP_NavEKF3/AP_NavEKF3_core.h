@@ -24,8 +24,6 @@
     #pragma GCC optimize("O2")
 #endif
 
-#define EK3_DISABLE_INTERRUPTS 0
-
 #include <AP_Common/Location.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_Math/vectorN.h>
@@ -1418,18 +1416,6 @@ private:
 
     // string representing last reason for prearm failure
     char prearm_fail_string[40];
-
-    // performance counters
-    AP_HAL::Util::perf_counter_t  _perf_UpdateFilter;
-    AP_HAL::Util::perf_counter_t  _perf_CovariancePrediction;
-    AP_HAL::Util::perf_counter_t  _perf_FuseVelPosNED;
-    AP_HAL::Util::perf_counter_t  _perf_FuseMagnetometer;
-    AP_HAL::Util::perf_counter_t  _perf_FuseAirspeed;
-    AP_HAL::Util::perf_counter_t  _perf_FuseSideslip;
-    AP_HAL::Util::perf_counter_t  _perf_TerrainOffset;
-    AP_HAL::Util::perf_counter_t  _perf_FuseOptFlow;
-    AP_HAL::Util::perf_counter_t  _perf_FuseBodyOdom;
-    AP_HAL::Util::perf_counter_t  _perf_test[10];
 
     // earth field from WMM tables
     bool have_table_earth_field;   // true when we have initialised table_earth_field_ga

@@ -213,9 +213,6 @@ void NavEKF3_core::alignYawAngle()
 // select fusion of magnetometer data
 void NavEKF3_core::SelectMagFusion()
 {
-    // start performance timer
-    hal.util->perf_begin(_perf_FuseMagnetometer);
-
     // clear the flag that lets other processes know that the expensive magnetometer fusion operation has been performed on that time step
     // used for load levelling
     magFusePerformed = false;
@@ -398,9 +395,7 @@ void NavEKF3_core::SelectMagFusion()
                 FuseDeclination(0.34f);
             }
             // fuse the three magnetometer componenents using sequential fusion for each axis
-            hal.util->perf_begin(_perf_test[0]);
             FuseMagnetometer();
-            hal.util->perf_end(_perf_test[0]);
             // zero the test ratio output from the inactive simple magnetometer yaw fusion
             yawTestRatio = 0.0f;
         }
@@ -421,9 +416,6 @@ void NavEKF3_core::SelectMagFusion()
         bodyMagFieldVar.y = P[20][20];
         bodyMagFieldVar.z = P[21][21];
     }
-
-    // stop performance timer
-    hal.util->perf_end(_perf_FuseMagnetometer);
 }
 
 /*
