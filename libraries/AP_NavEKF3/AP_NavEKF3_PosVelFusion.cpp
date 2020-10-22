@@ -548,9 +548,6 @@ void NavEKF3_core::SelectVelPosFusion()
 // fuse selected position, velocity and height measurements
 void NavEKF3_core::FuseVelPosNED()
 {
-    // start performance timer
-    hal.util->perf_begin(_perf_FuseVelPosNED);
-
     // health is set bad until test passed
     velHealth = false;
     posHealth = false;
@@ -934,9 +931,6 @@ void NavEKF3_core::FuseVelPosNED()
             }
         }
     }
-
-    // stop performance timer
-    hal.util->perf_end(_perf_FuseVelPosNED);
 }
 
 /********************************************************
@@ -1782,14 +1776,8 @@ void NavEKF3_core::SelectBodyOdomFusion()
     // Check for data at the fusion time horizon
     if (storedBodyOdm.recall(bodyOdmDataDelayed, imuDataDelayed.time_ms)) {
 
-        // start performance timer
-        hal.util->perf_begin(_perf_FuseBodyOdom);
-
         // Fuse data into the main filter
         FuseBodyVel();
-
-        // stop the performance timer
-        hal.util->perf_end(_perf_FuseBodyOdom);
 
     } else if (storedWheelOdm.recall(wheelOdmDataDelayed, imuDataDelayed.time_ms)) {
 

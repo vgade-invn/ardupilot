@@ -12,27 +12,8 @@ extern const AP_HAL::HAL& hal;
 
 // constructor
 NavEKF3_core::NavEKF3_core(NavEKF3 *_frontend) :
-    _perf_UpdateFilter(hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_UpdateFilter")),
-    _perf_CovariancePrediction(hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_CovariancePrediction")),
-    _perf_FuseVelPosNED(hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_FuseVelPosNED")),
-    _perf_FuseMagnetometer(hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_FuseMagnetometer")),
-    _perf_FuseAirspeed(hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_FuseAirspeed")),
-    _perf_FuseSideslip(hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_FuseSideslip")),
-    _perf_TerrainOffset(hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_TerrainOffset")),
-    _perf_FuseOptFlow(hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_FuseOptFlow")),
-    _perf_FuseBodyOdom(hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_FuseBodyOdom")),
     frontend(_frontend)
 {
-    _perf_test[0] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_Test0");
-    _perf_test[1] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_Test1");
-    _perf_test[2] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_Test2");
-    _perf_test[3] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_Test3");
-    _perf_test[4] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_Test4");
-    _perf_test[5] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_Test5");
-    _perf_test[6] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_Test6");
-    _perf_test[7] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_Test7");
-    _perf_test[8] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_Test8");
-    _perf_test[9] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK3_Test9");
     firstInitTime_ms = 0;
     lastInitFailReport_ms = 0;
 }
@@ -637,12 +618,6 @@ void NavEKF3_core::UpdateFilter(bool predict)
         return;
     }
 
-    // start the timer used for load measurement
-#if EK3_DISABLE_INTERRUPTS
-    void *istate = hal.scheduler->disable_interrupts_save();
-#endif
-    hal.util->perf_begin(_perf_UpdateFilter);
-
     fill_scratch_variables();
 
     // update sensor selection (for affinity)
@@ -701,12 +676,6 @@ void NavEKF3_core::UpdateFilter(bool predict)
 
     // Wind output forward from the fusion to output time horizon
     calcOutputStates();
-
-    // stop the timer used for load measurement
-    hal.util->perf_end(_perf_UpdateFilter);
-#if EK3_DISABLE_INTERRUPTS
-    hal.scheduler->restore_interrupts(istate);
-#endif
 }
 
 void NavEKF3_core::correctDeltaAngle(Vector3f &delAng, float delAngDT, uint8_t gyro_index)
@@ -965,7 +934,6 @@ void NavEKF3_core::calcOutputStates()
 */
 void NavEKF3_core::CovariancePrediction(Vector3f *rotVarVecPtr)
 {
-    hal.util->perf_begin(_perf_CovariancePrediction);
     float daxVar;       // X axis delta angle noise variance rad^2
     float dayVar;       // Y axis delta angle noise variance rad^2
     float dazVar;       // Z axis delta angle noise variance rad^2
@@ -1669,8 +1637,6 @@ void NavEKF3_core::CovariancePrediction(Vector3f *rotVarVecPtr)
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     verifyTiltErrorVariance();
 #endif
-
-    hal.util->perf_end(_perf_CovariancePrediction);
 }
 
 // zero specified range of rows in the state covariance matrix
