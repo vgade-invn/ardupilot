@@ -29,7 +29,6 @@
 #include <AP_NavEKF/AP_Nav_Common.h>
 
 class NavEKF2_core;
-class AP_AHRS;
 
 class NavEKF2 {
     friend class NavEKF2_core;
@@ -378,7 +377,6 @@ private:
     uint8_t primary;   // current primary core
     NavEKF2_core *core = nullptr;
     bool core_malloc_failed;
-    const AP_AHRS *_ahrs;
 
     uint32_t _frameTimeUsec;        // time per IMU frame
     uint8_t  _framesPerPrediction;  // expected number of IMU frames per prediction
@@ -554,5 +552,6 @@ private:
     void Log_Write_NKF5(uint8_t core, uint64_t time_us) const;
     void Log_Write_Quaternion(uint8_t core, uint64_t time_us) const;
     void Log_Write_Beacon(uint8_t core, uint64_t time_us) const;
+    void Log_Write_Timing(uint8_t core, uint64_t time_us) const;
     void Log_Write_GSF(uint8_t core, uint64_t time_us) const;
 };

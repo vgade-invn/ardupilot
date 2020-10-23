@@ -26,7 +26,6 @@
 #include <AP_NavEKF/AP_Nav_Common.h>
 
 class NavEKF3_core;
-class AP_AHRS;
 
 class NavEKF3 {
     friend class NavEKF3_core;
@@ -436,7 +435,6 @@ private:
     uint8_t num_cores; // number of allocated cores
     uint8_t primary;   // current primary core
     NavEKF3_core *core = nullptr;
-    const AP_AHRS *_ahrs;
 
     uint32_t _frameTimeUsec;        // time per IMU frame
     uint8_t  _framesPerPrediction;  // expected number of IMU frames per prediction
@@ -613,6 +611,7 @@ private:
     void Log_Write_Beacon(uint8_t core, uint64_t time_us) const;
     void Log_Write_BodyOdom(uint8_t core, uint64_t time_us) const;
     void Log_Write_State_Variances(uint8_t core, uint64_t time_us) const;
+    void Log_Write_Timing(uint8_t core, uint64_t time_us) const;
     void Log_Write_GSF(uint8_t core, uint64_t time_us) const;
 
 };

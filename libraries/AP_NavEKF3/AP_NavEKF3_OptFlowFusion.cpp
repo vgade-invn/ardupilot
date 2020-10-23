@@ -4,8 +4,6 @@
 #include "AP_NavEKF3_core.h"
 #include <GCS_MAVLink/GCS.h>
 
-extern const AP_HAL::HAL& hal;
-
 /********************************************************
 *                   RESET FUNCTIONS                     *
 ********************************************************/

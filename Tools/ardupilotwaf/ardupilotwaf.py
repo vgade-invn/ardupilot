@@ -36,6 +36,7 @@ COMMON_VEHICLE_DEPENDENT_LIBRARIES = [
     'AP_InertialSensor',
     'AP_Math',
     'AP_Mission',
+    'AP_DAL',
     'AP_NavEKF',
     'AP_NavEKF2',
     'AP_NavEKF3',
@@ -239,6 +240,7 @@ def ap_program(bld,
         bld.fatal('Do not pass target for program')
     if 'defines' not in kw:
         kw['defines'] = []
+    print("**********defines: %s" % str(kw['defines']))
     if 'source' not in kw:
         kw['source'] = bld.path.ant_glob(SOURCE_EXTS)
 

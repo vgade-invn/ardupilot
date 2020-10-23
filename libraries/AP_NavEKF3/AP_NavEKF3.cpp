@@ -5,6 +5,8 @@
 #include <AP_Logger/AP_Logger.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 
+#include "AP_DAL/AP_DAL.h"
+
 #include <new>
 
 /*
@@ -113,8 +115,6 @@
 #define FLOW_USE_DEFAULT        1
 
 #endif // APM_BUILD_DIRECTORY
-
-extern const AP_HAL::HAL& hal;
 
 // Define tuning parameters
 const AP_Param::GroupInfo NavEKF3::var_info[] = {
@@ -656,18 +656,21 @@ const AP_Param::GroupInfo NavEKF3::var_info[] = {
 NavEKF3::NavEKF3()
 {
     AP_Param::setup_object_defaults(this, var_info);
-   _ahrs = &AP::ahrs();
 }
+
+#include <stdio.h>
 
 // Initialise the filter
 bool NavEKF3::InitialiseFilter(void)
 {
+    AP::dal().start_frame(AP_DAL::FrameType::InitialiseFilterEKF3);
+
     if (_enable == 0) {
         return false;
     }
-    const AP_InertialSensor &ins = AP::ins();
+    const auto &ins = AP::dal().ins();
 
-    imuSampleTime_us = AP_HAL::micros64();
+    imuSampleTime_us = AP::dal().micros64();
 
     // remember expected frame time
     _frameTimeUsec = 1e6 / ins.get_loop_rate_hz();
@@ -698,14 +701,14 @@ bool NavEKF3::InitialiseFilter(void)
         }
 
         // check if there is enough memory to create the EKF cores
-        if (hal.util->available_memory() < sizeof(NavEKF3_core)*num_cores + 4096) {
+        if (AP::dal().available_memory() < sizeof(NavEKF3_core)*num_cores + 4096) {
             GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 not enough memory");
             _enable.set(0);
             return false;
         }
 
         //try to allocate from CCM RAM, fallback to Normal RAM if not available or full
-        core = (NavEKF3_core*)hal.util->malloc_type(sizeof(NavEKF3_core)*num_cores, AP_HAL::Util::MEM_FAST);
+        core = (NavEKF3_core*)AP::dal().malloc_type(sizeof(NavEKF3_core)*num_cores, AP::dal().MEM_FAST);
             if (core == nullptr) {
             _enable.set(0);
             GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 allocation failed");
@@ -794,13 +797,15 @@ bool NavEKF3::coreBetterScore(uint8_t new_core, uint8_t current_core)
 */
 void NavEKF3::UpdateFilter(void)
 {
+    AP::dal().start_frame(AP_DAL::FrameType::UpdateFilterEKF3);
+
     if (!core) {
         return;
     }
 
-    imuSampleTime_us = AP_HAL::micros64();
+    imuSampleTime_us = AP::dal().micros64();
 
-    const AP_InertialSensor &ins = AP::ins();
+    const auto &ins = AP::dal().ins();
 
     bool statePredictEnabled[num_cores];
     for (uint8_t i=0; i<num_cores; i++) {
@@ -809,7 +814,7 @@ void NavEKF3::UpdateFilter(void)
         // loop then suppress the prediction step. This allows
         // multiple EKF instances to cooperate on scheduling
         if (core[i].getFramesSincePredict() < (_framesPerPrediction+3) &&
-            (AP_HAL::micros() - ins.get_last_update_usec()) > _frameTimeUsec/3) {
+            (AP::dal().micros() - ins.get_last_update_usec()) > _frameTimeUsec/3) {
             statePredictEnabled[i] = false;
         } else {
             statePredictEnabled[i] = true;
@@ -828,8 +833,8 @@ void NavEKF3::UpdateFilter(void)
         runCoreSelection = (imuSampleTime_us - lastUnhealthyTime_us) > 1E7;
     }
 
-    bool armed  = hal.util->get_soft_armed();
-    
+    const bool armed  = AP::dal().get_armed();
+
     // core selection is only available after the vehicle is armed, else forced to lane 0 if its healthy
     if (runCoreSelection && armed) {
         // update this instance's error scores for all active cores and get the primary core's error score
@@ -876,7 +881,7 @@ void NavEKF3::UpdateFilter(void)
             resetCoreErrors();
             coreLastTimePrimary_us[primary] = imuSampleTime_us;
             primary = newPrimaryIndex;
-            lastLaneSwitch_ms = AP_HAL::millis();
+            lastLaneSwitch_ms = AP::dal().millis();
             GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 lane switch %u", primary);
         }       
     }
@@ -902,7 +907,7 @@ void NavEKF3::UpdateFilter(void)
 */
 void NavEKF3::checkLaneSwitch(void)
 {
-    uint32_t now = AP_HAL::millis();
+    uint32_t now = AP::dal().millis();
     if (lastLaneSwitch_ms != 0 && now - lastLaneSwitch_ms < 5000) {
         // don't switch twice in 5 seconds
         return;
@@ -994,16 +999,16 @@ bool NavEKF3::healthy(void) const
 bool NavEKF3::pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const
 {
     if (!core) {
-        hal.util->snprintf(failure_msg, failure_msg_len, "no EKF3 cores");
+        AP::dal().snprintf(failure_msg, failure_msg_len, "no EKF3 cores");
         return false;
     }
     for (uint8_t i = 0; i < num_cores; i++) {
         if (!core[i].healthy()) {
             const char *failure = core[primary].prearm_failure_reason();
             if (failure != nullptr) {
-                hal.util->snprintf(failure_msg, failure_msg_len, failure);
+                AP::dal().snprintf(failure_msg, failure_msg_len, failure);
             } else {
-                hal.util->snprintf(failure_msg, failure_msg_len, "EKF3 core %d unhealthy", (int)i);
+                AP::dal().snprintf(failure_msg, failure_msg_len, "EKF3 core %d unhealthy", (int)i);
             }
             return false;
         }

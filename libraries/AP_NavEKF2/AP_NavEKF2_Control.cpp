@@ -2,7 +2,6 @@
 
 #include "AP_NavEKF2.h"
 #include "AP_NavEKF2_core.h"
-#include <AP_AHRS/AP_AHRS.h>
 #include <GCS_MAVLink/GCS.h>
 
 #include <stdio.h>
@@ -72,7 +71,7 @@ void NavEKF2_core::setWindMagStateLearningMode()
 
             // set the wind sate variances to the measurement uncertainty
             for (uint8_t index=22; index<=23; index++) {
-                P[index][index] = sq(constrain_float(frontend->_easNoise, 0.5f, 5.0f) * constrain_float(_ahrs->get_EAS2TAS(), 0.9f, 10.0f));
+                P[index][index] = sq(constrain_float(frontend->_easNoise, 0.5f, 5.0f) * constrain_float(AP::dal().get_EAS2TAS(), 0.9f, 10.0f));
             }
         } else {
             // set the variances using a typical wind speed
@@ -374,7 +373,7 @@ void NavEKF2_core::checkAttitudeAlignmentStatus()
 // return true if we should use the airspeed sensor
 bool NavEKF2_core::useAirspeed(void) const
 {
-    return _ahrs->airspeed_sensor_enabled();
+    return AP::dal().airspeed_sensor_enabled();
 }
 
 // return true if we should use the range finder sensor
@@ -411,7 +410,7 @@ bool NavEKF2_core::readyToUseExtNav(void) const
 // return true if we should use the compass
 bool NavEKF2_core::use_compass(void) const
 {
-    return _ahrs->get_compass() && _ahrs->get_compass()->use_for_yaw(magSelectIndex) && !allMagSensorsFailed;
+    return AP::dal().get_compass() && AP::dal().get_compass()->use_for_yaw(magSelectIndex) && !allMagSensorsFailed;
 }
 
 /*
@@ -422,7 +421,7 @@ bool NavEKF2_core::assume_zero_sideslip(void) const
     // we don't assume zero sideslip for ground vehicles as EKF could
     // be quite sensitive to a rapid spin of the ground vehicle if
     // traction is lost
-    return _ahrs->get_fly_forward() && _ahrs->get_vehicle_class() != AHRS_VEHICLE_GROUND;
+    return AP::dal().get_fly_forward() && AP::dal().get_vehicle_class() != AP_DAL::VehicleClass::GROUND;
 }
 
 // set the LLH location of the filters NED origin
@@ -548,7 +547,7 @@ void NavEKF2_core::runYawEstimatorPrediction()
             if (imuDataDelayed.time_ms - tasDataDelayed.time_ms < 5000) {
                 trueAirspeed = tasDataDelayed.tas;
             } else {
-                trueAirspeed = defaultAirSpeed * AP::ahrs().get_EAS2TAS();
+                trueAirspeed = defaultAirSpeed * AP::dal().get_EAS2TAS();
             }
         } else {
             trueAirspeed = 0.0f;

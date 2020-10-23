@@ -2,9 +2,15 @@
 
 #include <AP_HAL/HAL.h>
 #include <AP_Logger/AP_Logger.h>
+#include <AP_DAL/AP_DAL.h>
 
 void NavEKF2::Log_Write_NKF1(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     // Write first EKF packet
     Vector3f euler;
     Vector2f posNE;
@@ -46,6 +52,11 @@ void NavEKF2::Log_Write_NKF1(uint8_t _core, uint64_t time_us) const
 
 void NavEKF2::Log_Write_NKF2(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     // Write second EKF packet
     float azbias = 0;
     Vector3f wind;
@@ -81,6 +92,11 @@ void NavEKF2::Log_Write_NKF2(uint8_t _core, uint64_t time_us) const
 
 void NavEKF2::Log_Write_NKF3(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     // Write third EKF packet
     Vector3f velInnov;
     Vector3f posInnov;
@@ -111,6 +127,11 @@ void NavEKF2::Log_Write_NKF3(uint8_t _core, uint64_t time_us) const
 
 void NavEKF2::Log_Write_NKF4(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     // Write fourth EKF packet
     float velVar = 0;
     float posVar = 0;
@@ -154,6 +175,11 @@ void NavEKF2::Log_Write_NKF4(uint8_t _core, uint64_t time_us) const
 
 void NavEKF2::Log_Write_NKF5(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     if (_core != primary) {
         // log only primary instance for now
         return;
@@ -193,6 +219,11 @@ void NavEKF2::Log_Write_NKF5(uint8_t _core, uint64_t time_us) const
 
 void NavEKF2::Log_Write_Quaternion(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     // log quaternion
     Quaternion quat;
     getQuaternion(_core, quat);
@@ -214,6 +245,11 @@ void NavEKF2::Log_Write_Beacon(uint8_t _core, uint64_t time_us) const
         // log only primary instance for now
         return;
     }
+
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
 
     if (AP::beacon() != nullptr) {
         uint8_t ID;
@@ -250,6 +286,36 @@ void NavEKF2::Log_Write_Beacon(uint8_t _core, uint64_t time_us) const
     }
 }
 
+void NavEKF2::Log_Write_Timing(uint8_t _core, uint64_t time_us) const
+{
+    // log EKF timing statistics every 5s
+    static uint32_t lastTimingLogTime_ms = 0;
+    if (AP::dal().millis() - lastTimingLogTime_ms <= 5000) {
+        return;
+    }
+    lastTimingLogTime_ms = AP::dal().millis();
+
+    struct ekf_timing timing;
+    getTimingStatistics(_core, timing);
+
+    const struct log_NKT nkt{
+        LOG_PACKET_HEADER_INIT(LOG_NKT_MSG),
+        time_us      : time_us,
+        core         : _core,
+        timing_count : timing.count,
+        dtIMUavg_min : timing.dtIMUavg_min,
+        dtIMUavg_max : timing.dtIMUavg_max,
+        dtEKFavg_min : timing.dtEKFavg_min,
+        dtEKFavg_max : timing.dtEKFavg_max,
+        delAngDT_min : timing.delAngDT_min,
+        delAngDT_max : timing.delAngDT_max,
+        delVelDT_min : timing.delVelDT_min,
+        delVelDT_max : timing.delVelDT_max,
+    };
+    AP::logger().WriteBlock(&nkt, sizeof(nkt));
+}
+
+
 void NavEKF2::Log_Write()
 {
     // only log if enabled
@@ -257,7 +323,7 @@ void NavEKF2::Log_Write()
         return;
     }
 
-    const uint64_t time_us = AP_HAL::micros64();
+    const uint64_t time_us = AP::dal().micros64();
 
     // note that several of these functions exit-early if they're not
     // attempting to log the primary core.
@@ -272,22 +338,18 @@ void NavEKF2::Log_Write()
 
         // write range beacon fusion debug packet if the range value is non-zero
         Log_Write_Beacon(i, time_us);
-    }
 
-    // log EKF timing statistics every 5s
-    static uint32_t lastTimingLogTime_ms = 0;
-    if (AP_HAL::millis() - lastTimingLogTime_ms > 5000) {
-        lastTimingLogTime_ms = AP_HAL::millis();
-        struct ekf_timing timing;
-        for (uint8_t i=0; i<activeCores(); i++) {
-            getTimingStatistics(i, timing);
-            Log_EKF_Timing("NKT", i, time_us, timing);
-        }
+        Log_Write_Timing(i, time_us);
     }
 }
 
 void NavEKF2::Log_Write_GSF(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     float yaw_composite;
     float yaw_composite_variance;
     float yaw[N_MODELS_EKFGSF];

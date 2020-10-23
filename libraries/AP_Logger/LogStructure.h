@@ -117,6 +117,10 @@ const struct MultiplierStructure log_Multipliers[] = {
 #define HEAD_BYTE1  0xA3    // Decimal 163
 #define HEAD_BYTE2  0x95    // Decimal 149
 
+#include <AP_DAL/LogStructure.h>
+#include <AP_NavEKF2/LogStructure.h>
+#include <AP_NavEKF3/LogStructure.h>
+
 // structure used to define logging format
 struct LogStructure {
     uint8_t msg_type;
@@ -2683,6 +2687,9 @@ struct PACKED log_PSC {
       "ISBD",ISBD_FMT,ISBD_LABELS, ISBD_UNITS, ISBD_MULTS }, \
     { LOG_ORGN_MSG, sizeof(log_ORGN), \
       "ORGN","QBLLe","TimeUS,Type,Lat,Lng,Alt", "s-DUm", "F-GGB" },   \
+LOG_STRUCTURE_FROM_DAL \
+LOG_STRUCTURE_FROM_NAVEKF2 \
+LOG_STRUCTURE_FROM_NAVEKF3 \
     { LOG_DF_FILE_STATS, sizeof(log_DSF), \
       "DSF", "QIHIIII", "TimeUS,Dp,Blk,Bytes,FMn,FMx,FAv", "s--b---", "F--0---" }, \
     { LOG_RPM_MSG, sizeof(log_RPM), \
@@ -2810,6 +2817,10 @@ enum LogMessages : uint8_t {
     LOG_GPS_RAWH_MSG,
 
     LOG_FORMAT_MSG = 128, // this must remain #128
+
+    LOG_IDS_FROM_DAL,
+    LOG_IDS_FROM_NAVEKF2,
+    LOG_IDS_FROM_NAVEKF3,
 
     LOG_GPS_RAWS_MSG,
     LOG_ACC1_MSG,

@@ -2,13 +2,10 @@
 
 #include "AP_NavEKF3.h"
 #include "AP_NavEKF3_core.h"
-#include <AP_AHRS/AP_AHRS.h>
 #include <GCS_MAVLink/GCS.h>
-#include <AP_GPS/AP_GPS.h>
 #include <AP_VisualOdom/AP_VisualOdom.h>
 #include <AP_Logger/AP_Logger.h>
-
-extern const AP_HAL::HAL& hal;
+#include <AP_DAL/AP_DAL.h>
 
 // constructor
 NavEKF3_core::NavEKF3_core(NavEKF3 *_frontend) :
@@ -25,7 +22,6 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
     gyro_index_active = imu_index;
     accel_index_active = imu_index;
     core_index = _core_index;
-    _ahrs = frontend->_ahrs;
 
     /*
       The imu_buffer_length needs to cope with the worst case sensor delay at the
@@ -33,8 +29,8 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
      */
 
     // Calculate the expected EKF time step
-    if (AP::ins().get_loop_rate_hz() > 0) {
-        dtEkfAvg = 1.0f / AP::ins().get_loop_rate_hz();
+    if (AP::dal().ins().get_loop_rate_hz() > 0) {
+        dtEkfAvg = 1.0f / AP::dal().ins().get_loop_rate_hz();
         dtEkfAvg = MAX(dtEkfAvg,EKF_TARGET_DT);
     } else {
         return false;
@@ -52,8 +48,8 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
     if (frontend->_fusionModeGPS != 3) {
         // Wait for the configuration of all GPS units to be confirmed. Until this has occurred the GPS driver cannot provide a correct time delay
         float gps_delay_sec = 0;
-        if (!AP::gps().get_lag(selected_gps, gps_delay_sec)) {
-            const uint32_t now = AP_HAL::millis();
+        if (!AP::dal().gps().get_lag(selected_gps, gps_delay_sec)) {
+            const uint32_t now = AP::dal().millis();
             if (now - lastInitFailReport_ms > 10000) {
                 lastInitFailReport_ms = now;
                 // provide an escalating series of messages
@@ -72,7 +68,7 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
     }
 
     // airspeed sensing can have large delays and should not be included if disabled
-    if (_ahrs->airspeed_sensor_enabled()) {
+    if (AP::dal().airspeed_sensor_enabled()) {
         maxTimeDelay_ms = MAX(maxTimeDelay_ms , frontend->tasDelay_ms);
     }
 
@@ -159,7 +155,7 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
 
     if ((yawEstimator == nullptr) && (frontend->_gsfRunMask & (1U<<core_index))) {
         // check if there is enough memory to create the EKF-GSF object
-        if (hal.util->available_memory() < sizeof(EKFGSF_yaw) + 1024) {
+        if (AP::dal().available_memory() < sizeof(EKFGSF_yaw) + 1024) {
             GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 IMU%u GSF: not enough memory",(unsigned)imu_index);
             return false;
         }
@@ -184,7 +180,7 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
 void NavEKF3_core::InitialiseVariables()
 {
     // calculate the nominal filter update rate
-    const AP_InertialSensor &ins = AP::ins();
+    const auto &ins = AP::dal().ins();
     localFilterTimeStep_ms = (uint8_t)(1000*ins.get_loop_delta_t());
     localFilterTimeStep_ms = MAX(localFilterTimeStep_ms, (uint8_t)EKF_TARGET_DT_MS);
 
@@ -408,7 +404,7 @@ void NavEKF3_core::InitialiseVariables()
     storedExtNavVel.reset();
 
     // initialise pre-arm message
-    hal.util->snprintf(prearm_fail_string, sizeof(prearm_fail_string), "EKF3 still initialising");
+    AP::dal().snprintf(prearm_fail_string, sizeof(prearm_fail_string), "EKF3 still initialising");
 
     InitialiseVariablesMag();
 
@@ -458,16 +454,18 @@ timee to reduce the resulting tilt error. Yaw alignment is not performed by this
 function, but is perfomred later and initiated the SelectMagFusion() function
 after the tilt has stabilised.
 */
+#include <stdio.h>
+
 bool NavEKF3_core::InitialiseFilterBootstrap(void)
 {
     // update sensor selection (for affinity)
     update_sensor_selection();
 
     // If we are a plane and don't have GPS lock then don't initialise
-    if (assume_zero_sideslip() && AP::gps().status(preferred_gps) < AP_GPS::GPS_OK_FIX_3D) {
-        hal.util->snprintf(prearm_fail_string,
-                    sizeof(prearm_fail_string),
-                    "EKF3 init failure: No GPS lock");
+    if (assume_zero_sideslip() && AP::dal().gps().status(preferred_gps) < AP_DAL_GPS::GPS_OK_FIX_3D) {
+        AP::dal().snprintf(prearm_fail_string,
+                         sizeof(prearm_fail_string),
+                         "EKF3 init failure: No GPS lock");
         statesInitialised = false;
         return false;
     }
@@ -500,7 +498,7 @@ bool NavEKF3_core::InitialiseFilterBootstrap(void)
     Vector3f initAccVec;
 
     // TODO we should average accel readings over several cycles
-    initAccVec = AP::ins().get_accel(accel_index_active);
+    initAccVec = AP::dal().ins().get_accel(accel_index_active);
 
     // normalise the acceleration vector
     float pitch=0, roll=0;
@@ -534,7 +532,7 @@ bool NavEKF3_core::InitialiseFilterBootstrap(void)
     ResetHeight();
 
     // define Earth rotation vector in the NED navigation frame
-    calcEarthRateNED(earthRateNED, _ahrs->get_home().lat);
+    calcEarthRateNED(earthRateNED, AP::dal().get_home().lat);
 
     // initialise the covariance matrix
     CovarianceInit();
@@ -2019,7 +2017,7 @@ void NavEKF3_core::verifyTiltErrorVariance()
                         "s#rr",
                         "F-00",
                         "QBff",
-                        AP_HAL::micros64(),
+                        AP::dal().micros64(),
                         core_index,
                         tiltErrorVariance,
                         tiltErrorVarianceAlt);
