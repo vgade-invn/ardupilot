@@ -208,6 +208,9 @@ public:
     /* Write an *important* block of data at current offset */
     void WriteCriticalBlock(const void *pBuffer, uint16_t size);
 
+    /* Write a block of replay data at current offset */
+    void WriteReplayBlock(const void *pBuffer, uint16_t size);
+
     // high level interface
     uint16_t find_last_log() const;
     void get_log_boundaries(uint16_t log_num, uint32_t & start_page, uint32_t & end_page);
@@ -325,6 +328,10 @@ public:
 
     void periodic_tasks(); // may want to split this into GCS/non-GCS duties
 
+    // We may need to make sure data is loggable before starting the
+    // EKF; when allow_start_ekf we should be able to log that data
+    bool allow_start_ekf() const;
+
     // number of blocks that have been dropped
     uint32_t num_dropped(void) const;
 
@@ -332,7 +339,7 @@ public:
     void set_force_log_disarmed(bool force_logging) { _force_log_disarmed = force_logging; }
     bool log_while_disarmed(void) const;
     uint8_t log_replay(void) const { return _params.log_replay; }
-    
+
     vehicle_startup_message_Writer _vehicle_messages;
 
     // parameter support

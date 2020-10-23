@@ -3,8 +3,15 @@
 #include <AP_HAL/HAL.h>
 #include <AP_Logger/AP_Logger.h>
 
+#include <AP_DAL/AP_DAL.h>
+
 void NavEKF3::Log_Write_XKF1(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
 	// Write first EKF packet
     Vector3f euler;
     Vector2f posNE;
@@ -46,6 +53,11 @@ void NavEKF3::Log_Write_XKF1(uint8_t _core, uint64_t time_us) const
 
 void NavEKF3::Log_Write_XKF2(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     // Write second EKF packet
     Vector3f accelBias;
     Vector3f wind;
@@ -76,6 +88,11 @@ void NavEKF3::Log_Write_XKF2(uint8_t _core, uint64_t time_us) const
 
 void NavEKF3::Log_Write_XKFS(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     // Write sensor selection EKF packet
     uint8_t magIndex = getActiveMag(_core);
     uint8_t baroIndex = getActiveBaro(_core);
@@ -95,6 +112,11 @@ void NavEKF3::Log_Write_XKFS(uint8_t _core, uint64_t time_us) const
 
 void NavEKF3::Log_Write_XKF3(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     // Write third EKF packet
     Vector3f velInnov;
     Vector3f posInnov;
@@ -125,6 +147,11 @@ void NavEKF3::Log_Write_XKF3(uint8_t _core, uint64_t time_us) const
 
 void NavEKF3::Log_Write_XKF4(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     // Write fourth EKF packet
     float velVar = 0;
     float posVar = 0;
@@ -174,6 +201,11 @@ void NavEKF3::Log_Write_XKF5(uint8_t _core, uint64_t time_us) const
         return;
     }
 
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     // Write fifth EKF packet
     float normInnov=0; // normalised innovation variance ratio for optical flow observations fused by the main nav filter
     float gndOffset=0; // estimated vertical position of the terrain relative to the nav filter zero datum
@@ -208,6 +240,11 @@ void NavEKF3::Log_Write_XKF5(uint8_t _core, uint64_t time_us) const
 
 void NavEKF3::Log_Write_Quaternion(uint8_t _core, uint64_t time_us) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     // log quaternion
     Quaternion quat;
     getQuaternion(_core, quat);
@@ -229,6 +266,11 @@ void NavEKF3::Log_Write_Beacon(uint8_t _core, uint64_t time_us) const
         // log only primary instance for now
         return;
     }
+
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
 
     // write range beacon fusion debug packet if the range value is non-zero
     uint8_t ID;
@@ -273,6 +315,11 @@ void NavEKF3::Log_Write_BodyOdom(uint8_t _core, uint64_t time_us) const
         return;
     }
 
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     Vector3f velBodyInnov,velBodyInnovVar;
     static uint32_t lastUpdateTime_ms = 0;
     uint32_t updateTime_ms = getBodyFrameOdomDebug(_core, velBodyInnov, velBodyInnovVar);
@@ -300,9 +347,14 @@ void NavEKF3::Log_Write_State_Variances(uint8_t _core, uint64_t time_us) const
         return;
     }
 
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    // Replay results come in at 100 + core
+    _core += 100;
+#endif
+
     static uint32_t lastEkfStateVarLogTime_ms = 0;
-    if (AP_HAL::millis() - lastEkfStateVarLogTime_ms > 490) {
-        lastEkfStateVarLogTime_ms = AP_HAL::millis();
+    if (AP::dal().millis() - lastEkfStateVarLogTime_ms > 490) {
+        lastEkfStateVarLogTime_ms = AP::dal().millis();
         float stateVar[24];
         getStateVariances(_core, stateVar);
         const struct log_ekfStateVar pktv1{
@@ -351,7 +403,7 @@ void NavEKF3::Log_Write()
         return;
     }
 
-    uint64_t time_us = AP_HAL::micros64();
+    uint64_t time_us = AP::dal().micros64();
 
     // note that several of these functions exit-early if they're not
     // attempting to log the primary core.
@@ -374,18 +426,38 @@ void NavEKF3::Log_Write()
 
         // log state variances every 0.49s
         Log_Write_State_Variances(i, time_us);
-    }
 
+        Log_Write_Timing(i, time_us);
+    }
+}
+
+void NavEKF3::Log_Write_Timing(uint8_t _core, uint64_t time_us) const
+{
     // log EKF timing statistics every 5s
     static uint32_t lastTimingLogTime_ms = 0;
-    if (AP_HAL::millis() - lastTimingLogTime_ms > 5000) {
-        lastTimingLogTime_ms = AP_HAL::millis();
-        struct ekf_timing timing;
-        for (uint8_t i=0; i<activeCores(); i++) {
-            getTimingStatistics(i, timing);
-            Log_EKF_Timing("XKT", i, time_us, timing);
-        }
+    if (AP::dal().millis() - lastTimingLogTime_ms <= 5000) {
+        return;
     }
+    lastTimingLogTime_ms = AP::dal().millis();
+
+    struct ekf_timing timing;
+    getTimingStatistics(_core, timing);
+
+    const struct log_XKT xkt{
+        LOG_PACKET_HEADER_INIT(LOG_XKT_MSG),
+        time_us      : time_us,
+        core         : _core,
+        timing_count : timing.count,
+        dtIMUavg_min : timing.dtIMUavg_min,
+        dtIMUavg_max : timing.dtIMUavg_max,
+        dtEKFavg_min : timing.dtEKFavg_min,
+        dtEKFavg_max : timing.dtEKFavg_max,
+        delAngDT_min : timing.delAngDT_min,
+        delAngDT_max : timing.delAngDT_max,
+        delVelDT_min : timing.delVelDT_min,
+        delVelDT_max : timing.delVelDT_max,
+    };
+    AP::logger().WriteBlock(&xkt, sizeof(xkt));
 }
 
 void NavEKF3::Log_Write_GSF(uint8_t _core, uint64_t time_us) const

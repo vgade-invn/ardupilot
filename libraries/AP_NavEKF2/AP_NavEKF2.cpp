@@ -609,12 +609,13 @@ const AP_Param::GroupInfo NavEKF2::var_info[] = {
 NavEKF2::NavEKF2()
 {
     AP_Param::setup_object_defaults(this, var_info);
-    _ahrs = &AP::ahrs();
 }
 
 // Initialise the filter
 bool NavEKF2::InitialiseFilter(void)
 {
+    AP::dal().start_frame(AP_DAL::FrameType::InitialiseFilterEKF2);
+
     // Return immediately if there is insufficient memory
     if (core_malloc_failed) {
         return false;
@@ -622,14 +623,14 @@ bool NavEKF2::InitialiseFilter(void)
 
     initFailure = InitFailures::UNKNOWN;
     if (_enable == 0) {
-        if (_ahrs->get_ekf_type() == 2) {
+        if (AP::dal().get_ekf_type() == 2) {
             initFailure = InitFailures::NO_ENABLE;
         }
         return false;
     }
-    const AP_InertialSensor &ins = AP::ins();
+    const auto &ins = AP::dal().ins();
 
-    imuSampleTime_us = AP_HAL::micros64();
+    imuSampleTime_us = AP::dal().micros64();
 
     // remember expected frame time
     _frameTimeUsec = 1e6 / ins.get_loop_rate_hz();
@@ -745,13 +746,15 @@ bool NavEKF2::coreBetterScore(uint8_t new_core, uint8_t current_core) const
 // Update Filter States - this should be called whenever new IMU data is available
 void NavEKF2::UpdateFilter(void)
 {
+    AP::dal().start_frame(AP_DAL::FrameType::UpdateFilterEKF2);
+
     if (!core) {
         return;
     }
 
-    imuSampleTime_us = AP_HAL::micros64();
+    imuSampleTime_us = AP::dal().micros64();
     
-    const AP_InertialSensor &ins = AP::ins();
+    const auto &ins = AP::dal().ins();
 
     bool statePredictEnabled[num_cores];
     for (uint8_t i=0; i<num_cores; i++) {
@@ -760,7 +763,7 @@ void NavEKF2::UpdateFilter(void)
         // loop then suppress the prediction step. This allows
         // multiple EKF instances to cooperate on scheduling
         if (core[i].getFramesSincePredict() < (_framesPerPrediction+3) &&
-            (AP_HAL::micros() - ins.get_last_update_usec()) > _frameTimeUsec/3) {
+            (AP::dal().micros() - ins.get_last_update_usec()) > _frameTimeUsec/3) {
             statePredictEnabled[i] = false;
         } else {
             statePredictEnabled[i] = true;
@@ -804,7 +807,7 @@ void NavEKF2::UpdateFilter(void)
             updateLaneSwitchPosResetData(newPrimaryIndex, primary);
             updateLaneSwitchPosDownResetData(newPrimaryIndex, primary);
             primary = newPrimaryIndex;
-            lastLaneSwitch_ms = AP_HAL::millis();
+            lastLaneSwitch_ms = AP::dal().millis();
         }
     }
 
@@ -829,7 +832,7 @@ void NavEKF2::UpdateFilter(void)
 */
 void NavEKF2::checkLaneSwitch(void)
 {
-    uint32_t now = AP_HAL::millis();
+    uint32_t now = AP::dal().millis();
     if (lastLaneSwitch_ms != 0 && now - lastLaneSwitch_ms < 5000) {
         // don't switch twice in 5 seconds
         return;

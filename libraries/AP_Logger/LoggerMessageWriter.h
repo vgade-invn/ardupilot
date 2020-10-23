@@ -93,6 +93,7 @@ public:
     void reset() override;
     void process() override;
     bool fmt_done() { return _fmt_done; }
+    bool params_done() { return _params_done; }
 
     // reset some writers so we push stuff out to logs again.  Will
     // only work if we are in state DONE!
@@ -113,6 +114,7 @@ private:
     };
 
     bool _fmt_done;
+    bool _params_done;
 
     Stage stage;
 

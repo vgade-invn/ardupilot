@@ -84,8 +84,6 @@
 // number of continuous valid GSF yaw estimates required to confirm valid hostory
 #define GSF_YAW_VALID_HISTORY_THRESHOLD 5
 
-class AP_AHRS;
-
 class NavEKF3_core : public NavEKF_core_common
 {
 public:
@@ -514,8 +512,6 @@ private:
     typedef ftype Matrix34_50[34][50];
     typedef uint32_t Vector_u32_50[50];
 #endif
-
-    const AP_AHRS *_ahrs;
 
     // the states are available in two forms, either as a Vector24, or
     // broken down as individual elements. Both are equivalent (same

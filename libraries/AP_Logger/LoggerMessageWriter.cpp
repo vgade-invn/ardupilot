@@ -32,6 +32,7 @@ void LoggerMessageWriter_DFLogStart::reset()
     LoggerMessageWriter::reset();
 
     _fmt_done = false;
+    _params_done = false;
     _writesysinfo.reset();
     _writeentiremission.reset();
     _writeallrallypoints.reset();
@@ -69,6 +70,18 @@ void LoggerMessageWriter_DFLogStart::process()
             next_format_to_send++;
         }
         _fmt_done = true;
+        stage = Stage::PARMS;
+        FALLTHROUGH;
+
+    case Stage::PARMS:
+        while (ap) {
+            if (!_logger_backend->Write_Parameter(ap, token, type)) {
+                return;
+            }
+            ap = AP_Param::next_scalar(&token, &type);
+        }
+
+        _params_done = true;
         stage = Stage::UNITS;
         FALLTHROUGH;
 
@@ -99,17 +112,6 @@ void LoggerMessageWriter_DFLogStart::process()
             }
             _next_format_unit_to_send++;
         }
-        stage = Stage::PARMS;
-        FALLTHROUGH;
-
-    case Stage::PARMS:
-        while (ap) {
-            if (!_logger_backend->Write_Parameter(ap, token, type)) {
-                return;
-            }
-            ap = AP_Param::next_scalar(&token, &type);
-        }
-
         stage = Stage::RUNNING_SUBWRITERS;
         FALLTHROUGH;
 

@@ -3,10 +3,8 @@
 #include "AP_NavEKF3.h"
 #include "AP_NavEKF3_core.h"
 
-#include <AP_Compass/AP_Compass.h>
 #include <GCS_MAVLink/GCS.h>
-
-extern const AP_HAL::HAL& hal;
+#include <AP_DAL/AP_DAL.h>
 
 /********************************************************
 *                   RESET FUNCTIONS                     *
@@ -1476,7 +1474,7 @@ bool NavEKF3_core::EKFGSF_resetMainFilterYaw()
         EKFGSF_yaw_reset_ms = imuSampleTime_ms;
         EKFGSF_yaw_reset_count++;
 
-        if (!use_compass() || AP::compass().get_num_enabled() == 0) {
+        if (!use_compass() || AP::dal().compass().get_num_enabled() == 0) {
             GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u yaw aligned using GPS",(unsigned)imu_index);
         } else {
             GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF3 IMU%u emergency yaw reset",(unsigned)imu_index);

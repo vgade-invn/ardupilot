@@ -651,6 +651,14 @@ void AP_Logger::WriteBlock(const void *pBuffer, uint16_t size) {
     FOR_EACH_BACKEND(WriteBlock(pBuffer, size));
 }
 
+// start functions pass straight through to backend:
+void AP_Logger::WriteReplayBlock(const void *pBuffer, uint16_t size) {
+    if (!log_replay()) {
+        return;
+    }
+    WriteBlock(pBuffer, size);
+}
+
 void AP_Logger::WriteCriticalBlock(const void *pBuffer, uint16_t size) {
     FOR_EACH_BACKEND(WriteCriticalBlock(pBuffer, size));
 }
@@ -877,6 +885,20 @@ void AP_Logger::WriteV(const char *name, const char *labels, const char *units, 
     }
 }
 
+bool AP_Logger::allow_start_ekf() const
+{
+    if (!AP::logger().log_replay()) {
+        return true;
+    }
+
+    for (uint8_t i=0; i<_next_backend; i++) {
+        if (!backends[i]->allow_start_ekf()) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 void AP_Logger::assert_same_fmt_for_name(const AP_Logger::log_write_fmt *f,
@@ -1253,6 +1275,9 @@ bool AP_Logger::log_while_disarmed(void) const
         return true;
     }
     if (_params.log_disarmed != 0) {
+        return true;
+    }
+    if (_params.log_replay != 0) {
         return true;
     }
 

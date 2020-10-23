@@ -1,10 +1,8 @@
 #include <AP_HAL/AP_HAL.h>
 
 #include "AP_NavEKF2_core.h"
-#include <AP_AHRS/AP_AHRS.h>
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <GCS_MAVLink/GCS.h>
-#include <AP_GPS/AP_GPS.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -20,7 +18,7 @@ extern const AP_HAL::HAL& hal;
 */
 void NavEKF2_core::calcGpsGoodToAlign(void)
 {
-    const AP_GPS &gps = AP::gps();
+    const auto &gps = AP::dal().gps();
 
     if (inFlight && assume_zero_sideslip() && !use_compass()) {
         // this is a special case where a plane has launched without magnetometer
@@ -95,7 +93,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
         // if we have a 3D fix with no vertical velocity and
         // EK2_GPS_TYPE=0 then change it to 1. It means the GPS is not
         // capable of giving a vertical velocity
-        if (gps.status() >= AP_GPS::GPS_OK_FIX_3D) {
+        if (gps.status() >= AP_DAL_GPS::GPS_OK_FIX_3D) {
             frontend->_fusionModeGPS.set(1);
             gcs().send_text(MAV_SEVERITY_WARNING, "EK2: Changed EK2_GPS_TYPE to 1");
         }
@@ -266,7 +264,7 @@ void NavEKF2_core::calcGpsGoodForFlight(void)
 
     // get the receivers reported speed accuracy
     float gpsSpdAccRaw;
-    if (!AP::gps().speed_accuracy(gpsSpdAccRaw)) {
+    if (!AP::dal().gps().speed_accuracy(gpsSpdAccRaw)) {
         gpsSpdAccRaw = 0.0f;
     }
 
@@ -326,9 +324,9 @@ void NavEKF2_core::detectFlight()
         bool largeHgtChange = false;
 
         // trigger at 8 m/s airspeed
-        if (_ahrs->airspeed_sensor_enabled()) {
-            const AP_Airspeed *airspeed = _ahrs->get_airspeed();
-            if (airspeed->get_airspeed() * AP::ahrs().get_EAS2TAS() > 10.0f) {
+        if (AP::dal().airspeed_sensor_enabled()) {
+            const auto *airspeed = AP::dal().airspeed();
+            if (airspeed->get_airspeed() * AP::dal().get_EAS2TAS() > 10.0f) {
                 highAirSpd = true;
             }
         }
@@ -481,7 +479,7 @@ void NavEKF2_core::detectOptFlowTakeoff(void)
 {
     if (!onGround && !takeOffDetected && (imuSampleTime_ms - timeAtArming_ms) > 1000) {
         // we are no longer confidently on the ground so check the range finder and gyro for signs of takeoff
-        const AP_InertialSensor &ins = AP::ins();
+        const auto &ins = AP::dal().ins();
         Vector3f angRateVec;
         Vector3f gyroBias;
         getGyroBias(gyroBias);

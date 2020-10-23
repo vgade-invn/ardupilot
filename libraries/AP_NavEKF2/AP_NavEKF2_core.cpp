@@ -2,9 +2,7 @@
 
 #include "AP_NavEKF2.h"
 #include "AP_NavEKF2_core.h"
-#include <AP_AHRS/AP_AHRS.h>
 #include <GCS_MAVLink/GCS.h>
-#include <AP_GPS/AP_GPS.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -43,7 +41,6 @@ bool NavEKF2_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
     gyro_index_active = _imu_index;
     accel_index_active = _imu_index;
     core_index = _core_index;
-    _ahrs = frontend->_ahrs;
 
     /*
       the imu_buffer_length needs to cope with a 260ms delay at a
@@ -51,7 +48,7 @@ bool NavEKF2_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
       than 100Hz is downsampled. For 50Hz main loop rate we need a
       shorter buffer.
      */
-    if (AP::ins().get_loop_rate_hz() < 100) {
+    if (AP::dal().ins().get_loop_rate_hz() < 100) {
         imu_buffer_length = 13;
     } else {
         // maximum 260 msec delay at 100 Hz fusion rate
@@ -120,7 +117,7 @@ bool NavEKF2_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
 void NavEKF2_core::InitialiseVariables()
 {
     // calculate the nominal filter update rate
-    const AP_InertialSensor &ins = AP::ins();
+    const auto &ins = AP::dal().ins();
     localFilterTimeStep_ms = (uint8_t)(1000*ins.get_loop_delta_t());
     localFilterTimeStep_ms = MAX(localFilterTimeStep_ms,10);
 
@@ -376,7 +373,7 @@ void NavEKF2_core::InitialiseVariablesMag()
 bool NavEKF2_core::InitialiseFilterBootstrap(void)
 {
     // If we are a plane and don't have GPS lock then don't initialise
-    if (assume_zero_sideslip() && AP::gps().status() < AP_GPS::GPS_OK_FIX_3D) {
+    if (assume_zero_sideslip() && AP::dal().gps().status(AP::dal().gps().primary_sensor()) < AP_DAL_GPS::GPS_OK_FIX_3D) {
         hal.util->snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
                            "EKF2 init failure: No GPS lock");
@@ -398,7 +395,7 @@ bool NavEKF2_core::InitialiseFilterBootstrap(void)
     // set re-used variables to zero
     InitialiseVariables();
 
-    const AP_InertialSensor &ins = AP::ins();
+    const auto &ins = AP::dal().ins();
 
     // Initialise IMU data
     dtIMUavg = ins.get_loop_delta_t();
@@ -455,7 +452,7 @@ bool NavEKF2_core::InitialiseFilterBootstrap(void)
     ResetHeight();
 
     // define Earth rotation vector in the NED navigation frame
-    calcEarthRateNED(earthRateNED, _ahrs->get_home().lat);
+    calcEarthRateNED(earthRateNED, AP::dal().get_home().lat);
 
     // initialise the covariance matrix
     CovarianceInit();
@@ -541,7 +538,7 @@ void NavEKF2_core::UpdateFilter(bool predict)
 #if ENABLE_EKF_TIMING
     void *istate = hal.scheduler->disable_interrupts_save();
     static uint32_t timing_start_us;
-    timing_start_us = AP_HAL::micros();
+    timing_start_us = AP::dal().micros();
 #endif
 
     fill_scratch_variables();
@@ -604,7 +601,7 @@ void NavEKF2_core::UpdateFilter(bool predict)
 #if ENABLE_EKF_TIMING
     static uint32_t total_us;
     static uint32_t timing_counter;
-    total_us += AP_HAL::micros() - timing_start_us;
+    total_us += AP::dal().micros() - timing_start_us;
     if (timing_counter++ == 4000) {
         hal.console->printf("ekf2 avg %.2f us\n", total_us / float(timing_counter));
         total_us = 0;
@@ -621,11 +618,11 @@ void NavEKF2_core::UpdateFilter(bool predict)
       it try again.
      */
     if (filterStatus.value != 0) {
-        last_filter_ok_ms = AP_HAL::millis();
+        last_filter_ok_ms = AP::dal().millis();
     }
     if (filterStatus.value == 0 &&
         last_filter_ok_ms != 0 &&
-        AP_HAL::millis() - last_filter_ok_ms > 5000 &&
+        AP::dal().millis() - last_filter_ok_ms > 5000 &&
         !hal.util->get_soft_armed()) {
         // we've been unhealthy for 5 seconds after being healthy, reset the filter
         gcs().send_text(MAV_SEVERITY_WARNING, "EKF2 IMU%u forced reset",(unsigned)imu_index);
