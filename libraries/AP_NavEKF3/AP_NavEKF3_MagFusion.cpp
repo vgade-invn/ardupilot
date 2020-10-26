@@ -96,7 +96,7 @@ void NavEKF3_core::controlMagYawReset()
     if (magYawResetRequest && use_compass()) {
         // send initial alignment status to console
         if (!yawAlignComplete) {
-            gcs().send_text(MAV_SEVERITY_INFO, "EKF3 IMU%u initial yaw alignment complete",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u initial yaw alignment complete",(unsigned)imu_index);
         }
 
         // set yaw from a single mag sample
@@ -104,10 +104,10 @@ void NavEKF3_core::controlMagYawReset()
 
         // send in-flight yaw alignment status to console
         if (finalResetRequest) {
-            gcs().send_text(MAV_SEVERITY_INFO, "EKF3 IMU%u in-flight yaw alignment complete",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u in-flight yaw alignment complete",(unsigned)imu_index);
         } else if (interimResetRequest) {
             magYawAnomallyCount++;
-            gcs().send_text(MAV_SEVERITY_WARNING, "EKF3 IMU%u ground mag anomaly, yaw re-aligned",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF3 IMU%u ground mag anomaly, yaw re-aligned",(unsigned)imu_index);
         }
 
         // clear the complete flags if an interim reset has been performed to allow subsequent
@@ -166,7 +166,7 @@ void NavEKF3_core::realignYawGPS()
             ResetPosition(resetDataSource::GPS);
 
             // send yaw alignment information to console
-            gcs().send_text(MAV_SEVERITY_INFO, "EKF3 IMU%u yaw aligned to GPS velocity",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u yaw aligned to GPS velocity",(unsigned)imu_index);
 
             if (use_compass()) {
                 // request a mag field reset which may enable us to use the magnetometer if the previous fault was due to bad initialisation
@@ -187,7 +187,7 @@ void NavEKF3_core::alignYawAngle()
     resetQuatStateYawOnly(yawAngDataDelayed.yawAng, sq(MAX(yawAngDataDelayed.yawAngErr, 1.0e-2f)), order);
 
     // send yaw alignment information to console
-    gcs().send_text(MAV_SEVERITY_INFO, "EKF3 IMU%u yaw aligned",(unsigned)imu_index);
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u yaw aligned",(unsigned)imu_index);
 }
 
 /********************************************************
@@ -310,7 +310,7 @@ void NavEKF3_core::SelectMagFusion()
         if (have_fused_gps_yaw) {
             if (gps_yaw_mag_fallback_active) {
                 gps_yaw_mag_fallback_active = false;
-                gcs().send_text(MAV_SEVERITY_INFO, "EKF3 IMU%u yaw external",(unsigned)imu_index);
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u yaw external",(unsigned)imu_index);
             }
             // update mag bias from GPS yaw
             gps_yaw_mag_fallback_ok = learnMagBiasFromGPS();
@@ -334,7 +334,7 @@ void NavEKF3_core::SelectMagFusion()
         }
         if (!gps_yaw_mag_fallback_active) {
             gps_yaw_mag_fallback_active = true;
-            gcs().send_text(MAV_SEVERITY_INFO, "EKF3 IMU%u yaw fallback active",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u yaw fallback active",(unsigned)imu_index);
         }
         // fall through to magnetometer fusion
     }
@@ -1485,9 +1485,9 @@ bool NavEKF3_core::EKFGSF_resetMainFilterYaw()
         EKFGSF_yaw_reset_count++;
 
         if (!use_compass() || AP::compass().get_num_enabled() == 0) {
-            gcs().send_text(MAV_SEVERITY_INFO, "EKF3 IMU%u yaw aligned using GPS",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u yaw aligned using GPS",(unsigned)imu_index);
         } else {
-            gcs().send_text(MAV_SEVERITY_WARNING, "EKF3 IMU%u emergency yaw reset",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF3 IMU%u emergency yaw reset",(unsigned)imu_index);
         }
 
         // Fail the magnetomer so it doesn't get used and pull the yaw away from the correct value
