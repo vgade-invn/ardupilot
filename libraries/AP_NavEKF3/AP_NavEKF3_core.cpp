@@ -82,7 +82,7 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
                 } else if (now > 15000) {
                     severity = MAV_SEVERITY_WARNING;
                 }
-                gcs().send_text(severity, "EKF3 waiting for GPS config data");
+                GCS_SEND_TEXT(severity, "EKF3 waiting for GPS config data");
             }
             return false;
         }
@@ -168,7 +168,7 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
     if(!storedOutput.init(imu_buffer_length)) {
         return false;
     }
-    gcs().send_text(MAV_SEVERITY_INFO, "EKF3 IMU%u buffs IMU=%u OBS=%u OF=%u EN:%u dt=%.4f",
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u buffs IMU=%u OBS=%u OF=%u EN:%u dt=%.4f",
                     (unsigned)imu_index,
                     (unsigned)imu_buffer_length,
                     (unsigned)obs_buffer_length,
@@ -179,14 +179,14 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
     if ((yawEstimator == nullptr) && (frontend->_gsfRunMask & (1U<<core_index))) {
         // check if there is enough memory to create the EKF-GSF object
         if (hal.util->available_memory() < sizeof(EKFGSF_yaw) + 1024) {
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF3 IMU%u GSF: not enough memory",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 IMU%u GSF: not enough memory",(unsigned)imu_index);
             return false;
         }
 
         // try to instantiate
         yawEstimator = new EKFGSF_yaw();
         if (yawEstimator == nullptr) {
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF3 IMU%uGSF: allocation failed",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 IMU%uGSF: allocation failed",(unsigned)imu_index);
             return false;
         }
     }
@@ -570,7 +570,7 @@ bool NavEKF3_core::InitialiseFilterBootstrap(void)
         inactiveBias[i].accel_bias.zero();
     }
 
-    gcs().send_text(MAV_SEVERITY_INFO, "EKF3 IMU%u initialised",(unsigned)imu_index);
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u initialised",(unsigned)imu_index);
 
     // we initially return false to wait for the IMU buffer to fill
     return false;

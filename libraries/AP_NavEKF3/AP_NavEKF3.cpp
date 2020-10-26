@@ -736,7 +736,7 @@ bool NavEKF3::InitialiseFilter(void)
 
         // check if there is enough memory to create the EKF cores
         if (hal.util->available_memory() < sizeof(NavEKF3_core)*num_cores + 4096) {
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF3 not enough memory");
+            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 not enough memory");
             _enable.set(0);
             return false;
         }
@@ -745,7 +745,7 @@ bool NavEKF3::InitialiseFilter(void)
         core = (NavEKF3_core*)hal.util->malloc_type(sizeof(NavEKF3_core)*num_cores, AP_HAL::Util::MEM_FAST);
             if (core == nullptr) {
             _enable.set(0);
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF3 allocation failed");
+            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 allocation failed");
             return false;
         }
 
@@ -915,7 +915,7 @@ void NavEKF3::UpdateFilter(void)
             coreLastTimePrimary_us[primary] = imuSampleTime_us;
             primary = newPrimaryIndex;
             lastLaneSwitch_ms = AP_HAL::millis();
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF3 lane switch %u", primary);
+            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 lane switch %u", primary);
         }       
     }
 
@@ -971,7 +971,7 @@ void NavEKF3::checkLaneSwitch(void)
         updateLaneSwitchPosDownResetData(newPrimaryIndex, primary);
         primary = newPrimaryIndex;
         lastLaneSwitch_ms = now;
-        gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF3 lane switch %u", primary);
+        GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 lane switch %u", primary);
     }
 }
 
@@ -1332,7 +1332,7 @@ bool NavEKF3::setOriginLLH(const Location &loc)
         // we don't allow setting of the EKF origin unless we are
         // flying in non-GPS mode. This is to prevent accidental set
         // of EKF origin with invalid position or height
-        gcs().send_text(MAV_SEVERITY_WARNING, "EKF3 refusing set origin");
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF3 refusing set origin");
         return false;
     }
     bool ret = false;
