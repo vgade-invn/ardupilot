@@ -1,5 +1,7 @@
 #pragma once
 
+#include <AP_Common/AP_Common.h>
+
 // if you add any new types, units or multipliers, please update README.md
 
 /*
