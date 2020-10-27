@@ -13,6 +13,8 @@ public:
         _logger_backend = backend;
     }
 
+    bool out_of_time_for_writing_messages() const;
+
 protected:
     bool _finished = false;
     AP_Logger_Backend *_logger_backend = nullptr;
@@ -85,6 +87,8 @@ public:
         _writeentiremission.set_logger_backend(backend);
         _writeallrallypoints.set_logger_backend(backend);
     }
+
+    bool out_of_time_for_writing_messages() const;
 
     void reset() override;
     void process() override;

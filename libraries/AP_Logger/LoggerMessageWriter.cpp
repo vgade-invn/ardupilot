@@ -22,6 +22,11 @@ void LoggerMessageWriter::reset()
     _finished = false;
 }
 
+bool LoggerMessageWriter::out_of_time_for_writing_messages() const
+{
+    return AP::scheduler().time_available_usec() < MIN_LOOP_TIME_REMAINING_FOR_MESSAGE_WRITE_US;
+}
+
 void LoggerMessageWriter_DFLogStart::reset()
 {
     LoggerMessageWriter::reset();
@@ -39,15 +44,25 @@ void LoggerMessageWriter_DFLogStart::reset()
     ap = AP_Param::first(&token, &type);
 }
 
+bool LoggerMessageWriter_DFLogStart::out_of_time_for_writing_messages() const
+{
+    if (stage == Stage::FORMATS) {
+        // write out the FMT messages as fast as we can
+        return AP::scheduler().time_available_usec() == 0;
+    }
+    return LoggerMessageWriter::out_of_time_for_writing_messages();
+}
+
 void LoggerMessageWriter_DFLogStart::process()
 {
+    if (out_of_time_for_writing_messages()) {
+        return;
+    }
+
     switch(stage) {
     case Stage::FORMATS:
         // write log formats so the log is self-describing
         while (next_format_to_send < _logger_backend->num_types()) {
-            if (AP::scheduler().time_available_usec() == 0) { // write out the FMT messages as fast as we can
-                return;
-            }
             if (!_logger_backend->Write_Format(_logger_backend->structure(next_format_to_send))) {
                 return; // call me again!
             }
@@ -59,9 +74,6 @@ void LoggerMessageWriter_DFLogStart::process()
 
     case Stage::UNITS:
         while (_next_unit_to_send < _logger_backend->num_units()) {
-            if (AP::scheduler().time_available_usec() < MIN_LOOP_TIME_REMAINING_FOR_MESSAGE_WRITE_US) {
-                return;
-            }
             if (!_logger_backend->Write_Unit(_logger_backend->unit(_next_unit_to_send))) {
                 return; // call me again!
             }
@@ -72,9 +84,6 @@ void LoggerMessageWriter_DFLogStart::process()
 
     case Stage::MULTIPLIERS:
         while (_next_multiplier_to_send < _logger_backend->num_multipliers()) {
-            if (AP::scheduler().time_available_usec() < MIN_LOOP_TIME_REMAINING_FOR_MESSAGE_WRITE_US) {
-                return;
-            }
             if (!_logger_backend->Write_Multiplier(_logger_backend->multiplier(_next_multiplier_to_send))) {
                 return; // call me again!
             }
@@ -85,9 +94,6 @@ void LoggerMessageWriter_DFLogStart::process()
 
     case Stage::FORMAT_UNITS:
         while (_next_format_unit_to_send < _logger_backend->num_types()) {
-            if (AP::scheduler().time_available_usec() < MIN_LOOP_TIME_REMAINING_FOR_MESSAGE_WRITE_US) {
-                return;
-            }
             if (!_logger_backend->Write_Format_Units(_logger_backend->structure(_next_format_unit_to_send))) {
                 return; // call me again!
             }
@@ -98,9 +104,6 @@ void LoggerMessageWriter_DFLogStart::process()
 
     case Stage::PARMS:
         while (ap) {
-            if (AP::scheduler().time_available_usec() < MIN_LOOP_TIME_REMAINING_FOR_MESSAGE_WRITE_US) {
-                return;
-            }
             if (!_logger_backend->Write_Parameter(ap, token, type)) {
                 return;
             }
@@ -260,7 +263,7 @@ void LoggerMessageWriter_WriteAllRallyPoints::process()
 
     case Stage::WRITE_ALL_RALLY_POINTS:
         while (_rally_number_to_send < _rally->get_rally_total()) {
-            if (AP::scheduler().time_available_usec() < MIN_LOOP_TIME_REMAINING_FOR_MESSAGE_WRITE_US) {
+            if (out_of_time_for_writing_messages()) {
                 return;
             }
             RallyLocation rallypoint;
@@ -310,7 +313,7 @@ void LoggerMessageWriter_WriteEntireMission::process() {
     case Stage::WRITE_MISSION_ITEMS: {
         AP_Mission::Mission_Command cmd;
         while (_mission_number_to_send < _mission->num_commands()) {
-            if (AP::scheduler().time_available_usec() < MIN_LOOP_TIME_REMAINING_FOR_MESSAGE_WRITE_US) {
+            if (out_of_time_for_writing_messages()) {
                 return;
             }
             // upon failure to write the mission we will re-read from
