@@ -21,9 +21,6 @@ extern const AP_HAL::HAL& hal;
 */
 void NavEKF2_core::FuseAirspeed()
 {
-    // start performance timer
-    hal.util->perf_begin(_perf_FuseAirspeed);
-
     // declarations
     float vn;
     float ve;
@@ -178,9 +175,6 @@ void NavEKF2_core::FuseAirspeed()
     // force the covariance matrix to be symmetrical and limit the variances to prevent ill-conditioning.
     ForceSymmetry();
     ConstrainVariances();
-
-    // stop performance timer
-    hal.util->perf_end(_perf_FuseAirspeed);
 }
 
 // select fusion of true airspeed measurements
@@ -247,9 +241,6 @@ void NavEKF2_core::SelectBetaFusion()
 */
 void NavEKF2_core::FuseSideslip()
 {
-    // start performance timer
-    hal.util->perf_begin(_perf_FuseSideslip);
-
     // declarations
     float q0;
     float q1;
@@ -425,9 +416,6 @@ void NavEKF2_core::FuseSideslip()
     // force the covariance matrix to be symmetrical and limit the variances to prevent ill-conditioning.
     ForceSymmetry();
     ConstrainVariances();
-
-    // stop the performance timer
-    hal.util->perf_end(_perf_FuseSideslip);
 }
 
 /********************************************************
