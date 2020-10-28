@@ -568,9 +568,6 @@ void NavEKF2_core::SelectVelPosFusion()
 // fuse selected position, velocity and height measurements
 void NavEKF2_core::FuseVelPosNED()
 {
-    // start performance timer
-    hal.util->perf_begin(_perf_FuseVelPosNED);
-
     // health is set bad until test passed
     velHealth = false;
     posHealth = false;
@@ -948,9 +945,6 @@ void NavEKF2_core::FuseVelPosNED()
             }
         }
     }
-
-    // stop performance timer
-    hal.util->perf_end(_perf_FuseVelPosNED);
 }
 
 /********************************************************
