@@ -426,13 +426,8 @@ const AP_Param::GroupInfo NavEKF2::var_info[] = {
     // @Units: m
     AP_GROUPINFO("NOAID_M_NSE", 35, NavEKF2, _noaidHorizNoise, 10.0f),
 
-    // @Param: LOG_MASK
-    // @DisplayName: EKF sensor logging IMU mask
-    // @Description: This sets the IMU mask of sensors to do full logging for
-    // @Bitmask: 0:FirstIMU,1:SecondIMU,2:ThirdIMU,3:FourthIMU,4:FifthIMU,5:SixthIMU
-    // @User: Advanced
-    // @RebootRequired: True
-    AP_GROUPINFO("LOG_MASK", 36, NavEKF2, _logging_mask, 1),
+    // 36 was LOG_MASK, used for specifying which IMUs/cores to log
+    // replay data for
 
     // control of magentic yaw angle fusion
 
@@ -617,32 +612,6 @@ NavEKF2::NavEKF2()
     _ahrs = &AP::ahrs();
 }
 
-/*
-  see if we should log some sensor data
- */
-void NavEKF2::check_log_write(void)
-{
-    if (!have_ekf_logging()) {
-        return;
-    }
-    if (logging.log_compass) {
-        AP::logger().Write_Compass(imuSampleTime_us);
-        logging.log_compass = false;
-    }
-    if (logging.log_baro) {
-        AP::logger().Write_Baro(imuSampleTime_us);
-        logging.log_baro = false;
-    }
-    if (logging.log_imu) {
-        AP::logger().Write_IMUDT(imuSampleTime_us, _logging_mask.get());
-        logging.log_imu = false;
-    }
-
-    // this is an example of an ad-hoc log in EKF
-    // AP::logger().Write("NKA", "TimeUS,X", "Qf", AP_HAL::micros64(), (double)2.4f);
-}
-
-
 // Initialise the filter
 bool NavEKF2::InitialiseFilter(void)
 {
@@ -668,12 +637,6 @@ bool NavEKF2::InitialiseFilter(void)
     // expected number of IMU frames per prediction
     _framesPerPrediction = uint8_t((EKF_TARGET_DT / (_frameTimeUsec * 1.0e-6) + 0.5));
 
-    // see if we will be doing logging
-    AP_Logger *logger = AP_Logger::get_singleton();
-    if (logger != nullptr) {
-        logging.enabled = logger->log_replay();
-    }
-    
     if (core == nullptr) {
 
         // don't allow more filters than IMUs
@@ -750,7 +713,6 @@ bool NavEKF2::InitialiseFilter(void)
     memset((void *)&pos_reset_data, 0, sizeof(pos_reset_data));
     memset(&pos_down_reset_data, 0, sizeof(pos_down_reset_data));
 
-    check_log_write();
     return ret;
 }
 
@@ -857,8 +819,6 @@ void NavEKF2::UpdateFilter(void)
         // performance
         primary = 0;
     }
-
-    check_log_write();
 }
 
 /*
