@@ -240,7 +240,6 @@ def ap_program(bld,
         bld.fatal('Do not pass target for program')
     if 'defines' not in kw:
         kw['defines'] = []
-    print("**********defines: %s" % str(kw['defines']))
     if 'source' not in kw:
         kw['source'] = bld.path.ant_glob(SOURCE_EXTS)
 
