@@ -135,6 +135,10 @@ submodules at specific revisions.
                  default=False,
                  help="Disable onboard scripting engine")
 
+    g.add_option('--no-gcs', action='store_true',
+                 default=False,
+                 help="Disable GCS code")
+    
     g.add_option('--scripting-checks', action='store_true',
                  default=True,
                  help="Enable runtime scripting sanity checks")
@@ -282,10 +286,6 @@ def configure(cfg):
         cfg.env.STATIC_LINKING = True
 
     cfg.load('ap_library')
-
-    # we need to recurse for DAL example to allow it to disable
-    # scripting
-    cfg.recurse('libraries/AP_DAL/examples/AP_DAL_Standalone')
 
     cfg.msg('Setting board to', cfg.options.board)
     cfg.get_board().configure(cfg)
