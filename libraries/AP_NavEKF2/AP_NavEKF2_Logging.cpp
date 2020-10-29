@@ -152,9 +152,14 @@ void NavEKF2::Log_Write_NKF4(uint8_t _core, uint64_t time_us) const
     AP::logger().WriteBlock(&pkt4, sizeof(pkt4));
 }
 
-void NavEKF2::Log_Write_NKF5(uint64_t time_us) const
+void NavEKF2::Log_Write_NKF5(uint8_t _core, uint64_t time_us) const
 {
-    // Write fifth EKF packet - take data from the primary instance
+    if (_core != primary) {
+        // log only primary instance for now
+        return;
+    }
+
+    // Write fifth EKF packet
     float normInnov=0; // normalised innovation variance ratio for optical flow observations fused by the main nav filter
     float gndOffset=0; // estimated vertical position of the terrain relative to the nav filter zero datum
     float flowInnovX=0, flowInnovY=0; // optical flow LOS rate vector innovations from the main nav filter
@@ -164,11 +169,12 @@ void NavEKF2::Log_Write_NKF5(uint64_t time_us) const
     float range=0; // measured range
     float gndOffsetErr=0; // filter ground offset state error
     Vector3f predictorErrors; // output predictor angle, velocity and position tracking error
-    getFlowDebug(-1,normInnov, gndOffset, flowInnovX, flowInnovY, auxFlowInnov, HAGL, rngInnov, range, gndOffsetErr);
-    getOutputTrackingError(-1,predictorErrors);
+    getFlowDebug(_core, normInnov, gndOffset, flowInnovX, flowInnovY, auxFlowInnov, HAGL, rngInnov, range, gndOffsetErr);
+    getOutputTrackingError(_core, predictorErrors);
     const struct log_NKF5 pkt5{
         LOG_PACKET_HEADER_INIT(LOG_NKF5_MSG),
         time_us : time_us,
+        core    : _core,
         normInnov : (uint8_t)(MIN(100*normInnov,255)),
         FIX : (int16_t)(1000*flowInnovX),
         FIY : (int16_t)(1000*flowInnovY),
@@ -202,8 +208,13 @@ void NavEKF2::Log_Write_Quaternion(uint8_t _core, uint64_t time_us) const
     AP::logger().WriteBlock(&pktq1, sizeof(pktq1));
 }
 
-void NavEKF2::Log_Write_Beacon(uint64_t time_us) const
+void NavEKF2::Log_Write_Beacon(uint8_t _core, uint64_t time_us) const
 {
+    if (_core != primary) {
+        // log only primary instance for now
+        return;
+    }
+
     if (AP::beacon() != nullptr) {
         uint8_t ID;
         float rng;
@@ -213,11 +224,12 @@ void NavEKF2::Log_Write_Beacon(uint64_t time_us) const
         Vector3f beaconPosNED;
         float bcnPosOffsetHigh;
         float bcnPosOffsetLow;
-        if (getRangeBeaconDebug(-1, ID, rng, innov, innovVar, testRatio, beaconPosNED, bcnPosOffsetHigh, bcnPosOffsetLow)) {
+        if (getRangeBeaconDebug(_core, ID, rng, innov, innovVar, testRatio, beaconPosNED, bcnPosOffsetHigh, bcnPosOffsetLow)) {
             if (rng > 0.0f) {
                 struct log_RngBcnDebug pkt10 = {
                     LOG_PACKET_HEADER_INIT(LOG_NKF10_MSG),
                     time_us : time_us,
+                    core    : _core,
                     ID : (uint8_t)ID,
                     rng : (int16_t)(100*rng),
                     innov : (int16_t)(100*innov),
@@ -247,19 +259,20 @@ void NavEKF2::Log_Write()
 
     const uint64_t time_us = AP_HAL::micros64();
 
-    Log_Write_NKF5(time_us);
-
+    // note that several of these functions exit-early if they're not
+    // attempting to log the primary core.
     for (uint8_t i=0; i<activeCores(); i++) {
         Log_Write_NKF1(i, time_us);
         Log_Write_NKF2(i, time_us);
         Log_Write_NKF3(i, time_us);
         Log_Write_NKF4(i, time_us);
+        Log_Write_NKF5(i, time_us);
         Log_Write_Quaternion(i, time_us);
         Log_Write_GSF(i, time_us);
-    }
 
-    // write range beacon fusion debug packet if the range value is non-zero
-    Log_Write_Beacon(time_us);
+        // write range beacon fusion debug packet if the range value is non-zero
+        Log_Write_Beacon(i, time_us);
+    }
 
     // log EKF timing statistics every 5s
     static uint32_t lastTimingLogTime_ms = 0;

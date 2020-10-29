@@ -551,8 +551,8 @@ private:
     void Log_Write_NKF2(uint8_t core, uint64_t time_us) const;
     void Log_Write_NKF3(uint8_t core, uint64_t time_us) const;
     void Log_Write_NKF4(uint8_t core, uint64_t time_us) const;
-    void Log_Write_NKF5(uint64_t time_us) const;
+    void Log_Write_NKF5(uint8_t core, uint64_t time_us) const;
     void Log_Write_Quaternion(uint8_t core, uint64_t time_us) const;
-    void Log_Write_Beacon(uint64_t time_us) const;
+    void Log_Write_Beacon(uint8_t core, uint64_t time_us) const;
     void Log_Write_GSF(uint8_t core, uint64_t time_us) const;
 };
