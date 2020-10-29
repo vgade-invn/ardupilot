@@ -607,12 +607,12 @@ private:
     void Log_Write_XKF2(uint8_t core, uint64_t time_us) const;
     void Log_Write_XKF3(uint8_t core, uint64_t time_us) const;
     void Log_Write_XKF4(uint8_t core, uint64_t time_us) const;
-    void Log_Write_XKF5(uint64_t time_us) const;
+    void Log_Write_XKF5(uint8_t core, uint64_t time_us) const;
     void Log_Write_XKFS(uint8_t core, uint64_t time_us) const;
     void Log_Write_Quaternion(uint8_t core, uint64_t time_us) const;
-    void Log_Write_Beacon(uint64_t time_us) const;
-    void Log_Write_BodyOdom(uint64_t time_us) const;
-    void Log_Write_State_Variances(uint64_t time_us) const;
+    void Log_Write_Beacon(uint8_t core, uint64_t time_us) const;
+    void Log_Write_BodyOdom(uint8_t core, uint64_t time_us) const;
+    void Log_Write_State_Variances(uint8_t core, uint64_t time_us) const;
     void Log_Write_GSF(uint8_t core, uint64_t time_us) const;
 
 };
