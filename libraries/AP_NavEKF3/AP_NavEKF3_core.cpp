@@ -49,6 +49,7 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
         // Wait for the configuration of all GPS units to be confirmed. Until this has occurred the GPS driver cannot provide a correct time delay
         float gps_delay_sec = 0;
         if (!AP::dal().gps().get_lag(selected_gps, gps_delay_sec)) {
+#ifndef HAL_NO_GCS
             const uint32_t now = AP::dal().millis();
             if (now - lastInitFailReport_ms > 10000) {
                 lastInitFailReport_ms = now;
@@ -61,6 +62,7 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
                 }
                 GCS_SEND_TEXT(severity, "EKF3 waiting for GPS config data");
             }
+#endif
             return false;
         }
         // limit the time delay value from the GPS library to a max of 250 msec which is the max value the EKF has been tested for.
