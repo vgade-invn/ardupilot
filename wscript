@@ -283,6 +283,10 @@ def configure(cfg):
 
     cfg.load('ap_library')
 
+    # we need to recurse for DAL example to allow it to disable
+    # scripting
+    cfg.recurse('libraries/AP_DAL/examples/AP_DAL_Standalone')
+
     cfg.msg('Setting board to', cfg.options.board)
     cfg.get_board().configure(cfg)
 
