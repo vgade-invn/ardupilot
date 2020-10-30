@@ -4,7 +4,8 @@
 
 #define LOG_IDS_FROM_NAVEKF3 \
     LOG_XKT_MSG, \
-    LOG_XKFM_MSG
+    LOG_XKFM_MSG, \
+    LOG_XKTV_MSG
 
 // @LoggerMessage: XKT
 // @Description: EKF3 timing information
@@ -55,6 +56,20 @@ struct PACKED log_XKFM {
     float accel_diff_ratio;
 };
 
+// @LoggerMessage: XKTV
+// @Description: EKF3 Yaw Estimator States
+// @Field: TimeUS: Time since system startup
+// @Field: C: EKF3 core this data is for
+// @Field: TVS: Tilt Error Variance from symbolic equations (rad^2)
+// @Field: TVD: Tilt Error Variance from difference method (rad^2)
+struct PACKED log_XKTV {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t core;
+    float tvs;
+    float tvd;
+};
+
 #define LOG_STRUCTURE_FROM_NAVEKF3        \
     { LOG_XKT_MSG, sizeof(log_XKT),   \
       "XKT",                    \
@@ -63,10 +78,18 @@ struct PACKED log_XKFM {
       "s#sssssssss",                                              \
       "F-000000000"                                               \
     },                                                            \
+    { LOG_XKTV_MSG, sizeof(log_XKTV),                         \
+      "XKTV",                    \
+      "QBff",                                              \
+      "TimeUS,C,tvs,tvd", \
+      "s#rr",                                              \
+      "F-00"                                               \
+    },                                             \
     { LOG_XKFM_MSG, sizeof(log_XKFM),   \
       "XKFM",                    \
       "QBBffff",                                              \
       "TimeUS,C,OGNM,GLR,ALR,GDR,ADR", \
       "s------",                                              \
       "F------"                                               \
-    },
+    }, \
+
