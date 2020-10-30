@@ -2,7 +2,6 @@ Things to look at BEFORE merge
 ==============================
 
   - remove underscores from member names
-  - have sensor libraries return instance of backend rather than indexing-in all the time.  Precludes status() vs status(i) bugs.  Also applicable to logging
   - should we shortcut logging e.g. barometer header based on its fields changing?
   - reorder header and initialisation to match library
   - message documentation
@@ -10,53 +9,14 @@ Things to look at BEFORE merge
   - GPS velocity x/y/z a little on the nose?
   - should AP::dal().baro() be AP::dal.baro ?  Or AP::dal().baro ?
   - lots of const-correctness
-  - REVIEWING: 
-         - make sure that we're not calling the "primary instance" method - i.e. we're always passing in (i) to the get-data methods
   - sensors still to do:
-   - optical flow
-   - external navigation
- - look at using the logging structures for storing the state.  It will ensure we write out stuff appropriately?
-   - might even allow for a nice method of populating the fields
- - consider how LOG_DISARMED works with this
- - consider nullptr stuff for singletons
- - consider setting of initial earthrate based on origin rather than on home
- - external navigation data is actively poked into the EKF from MAVLink
-    - proposal is to poke it into the DAL from the EKF so the DAL's scope is restricted to the EKF
-    - we should probably change things around so that the EKF samples the external navigation data as it does for every other sensor out there
-    - I wonder how the sizing of that external navigation data time horizon works...
- - pass frame start time into UpdateFilter and presumably InitialiseFilterBootStrap
-    - should we be using something *out of* the INS?
-
- - kill the centidegrees multipliers out of LogStrucure
-
-Explain this:
-2020-10-25 23:36:36.96: RFRN {TimeUS : 0, HLat : 0, HLon : 0, HAlt : 1432500359}
-
- - last_update_time_ms vs last_message_time_ms
-
- - change things to absolutely trust the last_update_ms
- - work out why we don't use per-IMU sample times in the EKF
-
- - consider making the log strcutures static in the backend o we don't need to include (e.g.) the compass header
-
- - consistent naming for last-message-time
- 
- - kill INS HIL mode
- 
- - remote IMT messages?
- - move logging down into the EKF cores
- - solve the when-to-log problem
-
- - should we go with RBRS rather than RBRH?  "singleton" vs "header"
-
- - make logging optional - parameter on AHRS?
- 
- 
- - change GSF to use DAL
-
- - get_declination must be dal'd
-
- - why do we use the singleton rather than the logger reference in AP_NavEKF3
+    - optical flow
+    - external navigation
+    - wheel odometry
+  - consider making the log structures static in the backend o we don't need to include (e.g.) the compass header
+  - should we go with RBRS rather than RBRH?  "singleton" vs "header"
+  - change GSF to use DAL
+  - must get_declination be DAL'd?
  
 
 Things to look at later
@@ -72,6 +32,19 @@ Things to look at later
   - use pull model for all sensors into the EKF
     - e.g. external data will need to store a copy which the EKF then fetches and shoves into its observatton buffers
   - fix the beacon methods to not have beacon prepended
+  - have sensor libraries return instance of backend rather than indexing-in all the time.  Precludes status() vs status(i) bugs.  Also applicable to logging
+  - consider setting of initial earthrate based on origin rather than on home
+ - external navigation data is actively poked into the EKF from MAVLink
+    - we should probably change things around so that the EKF samples the external navigation data as it does for every other sensor out there
+  - kill the centidegrees multipliers out of LogStrucure
+  - fix sensors drivers to be uniform for:
+     - last_update_time_ms vs last_message_time_ms vs last_update_time_us
+     - maximum-sensor-or-backend-or-instance macro name
+  - work out why we don't use per-IMU sample times in the EKF
+  - move logging down into the EKF cores
+  - kill INS HIL mode, baro hil mode, ....
+ 
+
 
 
 Random notes
