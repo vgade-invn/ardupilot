@@ -115,7 +115,7 @@ void NavEKF2_core::controlMagYawReset()
 
             // send initial alignment status to console
             if (!yawAlignComplete) {
-                gcs().send_text(MAV_SEVERITY_INFO, "EKF2 IMU%u ext nav yaw alignment complete",(unsigned)imu_index);
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF2 IMU%u ext nav yaw alignment complete",(unsigned)imu_index);
             }
 
             // record the reset as complete and also record the in-flight reset as complete to stop further resets when height is gained
@@ -148,14 +148,14 @@ void NavEKF2_core::controlMagYawReset()
 
                 // send initial alignment status to console
                 if (!yawAlignComplete) {
-                    gcs().send_text(MAV_SEVERITY_INFO, "EKF2 IMU%u initial yaw alignment complete",(unsigned)imu_index);
+                    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF2 IMU%u initial yaw alignment complete",(unsigned)imu_index);
                 }
 
                 // send in-flight yaw alignment status to console
                 if (finalResetRequest) {
-                    gcs().send_text(MAV_SEVERITY_INFO, "EKF2 IMU%u in-flight yaw alignment complete",(unsigned)imu_index);
+                    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF2 IMU%u in-flight yaw alignment complete",(unsigned)imu_index);
                 } else if (interimResetRequest) {
-                    gcs().send_text(MAV_SEVERITY_WARNING, "EKF2 IMU%u ground mag anomaly, yaw re-aligned",(unsigned)imu_index);
+                    GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF2 IMU%u ground mag anomaly, yaw re-aligned",(unsigned)imu_index);
                 }
 
                 // update the yaw reset completed status
@@ -206,7 +206,7 @@ void NavEKF2_core::realignYawGPS()
             ResetPosition();
 
             // send yaw alignment information to console
-            gcs().send_text(MAV_SEVERITY_INFO, "EKF2 IMU%u yaw aligned to GPS velocity",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF2 IMU%u yaw aligned to GPS velocity",(unsigned)imu_index);
 
             // zero the attitude covariances because the correlations will now be invalid
             zeroAttCovOnly();
@@ -1178,9 +1178,9 @@ bool NavEKF2_core::EKFGSF_resetMainFilterYaw()
         EKFGSF_yaw_reset_count++;
 
         if (!use_compass()) {
-            gcs().send_text(MAV_SEVERITY_INFO, "EKF2 IMU%u yaw aligned using GPS",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF2 IMU%u yaw aligned using GPS",(unsigned)imu_index);
         } else {
-            gcs().send_text(MAV_SEVERITY_WARNING, "EKF2 IMU%u emergency yaw reset",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF2 IMU%u emergency yaw reset",(unsigned)imu_index);
         }
 
         // Fail the magnetomer so it doesn't get used and pull the yaw away from the correct value

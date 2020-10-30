@@ -670,7 +670,7 @@ bool NavEKF2::InitialiseFilter(void)
         if (hal.util->available_memory() < sizeof(NavEKF2_core)*num_cores + 4096) {
             initFailure = InitFailures::NO_MEM;
             core_malloc_failed = true;
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "NavEKF2: not enough memory available");
+            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "NavEKF2: not enough memory available");
             return false;
         }
 
@@ -679,7 +679,7 @@ bool NavEKF2::InitialiseFilter(void)
         if (core == nullptr) {
             initFailure = InitFailures::NO_MEM;
             core_malloc_failed = true;
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "NavEKF2: memory allocation failed");
+            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "NavEKF2: memory allocation failed");
             return false;
         }
 
@@ -697,7 +697,7 @@ bool NavEKF2::InitialiseFilter(void)
                     hal.util->free_type(core, sizeof(NavEKF2_core)*num_cores, AP_HAL::Util::MEM_FAST);
                     core = nullptr;
                     initFailure = InitFailures::NO_SETUP;
-                    gcs().send_text(MAV_SEVERITY_WARNING, "NavEKF2: core %d setup failed", num_cores);
+                    GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "NavEKF2: core %d setup failed", num_cores);
                     return false;
                 }
                 num_cores++;
@@ -874,7 +874,7 @@ void NavEKF2::checkLaneSwitch(void)
         updateLaneSwitchPosDownResetData(newPrimaryIndex, primary);
         primary = newPrimaryIndex;
         lastLaneSwitch_ms = now;
-        gcs().send_text(MAV_SEVERITY_CRITICAL, "NavEKF2: lane switch %u", primary);
+        GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "NavEKF2: lane switch %u", primary);
     }
 }
 
@@ -891,16 +891,16 @@ bool NavEKF2::healthy(void) const
 bool NavEKF2::pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const
 {
     if (!core) {
-        hal.util->snprintf(failure_msg, failure_msg_len, "no EKF2 cores");
+        AP::dal().snprintf(failure_msg, failure_msg_len, "no EKF2 cores");
         return false;
     }
     for (uint8_t i = 0; i < num_cores; i++) {
         if (!core[i].healthy()) {
             const char *failure = core[primary].prearm_failure_reason();
             if (failure != nullptr) {
-                hal.util->snprintf(failure_msg, failure_msg_len, failure);
+                AP::dal().snprintf(failure_msg, failure_msg_len, failure);
             } else {
-                hal.util->snprintf(failure_msg, failure_msg_len, "EKF2 core %d unhealthy", (int)i);
+                AP::dal().snprintf(failure_msg, failure_msg_len, "EKF2 core %d unhealthy", (int)i);
             }
             return false;
         }
@@ -1187,7 +1187,7 @@ bool NavEKF2::setOriginLLH(const Location &loc)
         // we don't allow setting of the EKF origin unless we are
         // flying in non-GPS mode. This is to prevent accidental set
         // of EKF origin with invalid position or height
-        gcs().send_text(MAV_SEVERITY_WARNING, "EKF2 refusing set origin");
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF2 refusing set origin");
         return false;
     }
     bool ret = false;

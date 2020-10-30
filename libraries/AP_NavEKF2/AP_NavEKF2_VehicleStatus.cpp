@@ -72,7 +72,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
 
     // Report check result as a text string and bitmask
     if (gpsDriftFail) {
-        hal.util->snprintf(prearm_fail_string,
+        AP::dal().snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
                            "GPS drift %.1fm (needs %.1f)", (double)gpsDriftNE, (double)(3.0f*checkScaler));
         gpsCheckStatus.bad_horiz_drift = true;
@@ -95,7 +95,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
         // capable of giving a vertical velocity
         if (gps.status() >= AP_DAL_GPS::GPS_OK_FIX_3D) {
             frontend->_fusionModeGPS.set(1);
-            gcs().send_text(MAV_SEVERITY_WARNING, "EK2: Changed EK2_GPS_TYPE to 1");
+            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EK2: Changed EK2_GPS_TYPE to 1");
         }
     } else {
         gpsVertVelFail = false;
@@ -103,7 +103,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
 
     // Report check result as a text string and bitmask
     if (gpsVertVelFail) {
-        hal.util->snprintf(prearm_fail_string,
+        AP::dal().snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
                            "GPS vertical speed %.2fm/s (needs %.2f)", (double)fabsf(gpsVertVelFilt), (double)(0.3f*checkScaler));
         gpsCheckStatus.bad_vert_vel = true;
@@ -124,7 +124,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
 
     // Report check result as a text string and bitmask
     if (gpsHorizVelFail) {
-        hal.util->snprintf(prearm_fail_string,
+        AP::dal().snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
                            "GPS horizontal speed %.2fm/s (needs %.2f)", (double)gpsDriftNE, (double)(0.3f*checkScaler));
         gpsCheckStatus.bad_horiz_vel = true;
@@ -143,7 +143,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
 
     // Report check result as a text string and bitmask
     if (hAccFail) {
-        hal.util->snprintf(prearm_fail_string,
+        AP::dal().snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
                            "GPS horiz error %.1fm (needs %.1f)", (double)hAcc, (double)(5.0f*checkScaler));
         gpsCheckStatus.bad_hAcc = true;
@@ -159,7 +159,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
     }
     // Report check result as a text string and bitmask
     if (vAccFail) {
-        hal.util->snprintf(prearm_fail_string,
+        AP::dal().snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
                            "GPS vert error %.1fm (needs < %.1f)", (double)vAcc, (double)(7.5f * checkScaler));
         gpsCheckStatus.bad_vAcc = true;
@@ -172,7 +172,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
 
     // Report check result as a text string and bitmask
     if (gpsSpdAccFail) {
-        hal.util->snprintf(prearm_fail_string,
+        AP::dal().snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
                            "GPS speed error %.1f (needs < %.1f)", (double)gpsSpdAccuracy, (double)(1.0f*checkScaler));
         gpsCheckStatus.bad_sAcc = true;
@@ -185,7 +185,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
 
     // Report check result as a text string and bitmask
     if (hdopFail) {
-        hal.util->snprintf(prearm_fail_string, sizeof(prearm_fail_string),
+        AP::dal().snprintf(prearm_fail_string, sizeof(prearm_fail_string),
                            "GPS HDOP %.1f (needs 2.5)", (double)(0.01f * gps.get_hdop()));
         gpsCheckStatus.bad_hdop = true;
     } else {
@@ -197,7 +197,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
 
     // Report check result as a text string and bitmask
     if (numSatsFail) {
-        hal.util->snprintf(prearm_fail_string, sizeof(prearm_fail_string),
+        AP::dal().snprintf(prearm_fail_string, sizeof(prearm_fail_string),
                            "GPS numsats %u (needs 6)", gps.num_sats());
         gpsCheckStatus.bad_sats = true;
     } else {
@@ -215,7 +215,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
 
     // Report check result as a text string and bitmask
     if (yawFail) {
-        hal.util->snprintf(prearm_fail_string,
+        AP::dal().snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
                            "Mag yaw error x=%.1f y=%.1f",
                            (double)magTestRatio.x,
@@ -227,7 +227,7 @@ void NavEKF2_core::calcGpsGoodToAlign(void)
 
     // assume failed first time through and notify user checks have started
     if (lastGpsVelFail_ms == 0) {
-        hal.util->snprintf(prearm_fail_string, sizeof(prearm_fail_string), "EKF starting GPS checks");
+        AP::dal().snprintf(prearm_fail_string, sizeof(prearm_fail_string), "EKF starting GPS checks");
         lastGpsVelFail_ms = imuSampleTime_ms;
     }
 
@@ -383,8 +383,7 @@ void NavEKF2_core::detectFlight()
 
             // If more than 5 seconds since likely_flying was set
             // true, then set inFlight true
-            const AP_Vehicle *vehicle = AP::vehicle();
-            if (vehicle->get_time_flying_ms() > 5000) {
+            if (AP::dal().get_time_flying_ms() > 5000) {
                 inFlight = true;
             }
         }
