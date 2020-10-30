@@ -21,11 +21,13 @@ from pymavlink import mavutil
 def check_log(logfile):
     '''check replay log for matching output'''
     print("Processing log %s" % filename)
+    count = 0
+    errors = 0
 
     mlog = mavutil.mavlink_connection(filename)
 
-    ek2_list = ['NKF1','NKF2','NKF3','NKF4']
-    ek3_list = ['XKF1','XKF2','XKF3','XKF4']
+    ek2_list = ['NKF1','NKF2','NKF3','NKF4','NKF5','NKF0','NKQ']
+    ek3_list = ['XKF1','XKF2','XKF3','XKF4','XKF0','XKFS','XKQ','XKFD','XKV1','XKV2']
     
     if args.ekf2_only:
         mlist = ek2_list
@@ -50,15 +52,21 @@ def check_log(logfile):
             base[mtype][core] = m
             continue
         mb = base[mtype][core-100]
+        count += 1
+        mismatch = False
         for f in m._fieldnames:
             if f == 'C':
                 continue
             v1 = getattr(m,f)
             v2 = getattr(mb,f)
             if v1 != v2:
+                mismatch = True
+                errors += 1
                 print("Mismatch in field %s.%s: %s %s" % (mtype, f, str(v1), str(v2)))
-                print(mb)
-                print(m)
+        if mismatch:
+            print(mb)
+            print(m)
+    print("Processed %u messages, %u errors" % (count, errors))
 
 for filename in args.logs:
     check_log(filename)
