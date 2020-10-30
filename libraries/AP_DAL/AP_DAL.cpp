@@ -42,14 +42,14 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _RFRH.ahrs_airspeed_sensor_enabled = AP::ahrs().airspeed_sensor_enabled();
     _RFRH.available_memory = hal.util->available_memory();
     _RFRH.time_flying_ms = AP::vehicle()->get_time_flying_ms();
-    logger.WriteReplayBlock((void*)&_RFRH, sizeof(_RFRH));
+    logger.WriteReplayBlock(&_RFRH, sizeof(_RFRH));
 
     // update RFRN data
     _home = ahrs.get_home();
     _RFRN.lat = _home.lat;
     _RFRN.lng = _home.lng;
     _RFRN.alt = _home.alt;
-    logger.WriteReplayBlock((void*)&_RFRN, sizeof(_RFRN));
+    logger.WriteReplayBlock(&_RFRN, sizeof(_RFRN));
 
     // update RFRR data:
     _rotation_vehicle_body_to_autopilot_body = ahrs.get_rotation_vehicle_body_to_autopilot_body();
@@ -64,7 +64,7 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _RFRR.m8 = _rotation_vehicle_body_to_autopilot_body[2][2];
     // consider logging the rotation, which shouldn't change too much...
     if (memcmp((void*)&_last_logged_RFRR, (void*)&_RFRR, sizeof(_RFRR)) != 0) {
-        logger.WriteReplayBlock((void*)&_RFRR, sizeof(_RFRR));
+        logger.WriteReplayBlock(&_RFRR, sizeof(_RFRR));
         _last_logged_RFRR = _RFRR;
     }
 
@@ -79,7 +79,7 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
 
     _RFRF.time_us = _RFRH.time_us;
     _RFRF.frame_type = (uint8_t)frametype;
-    logger.WriteReplayBlock((void*)&_RFRF, sizeof(_RFRF));
+    logger.WriteReplayBlock(&_RFRF, sizeof(_RFRF));
 
     // populate some derivative values:
     _micros = _RFRH.time_us;
@@ -96,7 +96,7 @@ void AP_DAL::log_event2(AP_DAL::Event2 event)
         time_us        : _RFRH.time_us,
         event          : uint8_t(event),
     };
-    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
 #endif
 }
 
@@ -110,7 +110,7 @@ void AP_DAL::log_SetOriginLLH2(const Location &loc)
         lng            : loc.lng,
         alt            : loc.alt,
     };
-    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
 #endif
 }
 
@@ -122,7 +122,7 @@ void AP_DAL::log_writeDefaultAirSpeed2(const float airspeed)
         time_us        : _RFRH.time_us,   // this isn't correct?
         airspeed:      airspeed,
     };
-    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
 #endif
 }
 
@@ -134,7 +134,7 @@ void AP_DAL::log_event3(AP_DAL::Event3 event)
         time_us        : _RFRH.time_us,
         event          : uint8_t(event),
     };
-    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
 #endif
 }
 
@@ -148,7 +148,7 @@ void AP_DAL::log_SetOriginLLH3(const Location &loc)
         lng            : loc.lng,
         alt            : loc.alt,
     };
-    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
 #endif
 }
 
@@ -160,7 +160,7 @@ void AP_DAL::log_writeDefaultAirSpeed3(const float airspeed)
         time_us        : _RFRH.time_us,   // this isn't correct?
         airspeed:      airspeed,
     };
-    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
 #endif
 }
 
@@ -175,7 +175,7 @@ void AP_DAL::log_writeEulerYawAngle(float yawAngle, float yawAngleErr, uint32_t 
         timestamp_ms   : timeStamp_ms,
         type           : type,
     };
-    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
 #endif
 }
 

@@ -39,7 +39,7 @@ void AP_DAL_Beacon::start_frame(const uint64_t time_us)
         _RBCH.origin_lng = _origin.lng;
         _RBCH.origin_alt = _origin.alt;
     }
-    logger.WriteReplayBlock((void*)&_RBCH, sizeof(_RBCH));
+    logger.WriteReplayBlock(&_RBCH, sizeof(_RBCH));
     if (beacon == nullptr) {
         return;
     }
@@ -57,6 +57,6 @@ void AP_DAL_Beacon::start_frame(const uint64_t time_us)
         RBCI.distance = beacon->beacon_distance(i);
         RBCI.healthy = beacon->beacon_healthy(i);
 
-        logger.WriteReplayBlock((void*)&RBCI, sizeof(RBCI));
+        logger.WriteReplayBlock(&RBCI, sizeof(RBCI));
     }
 }

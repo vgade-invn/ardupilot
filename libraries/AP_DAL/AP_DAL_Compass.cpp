@@ -31,7 +31,7 @@ void AP_DAL_Compass::start_frame(const uint64_t time_us)
     _RMGH.num_enabled = compass.get_num_enabled();
     _RMGH.consistent = compass.consistent();
 
-    logger.WriteReplayBlock((void*)&_RMGH, sizeof(_RMGH));
+    logger.WriteReplayBlock(&_RMGH, sizeof(_RMGH));
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RMGI); i++) {
         log_RMGI &RMGI = _RMGI[i];
@@ -48,6 +48,6 @@ void AP_DAL_Compass::start_frame(const uint64_t time_us)
         RMGI.last_update_usec = last_update_usec;
         memcpy((void*)&RMGI.field, (void*)&compass.get_field(i), sizeof(Vector3f));
 
-        logger.WriteReplayBlock((void*)&RMGI, sizeof(RMGI));
+        logger.WriteReplayBlock(&RMGI, sizeof(RMGI));
     }
 }
