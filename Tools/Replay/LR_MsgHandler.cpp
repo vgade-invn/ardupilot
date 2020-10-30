@@ -241,6 +241,10 @@ void LR_MsgHandler_RGPI::process_message(uint8_t *msg)
 {
     AP::dal().handle_message(*((log_RGPI*)(msg)));
 }
+void LR_MsgHandler_RGPJ::process_message(uint8_t *msg)
+{
+    AP::dal().handle_message(*((log_RGPJ*)(msg)));
+}
 
 void LR_MsgHandler_RMGH::process_message(uint8_t *msg)
 {

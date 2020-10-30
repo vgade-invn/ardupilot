@@ -208,6 +208,8 @@ bool LogReader::handle_log_format_msg(const struct log_Format &f)
 	    msgparser[f.type] = new LR_MsgHandler_RGPH(formats[f.type]);
 	} else if (streq(name, "RGPI")) {
 	    msgparser[f.type] = new LR_MsgHandler_RGPI(formats[f.type]);
+    } else if (streq(name, "RGPJ")) {
+        msgparser[f.type] = new LR_MsgHandler_RGPJ(formats[f.type]);
 	} else if (streq(name, "RMGH")) {
 	    msgparser[f.type] = new LR_MsgHandler_RMGH(formats[f.type]);
 	} else if (streq(name, "RMGI")) {
