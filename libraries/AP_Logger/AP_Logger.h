@@ -231,7 +231,6 @@ public:
                      LogErrorCode error_code);
     void Write_GPS(uint8_t instance, uint64_t time_us=0);
     void Write_IMU();
-    void Write_IMUDT(uint64_t time_us, uint8_t imu_mask);
     bool Write_ISBH(uint16_t seqno,
                         AP_InertialSensor::IMU_SENSOR_TYPE sensor_type,
                         uint8_t instance,
@@ -467,9 +466,6 @@ private:
                                     uint8_t mag_instance,
                                     enum LogMessages type);
     void Write_Current_instance(uint64_t time_us, uint8_t battery_instance);
-    void Write_IMUDT_instance(uint64_t time_us,
-                                  uint8_t imu_instance,
-                                  enum LogMessages type);
 
     void backend_starting_new_log(const AP_Logger_Backend *backend);
 
