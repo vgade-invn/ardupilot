@@ -93,14 +93,14 @@ bool NavEKF2_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
     if ((yawEstimator == nullptr) && (frontend->_gsfRunMask & (1U<<core_index))) {
         // check if there is enough memory to create the EKF-GSF object
         if (hal.util->available_memory() < sizeof(EKFGSF_yaw) + 1024) {
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF2 IMU%u GSF: not enough memory",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF2 IMU%u GSF: not enough memory",(unsigned)imu_index);
             return false;
         }
 
         // try to instantiate
         yawEstimator = new EKFGSF_yaw();
         if (yawEstimator == nullptr) {
-            gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF2 IMU%uGSF: allocation failed",(unsigned)imu_index);
+            GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF2 IMU%uGSF: allocation failed",(unsigned)imu_index);
             return false;
         }
     }
@@ -327,7 +327,7 @@ void NavEKF2_core::InitialiseVariables()
     have_table_earth_field = false;
 
     // initialise pre-arm message
-    hal.util->snprintf(prearm_fail_string, sizeof(prearm_fail_string), "EKF2 still initialising");
+    AP::dal().snprintf(prearm_fail_string, sizeof(prearm_fail_string), "EKF2 still initialising");
 
     InitialiseVariablesMag();
 
@@ -374,7 +374,7 @@ bool NavEKF2_core::InitialiseFilterBootstrap(void)
 {
     // If we are a plane and don't have GPS lock then don't initialise
     if (assume_zero_sideslip() && AP::dal().gps().status(AP::dal().gps().primary_sensor()) < AP_DAL_GPS::GPS_OK_FIX_3D) {
-        hal.util->snprintf(prearm_fail_string,
+        AP::dal().snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
                            "EKF2 init failure: No GPS lock");
         statesInitialised = false;
@@ -625,7 +625,7 @@ void NavEKF2_core::UpdateFilter(bool predict)
         AP::dal().millis() - last_filter_ok_ms > 5000 &&
         !hal.util->get_soft_armed()) {
         // we've been unhealthy for 5 seconds after being healthy, reset the filter
-        gcs().send_text(MAV_SEVERITY_WARNING, "EKF2 IMU%u forced reset",(unsigned)imu_index);
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF2 IMU%u forced reset",(unsigned)imu_index);
         last_filter_ok_ms = 0;
         statesInitialised = false;
         InitialiseFilterBootstrap();

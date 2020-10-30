@@ -203,7 +203,7 @@ void NavEKF2_core::tryChangeCompass(void)
         // if the magnetometer is allowed to be used for yaw and has a different index, we start using it
         if (compass.healthy(tempIndex) && compass.use_for_yaw(tempIndex) && tempIndex != magSelectIndex) {
             magSelectIndex = tempIndex;
-            gcs().send_text(MAV_SEVERITY_INFO, "EKF2 IMU%u switching to compass %u",(unsigned)imu_index,magSelectIndex);
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF2 IMU%u switching to compass %u",(unsigned)imu_index,magSelectIndex);
             // reset the timeout flag and timer
             magTimeout = false;
             lastHealthyMagTime_ms = imuSampleTime_ms;
@@ -636,7 +636,7 @@ void NavEKF2_core::readGpsData()
         } else {
             // report GPS fix status
             gpsCheckStatus.bad_fix = true;
-            hal.util->snprintf(prearm_fail_string, sizeof(prearm_fail_string), "Waiting for 3D fix");
+            AP::dal().snprintf(prearm_fail_string, sizeof(prearm_fail_string), "Waiting for 3D fix");
         }
     }
 }
