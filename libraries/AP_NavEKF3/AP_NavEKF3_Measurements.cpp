@@ -8,9 +8,10 @@
 
 void xxprintf(const char *format, ...)
 {
+#if APM_BUILD_TYPE(APM_BUILD_Replay) || CONFIG_HAL_BOARD == HAL_BOARD_SITL
 #if APM_BUILD_TYPE(APM_BUILD_Replay)
     const char *fname = "/tmp/replay.log";
-#else
+#elif CONFIG_HAL_BOARD == HAL_BOARD_SITL
     const char *fname = "/tmp/real.log";
 #endif
     static FILE *f;
@@ -22,6 +23,7 @@ void xxprintf(const char *format, ...)
     vfprintf(f, format, ap);
     fflush(f);
     va_end(ap);
+#endif
 }
 
 /********************************************************
