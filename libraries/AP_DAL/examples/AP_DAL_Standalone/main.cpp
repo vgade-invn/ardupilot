@@ -56,11 +56,14 @@ public:
 AP_HAL_DAL_Standalone _hal;
 const AP_HAL::HAL &hal = _hal;
 
+NavEKF2 navekf2;
 NavEKF3 navekf3;
 
 int main(int argc, const char *argv[])
 {
+    navekf2.InitialiseFilter();
     navekf3.InitialiseFilter();
+    navekf2.UpdateFilter();
     navekf3.UpdateFilter();
-    return navekf3.healthy()?0:1;
+    return navekf2.healthy() && navekf3.healthy()?0:1;
 }
