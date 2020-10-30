@@ -51,9 +51,7 @@ public:
 
 private:
 
-    struct log_RBRH _RBRH {
-        LOG_PACKET_HEADER_INIT(LOG_RBRH_MSG),
-    };
+    struct log_RBRH _RBRH;
     struct log_RBRI _RBRI[BARO_MAX_INSTANCES];
 
     uint32_t _last_logged_update_ms[BARO_MAX_INSTANCES];
