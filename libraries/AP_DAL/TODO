@@ -72,6 +72,8 @@ Things to look at later
   - consider creating an AP_DAL_AHRS to hold ahrs method results
   - use pull model for all sensors into the EKF
     - e.g. external data will need to store a copy which the EKF then fetches and shoves into its observatton buffers
+  - fix the beacon methods to not have beacon prepended
+
 
 Random notes
 ============
