@@ -379,6 +379,11 @@ void NavEKF3_core::readMagData()
         consistentMagData = compass.consistent();
 
         // save magnetometer measurement to buffer to be fused later
+        xxprintf("MAG %u (%.12f,%.12f,%.12f)\n",
+                 magDataNew.time_ms,
+                 magDataNew.mag.x,
+                 magDataNew.mag.y,
+                 magDataNew.mag.z);
         storedMag.push(magDataNew);
 
         // remember time we read compass, to detect compass sensor failure
@@ -495,6 +500,16 @@ void NavEKF3_core::readIMUData()
         imuDataDownSampledNew.time_ms = imuSampleTime_ms;
 
         // Write data to the FIFO IMU buffer
+        xxprintf("IMU %u (%.12f,%.12f,%.12f) (%.12f,%.12f,%.12f) %.12f %.12f\n",
+                 imuDataDownSampledNew.time_ms,
+                 imuDataDownSampledNew.delAng.x,
+                 imuDataDownSampledNew.delAng.y,
+                 imuDataDownSampledNew.delAng.z,
+                 imuDataDownSampledNew.delVel.x,
+                 imuDataDownSampledNew.delVel.y,
+                 imuDataDownSampledNew.delVel.z,
+                 imuDataDownSampledNew.delAngDT,
+                 imuDataDownSampledNew.delVelDT);
         storedIMU.push_youngest_element(imuDataDownSampledNew);
 
         // calculate the achieved average time step rate for the EKF using a combination spike and LPF
@@ -695,7 +710,7 @@ void NavEKF3_core::readGpsData()
                 } else {
                     gpsDataNew.hgt = 0.01 * (gpsloc.alt - EKF_origin.alt);
                 }
-                xxprintf("GPX %u (%f,%f) (%f,%f,%f) %f ref:%f\n",
+                xxprintf("GPX %u (%.12f,%.12f) (%.12f,%.12f,%.12f) %.12f ref:%.12f\n",
                          gpsDataNew.time_ms,
                          gpsDataNew.pos.x,
                          gpsDataNew.pos.y,
@@ -775,6 +790,7 @@ void NavEKF3_core::readBaroData()
         baroDataNew.time_ms = MAX(baroDataNew.time_ms,imuDataDelayed.time_ms);
 
         // save baro measurement to buffer to be fused later
+        xxprintf("BARO %u %.12f\n", baroDataNew.time_ms, baroDataNew.hgt);
         storedBaro.push(baroDataNew);
     }
 }

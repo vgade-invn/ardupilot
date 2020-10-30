@@ -198,6 +198,8 @@ void NavEKF3_core::setAidingMode()
     resetDataSource posResetSource = resetDataSource::DEFAULT;
     resetDataSource velResetSource = resetDataSource::DEFAULT;
 
+    xxprintf("PV_AidingMode=%u\n", PV_AidingMode);
+
     // Save the previous status so we can detect when it has changed
     PV_AidingModePrev = PV_AidingMode;
 
@@ -360,6 +362,7 @@ void NavEKF3_core::setAidingMode()
                 // We are commencing aiding using GPS - this is the preferred method
                 posResetSource = resetDataSource::GPS;
                 velResetSource = resetDataSource::GPS;
+                xxprintf("using GPS\n");
                 GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u is using GPS",(unsigned)imu_index);
             } else if (readyToUseRangeBeacon()) {
                 // We are commencing aiding using range beacons
@@ -394,6 +397,7 @@ void NavEKF3_core::setAidingMode()
         }
 
         // Always reset the position and velocity when changing mode
+        xxprintf("ResetVelocity\n");
         ResetVelocity(velResetSource);
         ResetPosition(posResetSource);
 
