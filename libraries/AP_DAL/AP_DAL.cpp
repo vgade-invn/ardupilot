@@ -193,6 +193,16 @@ const AP_DAL_Compass *AP_DAL::get_compass() const
     return &_compass;
 }
 
+// map core number for replay
+uint8_t AP_DAL::core(uint8_t c) const
+{
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    return c+100U;
+#else
+    return c;
+#endif
+}
+
 #include <stdio.h>
 
 namespace AP {

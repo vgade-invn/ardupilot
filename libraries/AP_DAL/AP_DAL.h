@@ -15,13 +15,7 @@
 
 #include "LogStructure.h"
 
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-// Replay results come in at 100 + core
-#define DAL_CORE(c) ((c)+100U)
-#else
-#define DAL_CORE(c) (c)
-#endif
-
+#define DAL_CORE(c) AP::dal().core(c)
 
 class AP_DAL {
 public:
@@ -270,6 +264,9 @@ public:
         _beacon.handle_message(msg);
     }
 #endif
+
+    // map core number for replay
+    uint8_t core(uint8_t c) const;
 
 private:
 
