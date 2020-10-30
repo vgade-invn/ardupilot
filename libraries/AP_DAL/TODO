@@ -1,6 +1,7 @@
 Things to look at BEFORE merge
 ==============================
 
+  - remove underscores from member names
   - have sensor libraries return instance of backend rather than indexing-in all the time.  Precludes status() vs status(i) bugs.  Also applicable to logging
   - should we shortcut logging e.g. barometer header based on its fields changing?
   - reorder header and initialisation to match library
@@ -12,10 +13,8 @@ Things to look at BEFORE merge
   - REVIEWING: 
          - make sure that we're not calling the "primary instance" method - i.e. we're always passing in (i) to the get-data methods
   - sensors still to do:
-   - beacons
    - optical flow
    - external navigation
-   - visual odom
  - look at using the logging structures for storing the state.  It will ensure we write out stuff appropriately?
    - might even allow for a nice method of populating the fields
  - consider how LOG_DISARMED works with this
