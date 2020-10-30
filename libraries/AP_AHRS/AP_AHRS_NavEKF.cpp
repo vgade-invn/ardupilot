@@ -26,6 +26,7 @@
 #include <AP_GPS/AP_GPS.h>
 #include <AP_Baro/AP_Baro.h>
 #include <AP_InternalError/AP_InternalError.h>
+#include <AP_Logger/AP_Logger.h>
 #include <AP_Notify/AP_Notify.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 
@@ -427,8 +428,12 @@ const Vector3f &AP_AHRS_NavEKF::get_accel_ef_blended(void) const
     return _accel_ef_ekf_blended;
 }
 
+#include <stdio.h>
+
 void AP_AHRS_NavEKF::reset(bool recover_eulers)
 {
+    ::fprintf(stderr, "reset\n");
+
     // support locked access functions to AHRS data
     WITH_SEMAPHORE(_rsem);
     
@@ -449,6 +454,7 @@ void AP_AHRS_NavEKF::reset(bool recover_eulers)
 // reset the current attitude, used on new IMU calibration
 void AP_AHRS_NavEKF::reset_attitude(const float &_roll, const float &_pitch, const float &_yaw)
 {
+    ::fprintf(stderr, "reset_attitude\n");
     // support locked access functions to AHRS data
     WITH_SEMAPHORE(_rsem);
     
@@ -1987,6 +1993,22 @@ bool AP_AHRS_NavEKF::get_hgt_ctrl_limit(float& limit) const
 // this is not related to terrain following
 void AP_AHRS_NavEKF::set_terrain_hgt_stable(bool stable)
 {
+    switch (terrainHgtStableState) {
+    case TriState::UNKNOWN:
+        break;
+    case TriState::TRUE:
+        if (stable) {
+            return;
+        }
+        break;
+    case TriState::FALSE:
+        if (!stable) {
+            return;
+        }
+        break;
+    }
+    terrainHgtStableState = (TriState)stable;
+
 #if HAL_NAVEKF2_AVAILABLE
     EKF2.setTerrainHgtStable(stable);
 #endif
@@ -2105,6 +2127,22 @@ bool AP_AHRS_NavEKF::get_variances(float &velVar, float &posVar, float &hgtVar, 
 
 void AP_AHRS_NavEKF::setTakeoffExpected(bool val)
 {
+    switch (takeoffExpectedState) {
+    case TriState::UNKNOWN:
+        break;
+    case TriState::TRUE:
+        if (val) {
+            return;
+        }
+        break;
+    case TriState::FALSE:
+        if (!val) {
+            return;
+        }
+        break;
+    }
+    takeoffExpectedState = (TriState)val;
+
 #if HAL_NAVEKF2_AVAILABLE
     EKF2.setTakeoffExpected(val);
 #endif
@@ -2115,6 +2153,22 @@ void AP_AHRS_NavEKF::setTakeoffExpected(bool val)
 
 void AP_AHRS_NavEKF::setTouchdownExpected(bool val)
 {
+    switch (touchdownExpectedState) {
+    case TriState::UNKNOWN:
+        break;
+    case TriState::TRUE:
+        if (val) {
+            return;
+        }
+        break;
+    case TriState::FALSE:
+        if (!val) {
+            return;
+        }
+        break;
+    }
+    touchdownExpectedState = (TriState)val;
+
 #if HAL_NAVEKF2_AVAILABLE
     EKF2.setTouchdownExpected(val);
 #endif

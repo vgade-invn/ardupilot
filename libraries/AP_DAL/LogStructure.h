@@ -6,6 +6,9 @@
     LOG_RFRH_MSG,  \
     LOG_RFRF_MSG,  \
     LOG_RFRR_MSG,  \
+    LOG_REV2_MSG,  \
+    LOG_RSO2_MSG,  \
+    LOG_RWA2_MSG,  \
     LOG_RFRN_MSG,  \
     LOG_RISH_MSG,  \
     LOG_RISI_MSG,  \
@@ -117,6 +120,32 @@ struct PACKED log_RISJ {
     float delta_angle_y;
     float delta_angle_z;
     float delta_angle_dt;
+};
+
+// @LoggerMessage: REV2
+// @Description: Replay Event
+struct PACKED log_REV2 {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t event;
+};
+
+// @LoggerMessage: RSO2
+// @Description: Replay Set Origin event
+struct PACKED log_RSO2 {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    int32_t lat;
+    int32_t lng;
+    int32_t alt;
+};
+
+// @LoggerMessage: RWA2
+// @Description: Replay set-default-airspeed event
+struct PACKED log_RWA2 {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float airspeed;
 };
 
 // @LoggerMessage: RBRH
@@ -274,6 +303,12 @@ struct PACKED log_RMGI {
       "RFRN", "QIII", "TimeUS,HLat,HLon,HAlt", "sDUm", "FGGB" }, \
     { LOG_RFRR_MSG, sizeof(log_RFRR), \
       "RFRR", "Qfffffffff", "TimeUS,M0,M1,M2,M3,M4,M5,M6,M7,M8", "s---------", "F---------" }, \
+    { LOG_REV2_MSG, sizeof(log_REV2), \
+      "REV2", "QB", "TimeUS,Event", "s-", "F-" }, \
+    { LOG_RSO2_MSG, sizeof(log_RSO2), \
+      "RSO2", "QIII", "TimeUS,Lat,Lon,Alt", "sDUm", "FGGB" }, \
+    { LOG_RWA2_MSG, sizeof(log_RWA2), \
+      "RWA2", "Qf", "TimeUS,Airspeed", "sn", "F0" }, \
     { LOG_RISH_MSG, sizeof(log_RISH), \
       "RISH", "QHBBfBBI", "TimeUS,LR,PG,PA,LD,AC,GC,LU", "s-------", "F-------" }, \
     { LOG_RISI_MSG, sizeof(log_RISI), \

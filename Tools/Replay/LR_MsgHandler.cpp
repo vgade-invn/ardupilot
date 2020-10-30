@@ -41,6 +41,51 @@ void LR_MsgHandler_RFRF::process_message(uint8_t *msg)
     }
 }
 
+void LR_MsgHandler_REV2::process_message(uint8_t *msg)
+{
+    const log_REV2 &rev2 = *((log_REV2*)(msg));
+
+    switch ((AP_DAL::Event2)rev2.event) {
+
+    case AP_DAL::Event2::ResetGyroBias:
+        ekf2.resetGyroBias();
+        break;
+    case AP_DAL::Event2::ResetHeightDatum:
+        ekf2.resetHeightDatum();
+        break;
+    case AP_DAL::Event2::InhibitGPS:
+        ekf2.setInhibitGPS();
+        break;
+    case AP_DAL::Event2::setTakeoffExpected:
+        ekf2.setTakeoffExpected(true);
+        break;
+    case AP_DAL::Event2::unsetTakeoffExpected:
+        ekf2.setTakeoffExpected(false);
+        break;
+    case AP_DAL::Event2::setTouchdownExpected:
+        ekf2.setTouchdownExpected(true);
+        break;
+    case AP_DAL::Event2::unsetTouchdownExpected:
+        ekf2.setTouchdownExpected(false);
+        break;
+    case AP_DAL::Event2::setInhibitGpsVertVelUse:
+        ekf2.setInhibitGpsVertVelUse(true);
+        break;
+    case AP_DAL::Event2::unsetInhibitGpsVertVelUse:
+        ekf2.setInhibitGpsVertVelUse(false);
+        break;
+    case AP_DAL::Event2::setTerrainHgtStable:
+        ekf2.setTerrainHgtStable(true);
+        break;
+    case AP_DAL::Event2::unsetTerrainHgtStable:
+        ekf2.setTerrainHgtStable(false);
+        break;
+    case AP_DAL::Event2::requestYawReset:
+        ekf2.requestYawReset();
+        break;
+    }
+}
+
 void LR_MsgHandler_NKF1::process_message(uint8_t *msg)
 {
     ekf2.Log_Write();

@@ -611,6 +611,9 @@ NavEKF2::NavEKF2()
     AP_Param::setup_object_defaults(this, var_info);
 }
 
+#include <stdio.h>
+static bool fred_initialised;
+
 // Initialise the filter
 bool NavEKF2::InitialiseFilter(void)
 {
@@ -631,6 +634,12 @@ bool NavEKF2::InitialiseFilter(void)
     const auto &ins = AP::dal().ins();
 
     imuSampleTime_us = AP::dal().micros64();
+
+    static bool printed_sample_time = false;
+    if (!printed_sample_time) {
+        printed_sample_time = true;
+        ::fprintf(stderr, "First sample time: %lu\n", imuSampleTime_us);
+    }
 
     // remember expected frame time
     _frameTimeUsec = 1e6 / ins.get_loop_rate_hz();
@@ -714,6 +723,11 @@ bool NavEKF2::InitialiseFilter(void)
     memset((void *)&pos_reset_data, 0, sizeof(pos_reset_data));
     memset(&pos_down_reset_data, 0, sizeof(pos_down_reset_data));
 
+    fred_initialised = true;
+    if (ret) {
+        ::fprintf(stderr, "Goot to go!\n");
+    }
+
     return ret;
 }
 
@@ -746,6 +760,10 @@ bool NavEKF2::coreBetterScore(uint8_t new_core, uint8_t current_core)
 // Update Filter States - this should be called whenever new IMU data is available
 void NavEKF2::UpdateFilter(void)
 {
+    if (!fred_initialised) {
+        abort();
+    }
+
     AP::dal().start_frame(AP_DAL::FrameType::UpdateFilterEKF2);
 
     if (!core) {
@@ -992,6 +1010,8 @@ void NavEKF2::getTiltError(int8_t instance, float &ang) const
 // reset body axis gyro bias estimates
 void NavEKF2::resetGyroBias(void)
 {
+    AP::dal().log_event2(AP_DAL::Event2::ResetGyroBias);
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].resetGyroBias();
@@ -1006,6 +1026,8 @@ void NavEKF2::resetGyroBias(void)
 // If using a range finder for height no reset is performed and it returns false
 bool NavEKF2::resetHeightDatum(void)
 {
+    AP::dal().log_event2(AP_DAL::Event2::ResetHeightDatum);
+
     bool status = true;
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
@@ -1027,11 +1049,25 @@ bool NavEKF2::resetHeightDatum(void)
 // Returns 2 if attitude, 3D-velocity, vertical position and relative horizontal position will be provided
 uint8_t NavEKF2::setInhibitGPS(void)
 {
+    AP::dal().log_event2(AP_DAL::Event2::InhibitGPS);
+
     if (!core) {
         return 0;
     }
     return core[primary].setInhibitGPS();
 }
+
+// Set the argument to true to prevent the EKF using the GPS vertical velocity
+// This can be used for situations where GPS velocity errors are causing problems with height accuracy
+void NavEKF2::setInhibitGpsVertVelUse(const bool varIn) {
+    if (varIn) {
+        AP::dal().log_event2(AP_DAL::Event2::setInhibitGpsVertVelUse);
+    } else {
+        AP::dal().log_event2(AP_DAL::Event2::unsetInhibitGpsVertVelUse);
+    }
+    inhibitGpsVertVelUse = varIn;
+};
+
 
 // return the horizontal speed limit in m/s set by optical flow sensor limits
 // return the scale factor to be applied to navigation velocity gains to compensate for increase in velocity noise with height when using optical flow
@@ -1142,6 +1178,8 @@ bool NavEKF2::getOriginLLH(int8_t instance, struct Location &loc) const
 // Returns false if the filter has rejected the attempt to set the origin
 bool NavEKF2::setOriginLLH(const Location &loc)
 {
+    AP::dal().log_SetOriginLLH2(loc);
+
     if (!core) {
         return false;
     }
@@ -1285,6 +1323,12 @@ bool NavEKF2::getRangeBeaconDebug(int8_t instance, uint8_t &ID, float &rng, floa
 // causes the EKF to compensate for expected barometer errors due to ground effect
 void NavEKF2::setTakeoffExpected(bool val)
 {
+    if (val) {
+        AP::dal().log_event2(AP_DAL::Event2::setTakeoffExpected);
+    } else {
+        AP::dal().log_event2(AP_DAL::Event2::unsetTakeoffExpected);
+    }
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].setTakeoffExpected(val);
@@ -1296,6 +1340,12 @@ void NavEKF2::setTakeoffExpected(bool val)
 // causes the EKF to compensate for expected barometer errors due to ground effect
 void NavEKF2::setTouchdownExpected(bool val)
 {
+    if (val) {
+        AP::dal().log_event2(AP_DAL::Event2::setTouchdownExpected);
+    } else {
+        AP::dal().log_event2(AP_DAL::Event2::unsetTouchdownExpected);
+    }
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].setTouchdownExpected(val);
@@ -1309,6 +1359,11 @@ void NavEKF2::setTouchdownExpected(bool val)
 // enabled by the combination of EK2_RNG_AID_HGT and EK2_RNG_USE_SPD parameters.
 void NavEKF2::setTerrainHgtStable(bool val)
 {
+    if (val) {
+        AP::dal().log_event2(AP_DAL::Event2::setTerrainHgtStable);
+    } else {
+        AP::dal().log_event2(AP_DAL::Event2::unsetTerrainHgtStable);
+    }
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].setTerrainHgtStable(val);
@@ -1531,6 +1586,8 @@ uint32_t NavEKF2::getLastPosDownReset(float &posDelta)
 // update the yaw reset data to capture changes due to a lane switch
 void NavEKF2::updateLaneSwitchYawResetData(uint8_t new_primary, uint8_t old_primary)
 {
+    // AP_DAL::log_updateLaneSwitchYawResetData(new_primary, old_primary);
+
     Vector3f eulers_old_primary, eulers_new_primary;
     float old_yaw_delta;
 
@@ -1557,6 +1614,8 @@ void NavEKF2::updateLaneSwitchYawResetData(uint8_t new_primary, uint8_t old_prim
 // update the position reset data to capture changes due to a lane switch
 void NavEKF2::updateLaneSwitchPosResetData(uint8_t new_primary, uint8_t old_primary)
 {
+    // AP_DAL::log_updateLaneSwitchPosResetData(new_primary, old_primary);
+
     Vector2f pos_old_primary, pos_new_primary, old_pos_delta;
 
     // If core position reset data has been consumed reset delta to zero
@@ -1584,6 +1643,8 @@ void NavEKF2::updateLaneSwitchPosResetData(uint8_t new_primary, uint8_t old_prim
 // new primary EKF update has been run
 void NavEKF2::updateLaneSwitchPosDownResetData(uint8_t new_primary, uint8_t old_primary)
 {
+    // AP_DAL::log_updateLaneSwitchPosResetData(new_primary, old_primary);
+
     float posDownOldPrimary, posDownNewPrimary, oldPosDownDelta;
 
     // If core position reset data has been consumed reset delta to zero
@@ -1655,6 +1716,8 @@ bool NavEKF2::isExtNavUsedForYaw() const
 
 void NavEKF2::requestYawReset(void)
 {
+    AP::dal().log_event2(AP_DAL::Event2::requestYawReset);
+
     for (uint8_t i = 0; i < num_cores; i++) {
         core[i].EKFGSF_requestYawReset();
     }
@@ -1676,6 +1739,8 @@ bool NavEKF2::getDataEKFGSF(int8_t instance, float &yaw_composite, float &yaw_co
 // Writes the default equivalent airspeed in m/s to be used in forward flight if a measured airspeed is required and not available.
 void NavEKF2::writeDefaultAirSpeed(float airspeed)
 {
+    AP::dal().log_writeDefaultAirSpeed2(airspeed);
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].writeDefaultAirSpeed(airspeed);
@@ -1691,6 +1756,8 @@ void NavEKF2::writeDefaultAirSpeed(float airspeed)
  */
 void NavEKF2::writeExtNavVelData(const Vector3f &vel, float err, uint32_t timeStamp_ms, uint16_t delay_ms)
 {
+    // AP_DAL::log_writeExtNavVelData(vel, err, timeStamp_ms, delay_ms);
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].writeExtNavVelData(vel, err, timeStamp_ms, delay_ms);

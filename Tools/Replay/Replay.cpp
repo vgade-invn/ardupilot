@@ -165,8 +165,6 @@ void Replay::setup()
 
 void Replay::loop()
 {
-    ::fprintf(stderr, "loop\n");
-
     // LogReader reader = LogReader(log_structure);
     if (!reader.open_log(filename)) {
         ::fprintf(stderr, "open(%s): %m\n", filename);
