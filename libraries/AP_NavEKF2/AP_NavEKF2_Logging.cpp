@@ -6,11 +6,6 @@
 
 void NavEKF2::Log_Write_NKF1(uint8_t _core, uint64_t time_us) const
 {
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-    // Replay results come in at 100 + core
-    _core += 100;
-#endif
-
     // Write first EKF packet
     Vector3f euler;
     Vector2f posNE;
@@ -31,7 +26,7 @@ void NavEKF2::Log_Write_NKF1(uint8_t _core, uint64_t time_us) const
     const struct log_EKF1 pkt{
         LOG_PACKET_HEADER_INIT(LOG_NKF1_MSG),
         time_us : time_us,
-        core    : _core,
+        core    : DAL_CORE(_core),
         roll    : (int16_t)(100*degrees(euler.x)), // roll angle (centi-deg, displayed as deg due to format string)
         pitch   : (int16_t)(100*degrees(euler.y)), // pitch angle (centi-deg, displayed as deg due to format string)
         yaw     : (uint16_t)wrap_360_cd(100*degrees(euler.z)), // yaw angle (centi-deg, displayed as deg due to format string)
@@ -52,11 +47,6 @@ void NavEKF2::Log_Write_NKF1(uint8_t _core, uint64_t time_us) const
 
 void NavEKF2::Log_Write_NKF2(uint8_t _core, uint64_t time_us) const
 {
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-    // Replay results come in at 100 + core
-    _core += 100;
-#endif
-
     // Write second EKF packet
     float azbias = 0;
     Vector3f wind;
@@ -72,7 +62,7 @@ void NavEKF2::Log_Write_NKF2(uint8_t _core, uint64_t time_us) const
     const struct log_NKF2 pkt2{
         LOG_PACKET_HEADER_INIT(LOG_NKF2_MSG),
         time_us : time_us,
-        core    : _core,
+        core    : DAL_CORE(_core),
         AZbias  : (int8_t)(100*azbias),
         scaleX  : (int16_t)(100*gyroScaleFactor.x),
         scaleY  : (int16_t)(100*gyroScaleFactor.y),
@@ -92,11 +82,6 @@ void NavEKF2::Log_Write_NKF2(uint8_t _core, uint64_t time_us) const
 
 void NavEKF2::Log_Write_NKF3(uint8_t _core, uint64_t time_us) const
 {
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-    // Replay results come in at 100 + core
-    _core += 100;
-#endif
-
     // Write third EKF packet
     Vector3f velInnov;
     Vector3f posInnov;
@@ -107,7 +92,7 @@ void NavEKF2::Log_Write_NKF3(uint8_t _core, uint64_t time_us) const
     const struct log_NKF3 pkt3{
         LOG_PACKET_HEADER_INIT(LOG_NKF3_MSG),
         time_us : time_us,
-        core    : _core,
+        core    : DAL_CORE(_core),
         innovVN : (int16_t)(100*velInnov.x),
         innovVE : (int16_t)(100*velInnov.y),
         innovVD : (int16_t)(100*velInnov.z),
@@ -127,11 +112,6 @@ void NavEKF2::Log_Write_NKF3(uint8_t _core, uint64_t time_us) const
 
 void NavEKF2::Log_Write_NKF4(uint8_t _core, uint64_t time_us) const
 {
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-    // Replay results come in at 100 + core
-    _core += 100;
-#endif
-
     // Write fourth EKF packet
     float velVar = 0;
     float posVar = 0;
@@ -155,7 +135,7 @@ void NavEKF2::Log_Write_NKF4(uint8_t _core, uint64_t time_us) const
     const struct log_NKF4 pkt4{
         LOG_PACKET_HEADER_INIT(LOG_NKF4_MSG),
         time_us : time_us,
-        core    : _core,
+        core    : DAL_CORE(_core),
         sqrtvarV : (int16_t)(100*velVar),
         sqrtvarP : (int16_t)(100*posVar),
         sqrtvarH : (int16_t)(100*hgtVar),
@@ -175,11 +155,6 @@ void NavEKF2::Log_Write_NKF4(uint8_t _core, uint64_t time_us) const
 
 void NavEKF2::Log_Write_NKF5(uint8_t _core, uint64_t time_us) const
 {
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-    // Replay results come in at 100 + core
-    _core += 100;
-#endif
-
     if (_core != primary) {
         // log only primary instance for now
         return;
@@ -200,7 +175,7 @@ void NavEKF2::Log_Write_NKF5(uint8_t _core, uint64_t time_us) const
     const struct log_NKF5 pkt5{
         LOG_PACKET_HEADER_INIT(LOG_NKF5_MSG),
         time_us : time_us,
-        core    : _core,
+        core    : DAL_CORE(_core),
         normInnov : (uint8_t)(MIN(100*normInnov,255)),
         FIX : (int16_t)(1000*flowInnovX),
         FIY : (int16_t)(1000*flowInnovY),
@@ -219,18 +194,13 @@ void NavEKF2::Log_Write_NKF5(uint8_t _core, uint64_t time_us) const
 
 void NavEKF2::Log_Write_Quaternion(uint8_t _core, uint64_t time_us) const
 {
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-    // Replay results come in at 100 + core
-    _core += 100;
-#endif
-
     // log quaternion
     Quaternion quat;
     getQuaternion(_core, quat);
     const struct log_Quaternion pktq1{
         LOG_PACKET_HEADER_INIT(LOG_NKQ_MSG),
         time_us : time_us,
-        core    : _core,
+        core    : DAL_CORE(_core),
         q1 : quat.q1,
         q2 : quat.q2,
         q3 : quat.q3,
@@ -246,11 +216,6 @@ void NavEKF2::Log_Write_Beacon(uint8_t _core, uint64_t time_us) const
         return;
     }
 
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-    // Replay results come in at 100 + core
-    _core += 100;
-#endif
-
     if (AP::beacon() != nullptr) {
         uint8_t ID;
         float rng;
@@ -265,7 +230,7 @@ void NavEKF2::Log_Write_Beacon(uint8_t _core, uint64_t time_us) const
                 struct log_RngBcnDebug pkt10 = {
                     LOG_PACKET_HEADER_INIT(LOG_NKF10_MSG),
                     time_us : time_us,
-                    core    : _core,
+                    core    : DAL_CORE(_core),
                     ID : (uint8_t)ID,
                     rng : (int16_t)(100*rng),
                     innov : (int16_t)(100*innov),
@@ -347,11 +312,6 @@ void NavEKF2::Log_Write()
 
 void NavEKF2::Log_Write_GSF(uint8_t _core, uint64_t time_us) const
 {
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-    // Replay results come in at 100 + core
-    _core += 100;
-#endif
-
     float yaw_composite;
     float yaw_composite_variance;
     float yaw[N_MODELS_EKFGSF];
@@ -383,7 +343,7 @@ void NavEKF2::Log_Write_GSF(uint8_t _core, uint64_t time_us) const
                         "F-000000000000",
                         "QBffffffffffff",
                         time_us,
-                        _core,
+                        DAL_CORE(_core),
                         yaw_composite,
                         sqrtf(MAX(yaw_composite_variance, 0.0f)),
                         yaw[0],
