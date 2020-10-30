@@ -366,8 +366,8 @@ private:
 
     // avoid setting current state repeatedly across all cores on all EKFs:
     enum class TriState {
-        FALSE = 0,
-        TRUE = 1,
+        False = 0,
+        True = 1,
         UNKNOWN = 3,
     };
     TriState touchdownExpectedState = TriState::UNKNOWN;
