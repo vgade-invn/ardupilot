@@ -209,7 +209,7 @@ public:
     void WriteCriticalBlock(const void *pBuffer, uint16_t size);
 
     /* Write a block of replay data at current offset */
-    void WriteReplayBlock(const void *pBuffer, uint16_t size);
+    void WriteReplayBlock(uint8_t msg_id, const void *pBuffer, uint16_t size);
 
     // high level interface
     uint16_t find_last_log() const;
