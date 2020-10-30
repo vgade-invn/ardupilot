@@ -137,6 +137,9 @@ public:
     void handle_message(const log_RGPI &msg) {
         _RGPI[msg.instance] = msg;
     }
+    void handle_message(const log_RGPJ &msg) {
+        _RGPJ[msg.instance] = msg;
+    }
 #endif
 
 private:
