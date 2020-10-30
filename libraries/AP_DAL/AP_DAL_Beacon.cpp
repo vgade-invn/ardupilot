@@ -40,7 +40,7 @@ void AP_DAL_Beacon::start_frame(const uint64_t time_us)
         _RBCH.origin_alt = _origin.alt;
     }
     logger.WriteReplayBlock((void*)&_RBCH, sizeof(_RBCH));
-    if (beacon != nullptr) {
+    if (beacon == nullptr) {
         return;
     }
 
