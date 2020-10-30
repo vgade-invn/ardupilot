@@ -24,7 +24,7 @@ public:
 
     // return a 3D vector defining the position offset of the camera in meters relative to the body frame origin
     const Vector3f &get_pos_offset() const {
-        return RVOH.pos_offset.to_Vector3f();
+        return RVOH.pos_offset;
     }
 
     // AP_DAL methods:

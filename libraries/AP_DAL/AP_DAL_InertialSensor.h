@@ -19,7 +19,7 @@ public:
 
 
     const Vector3f &get_imu_pos_offset(uint8_t instance) const {
-        return _RISI[instance].pos.to_Vector3f();
+        return _RISI[instance].pos;
     }
 
     // accel stuff
@@ -27,9 +27,9 @@ public:
     uint8_t get_primary_accel(void) const { return _RISH.primary_accel; };
 
     bool use_accel(uint8_t instance) const { return _RISI[instance].use_accel; }
-    const Vector3f     &get_accel(uint8_t i) const { return _RISI[i].accel.to_Vector3f(); }
+    const Vector3f     &get_accel(uint8_t i) const { return _RISI[i].accel; }
     bool get_delta_velocity(uint8_t i, Vector3f &delta_velocity) const {
-        delta_velocity = _RISI[i].delta_velocity.to_Vector3f();
+        delta_velocity = _RISI[i].delta_velocity;
         return _RISI[i].get_delta_velocity_ret;
     }
     float get_delta_velocity_dt(uint8_t i) const {
@@ -41,10 +41,10 @@ public:
     uint8_t get_primary_gyro(void) const { return _RISH.primary_gyro; };
 
     bool use_gyro(uint8_t instance) const { return _RISJ[instance].use_gyro; }
-    const Vector3f     &get_gyro(uint8_t i) const { return _RISJ[i].gyro.to_Vector3f(); }
+    const Vector3f     &get_gyro(uint8_t i) const { return _RISJ[i].gyro; }
     const Vector3f     &get_gyro() const { return get_gyro(_primary_gyro); }
     bool get_delta_angle(uint8_t i, Vector3f &delta_angle) const {
-        delta_angle = _RISJ[i].delta_angle.to_Vector3f();
+        delta_angle = _RISJ[i].delta_angle;
         return _RISJ[i].get_delta_angle_ret;
     }
     float get_delta_angle_dt(uint8_t i) const { return _RISJ[i].delta_angle_dt; }
