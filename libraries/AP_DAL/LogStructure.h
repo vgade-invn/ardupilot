@@ -26,6 +26,8 @@
     LOG_RGPJ_MSG, \
     LOG_RASH_MSG, \
     LOG_RASI_MSG, \
+    LOG_RBCH_MSG, \
+    LOG_RBCI_MSG, \
     LOG_RMGH_MSG, \
     LOG_RMGI_MSG
 
@@ -335,6 +337,34 @@ struct PACKED log_RMGI {
     bool have_scale_factor;
 };
 
+// @LoggerMessage: RBCH
+// @Description: Replay Data Beacon Header
+struct PACKED log_RBCH {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t count;
+    uint8_t ptr_is_nullptr;
+    float vehicle_position_ned[3];
+    float accuracy_estimate;
+    bool get_vehicle_position_ned_returncode;
+    int32_t origin_lat;
+    int32_t origin_lng;
+    int32_t origin_alt;
+    bool get_origin_returncode;
+};
+
+// @LoggerMessage: RBCI
+// @Description: Replay Data Beacon Instance
+struct PACKED log_RBCI {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint32_t last_update_ms;
+    float position[3];
+    float distance;
+    uint8_t healthy;
+    uint8_t instance;
+};
+
 #define LOG_STRUCTURE_FROM_DAL        \
     { LOG_RFRH_MSG, sizeof(log_RFRH), \
       "RFRH", "QIffffIBBBBBBBHB", "TimeUS,FN,TX,TY,TZ,E2T,AM,State,NlRF,NlCRP,NlAS,FF,VC,ASE,TF,EKT", "s-------------?-", "F-------------?-" }, \
@@ -385,4 +415,8 @@ struct PACKED log_RMGI {
     { LOG_RMGH_MSG, sizeof(log_RMGH),                           \
       "RMGH", "QBBfBBB", "TimeUS,Dec,NumInst,AutoDec,NumEna,LOE,C", "s------", "F------" },  \
     { LOG_RMGI_MSG, sizeof(log_RMGI),                           \
-      "RMGI", "QBIffffffBBB", "TimeUS,I,LU,OX,OY,OZ,FX,FY,FZ,UFY,H,HSF", "s#----------", "F-----------" },
+      "RMGI", "QBIffffffBBB", "TimeUS,I,LU,OX,OY,OZ,FX,FY,FZ,UFY,H,HSF", "s#----------", "F-----------" },                                        \
+    { LOG_RBCH_MSG, sizeof(log_RBCH),                           \
+      "RBCH", "QBBffffBfffB", "TimeUS,NumInst,NPtr,PX,PY,PZ,AE,GVPR,OLat,OLng,OAlt,ORet", "s#-mmmm-DUm-", "F--0000-GGB-" },  \
+    { LOG_RBCI_MSG, sizeof(log_RBCI),                           \
+      "RBCI", "QIffffBB", "TimeUS,LU,PX,PY,PZ,Dist,H,I", "ssmmmm-#", "F?0000--" },

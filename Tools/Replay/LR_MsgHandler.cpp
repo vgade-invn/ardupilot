@@ -251,6 +251,15 @@ void LR_MsgHandler_RMGI::process_message(uint8_t *msg)
     AP::dal().handle_message(*((log_RMGI*)(msg)));
 }
 
+void LR_MsgHandler_RBCH::process_message(uint8_t *msg)
+{
+    AP::dal().handle_message(*((log_RBCH*)(msg)));
+}
+void LR_MsgHandler_RBCI::process_message(uint8_t *msg)
+{
+    AP::dal().handle_message(*((log_RBCI*)(msg)));
+}
+
 #include <AP_AHRS/AP_AHRS.h>
 #include "VehicleType.h"
 

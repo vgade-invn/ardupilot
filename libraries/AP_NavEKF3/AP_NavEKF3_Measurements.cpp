@@ -839,7 +839,7 @@ void NavEKF3_core::readRngBcnData()
     static_assert(ARRAY_SIZE(rngBcnFusionReport) >= AP_BEACON_MAX_BEACONS, "rngBcnFusionReport should have at least AP_BEACON_MAX_BEACONS elements");
 
     // get the location of the beacon data
-    const AP_Beacon *beacon = AP::beacon();
+    const AP_DAL_Beacon *beacon = AP::dal().beacon();
 
     // exit immediately if no beacon object
     if (beacon == nullptr) {
