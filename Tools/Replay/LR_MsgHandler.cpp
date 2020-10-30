@@ -83,13 +83,12 @@ void LR_MsgHandler_REV2::process_message(uint8_t *msg)
     case AP_DAL::Event2::requestYawReset:
         ekf2.requestYawReset();
         break;
+    case AP_DAL::Event2::LoggingDone:
+        ekf2.Log_Write();
+        break;
     }
 }
 
-void LR_MsgHandler_NKF1::process_message(uint8_t *msg)
-{
-    ekf2.Log_Write();
-}
 
 void LR_MsgHandler_XKF1::process_message(uint8_t *msg)
 {

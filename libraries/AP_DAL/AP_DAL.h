@@ -37,6 +37,7 @@ public:
         setTerrainHgtStable       =  9,
         unsetTerrainHgtStable     = 10,
         requestYawReset           = 11,
+        LoggingDone               = 12,
     };
 
     // must remain the same as AP_AHRS_VehicleClass numbers-wise
