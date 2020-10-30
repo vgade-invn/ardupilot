@@ -1337,24 +1337,16 @@ void NavEKF3_core::updateMovementCheck(void)
 
     if (logStatusChange || imuSampleTime_ms - lastMoveCheckLogTime_ms > 200) {
         lastMoveCheckLogTime_ms = imuSampleTime_ms;
-// @LoggerMessage: XKFM
-// @Description: EKF3 diagnostic data for on-ground-and-not-moving check
-// @Field: TimeUS: Time since system startup
-// @Field: OGNM: True of on ground and not moving
-// @Field: GLR: Gyroscope length ratio
-// @Field: ALR: Accelerometer length ratio
-// @Field: GDR: Gyroscope rate of change ratio
-// @Field: ADR: Accelerometer rate of change ratio
-        AP::logger().Write("XKFM",
-                        "TimeUS,OGNM,GLR,ALR,GDR,ADR",
-                        "s-----",
-                        "F-----",
-                        "QBffff",
-                        AP::dal().micros64(),
-                        uint8_t(onGroundNotMoving),
-                        float(gyro_length_ratio),
-                        float(accel_length_ratio),
-                        float(gyro_diff_ratio),
-                        float(accel_diff_ratio));
+        const struct log_XKFM pkt{
+            LOG_PACKET_HEADER_INIT(LOG_XKFM_MSG),
+            time_us            : AP::dal().micros64(),
+            core               : core_index,
+            ongroundnotmoving  : onGroundNotMoving,
+            gyro_length_ratio  : gyro_length_ratio,
+            accel_length_ratio : accel_length_ratio,
+            gyro_diff_ratio    : gyro_diff_ratio,
+            accel_diff_ratio   : accel_diff_ratio,
+        };
+        AP::logger().WriteBlock(&pkt, sizeof(pkt));
     }
 }
