@@ -4,6 +4,25 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_Logger/AP_Logger.h>
 #include <AP_DAL/AP_DAL.h>
+#include <stdio.h>
+
+void xxprintf(const char *format, ...)
+{
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    const char *fname = "/tmp/replay.log";
+#else
+    const char *fname = "/tmp/real.log";
+#endif
+    static FILE *f;
+    if (!f) {
+        f = ::fopen(fname, "w");
+    }
+    va_list ap;
+    va_start(ap, format);
+    vfprintf(f, format, ap);
+    fflush(f);
+    va_end(ap);
+}
 
 /********************************************************
 *              OPT FLOW AND RANGE FINDER                *
@@ -635,6 +654,7 @@ void NavEKF3_core::readGpsData()
 
             // Read the GPS location in WGS-84 lat,long,height coordinates
             const struct Location &gpsloc = gps.location(selected_gps);
+            xxprintf("gpsalt=%f\n", gpsloc.alt*0.01);
 
             // Set the EKF origin and magnetic field declination if not previously set and GPS checks have passed
             if (gpsGoodToAlign && !validOrigin) {
@@ -646,6 +666,7 @@ void NavEKF3_core::readGpsData()
 
                 // Set the height of the NED origin
                 ekfGpsRefHgt = (double)0.01 * (double)gpsloc.alt + (double)outputDataNew.position.z;
+                xxprintf("ekfGpsRefHgt=%f galt=%f pz=%f\n", ekfGpsRefHgt, gpsloc.alt*0.01, outputDataNew.position.z);
 
                 // Set the uncertainty of the GPS origin height
                 ekfOriginHgtVar = sq(gpsHgtAccuracy);
@@ -674,6 +695,15 @@ void NavEKF3_core::readGpsData()
                 } else {
                     gpsDataNew.hgt = 0.01 * (gpsloc.alt - EKF_origin.alt);
                 }
+                xxprintf("GPX %u (%f,%f) (%f,%f,%f) %f ref:%f\n",
+                         gpsDataNew.time_ms,
+                         gpsDataNew.pos.x,
+                         gpsDataNew.pos.y,
+                         gpsDataNew.vel.x,
+                         gpsDataNew.vel.y,
+                         gpsDataNew.vel.z,
+                         gpsDataNew.hgt,
+                         ekfGpsRefHgt);
                 storedGPS.push(gpsDataNew);
                 // declare GPS available for use
                 gpsNotAvailable = false;
