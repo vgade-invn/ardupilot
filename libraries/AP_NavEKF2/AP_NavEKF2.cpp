@@ -635,12 +635,6 @@ bool NavEKF2::InitialiseFilter(void)
 
     imuSampleTime_us = AP::dal().micros64();
 
-    static bool printed_sample_time = false;
-    if (!printed_sample_time) {
-        printed_sample_time = true;
-        ::fprintf(stderr, "First sample time: %lu\n", imuSampleTime_us);
-    }
-
     // remember expected frame time
     _frameTimeUsec = 1e6 / ins.get_loop_rate_hz();
 
@@ -724,9 +718,6 @@ bool NavEKF2::InitialiseFilter(void)
     memset(&pos_down_reset_data, 0, sizeof(pos_down_reset_data));
 
     fred_initialised = true;
-    if (ret) {
-        ::fprintf(stderr, "Goot to go!\n");
-    }
 
     return ret;
 }
