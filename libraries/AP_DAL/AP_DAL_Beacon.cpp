@@ -31,7 +31,7 @@ void AP_DAL_Beacon::start_frame(const uint64_t time_us)
         Vector3f tmp;
         float tmp_aa;
         _RBCH.get_vehicle_position_ned_returncode = beacon->get_vehicle_position_ned(tmp, tmp_aa);
-        *((Vector3f *)_RBCH.vehicle_position_ned) = tmp;
+        _RBCH.vehicle_position_ned.from_Vector3f(tmp);
         _RBCH.accuracy_estimate = tmp_aa;
 
         _RBCH.get_origin_returncode = beacon->get_origin(_origin);
@@ -53,7 +53,7 @@ void AP_DAL_Beacon::start_frame(const uint64_t time_us)
         _last_logged_update_ms[i] = last_update_ms;
         RBCI.time_us = time_us;
         RBCI.last_update_ms = last_update_ms;
-        *((Vector3f *)RBCI.position) = beacon->beacon_position(i);
+        RBCI.position.from_Vector3f(beacon->beacon_position(i));
         RBCI.distance = beacon->beacon_distance(i);
         RBCI.healthy = beacon->beacon_healthy(i);
 

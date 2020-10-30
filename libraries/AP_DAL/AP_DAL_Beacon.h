@@ -36,12 +36,12 @@ public:
 
     // return NED position of beacon in meters relative to the beacon systems origin
     const Vector3f &beacon_position(uint8_t i) const {
-        return *(Vector3f *)_RBCI[i].position;
+        return _RBCI[i].position.to_Vector3f();
     }
 
     // return vehicle position in NED from position estimate system's origin in meters
     bool get_vehicle_position_ned(Vector3f& pos, float& accuracy_estimate) const {
-        pos = *((Vector3f *)&_RBCH.vehicle_position_ned);
+        pos = _RBCH.vehicle_position_ned.to_Vector3f();
         accuracy_estimate = _RBCH.accuracy_estimate;
         return _RBCH.get_vehicle_position_ned_returncode;
     }

@@ -1,6 +1,13 @@
 #pragma once
 
 #include <AP_Logger/LogStructure.h>
+#include <AP_Math/vector3.h>
+
+typedef struct {
+    float v[3];
+    const Vector3f &to_Vector3f(void) const;
+    void from_Vector3f(const Vector3f &v);
+} Vector3f_t;
 
 #define LOG_IDS_FROM_DAL \
     LOG_RFRH_MSG, \
@@ -100,33 +107,23 @@ struct PACKED log_RISI {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     uint8_t instance;
-    float posx;
-    float posy;
-    float posz;
-    bool use_accel;
-    float accelx;
-    float accely;
-    float accelz;
-    bool get_delta_velocity_ret;
-    float delta_velocity_x;
-    float delta_velocity_y;
-    float delta_velocity_z;
+    Vector3f_t pos;
+    Vector3f_t accel;
+    Vector3f_t delta_velocity;
     float delta_velocity_dt;
+    bool use_accel;
+    bool get_delta_velocity_ret;
 };
 // Replay Data Structure - Inertial Sensor instance data
 struct PACKED log_RISJ {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     uint8_t instance;
-    bool use_gyro;
-    float gyrox;
-    float gyroy;
-    float gyroz;
-    bool get_delta_angle_ret;
-    float delta_angle_x;
-    float delta_angle_y;
-    float delta_angle_z;
+    Vector3f_t gyro;
+    Vector3f_t delta_angle;
     float delta_angle_dt;
+    bool use_gyro;
+    bool get_delta_angle_ret;
 };
 
 // @LoggerMessage: REV2
@@ -231,7 +228,7 @@ struct PACKED log_RRNI {
     uint8_t orientation;
     uint8_t status;
     uint16_t distance_cm;
-    float pos_offset[3];
+    Vector3f_t pos_offset;
 };
 
 // @LoggerMessage: RGPH
@@ -279,12 +276,12 @@ struct PACKED log_RGPJ {
     uint64_t time_us;
     uint8_t instance;
 
-    float velocity[3];
+    Vector3f_t velocity;
 
     bool speed_accuracy_returncode;
     float sacc;
 
-    float antenna_offset[3];
+    Vector3f_t antenna_offset;
 
     // gps-yaw for specific sensor
     bool gps_yaw_deg_returncode;
@@ -331,8 +328,8 @@ struct PACKED log_RMGI {
     uint64_t time_us;
     uint8_t instance;
     uint32_t last_update_usec;
-    float offsets[3];
-    float field[3];
+    Vector3f_t offsets;
+    Vector3f_t field;
     bool use_for_yaw;
     bool healthy;
     bool have_scale_factor;
@@ -345,7 +342,7 @@ struct PACKED log_RBCH {
     uint64_t time_us;
     uint8_t count;
     uint8_t ptr_is_nullptr;
-    float vehicle_position_ned[3];
+    Vector3f_t vehicle_position_ned;
     float accuracy_estimate;
     bool get_vehicle_position_ned_returncode;
     int32_t origin_lat;
@@ -360,7 +357,7 @@ struct PACKED log_RBCI {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     uint32_t last_update_ms;
-    float position[3];
+    Vector3f_t position;
     float distance;
     uint8_t healthy;
     uint8_t instance;
@@ -373,7 +370,7 @@ struct PACKED log_RVOH {
     uint64_t time_us;
     uint8_t healthy;
     uint8_t ptr_is_nullptr;
-    float pos_offset[3];
+    Vector3f_t pos_offset;
     bool enabled;
     uint32_t delay_ms;
 };
@@ -404,9 +401,9 @@ struct PACKED log_RVOH {
     { LOG_RISH_MSG, sizeof(log_RISH), \
       "RISH", "QHBBfBBI", "TimeUS,LR,PG,PA,LD,AC,GC,LU", "s-------", "F-------" }, \
     { LOG_RISI_MSG, sizeof(log_RISI), \
-      "RISI", "QBfffBfffBffff", "TimeUS,I,PX,PY,PZ,UA,AX,AY,AZ,GDVR,DVX,DVY,DVZ,DVDT", "s#------------", "F-------------" }, \
+      "RISI", "QBffffffffffBB", "TimeUS,I,PX,PY,PZ,AX,AY,AZ,DVX,DVY,DVZ,DVDT,UA,GDVR", "s#------------", "F-------------" }, \
     { LOG_RISJ_MSG, sizeof(log_RISJ), \
-      "RISJ", "QBBfffBffff", "TimeUS,I,UG,GX,GY,GZ,GDAR,DAX,DAY,DAZ,DADT", "s#---------", "F----------" }, \
+      "RISJ", "QBfffffffBB", "TimeUS,I,GX,GY,GZ,DAX,DAY,DAZ,DADT,UG,GDAR", "s#---------", "F----------" }, \
     { LOG_RASH_MSG, sizeof(log_RASH),                           \
       "RASH", "QBB", "TimeUS,Primary,NumInst", "s--", "F--" },  \
     { LOG_RASI_MSG, sizeof(log_RASI),                           \

@@ -66,20 +66,14 @@ void AP_DAL_GPS::start_frame(const uint64_t time_us)
 
         log_RGPJ &RGPJ = _RGPJ[i];
 
-        const Vector3f &vel = gps.velocity(i);
-        RGPJ.velocity[0] = vel.x;
-        RGPJ.velocity[1] = vel.y;
-        RGPJ.velocity[2] = vel.z;
+        RGPJ.velocity.from_Vector3f(gps.velocity(i));
         RGPJ.speed_accuracy_returncode = gps.speed_accuracy(i, tmp);
         RGPJ.sacc = tmp;
         float tmp2 = 0;
         RGPJ.gps_yaw_deg_returncode = gps.gps_yaw_deg(i, tmp, tmp2);
         RGPJ.yaw_deg = tmp;
         RGPJ.yaw_accuracy_deg = tmp2;
-        const Vector3f &ao = gps.get_antenna_offset(i);
-        RGPJ.antenna_offset[0] = ao.x;
-        RGPJ.antenna_offset[1] = ao.y;
-        RGPJ.antenna_offset[2] = ao.z;
+        RGPJ.antenna_offset.from_Vector3f(gps.get_antenna_offset(i));
         logger.WriteReplayBlock((void*)&RGPJ, sizeof(RGPJ));
     }
 }

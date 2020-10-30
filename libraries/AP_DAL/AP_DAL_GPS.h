@@ -86,7 +86,7 @@ public:
     }
 
     const Vector3f &velocity(uint8_t instance) const {
-        return *(Vector3f *)_RGPJ[instance].velocity;
+        return _RGPJ[instance].velocity.to_Vector3f();
     }
     const Vector3f &velocity() const {
         return velocity(primary_sensor());
@@ -125,7 +125,7 @@ public:
 
     // return a 3D vector defining the offset of the GPS antenna in meters relative to the body frame origin
     const Vector3f &get_antenna_offset(uint8_t instance) const {
-        return *(Vector3f *)_RGPJ[instance].antenna_offset;
+        return _RGPJ[instance].antenna_offset.to_Vector3f();
     }
 
     void start_frame(const uint64_t time_us);

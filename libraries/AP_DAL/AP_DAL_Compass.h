@@ -19,7 +19,7 @@ public:
     }
 
     const Vector3f &get_offsets(uint8_t i) const {
-        return *(Vector3f *)_RMGI[i].offsets;
+        return _RMGI[i].offsets.to_Vector3f();
     }
 
     bool have_scale_factor(uint8_t i) const {
@@ -48,7 +48,7 @@ public:
     uint32_t last_update_usec(uint8_t i) const { return _RMGI[i].last_update_usec; }
 
     /// Return the current field as a Vector3f in milligauss
-    const Vector3f &get_field(uint8_t i) const { return *(Vector3f *)_RMGI[i].field; }
+    const Vector3f &get_field(uint8_t i) const { return _RMGI[i].field.to_Vector3f(); }
 
     // check if the compasses are pointing in the same direction
     bool consistent() const { return _RMGH.consistent; }
