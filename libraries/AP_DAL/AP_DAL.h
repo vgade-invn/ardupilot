@@ -251,6 +251,13 @@ public:
     void handle_message(const log_RMGI &msg) {
         _compass.handle_message(msg);
     }
+
+    void handle_message(const log_RBCH &msg) {
+        _beacon.handle_message(msg);
+    }
+    void handle_message(const log_RBCI &msg) {
+        _beacon.handle_message(msg);
+    }
 #endif
 
 private:
