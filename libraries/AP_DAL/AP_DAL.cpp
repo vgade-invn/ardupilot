@@ -85,6 +85,44 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
 #endif
 }
 
+void AP_DAL::log_event2(AP_DAL::Event2 event)
+{
+#if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
+    const struct log_REV2 pkt{
+        LOG_PACKET_HEADER_INIT(LOG_REV2_MSG),
+        time_us        : _RFRH.time_us,
+        event          : uint8_t(event),
+    };
+    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+#endif
+}
+
+void AP_DAL::log_SetOriginLLH2(const Location &loc)
+{
+#if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
+    const struct log_RSO2 pkt{
+        LOG_PACKET_HEADER_INIT(LOG_RSO2_MSG),
+        time_us        : _RFRH.time_us,   // this isn't correct?
+        lat            : loc.lat,
+        lng            : loc.lng,
+        alt            : loc.alt,
+    };
+    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+#endif
+}
+
+void AP_DAL::log_writeDefaultAirSpeed2(const float airspeed)
+{
+#if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
+    const struct log_RWA2 pkt{
+        LOG_PACKET_HEADER_INIT(LOG_RWA2_MSG),
+        time_us        : _RFRH.time_us,   // this isn't correct?
+        airspeed:      airspeed,
+    };
+    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+#endif
+}
+
 int AP_DAL::snprintf(char* str, size_t size, const char *format, ...)
 {
     va_list ap;

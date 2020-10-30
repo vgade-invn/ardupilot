@@ -18,10 +18,25 @@ class AP_DAL {
 public:
 
     enum class FrameType {
-        InitialiseFilterEKF2,
-        UpdateFilterEKF2,
-        InitialiseFilterEKF3,
-        UpdateFilterEKF3,
+        InitialiseFilterEKF2 = 10,
+        UpdateFilterEKF2 = 20,
+        InitialiseFilterEKF3 = 30,
+        UpdateFilterEKF3 = 40,
+    };
+
+    enum class Event2 {
+        ResetGyroBias             =  0,
+        ResetHeightDatum          =  1,
+        InhibitGPS                =  2,
+        setTakeoffExpected        =  3,
+        unsetTakeoffExpected      =  4,
+        setTouchdownExpected      =  5,
+        unsetTouchdownExpected    =  6,
+        setInhibitGpsVertVelUse   =  7,
+        unsetInhibitGpsVertVelUse =  8,
+        setTerrainHgtStable       =  9,
+        unsetTerrainHgtStable     = 10,
+        requestYawReset           = 11,
     };
 
     // must remain the same as AP_AHRS_VehicleClass numbers-wise
@@ -46,6 +61,10 @@ public:
     uint64_t micros64() { return _RFRH.time_us; }
     uint32_t micros() { return _micros; }
     uint32_t millis() { return _millis; }
+
+    void log_event2(Event2 event);
+    void log_SetOriginLLH2(const Location &loc);
+    void log_writeDefaultAirSpeed2(float airspeed);
 
     enum class StateMask {
         ARMED = (1U<<0),
