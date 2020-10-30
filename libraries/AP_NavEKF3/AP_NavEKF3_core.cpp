@@ -2010,21 +2010,15 @@ void NavEKF3_core::verifyTiltErrorVariance()
     static uint32_t lastLogTime_ms = 0;
     if (imuSampleTime_ms - lastLogTime_ms > 500) {
         lastLogTime_ms = imuSampleTime_ms;
-        // @LoggerMessage: XKTV
-        // @Description: EKF3 Yaw Estimator States
-        // @Field: TimeUS: Time since system startup
-        // @Field: C: EKF3 core this data is for
-        // @Field: TVS: Tilt Error Variance from symboolic equations (rad^2)
-        // @Field: TVD: Tilt Error Variance from difference method (rad^2)
-        AP::logger().Write("XKTV",
-                        "TimeUS,C,TVS,TVD",
-                        "s#rr",
-                        "F-00",
-                        "QBff",
-                        AP::dal().micros64(),
-                        core_index,
-                        tiltErrorVariance,
-                        tiltErrorVarianceAlt);
+
+        const struct log_XKTV msg{
+            LOG_PACKET_HEADER_INIT(LOG_XKTV_MSG),
+            time_us      : AP::dal().micros64(),
+            core         : core_index,
+            tvs          : tiltErrorVariance,
+            tvd          : tiltErrorVarianceAlt,
+        };
+        AP::logger().WriteBlock(&msg, sizeof(msg));
     }
 }
 #endif
