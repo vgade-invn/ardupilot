@@ -345,7 +345,7 @@ void NavEKF2_core::CorrectGPSForAntennaOffset(gps_elements &gps_data) const
 void NavEKF2_core::CorrectExtNavForSensorOffset(Vector3f &ext_position) const
 {
 #if HAL_VISUALODOM_ENABLED
-    AP_VisualOdom *visual_odom = AP::visualodom();
+    const auto *visual_odom = AP::dal().visualodom();
     if (visual_odom == nullptr) {
         return;
     }
@@ -364,7 +364,7 @@ void NavEKF2_core::CorrectExtNavForSensorOffset(Vector3f &ext_position) const
 void NavEKF2_core::CorrectExtNavVelForSensorOffset(Vector3f &ext_velocity) const
 {
 #if HAL_VISUALODOM_ENABLED
-    AP_VisualOdom *visual_odom = AP::visualodom();
+    const auto *visual_odom = AP::dal().visualodom();
     if (visual_odom == nullptr) {
         return;
     }

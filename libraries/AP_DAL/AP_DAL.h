@@ -11,6 +11,7 @@
 #include "AP_DAL_Compass.h"
 #include "AP_DAL_Airspeed.h"
 #include "AP_DAL_Beacon.h"
+#include "AP_DAL_VisualOdom.h"
 
 #include "LogStructure.h"
 
@@ -136,6 +137,9 @@ public:
     }
     AP_DAL_Beacon *beacon() {
         return _beacon.beacon();
+    }
+    AP_DAL_VisualOdom *visualodom() {
+        return _visualodom.visualodom();
     }
 
     // this method *always* returns you the compass.  This is in
@@ -288,6 +292,7 @@ private:
     AP_DAL_Compass _compass;
     AP_DAL_Airspeed _airspeed;
     AP_DAL_Beacon _beacon;
+    AP_DAL_VisualOdom _visualodom;
 };
 
 namespace AP {

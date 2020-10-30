@@ -76,7 +76,7 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
 
 #if HAL_VISUALODOM_ENABLED
     // include delay from visual odometry if enabled
-    AP_VisualOdom *visual_odom = AP::visualodom();
+    const auto *visual_odom = AP::dal().visualodom();
     if ((visual_odom != nullptr) && visual_odom->enabled()) {
         maxTimeDelay_ms = MAX(maxTimeDelay_ms, MIN(visual_odom->get_delay_ms(), 250));
     }

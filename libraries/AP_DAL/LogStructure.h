@@ -28,6 +28,7 @@
     LOG_RASI_MSG, \
     LOG_RBCH_MSG, \
     LOG_RBCI_MSG, \
+    LOG_RVOH_MSG, \
     LOG_RMGH_MSG, \
     LOG_RMGI_MSG
 
@@ -365,6 +366,18 @@ struct PACKED log_RBCI {
     uint8_t instance;
 };
 
+// @LoggerMessage: RVOH
+// @Description: Replay Data Visual Odometry data
+struct PACKED log_RVOH {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t healthy;
+    uint8_t ptr_is_nullptr;
+    float pos_offset[3];
+    bool enabled;
+    uint32_t delay_ms;
+};
+
 #define LOG_STRUCTURE_FROM_DAL        \
     { LOG_RFRH_MSG, sizeof(log_RFRH), \
       "RFRH", "QIffffIBBBBBBBHB", "TimeUS,FN,TX,TY,TZ,E2T,AM,State,NlRF,NlCRP,NlAS,FF,VC,ASE,TF,EKT", "s-------------?-", "F-------------?-" }, \
@@ -419,4 +432,6 @@ struct PACKED log_RBCI {
     { LOG_RBCH_MSG, sizeof(log_RBCH),                           \
       "RBCH", "QBBffffBfffB", "TimeUS,NumInst,NPtr,PX,PY,PZ,AE,GVPR,OLat,OLng,OAlt,ORet", "s#-mmmm-DUm-", "F--0000-GGB-" },  \
     { LOG_RBCI_MSG, sizeof(log_RBCI),                           \
-      "RBCI", "QIffffBB", "TimeUS,LU,PX,PY,PZ,Dist,H,I", "ssmmmm-#", "F?0000--" },
+      "RBCI", "QIffffBB", "TimeUS,LU,PX,PY,PZ,Dist,H,I", "ssmmmm-#", "F?0000--" }, \
+    { LOG_RVOH_MSG, sizeof(log_RVOH),                           \
+      "RVOH", "QBBfffBI", "TimeUS,H,NPtr,OX,OY,OZ,Ena,Del", "s--mmm-s", "F--000-?" },
