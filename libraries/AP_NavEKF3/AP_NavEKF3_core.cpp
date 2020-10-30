@@ -2016,7 +2016,7 @@ void NavEKF3_core::verifyTiltErrorVariance()
     }
 
     tiltErrorVarianceAlt = MIN(tiltErrorVarianceAlt, sq(radians(30.0f)));
-
+#if 0
     static uint32_t lastLogTime_ms = 0;
     if (imuSampleTime_ms - lastLogTime_ms > 500) {
         lastLogTime_ms = imuSampleTime_ms;
@@ -2030,5 +2030,6 @@ void NavEKF3_core::verifyTiltErrorVariance()
         };
         AP::logger().WriteBlock(&msg, sizeof(msg));
     }
+#endif
 }
 #endif
