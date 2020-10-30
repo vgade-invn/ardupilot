@@ -193,22 +193,6 @@ const AP_DAL_Compass *AP_DAL::get_compass() const
     return &_compass;
 }
 
-const Vector3f &Vector3f_t::to_Vector3f(void) const
-{
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    uintptr_t p = uintptr_t((const Vector3f *)&v[0]);
-    if (p & 3) {
-        AP_HAL::panic("bad alignment");
-    }
-#endif
-    return *(const Vector3f *)&v[0];
-}
-
-void Vector3f_t::from_Vector3f(const Vector3f &vf)
-{
-    memcpy((void*)v, (void*)&vf, sizeof(v));
-}
-
 #include <stdio.h>
 
 namespace AP {

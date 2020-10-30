@@ -80,7 +80,7 @@ void AP_DAL_RangeFinder_Backend::start_frame(uint64_t time_us, AP_RangeFinder_Ba
     _RRNI.time_us = time_us;
     _RRNI.orientation = backend->orientation();
     _RRNI.status = (uint8_t)backend->status();
-    _RRNI.pos_offset.from_Vector3f(backend->get_pos_offset());
+    _RRNI.pos_offset = backend->get_pos_offset();
     WRITE_REPLAY_BLOCK(RRNI, _RRNI);
 }
 

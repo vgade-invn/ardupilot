@@ -67,7 +67,7 @@ public:
 
     uint16_t distance_cm() const { return _RRNI.distance_cm; }
 
-    const Vector3f &get_pos_offset() const { return _RRNI.pos_offset.to_Vector3f(); }
+    const Vector3f &get_pos_offset() const { return _RRNI.pos_offset; }
 
     // DAL methods:
     void start_frame(uint64_t time_us, AP_RangeFinder_Backend *backend);

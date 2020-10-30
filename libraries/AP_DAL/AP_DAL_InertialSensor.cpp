@@ -31,11 +31,9 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
 
         // accel stuff
         RISI.use_accel = ins.use_accel(i);
-        RISI.accel.from_Vector3f(ins.get_accel(i));
+        RISI.accel = ins.get_accel(i);
 
-        Vector3f v;
-        RISI.get_delta_velocity_ret = ins.get_delta_velocity(i, v);
-        RISI.delta_velocity.from_Vector3f(v);
+        RISI.get_delta_velocity_ret = ins.get_delta_velocity(i, RISI.delta_velocity);
 
         RISI.delta_velocity_dt = ins.get_delta_velocity_dt(i);
 
@@ -45,11 +43,10 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
         log_RISJ &RISJ = _RISJ[i];
         RISJ.time_us = time_us;
         RISJ.use_gyro = ins.use_gyro(i);
-        RISJ.gyro.from_Vector3f(ins.get_gyro(i));
+        RISJ.gyro = ins.get_gyro(i);
 
         RISJ.delta_angle_dt = ins.get_delta_angle_dt(i);
-        RISJ.get_delta_angle_ret = ins.get_delta_angle(i, v);
-        RISJ.delta_angle.from_Vector3f(v);
+        RISJ.get_delta_angle_ret = ins.get_delta_angle(i, RISJ.delta_angle);
 
         WRITE_REPLAY_BLOCK(RISJ, RISJ);
     }
