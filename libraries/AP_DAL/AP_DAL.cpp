@@ -123,6 +123,59 @@ void AP_DAL::log_writeDefaultAirSpeed2(const float airspeed)
 #endif
 }
 
+void AP_DAL::log_event3(AP_DAL::Event3 event)
+{
+#if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
+    const struct log_REV3 pkt{
+        LOG_PACKET_HEADER_INIT(LOG_REV3_MSG),
+        time_us        : _RFRH.time_us,
+        event          : uint8_t(event),
+    };
+    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+#endif
+}
+
+void AP_DAL::log_SetOriginLLH3(const Location &loc)
+{
+#if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
+    const struct log_RSO3 pkt{
+        LOG_PACKET_HEADER_INIT(LOG_RSO3_MSG),
+        time_us        : _RFRH.time_us,   // this isn't correct?
+        lat            : loc.lat,
+        lng            : loc.lng,
+        alt            : loc.alt,
+    };
+    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+#endif
+}
+
+void AP_DAL::log_writeDefaultAirSpeed3(const float airspeed)
+{
+#if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
+    const struct log_RWA3 pkt{
+        LOG_PACKET_HEADER_INIT(LOG_RWA3_MSG),
+        time_us        : _RFRH.time_us,   // this isn't correct?
+        airspeed:      airspeed,
+    };
+    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+#endif
+}
+
+void AP_DAL::log_writeEulerYawAngle(float yawAngle, float yawAngleErr, uint32_t timeStamp_ms, uint8_t type)
+{
+#if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
+    const struct log_REY3 pkt{
+        LOG_PACKET_HEADER_INIT(LOG_REY3_MSG),
+        time_us        : _RFRH.time_us,   // this isn't correct?
+        yawangle       : yawAngle,
+        yawangleerr    : yawAngleErr,
+        timestamp_ms   : timeStamp_ms,
+        type           : type,
+    };
+    AP::logger().WriteReplayBlock((void*)&pkt, sizeof(pkt));
+#endif
+}
+
 int AP_DAL::snprintf(char* str, size_t size, const char *format, ...)
 {
     va_list ap;

@@ -25,9 +25,9 @@ public:
     };
 
     enum class Event2 {
-        ResetGyroBias             =  0,
-        ResetHeightDatum          =  1,
-        InhibitGPS                =  2,
+        resetGyroBias             =  0,
+        resetHeightDatum          =  1,
+        setInhibitGPS             =  2,
         setTakeoffExpected        =  3,
         unsetTakeoffExpected      =  4,
         setTouchdownExpected      =  5,
@@ -38,6 +38,26 @@ public:
         unsetTerrainHgtStable     = 10,
         requestYawReset           = 11,
         LoggingDone               = 12,
+    };
+
+    enum class Event3 {
+        resetGyroBias             =  0,
+        resetHeightDatum          =  1,
+        setInhibitGPS             =  2,
+        setTakeoffExpected        =  3,
+        unsetTakeoffExpected      =  4,
+        setTouchdownExpected      =  5,
+        unsetTouchdownExpected    =  6,
+        setInhibitGpsVertVelUse   =  7,
+        unsetInhibitGpsVertVelUse =  8,
+        setTerrainHgtStable       =  9,
+        unsetTerrainHgtStable     = 10,
+        requestYawReset           = 11,
+        LoggingDone               = 12,
+        checkLaneSwitch           = 13,
+        updateCoreErrorScores     = 14,
+        updateCoreRelativeErrors  = 15,
+        resetCoreErrors           = 16,
     };
 
     // must remain the same as AP_AHRS_VehicleClass numbers-wise
@@ -66,6 +86,11 @@ public:
     void log_event2(Event2 event);
     void log_SetOriginLLH2(const Location &loc);
     void log_writeDefaultAirSpeed2(float airspeed);
+
+    void log_event3(Event3 event);
+    void log_SetOriginLLH3(const Location &loc);
+    void log_writeDefaultAirSpeed3(float airspeed);
+    void log_writeEulerYawAngle(float yawAngle, float yawAngleErr, uint32_t timeStamp_ms, uint8_t type);
 
     enum class StateMask {
         ARMED = (1U<<0),

@@ -47,13 +47,13 @@ void LR_MsgHandler_REV2::process_message(uint8_t *msg)
 
     switch ((AP_DAL::Event2)rev2.event) {
 
-    case AP_DAL::Event2::ResetGyroBias:
+    case AP_DAL::Event2::resetGyroBias:
         ekf2.resetGyroBias();
         break;
-    case AP_DAL::Event2::ResetHeightDatum:
+    case AP_DAL::Event2::resetHeightDatum:
         ekf2.resetHeightDatum();
         break;
-    case AP_DAL::Event2::InhibitGPS:
+    case AP_DAL::Event2::setInhibitGPS:
         ekf2.setInhibitGPS();
         break;
     case AP_DAL::Event2::setTakeoffExpected:
@@ -89,10 +89,103 @@ void LR_MsgHandler_REV2::process_message(uint8_t *msg)
     }
 }
 
-
-void LR_MsgHandler_XKF1::process_message(uint8_t *msg)
+void LR_MsgHandler_RSO2::process_message(uint8_t *msg)
 {
-    ekf3.Log_Write();
+    const log_RSO2 &rso2 = *((log_RSO2*)(msg));
+    Location loc;
+    loc.lat = rso2.lat;
+    loc.lng = rso2.lng;
+    loc.alt = rso2.alt;
+    ekf2.setOriginLLH(loc);
+}
+
+void LR_MsgHandler_RWA2::process_message(uint8_t *msg)
+{
+    const log_RWA2 &rwa2 = *((log_RWA2*)(msg));
+    ekf2.writeDefaultAirSpeed(rwa2.airspeed);
+}
+
+
+void LR_MsgHandler_REV3::process_message(uint8_t *msg)
+{
+    const log_REV3 &rev3 = *((log_REV3*)(msg));
+
+    switch ((AP_DAL::Event3)rev3.event) {
+
+    case AP_DAL::Event3::resetGyroBias:
+        ekf3.resetGyroBias();
+        break;
+    case AP_DAL::Event3::resetHeightDatum:
+        ekf3.resetHeightDatum();
+        break;
+    case AP_DAL::Event3::setInhibitGPS:
+        ekf3.setInhibitGPS();
+        break;
+    case AP_DAL::Event3::setTakeoffExpected:
+        ekf3.setTakeoffExpected(true);
+        break;
+    case AP_DAL::Event3::unsetTakeoffExpected:
+        ekf3.setTakeoffExpected(false);
+        break;
+    case AP_DAL::Event3::setTouchdownExpected:
+        ekf3.setTouchdownExpected(true);
+        break;
+    case AP_DAL::Event3::unsetTouchdownExpected:
+        ekf3.setTouchdownExpected(false);
+        break;
+    case AP_DAL::Event3::setInhibitGpsVertVelUse:
+        ekf3.setInhibitGpsVertVelUse(true);
+        break;
+    case AP_DAL::Event3::unsetInhibitGpsVertVelUse:
+        ekf3.setInhibitGpsVertVelUse(false);
+        break;
+    case AP_DAL::Event3::setTerrainHgtStable:
+        ekf3.setTerrainHgtStable(true);
+        break;
+    case AP_DAL::Event3::unsetTerrainHgtStable:
+        ekf3.setTerrainHgtStable(false);
+        break;
+    case AP_DAL::Event3::requestYawReset:
+        ekf3.requestYawReset();
+        break;
+    case AP_DAL::Event3::LoggingDone:
+        ekf3.Log_Write();
+        break;
+    case AP_DAL::Event3::checkLaneSwitch:
+        ekf3.checkLaneSwitch();
+        break;
+    case AP_DAL::Event3::updateCoreErrorScores:
+        ekf3.updateCoreErrorScores();
+        break;
+    case AP_DAL::Event3::updateCoreRelativeErrors:
+        ekf3.updateCoreRelativeErrors();
+        break;
+    case AP_DAL::Event3::resetCoreErrors:
+        ekf3.resetCoreErrors();
+        break;
+    }
+}
+
+void LR_MsgHandler_RSO3::process_message(uint8_t *msg)
+{
+    const log_RSO3 &rso3 = *((log_RSO3*)(msg));
+    Location loc;
+    loc.lat = rso3.lat;
+    loc.lng = rso3.lng;
+    loc.alt = rso3.alt;
+    ekf3.setOriginLLH(loc);
+}
+
+void LR_MsgHandler_RWA3::process_message(uint8_t *msg)
+{
+    const log_RWA3 &rwa3 = *((log_RWA3*)(msg));
+    ekf3.writeDefaultAirSpeed(rwa3.airspeed);
+}
+
+void LR_MsgHandler_REY3::process_message(uint8_t *msg)
+{
+    const log_RWA3 &rwa3 = *((log_RWA3*)(msg));
+    ekf3.writeDefaultAirSpeed(rwa3.airspeed);
 }
 
 void LR_MsgHandler_RFRR::process_message(uint8_t *msg)
