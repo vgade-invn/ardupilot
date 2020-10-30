@@ -349,7 +349,7 @@ void NavEKF3_core::CorrectExtNavForSensorOffset(ext_nav_elements &ext_nav_data)
     ext_nav_data.corrected = true;
 
 #if HAL_VISUALODOM_ENABLED
-    AP_VisualOdom *visual_odom = AP::visualodom();
+    const auto *visual_odom = AP::dal().visualodom();
     if (visual_odom == nullptr) {
         return;
     }
@@ -374,7 +374,7 @@ void NavEKF3_core::CorrectExtNavVelForSensorOffset(ext_nav_vel_elements &ext_nav
     ext_nav_vel_data.corrected = true;
 
 #if HAL_VISUALODOM_ENABLED
-    AP_VisualOdom *visual_odom = AP::visualodom();
+    const auto *visual_odom = AP::dal().visualodom();
     if (visual_odom == nullptr) {
         return;
     }
