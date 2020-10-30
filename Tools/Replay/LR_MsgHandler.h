@@ -240,6 +240,13 @@ public:
     void process_message(uint8_t *msg) override;
 };
 
+class LR_MsgHandler_RVOH : public LR_MsgHandler
+{
+public:
+    using LR_MsgHandler::LR_MsgHandler;
+    void process_message(uint8_t *msg) override;
+};
+
 class LR_MsgHandler_PARM : public LR_MsgHandler
 {
 public:
