@@ -63,9 +63,18 @@ public:
     }
     void handle_message(const log_RISI &msg) {
         _RISI[msg.instance] = msg;
+        _accel[msg.instance].x = msg.accelx;
+        _accel[msg.instance].y = msg.accely;
+        _accel[msg.instance].z = msg.accelz;
+        _delta_velocity[msg.instance].x = msg.delta_velocity_x;
+        _delta_velocity[msg.instance].y = msg.delta_velocity_y;
+        _delta_velocity[msg.instance].z = msg.delta_velocity_z;
     }
     void handle_message(const log_RISJ &msg) {
         _RISJ[msg.instance] = msg;
+        _delta_angle[msg.instance].x = msg.delta_angle_x;
+        _delta_angle[msg.instance].y = msg.delta_angle_y;
+        _delta_angle[msg.instance].z = msg.delta_angle_z;
     }
 #endif
 
