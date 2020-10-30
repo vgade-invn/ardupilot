@@ -432,8 +432,6 @@ const Vector3f &AP_AHRS_NavEKF::get_accel_ef_blended(void) const
 
 void AP_AHRS_NavEKF::reset(bool recover_eulers)
 {
-    ::fprintf(stderr, "reset\n");
-
     // support locked access functions to AHRS data
     WITH_SEMAPHORE(_rsem);
     
@@ -454,7 +452,6 @@ void AP_AHRS_NavEKF::reset(bool recover_eulers)
 // reset the current attitude, used on new IMU calibration
 void AP_AHRS_NavEKF::reset_attitude(const float &_roll, const float &_pitch, const float &_yaw)
 {
-    ::fprintf(stderr, "reset_attitude\n");
     // support locked access functions to AHRS data
     WITH_SEMAPHORE(_rsem);
     
@@ -1996,12 +1993,12 @@ void AP_AHRS_NavEKF::set_terrain_hgt_stable(bool stable)
     switch (terrainHgtStableState) {
     case TriState::UNKNOWN:
         break;
-    case TriState::TRUE:
+    case TriState::True:
         if (stable) {
             return;
         }
         break;
-    case TriState::FALSE:
+    case TriState::False:
         if (!stable) {
             return;
         }
@@ -2130,12 +2127,12 @@ void AP_AHRS_NavEKF::setTakeoffExpected(bool val)
     switch (takeoffExpectedState) {
     case TriState::UNKNOWN:
         break;
-    case TriState::TRUE:
+    case TriState::True:
         if (val) {
             return;
         }
         break;
-    case TriState::FALSE:
+    case TriState::False:
         if (!val) {
             return;
         }
@@ -2156,12 +2153,12 @@ void AP_AHRS_NavEKF::setTouchdownExpected(bool val)
     switch (touchdownExpectedState) {
     case TriState::UNKNOWN:
         break;
-    case TriState::TRUE:
+    case TriState::True:
         if (val) {
             return;
         }
         break;
-    case TriState::FALSE:
+    case TriState::False:
         if (!val) {
             return;
         }
