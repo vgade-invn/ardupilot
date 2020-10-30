@@ -13,13 +13,11 @@ void AP_Param::setup_object_defaults(void const*, AP_Param::GroupInfo const*) {}
 
 int AP_HAL::Util::vsnprintf(char*, unsigned long, char const*, va_list) { return -1; }
 
-// void *nologger = nullptr;
-// AP_Logger &AP::logger() {
-//     return *((AP_Logger*)nologger);  // this is not usually a good idea...
-// }
-
-// void AP_Logger::Write(const char *name, const char *labels, const char *fmt, ...) { }
-// void AP_Logger::Write(char const*, char const*, char const*, char const*, char const*, ...) { }
+void *nologger = nullptr;
+AP_Logger &AP::logger() {
+    return *((AP_Logger*)nologger);  // this is not usually a good idea...
+}
+void AP_Logger::WriteBlock(void const*, unsigned short) {}
 
 class AP_HAL_DAL_Standalone : public AP_HAL::HAL {
 public:
