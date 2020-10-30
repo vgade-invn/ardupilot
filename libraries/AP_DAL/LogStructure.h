@@ -111,8 +111,8 @@ struct PACKED log_RISI {
     Vector3f_t accel;
     Vector3f_t delta_velocity;
     float delta_velocity_dt;
-    bool use_accel;
-    bool get_delta_velocity_ret;
+    uint16_t use_accel;
+    uint16_t get_delta_velocity_ret;
 };
 // Replay Data Structure - Inertial Sensor instance data
 struct PACKED log_RISJ {
@@ -122,8 +122,8 @@ struct PACKED log_RISJ {
     Vector3f_t gyro;
     Vector3f_t delta_angle;
     float delta_angle_dt;
-    bool use_gyro;
-    bool get_delta_angle_ret;
+    uint16_t use_gyro;
+    uint16_t get_delta_angle_ret;
 };
 
 // @LoggerMessage: REV2
@@ -237,7 +237,7 @@ struct PACKED log_RGPH {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     uint8_t primary_sensor;
-    uint8_t num_sensors;
+    uint32_t num_sensors;
 };
 
 // @LoggerMessage: RGPI
@@ -249,24 +249,23 @@ struct PACKED log_RGPI {
 
     uint32_t last_message_time_ms;
 
-    uint8_t status;
+    uint16_t status;
     int32_t lat;
     int32_t lng;
     int32_t alt;
-    bool have_vertical_velocity;
-    bool horizontal_accuracy_returncode;
+    uint16_t have_vertical_velocity;
+    uint16_t horizontal_accuracy_returncode;
     float hacc;
 
-    bool vertical_accuracy_returncode;
+    uint16_t vertical_accuracy_returncode;
     float vacc;
 
     uint16_t hdop;
 
-    uint8_t num_sats;
+    uint16_t num_sats;
 
     float lag_sec;
-    bool get_lag_returncode;
-
+    uint32_t get_lag_returncode;
 };
 
 // @LoggerMessage: RGPJ
@@ -278,13 +277,13 @@ struct PACKED log_RGPJ {
 
     Vector3f_t velocity;
 
-    bool speed_accuracy_returncode;
+    uint32_t speed_accuracy_returncode;
     float sacc;
 
     Vector3f_t antenna_offset;
 
     // gps-yaw for specific sensor
-    bool gps_yaw_deg_returncode;
+    uint32_t gps_yaw_deg_returncode;
     float yaw_deg;
     float yaw_accuracy_deg;
 };
@@ -341,7 +340,6 @@ struct PACKED log_RBCH {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     uint8_t count;
-    uint8_t ptr_is_nullptr;
     Vector3f_t vehicle_position_ned;
     float accuracy_estimate;
     bool get_vehicle_position_ned_returncode;
@@ -349,6 +347,7 @@ struct PACKED log_RBCH {
     int32_t origin_lng;
     int32_t origin_alt;
     bool get_origin_returncode;
+    uint8_t ptr_is_nullptr;
 };
 
 // @LoggerMessage: RBCI
@@ -369,10 +368,10 @@ struct PACKED log_RVOH {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     uint8_t healthy;
-    uint8_t ptr_is_nullptr;
     Vector3f_t pos_offset;
     bool enabled;
     uint32_t delay_ms;
+    uint8_t ptr_is_nullptr;
 };
 
 #define LOG_STRUCTURE_FROM_DAL        \
@@ -401,9 +400,9 @@ struct PACKED log_RVOH {
     { LOG_RISH_MSG, sizeof(log_RISH), \
       "RISH", "QHBBfBBI", "TimeUS,LR,PG,PA,LD,AC,GC,LU", "s-------", "F-------" }, \
     { LOG_RISI_MSG, sizeof(log_RISI), \
-      "RISI", "QBffffffffffBB", "TimeUS,I,PX,PY,PZ,AX,AY,AZ,DVX,DVY,DVZ,DVDT,UA,GDVR", "s#------------", "F-------------" }, \
+      "RISI", "QBffffffffffHH", "TimeUS,I,PX,PY,PZ,AX,AY,AZ,DVX,DVY,DVZ,DVDT,UA,GDVR", "s#------------", "F-------------" }, \
     { LOG_RISJ_MSG, sizeof(log_RISJ), \
-      "RISJ", "QBfffffffBB", "TimeUS,I,GX,GY,GZ,DAX,DAY,DAZ,DADT,UG,GDAR", "s#---------", "F----------" }, \
+      "RISJ", "QBfffffffHH", "TimeUS,I,GX,GY,GZ,DAX,DAY,DAZ,DADT,UG,GDAR", "s#---------", "F----------" }, \
     { LOG_RASH_MSG, sizeof(log_RASH),                           \
       "RASH", "QBB", "TimeUS,Primary,NumInst", "s--", "F--" },  \
     { LOG_RASI_MSG, sizeof(log_RASI),                           \
@@ -417,18 +416,18 @@ struct PACKED log_RVOH {
     { LOG_RRNI_MSG, sizeof(log_RRNI),                           \
       "RRNI", "QBBBHfff", "TimeUS,I,Orient,Status,Dist,OX,OY,OZ", "s#--????", "F---????" }, \
     { LOG_RGPH_MSG, sizeof(log_RGPH),                           \
-      "RGPH", "QBB", "TimeUS,Primary,NumInst", "s--", "F--" },  \
+      "RGPH", "QBI", "TimeUS,Primary,NumInst", "s--", "F--" },  \
     { LOG_RGPI_MSG, sizeof(log_RGPI),                           \
-      "RGPI", "QBIBiiiBBfBfHBfB", "TimeUS,I,LMT,Stat,lat,lon,alt,hvv,harc,ha,varc,va,hdp,ns,lgrc,lg", "s#--------------", "F---------------" }, \
+      "RGPI", "QBIHiiiHHfHfHHfI", "TimeUS,I,LMT,Stat,lat,lon,alt,hvv,harc,ha,varc,va,hdp,ns,lgrc,lg", "s#--------------", "F---------------" }, \
     { LOG_RGPJ_MSG, sizeof(log_RGPJ),                           \
-      "RGPJ", "QBfffBffffBff", "TimeUS,I,vx,vy,vz,sarc,sa,aox,aoy,aoz,ydrc,yd,yda", "s#-----------", "F------------" }, \
+      "RGPJ", "QBfffIffffIff", "TimeUS,I,vx,vy,vz,sarc,sa,aox,aoy,aoz,ydrc,yd,yda", "s#-----------", "F------------" }, \
     { LOG_RMGH_MSG, sizeof(log_RMGH),                           \
       "RMGH", "QBBfBBB", "TimeUS,Dec,NumInst,AutoDec,NumEna,LOE,C", "s------", "F------" },  \
     { LOG_RMGI_MSG, sizeof(log_RMGI),                           \
       "RMGI", "QBIffffffBBB", "TimeUS,I,LU,OX,OY,OZ,FX,FY,FZ,UFY,H,HSF", "s#----------", "F-----------" },                                        \
     { LOG_RBCH_MSG, sizeof(log_RBCH),                           \
-      "RBCH", "QBBffffBfffB", "TimeUS,NumInst,NPtr,PX,PY,PZ,AE,GVPR,OLat,OLng,OAlt,ORet", "s#-mmmm-DUm-", "F--0000-GGB-" },  \
+      "RBCH", "QBffffBfffBB", "TimeUS,NumInst,PX,PY,PZ,AE,GVPR,OLat,OLng,OAlt,ORet,NPtr", "s#-mmmm-DUm-", "F--0000-GGB-" },  \
     { LOG_RBCI_MSG, sizeof(log_RBCI),                           \
       "RBCI", "QIffffBB", "TimeUS,LU,PX,PY,PZ,Dist,H,I", "ssmmmm-#", "F?0000--" }, \
     { LOG_RVOH_MSG, sizeof(log_RVOH),                           \
-      "RVOH", "QBBfffBI", "TimeUS,H,NPtr,OX,OY,OZ,Ena,Del", "s--mmm-s", "F--000-?" },
+      "RVOH", "QBfffBIB", "TimeUS,H,OX,OY,OZ,Ena,Del,NPtr", "s--mmm-s", "F--000-?" },
