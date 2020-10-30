@@ -652,11 +652,15 @@ void AP_Logger::WriteBlock(const void *pBuffer, uint16_t size) {
 }
 
 // start functions pass straight through to backend:
-void AP_Logger::WriteReplayBlock(const void *pBuffer, uint16_t size) {
-    if (!log_replay()) {
-        return;
+void AP_Logger::WriteReplayBlock(uint8_t msg_id, const void *pBuffer, uint16_t size) {
+    if (log_replay()) {
+        uint8_t buf[3+size];
+        buf[0] = HEAD_BYTE1;
+        buf[1] = HEAD_BYTE2;
+        buf[2] = msg_id;
+        memcpy(&buf[3], pBuffer, size);
+        WritePrioritisedBlock(buf, sizeof(buf), true);
     }
-    WritePrioritisedBlock(pBuffer, size, true);
 }
 
 void AP_Logger::WriteCriticalBlock(const void *pBuffer, uint16_t size) {
