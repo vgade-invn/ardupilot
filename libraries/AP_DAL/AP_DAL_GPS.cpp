@@ -4,6 +4,10 @@
 
 AP_DAL_GPS::AP_DAL_GPS()
 {
+    static_assert(sizeof(_RGPH) % 4 == 0, "RGPH size");
+    static_assert(sizeof(_RGPI) % 4 == 0, "RGPI size");
+    static_assert(sizeof(_RGPJ) % 4 == 0, "RGPK size");
+
     _RGPH.head1 = HEAD_BYTE1;
     _RGPH.head2 = HEAD_BYTE2;
     _RGPH.msgid = LOG_RGPH_MSG;
