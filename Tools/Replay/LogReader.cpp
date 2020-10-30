@@ -212,6 +212,10 @@ bool LogReader::handle_log_format_msg(const struct log_Format &f)
 	    msgparser[f.type] = new LR_MsgHandler_RMGH(formats[f.type]);
 	} else if (streq(name, "RMGI")) {
 	    msgparser[f.type] = new LR_MsgHandler_RMGI(formats[f.type]);
+	} else if (streq(name, "RBCH")) {
+	    msgparser[f.type] = new LR_MsgHandler_RBCH(formats[f.type]);
+	} else if (streq(name, "RBCI")) {
+	    msgparser[f.type] = new LR_MsgHandler_RBCI(formats[f.type]);
 	} else {
         // debug("  No parser for (%s)\n", name);
     }

@@ -10,10 +10,10 @@
 #include "AP_DAL_RangeFinder.h"
 #include "AP_DAL_Compass.h"
 #include "AP_DAL_Airspeed.h"
+#include "AP_DAL_Beacon.h"
 
 #include "LogStructure.h"
 
-// base class to give shape of the DAL:
 class AP_DAL {
 public:
 
@@ -133,6 +133,9 @@ public:
             return nullptr;
         }
         return &_airspeed;
+    }
+    AP_DAL_Beacon *beacon() {
+        return _beacon.beacon();
     }
 
     // this method *always* returns you the compass.  This is in
@@ -284,6 +287,7 @@ private:
     AP_DAL_RangeFinder _rangefinder;
     AP_DAL_Compass _compass;
     AP_DAL_Airspeed _airspeed;
+    AP_DAL_Beacon _beacon;
 };
 
 namespace AP {

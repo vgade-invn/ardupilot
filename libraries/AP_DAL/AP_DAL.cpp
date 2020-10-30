@@ -74,6 +74,7 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _compass.start_frame(_RFRH.time_us);
     _airspeed.start_frame(_RFRH.time_us);
     _rangefinder.start_frame(_RFRH.time_us);
+    _beacon.start_frame(_RFRH.time_us);
 
     _RFRF.time_us = _RFRH.time_us;
     _RFRF.frame_type = (uint8_t)frametype;
