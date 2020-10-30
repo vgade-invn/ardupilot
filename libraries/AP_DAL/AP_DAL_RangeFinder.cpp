@@ -65,7 +65,7 @@ void AP_DAL_RangeFinder::start_frame(const uint64_t time_us)
     // EKF only asks for this *down*.
     _RRNH.ground_clearance_cm = rangefinder->ground_clearance_cm_orient(ROTATION_PITCH_270);
     _RRNH.max_distance_cm = rangefinder->ground_clearance_cm_orient(ROTATION_PITCH_270);
-    logger.WriteReplayBlock((void*)&_RRNH, sizeof(_RRNH));
+    logger.WriteReplayBlock(&_RRNH, sizeof(_RRNH));
 
     for (uint8_t i=0; i<RANGEFINDER_MAX_INSTANCES; i++) {
         auto *backend = rangefinder->get_backend(i);
@@ -92,7 +92,7 @@ void AP_DAL_RangeFinder_Backend::start_frame(uint64_t time_us, AP_RangeFinder_Ba
     _RRNI.orientation = backend->orientation();
     _RRNI.status = (uint8_t)backend->status();
     _RRNI.pos_offset.from_Vector3f(backend->get_pos_offset());
-    logger.WriteReplayBlock((void*)&_RRNI, sizeof(_RRNI));
+    logger.WriteReplayBlock(&_RRNI, sizeof(_RRNI));
 }
 
 

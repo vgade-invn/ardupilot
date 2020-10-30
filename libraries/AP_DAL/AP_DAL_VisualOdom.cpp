@@ -22,5 +22,5 @@ void AP_DAL_VisualOdom::start_frame(const uint64_t time_us)
     if (vo != nullptr) {
         RVOH.healthy = vo->healthy();
     }
-    logger.WriteReplayBlock((void*)&RVOH, sizeof(RVOH));
+    logger.WriteReplayBlock(&RVOH, sizeof(RVOH));
 }

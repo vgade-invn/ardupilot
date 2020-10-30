@@ -28,7 +28,7 @@ void AP_DAL_Airspeed::start_frame(const uint64_t time_us)
     _RASH.time_us = time_us;
     _RASH.num_sensors = airspeed->get_num_sensors();
     _RASH.primary = airspeed->get_primary();
-    logger.WriteReplayBlock((void*)&_RASH, sizeof(_RASH));
+    logger.WriteReplayBlock(&_RASH, sizeof(_RASH));
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RASI); i++) {
         log_RASI &RASI = _RASI[i];
@@ -42,6 +42,6 @@ void AP_DAL_Airspeed::start_frame(const uint64_t time_us)
         RASI.healthy = airspeed->healthy(i);
         RASI.use = airspeed->use(i);
         RASI.airspeed = airspeed->get_airspeed(i);
-        logger.WriteReplayBlock((void*)&RASI, sizeof(RASI));
+        logger.WriteReplayBlock(&RASI, sizeof(RASI));
     }
 }
