@@ -147,6 +147,13 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
     if(!storedOutput.init(imu_buffer_length)) {
         return false;
     }
+    xxprintf("EKF3 IMU%u buffs IMU=%u OBS=%u OF=%u EN:%u dt=%.4f\n",
+             (unsigned)imu_index,
+             (unsigned)imu_buffer_length,
+             (unsigned)obs_buffer_length,
+             (unsigned)flow_buffer_length,
+             (unsigned)extnav_buffer_length,
+             (double)dtEkfAvg);
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u buffs IMU=%u OBS=%u OF=%u EN:%u dt=%.4f",
                     (unsigned)imu_index,
                     (unsigned)imu_buffer_length,
@@ -822,7 +829,10 @@ void NavEKF3_core::calcOutputStates()
     vertCompFiltState.pos += integ3_input; 
 
     // apply a trapezoidal integration to velocities to calculate position
-    xxprintf("poschange %.9f %.9f dt=%.9f\n", outputDataNew.velocity.z, lastVelocity.z, imuDataNew.delVelDT);
+    xxprintf("poschange (%.12f,%.12f,%.12f) (%.12f,%.12f,%.12f) dt=%.12f\n",
+             outputDataNew.velocity.x, outputDataNew.velocity.y, outputDataNew.velocity.z,
+             lastVelocity.x, lastVelocity.y, lastVelocity.z,
+             imuDataNew.delVelDT);
     outputDataNew.position += (outputDataNew.velocity + lastVelocity) * (imuDataNew.delVelDT*0.5f);
 
     // If the IMU accelerometer is offset from the body frame origin, then calculate corrections

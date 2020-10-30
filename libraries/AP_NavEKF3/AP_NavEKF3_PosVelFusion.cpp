@@ -31,6 +31,7 @@ void NavEKF3_core::ResetVelocity(resetDataSource velResetSource)
             // correct for antenna position
             gps_elements gps_corrected = gpsDataNew;
             CorrectGPSForAntennaOffset(gps_corrected);
+            xxprintf("corr %u %u (%.12f,%.12f)\n", imuSampleTime_ms, lastTimeGpsReceived_ms, gps_corrected.vel.x, gps_corrected.vel.y);
             stateStruct.velocity.x  = gps_corrected.vel.x;
             stateStruct.velocity.y  = gps_corrected.vel.y;
             // set the variances using the reported GPS speed accuracy
@@ -60,6 +61,7 @@ void NavEKF3_core::ResetVelocity(resetDataSource velResetSource)
         storedOutput[i].velocity.x = stateStruct.velocity.x;
         storedOutput[i].velocity.y = stateStruct.velocity.y;
     }
+    xxprintf("ResetVelocity (%.12f,%.12f)\n", outputDataNew.velocity.x, outputDataNew.velocity.y);
     outputDataNew.velocity.x = stateStruct.velocity.x;
     outputDataNew.velocity.y = stateStruct.velocity.y;
     outputDataDelayed.velocity.x = stateStruct.velocity.x;
@@ -318,12 +320,14 @@ void NavEKF3_core::CorrectGPSForAntennaOffset(gps_elements &gps_data) const
 {
     // return immediately if already corrected
     if (gps_data.corrected) {
+        xxprintf("is_corrected\n");
         return;
     }
     gps_data.corrected = true;
 
     const Vector3f &posOffsetBody = AP::dal().gps().get_antenna_offset(gps_data.sensor_idx) - accelPosOffset;
     if (posOffsetBody.is_zero()) {
+        xxprintf("offset zero\n");
         return;
     }
 
@@ -334,6 +338,10 @@ void NavEKF3_core::CorrectGPSForAntennaOffset(gps_elements &gps_data) const
     gps_data.vel -= velOffsetEarth;
 
     Vector3f posOffsetEarth = prevTnb.mul_transpose(posOffsetBody);
+    xxprintf("POE %.12f %.12f %.12f\n",
+             posOffsetEarth.x,
+             posOffsetEarth.y,
+             posOffsetEarth.z);
     gps_data.pos.x -= posOffsetEarth.x;
     gps_data.pos.y -= posOffsetEarth.y;
     gps_data.hgt += posOffsetEarth.z;
