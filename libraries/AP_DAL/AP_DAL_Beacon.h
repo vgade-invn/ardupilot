@@ -61,9 +61,9 @@ public:
 #if APM_BUILD_TYPE(APM_BUILD_Replay)
     void handle_message(const log_RBCH &msg) {
         _RBCH = msg;
-        _origin.lat = _RBCH.lat;
-        _origin.lng = _RBCH.lng;
-        _origin.alt = _RBCH.alt;
+        _origin.lat = _RBCH.origin_lat;
+        _origin.lng = _RBCH.origin_lng;
+        _origin.alt = _RBCH.origin_alt;
    }
     void handle_message(const log_RBCI &msg) {
         _RBCI[msg.instance] = msg;
