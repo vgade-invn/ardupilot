@@ -30,6 +30,7 @@ void AP_DAL_Compass::start_frame(const uint64_t time_us)
     _RMGH.declination = compass.get_declination();
     _RMGH.num_enabled = compass.get_num_enabled();
     _RMGH.consistent = compass.consistent();
+
     logger.WriteReplayBlock((void*)&_RMGH, sizeof(_RMGH));
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RMGI); i++) {
@@ -42,10 +43,10 @@ void AP_DAL_Compass::start_frame(const uint64_t time_us)
         RMGI.time_us = time_us;
         RMGI.use_for_yaw = compass.use_for_yaw(i);
         RMGI.healthy = compass.healthy(i);
-        *((Vector3f *)RMGI.offsets) = compass.get_offsets(i);
+        memcpy((void*)&RMGI.offsets, (void*)&compass.get_offsets(i), sizeof(Vector3f));
         RMGI.have_scale_factor = compass.have_scale_factor(i);
         RMGI.last_update_usec = last_update_usec;
-        *((Vector3f *)RMGI.field) = compass.get_field(i);
+        memcpy((void*)&RMGI.field, (void*)&compass.get_field(i), sizeof(Vector3f));
 
         logger.WriteReplayBlock((void*)&RMGI, sizeof(RMGI));
     }

@@ -19,7 +19,7 @@ public:
 
 
     const Vector3f &get_imu_pos_offset(uint8_t instance) const {
-        return _pos[instance];
+        return _RISI[instance].pos.to_Vector3f();
     }
 
     // accel stuff
@@ -27,9 +27,9 @@ public:
     uint8_t get_primary_accel(void) const { return _RISH.primary_accel; };
 
     bool use_accel(uint8_t instance) const { return _RISI[instance].use_accel; }
-    const Vector3f     &get_accel(uint8_t i) const { return _accel[i]; }
+    const Vector3f     &get_accel(uint8_t i) const { return _RISI[i].accel.to_Vector3f(); }
     bool get_delta_velocity(uint8_t i, Vector3f &delta_velocity) const {
-        delta_velocity = _delta_velocity[i];
+        delta_velocity = _RISI[i].delta_velocity.to_Vector3f();
         return _RISI[i].get_delta_velocity_ret;
     }
     float get_delta_velocity_dt(uint8_t i) const {
@@ -41,10 +41,10 @@ public:
     uint8_t get_primary_gyro(void) const { return _RISH.primary_gyro; };
 
     bool use_gyro(uint8_t instance) const { return _RISJ[instance].use_gyro; }
-    const Vector3f     &get_gyro(uint8_t i) const { return _gyro[i]; }
-    const Vector3f     &get_gyro() const { return _gyro[_primary_gyro]; }
+    const Vector3f     &get_gyro(uint8_t i) const { return _RISJ[i].gyro.to_Vector3f(); }
+    const Vector3f     &get_gyro() const { return get_gyro(_primary_gyro); }
     bool get_delta_angle(uint8_t i, Vector3f &delta_angle) const {
-        delta_angle = _delta_angle[i];
+        delta_angle = _RISJ[i].delta_angle.to_Vector3f();
         return _RISJ[i].get_delta_angle_ret;
     }
     float get_delta_angle_dt(uint8_t i) const { return _RISJ[i].delta_angle_dt; }
@@ -63,18 +63,9 @@ public:
     }
     void handle_message(const log_RISI &msg) {
         _RISI[msg.instance] = msg;
-        _accel[msg.instance].x = msg.accelx;
-        _accel[msg.instance].y = msg.accely;
-        _accel[msg.instance].z = msg.accelz;
-        _delta_velocity[msg.instance].x = msg.delta_velocity_x;
-        _delta_velocity[msg.instance].y = msg.delta_velocity_y;
-        _delta_velocity[msg.instance].z = msg.delta_velocity_z;
     }
     void handle_message(const log_RISJ &msg) {
         _RISJ[msg.instance] = msg;
-        _delta_angle[msg.instance].x = msg.delta_angle_x;
-        _delta_angle[msg.instance].y = msg.delta_angle_y;
-        _delta_angle[msg.instance].z = msg.delta_angle_z;
     }
 #endif
 
@@ -88,14 +79,6 @@ private:
     struct log_RISJ _RISJ[INS_MAX_INSTANCES];
 
     uint8_t _primary_gyro;
-    Vector3f _gyro[INS_MAX_INSTANCES];
-
-    Vector3f _accel[INS_MAX_INSTANCES];
-
-    Vector3f _delta_velocity[INS_MAX_INSTANCES];
-    Vector3f _delta_angle[INS_MAX_INSTANCES];
-
-    Vector3f _pos[INS_MAX_INSTANCES];
 
     void log_header(uint64_t time_us);
     void log_instance(uint64_t time_us, uint8_t i);

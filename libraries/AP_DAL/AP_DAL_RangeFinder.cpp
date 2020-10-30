@@ -91,10 +91,7 @@ void AP_DAL_RangeFinder_Backend::start_frame(uint64_t time_us, AP_RangeFinder_Ba
     _RRNI.time_us = time_us;
     _RRNI.orientation = backend->orientation();
     _RRNI.status = (uint8_t)backend->status();
-    const Vector3f offs = backend->get_pos_offset();
-    _RRNI.pos_offset[0] = offs.x;
-    _RRNI.pos_offset[1] = offs.y;
-    _RRNI.pos_offset[2] = offs.z;
+    _RRNI.pos_offset.from_Vector3f(backend->get_pos_offset());
     logger.WriteReplayBlock((void*)&_RRNI, sizeof(_RRNI));
 }
 

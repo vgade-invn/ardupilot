@@ -202,6 +202,16 @@ const AP_DAL_Compass *AP_DAL::get_compass() const
     return &_compass;
 }
 
+const Vector3f &Vector3f_t::to_Vector3f(void) const
+{
+    return *(const Vector3f *)&v[0];
+}
+
+void Vector3f_t::from_Vector3f(const Vector3f &vf)
+{
+    memcpy((void*)v, (void*)&vf, sizeof(v));
+}
+
 #include <stdio.h>
 
 namespace AP {
