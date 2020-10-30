@@ -23,8 +23,6 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
         _RFRH.state_bitmask |= uint8_t(StateMask::ARMED);
     }
 
-    auto &logger = AP::logger();
-
     const AP_AHRS &ahrs = AP::ahrs();
 
     _RFRH.frame_number++;
@@ -42,14 +40,14 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _RFRH.ahrs_airspeed_sensor_enabled = AP::ahrs().airspeed_sensor_enabled();
     _RFRH.available_memory = hal.util->available_memory();
     _RFRH.time_flying_ms = AP::vehicle()->get_time_flying_ms();
-    logger.WriteReplayBlock(&_RFRH, sizeof(_RFRH));
+    WRITE_REPLAY_BLOCK(RFRH, _RFRH);
 
     // update RFRN data
     _home = ahrs.get_home();
     _RFRN.lat = _home.lat;
     _RFRN.lng = _home.lng;
     _RFRN.alt = _home.alt;
-    logger.WriteReplayBlock(&_RFRN, sizeof(_RFRN));
+    WRITE_REPLAY_BLOCK(RFRN, _RFRN);
 
     // update RFRR data:
     _rotation_vehicle_body_to_autopilot_body = ahrs.get_rotation_vehicle_body_to_autopilot_body();
@@ -64,7 +62,7 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _RFRR.m8 = _rotation_vehicle_body_to_autopilot_body[2][2];
     // consider logging the rotation, which shouldn't change too much...
     if (memcmp((void*)&_last_logged_RFRR, (void*)&_RFRR, sizeof(_RFRR)) != 0) {
-        logger.WriteReplayBlock(&_RFRR, sizeof(_RFRR));
+        WRITE_REPLAY_BLOCK(RFRR, _RFRR);
         _last_logged_RFRR = _RFRR;
     }
 
@@ -79,7 +77,7 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
 
     _RFRF.time_us = _RFRH.time_us;
     _RFRF.frame_type = (uint8_t)frametype;
-    logger.WriteReplayBlock(&_RFRF, sizeof(_RFRF));
+    WRITE_REPLAY_BLOCK(RFRF, _RFRF);
 
     // populate some derivative values:
     _micros = _RFRH.time_us;
@@ -92,11 +90,10 @@ void AP_DAL::log_event2(AP_DAL::Event2 event)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_REV2 pkt{
-        LOG_PACKET_HEADER_INIT(LOG_REV2_MSG),
         time_us        : _RFRH.time_us,
         event          : uint8_t(event),
     };
-    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
+    WRITE_REPLAY_BLOCK(REV2, pkt);
 #endif
 }
 
@@ -104,13 +101,12 @@ void AP_DAL::log_SetOriginLLH2(const Location &loc)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_RSO2 pkt{
-        LOG_PACKET_HEADER_INIT(LOG_RSO2_MSG),
         time_us        : _RFRH.time_us,   // this isn't correct?
         lat            : loc.lat,
         lng            : loc.lng,
         alt            : loc.alt,
     };
-    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
+    WRITE_REPLAY_BLOCK(RSO2, pkt);
 #endif
 }
 
@@ -118,11 +114,10 @@ void AP_DAL::log_writeDefaultAirSpeed2(const float airspeed)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_RWA2 pkt{
-        LOG_PACKET_HEADER_INIT(LOG_RWA2_MSG),
         time_us        : _RFRH.time_us,   // this isn't correct?
         airspeed:      airspeed,
     };
-    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
+    WRITE_REPLAY_BLOCK(RWA2, pkt);
 #endif
 }
 
@@ -130,11 +125,10 @@ void AP_DAL::log_event3(AP_DAL::Event3 event)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_REV3 pkt{
-        LOG_PACKET_HEADER_INIT(LOG_REV3_MSG),
         time_us        : _RFRH.time_us,
         event          : uint8_t(event),
     };
-    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
+    WRITE_REPLAY_BLOCK(REV3, pkt);
 #endif
 }
 
@@ -142,13 +136,12 @@ void AP_DAL::log_SetOriginLLH3(const Location &loc)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_RSO3 pkt{
-        LOG_PACKET_HEADER_INIT(LOG_RSO3_MSG),
         time_us        : _RFRH.time_us,   // this isn't correct?
         lat            : loc.lat,
         lng            : loc.lng,
         alt            : loc.alt,
     };
-    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
+    WRITE_REPLAY_BLOCK(RSO3, pkt);
 #endif
 }
 
@@ -156,11 +149,10 @@ void AP_DAL::log_writeDefaultAirSpeed3(const float airspeed)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_RWA3 pkt{
-        LOG_PACKET_HEADER_INIT(LOG_RWA3_MSG),
         time_us        : _RFRH.time_us,   // this isn't correct?
         airspeed:      airspeed,
     };
-    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
+    WRITE_REPLAY_BLOCK(RWA3, pkt);
 #endif
 }
 
@@ -168,14 +160,13 @@ void AP_DAL::log_writeEulerYawAngle(float yawAngle, float yawAngleErr, uint32_t 
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_REY3 pkt{
-        LOG_PACKET_HEADER_INIT(LOG_REY3_MSG),
         time_us        : _RFRH.time_us,   // this isn't correct?
         yawangle       : yawAngle,
         yawangleerr    : yawAngleErr,
         timestamp_ms   : timeStamp_ms,
         type           : type,
     };
-    AP::logger().WriteReplayBlock(&pkt, sizeof(pkt));
+    WRITE_REPLAY_BLOCK(REY3, pkt);
 #endif
 }
 

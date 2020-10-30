@@ -6,14 +6,7 @@
 
 AP_DAL_RangeFinder::AP_DAL_RangeFinder()
 {
-    _RRNH.head1 = HEAD_BYTE1;
-    _RRNH.head2 = HEAD_BYTE2;
-    _RRNH.msgid = LOG_RRNH_MSG;
-
     for (uint8_t i=0; i<ARRAY_SIZE(_RRNI); i++) {
-        _RRNI[i].head1 = HEAD_BYTE1;
-        _RRNI[i].head2 = HEAD_BYTE2;
-        _RRNI[i].msgid = LOG_RRNI_MSG;
         _RRNI[i].instance = i;
     }
 
@@ -60,12 +53,10 @@ void AP_DAL_RangeFinder::start_frame(const uint64_t time_us)
         return;
     }
 
-    auto &logger = AP::logger();
-
     // EKF only asks for this *down*.
     _RRNH.ground_clearance_cm = rangefinder->ground_clearance_cm_orient(ROTATION_PITCH_270);
     _RRNH.max_distance_cm = rangefinder->ground_clearance_cm_orient(ROTATION_PITCH_270);
-    logger.WriteReplayBlock(&_RRNH, sizeof(_RRNH));
+    WRITE_REPLAY_BLOCK(RRNH, _RRNH);
 
     for (uint8_t i=0; i<RANGEFINDER_MAX_INSTANCES; i++) {
         auto *backend = rangefinder->get_backend(i);
@@ -86,13 +77,11 @@ AP_DAL_RangeFinder_Backend::AP_DAL_RangeFinder_Backend(struct log_RRNI &RRNI) :
 }
 
 void AP_DAL_RangeFinder_Backend::start_frame(uint64_t time_us, AP_RangeFinder_Backend *backend) {
-    auto &logger = AP::logger();
-
     _RRNI.time_us = time_us;
     _RRNI.orientation = backend->orientation();
     _RRNI.status = (uint8_t)backend->status();
     _RRNI.pos_offset.from_Vector3f(backend->get_pos_offset());
-    logger.WriteReplayBlock(&_RRNI, sizeof(_RRNI));
+    WRITE_REPLAY_BLOCK(RRNI, _RRNI);
 }
 
 

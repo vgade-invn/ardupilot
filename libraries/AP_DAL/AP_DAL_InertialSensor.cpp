@@ -5,13 +5,7 @@
 AP_DAL_InertialSensor::AP_DAL_InertialSensor()
 {
     for (uint8_t i=0; i<ARRAY_SIZE(_RISI); i++) {
-        _RISI[i].head1 = HEAD_BYTE1;
-        _RISI[i].head2 = HEAD_BYTE2;
-        _RISI[i].msgid = LOG_RISI_MSG;
         _RISI[i].instance = i;
-        _RISJ[i].head1 = HEAD_BYTE1;
-        _RISJ[i].head2 = HEAD_BYTE2;
-        _RISJ[i].msgid = LOG_RISJ_MSG;
         _RISJ[i].instance = i;
     }
 }
@@ -19,8 +13,6 @@ AP_DAL_InertialSensor::AP_DAL_InertialSensor()
 void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
 {
     const auto &ins = AP::ins();
-
-    auto &logger = AP::logger();
 
     _RISH.time_us = time_us;
     _RISH.loop_rate_hz = ins.get_loop_rate_hz();
@@ -30,7 +22,7 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
     _RISH.accel_count = ins.get_accel_count();
     _RISH.gyro_count = ins.get_gyro_count();
     _RISH.last_update_usec = ins.get_last_update_usec();
-    logger.WriteReplayBlock(&_RISH, sizeof(_RISH));
+    WRITE_REPLAY_BLOCK(RISH, _RISH);
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RISI); i++) {
         log_RISI &RISI = _RISI[i];
@@ -47,7 +39,7 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
 
         RISI.delta_velocity_dt = ins.get_delta_velocity_dt(i);
 
-        logger.WriteReplayBlock(&RISI, sizeof(RISI));
+        WRITE_REPLAY_BLOCK(RISI, RISI);
 
         // gryo stuff
         log_RISJ &RISJ = _RISJ[i];
@@ -59,6 +51,6 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
         RISJ.get_delta_angle_ret = ins.get_delta_angle(i, v);
         RISJ.delta_angle.from_Vector3f(v);
 
-        logger.WriteReplayBlock(&RISJ, sizeof(RISJ));
+        WRITE_REPLAY_BLOCK(RISJ, RISJ);
     }
 }

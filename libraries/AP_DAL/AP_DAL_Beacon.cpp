@@ -6,14 +6,7 @@
 
 AP_DAL_Beacon::AP_DAL_Beacon()
 {
-    _RBCH.head1 = HEAD_BYTE1;
-    _RBCH.head2 = HEAD_BYTE2;
-    _RBCH.msgid = LOG_RBCH_MSG;
-
     for (uint8_t i=0; i<ARRAY_SIZE(_RBCI); i++) {
-        _RBCI[i].head1 = HEAD_BYTE1;
-        _RBCI[i].head2 = HEAD_BYTE2;
-        _RBCI[i].msgid = LOG_RBCI_MSG;
         _RBCI[i].instance = i;
     }
 }
@@ -21,8 +14,6 @@ AP_DAL_Beacon::AP_DAL_Beacon()
 void AP_DAL_Beacon::start_frame(const uint64_t time_us)
 {
     const auto *beacon = AP::beacon();
-
-    auto &logger = AP::logger();
 
     _RBCH.time_us = time_us;
     _RBCH.ptr_is_nullptr = (beacon == nullptr);
@@ -39,7 +30,7 @@ void AP_DAL_Beacon::start_frame(const uint64_t time_us)
         _RBCH.origin_lng = _origin.lng;
         _RBCH.origin_alt = _origin.alt;
     }
-    logger.WriteReplayBlock(&_RBCH, sizeof(_RBCH));
+    WRITE_REPLAY_BLOCK(RBCH, _RBCH);
     if (beacon == nullptr) {
         return;
     }
@@ -57,6 +48,6 @@ void AP_DAL_Beacon::start_frame(const uint64_t time_us)
         RBCI.distance = beacon->beacon_distance(i);
         RBCI.healthy = beacon->beacon_healthy(i);
 
-        logger.WriteReplayBlock(&RBCI, sizeof(RBCI));
+        WRITE_REPLAY_BLOCK(RBCI, RBCI);
     }
 }

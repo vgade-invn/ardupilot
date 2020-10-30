@@ -71,9 +71,7 @@ public:
 
 private:
 
-    struct log_RISH _RISH {
-        LOG_PACKET_HEADER_INIT(LOG_RISH_MSG),
-    };
+    struct log_RISH _RISH;
 
     union {
         uint64_t x;

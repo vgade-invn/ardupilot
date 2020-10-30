@@ -6,14 +6,7 @@
 
 AP_DAL_Compass::AP_DAL_Compass()
 {
-    _RMGH.head1 = HEAD_BYTE1;
-    _RMGH.head2 = HEAD_BYTE2;
-    _RMGH.msgid = LOG_RMGH_MSG;
-
     for (uint8_t i=0; i<ARRAY_SIZE(_RMGI); i++) {
-        _RMGI[i].head1 = HEAD_BYTE1;
-        _RMGI[i].head2 = HEAD_BYTE2;
-        _RMGI[i].msgid = LOG_RMGI_MSG;
         _RMGI[i].instance = i;
     }
 }
@@ -22,8 +15,6 @@ void AP_DAL_Compass::start_frame(const uint64_t time_us)
 {
     const auto &compass = AP::compass();
 
-    auto &logger = AP::logger();
-
     _RMGH.time_us = time_us;
     _RMGH.count = compass.get_count();
     _RMGH.auto_declination_enabled = compass.auto_declination_enabled();
@@ -31,7 +22,7 @@ void AP_DAL_Compass::start_frame(const uint64_t time_us)
     _RMGH.num_enabled = compass.get_num_enabled();
     _RMGH.consistent = compass.consistent();
 
-    logger.WriteReplayBlock(&_RMGH, sizeof(_RMGH));
+    WRITE_REPLAY_BLOCK(RMGH, _RMGH);
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RMGI); i++) {
         log_RMGI &RMGI = _RMGI[i];
@@ -48,6 +39,6 @@ void AP_DAL_Compass::start_frame(const uint64_t time_us)
         RMGI.last_update_usec = last_update_usec;
         memcpy((void*)&RMGI.field, (void*)&compass.get_field(i), sizeof(Vector3f));
 
-        logger.WriteReplayBlock(&RMGI, sizeof(RMGI));
+        WRITE_REPLAY_BLOCK(RMGI, RMGI);
     }
 }

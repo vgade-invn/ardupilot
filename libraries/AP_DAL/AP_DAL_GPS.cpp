@@ -4,23 +4,8 @@
 
 AP_DAL_GPS::AP_DAL_GPS()
 {
-    static_assert(sizeof(_RGPH) % 4 == 0, "RGPH size");
-    static_assert(sizeof(_RGPI) % 4 == 0, "RGPI size");
-    static_assert(sizeof(_RGPJ) % 4 == 0, "RGPK size");
-
-    _RGPH.head1 = HEAD_BYTE1;
-    _RGPH.head2 = HEAD_BYTE2;
-    _RGPH.msgid = LOG_RGPH_MSG;
-
     for (uint8_t i=0; i<ARRAY_SIZE(_RGPI); i++) {
-        _RGPI[i].head1 = HEAD_BYTE1;
-        _RGPI[i].head2 = HEAD_BYTE2;
-        _RGPI[i].msgid = LOG_RGPI_MSG;
         _RGPI[i].instance = i;
-
-        _RGPJ[i].head1 = HEAD_BYTE1;
-        _RGPJ[i].head2 = HEAD_BYTE2;
-        _RGPJ[i].msgid = LOG_RGPJ_MSG;
         _RGPJ[i].instance = i;
     }
 }
@@ -29,12 +14,11 @@ void AP_DAL_GPS::start_frame(const uint64_t time_us)
 {
     const auto &gps = AP::gps();
 
-    auto &logger = AP::logger();
-
     _RGPH.primary_sensor = gps.primary_sensor();
     _RGPH.num_sensors = gps.num_sensors();
     _RGPH.time_us = time_us;
-    logger.WriteReplayBlock(&_RGPH, sizeof(_RGPH));
+
+    WRITE_REPLAY_BLOCK(RGPH, _RGPH);
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RGPI); i++) {
         log_RGPI &RGPI = _RGPI[i];
@@ -66,7 +50,7 @@ void AP_DAL_GPS::start_frame(const uint64_t time_us)
         RGPI.num_sats = gps.num_sats(i);
         RGPI.get_lag_returncode = gps.get_lag(i, tmp);
         RGPI.lag_sec = tmp;
-        logger.WriteReplayBlock(&RGPI, sizeof(RGPI));
+        WRITE_REPLAY_BLOCK(RGPI, RGPI);
 
         log_RGPJ &RGPJ = _RGPJ[i];
 
@@ -78,6 +62,6 @@ void AP_DAL_GPS::start_frame(const uint64_t time_us)
         RGPJ.yaw_deg = tmp;
         RGPJ.yaw_accuracy_deg = tmp2;
         RGPJ.antenna_offset.from_Vector3f(gps.get_antenna_offset(i));
-        logger.WriteReplayBlock(&RGPJ, sizeof(RGPJ));
+        WRITE_REPLAY_BLOCK(RGPJ, RGPJ);
     }
 }

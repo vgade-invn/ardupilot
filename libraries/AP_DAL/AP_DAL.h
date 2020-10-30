@@ -267,24 +267,11 @@ private:
 
     static AP_DAL *_singleton;
 
-    struct log_RFRH _RFRH {
-        LOG_PACKET_HEADER_INIT(LOG_RFRH_MSG)
-    };
-
-    struct log_RFRN _RFRN {
-        LOG_PACKET_HEADER_INIT(LOG_RFRN_MSG)
-    };
-
-    struct log_RFRF _RFRF {
-        LOG_PACKET_HEADER_INIT(LOG_RFRF_MSG)
-    };
-
-    struct log_RFRR _RFRR {
-        LOG_PACKET_HEADER_INIT(LOG_RFRR_MSG)
-    };
-    struct log_RFRR _last_logged_RFRR {
-        LOG_PACKET_HEADER_INIT(LOG_RFRR_MSG)
-    };
+    struct log_RFRH _RFRH;
+    struct log_RFRN _RFRN;
+    struct log_RFRF _RFRF;
+    struct log_RFRR _RFRR;
+    struct log_RFRR _last_logged_RFRR;
 
     // cached variables for speed:
     uint32_t _micros;
