@@ -656,7 +656,7 @@ void AP_Logger::WriteReplayBlock(const void *pBuffer, uint16_t size) {
     if (!log_replay()) {
         return;
     }
-    WriteBlock(pBuffer, size);
+    WritePrioritisedBlock(pBuffer, size, true);
 }
 
 void AP_Logger::WriteCriticalBlock(const void *pBuffer, uint16_t size) {
