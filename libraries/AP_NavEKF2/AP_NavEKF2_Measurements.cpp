@@ -779,7 +779,7 @@ void NavEKF2_core::readAirSpdData()
 void NavEKF2_core::readRngBcnData()
 {
     // get the location of the beacon data
-    const AP_Beacon *beacon = AP::beacon();
+    const auto *beacon = AP::dal().beacon();
 
     // exit immediately if no beacon object
     if (beacon == nullptr) {
