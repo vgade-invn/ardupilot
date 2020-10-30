@@ -15,6 +15,14 @@
 
 #include "LogStructure.h"
 
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+// Replay results come in at 100 + core
+#define DAL_CORE(c) ((c)+100U)
+#else
+#define DAL_CORE(c) (c)
+#endif
+
+
 class AP_DAL {
 public:
 
