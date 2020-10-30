@@ -64,14 +64,75 @@ private:
     NavEKF2 &ekf2;
 };
 
-class LR_MsgHandler_XKF1 : public LR_MsgHandler
+class LR_MsgHandler_RSO2 : public LR_MsgHandler
 {
 public:
-    LR_MsgHandler_XKF1(struct log_Format &_f, NavEKF3 &_ekf3) :
+    LR_MsgHandler_RSO2(struct log_Format &_f, NavEKF2 &_ekf2) :
         LR_MsgHandler(_f),
-        ekf3(_ekf3)
-        { }
+        ekf2(_ekf2) {}
     void process_message(uint8_t *msg) override;
+
+private:
+    NavEKF2 &ekf2;
+};
+
+class LR_MsgHandler_RWA2 : public LR_MsgHandler
+{
+public:
+    LR_MsgHandler_RWA2(struct log_Format &_f, NavEKF2 &_ekf2) :
+        LR_MsgHandler(_f),
+        ekf2(_ekf2) {}
+    void process_message(uint8_t *msg) override;
+
+private:
+    NavEKF2 &ekf2;
+};
+
+
+class LR_MsgHandler_REV3 : public LR_MsgHandler
+{
+public:
+    LR_MsgHandler_REV3(struct log_Format &_f, NavEKF3 &_ekf3) :
+        LR_MsgHandler(_f),
+        ekf3(_ekf3) {}
+    void process_message(uint8_t *msg) override;
+
+private:
+    NavEKF3 &ekf3;
+};
+
+class LR_MsgHandler_RSO3 : public LR_MsgHandler
+{
+public:
+    LR_MsgHandler_RSO3(struct log_Format &_f, NavEKF3 &_ekf3) :
+        LR_MsgHandler(_f),
+        ekf3(_ekf3) {}
+    void process_message(uint8_t *msg) override;
+
+private:
+    NavEKF3 &ekf3;
+};
+
+class LR_MsgHandler_RWA3 : public LR_MsgHandler
+{
+public:
+    LR_MsgHandler_RWA3(struct log_Format &_f, NavEKF3 &_ekf3) :
+        LR_MsgHandler(_f),
+        ekf3(_ekf3) {}
+    void process_message(uint8_t *msg) override;
+
+private:
+    NavEKF3 &ekf3;
+};
+
+class LR_MsgHandler_REY3 : public LR_MsgHandler
+{
+public:
+    LR_MsgHandler_REY3(struct log_Format &_f, NavEKF3 &_ekf3) :
+        LR_MsgHandler(_f),
+        ekf3(_ekf3) {}
+    void process_message(uint8_t *msg) override;
+
 private:
     NavEKF3 &ekf3;
 };

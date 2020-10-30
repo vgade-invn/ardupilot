@@ -429,6 +429,8 @@ void NavEKF3::Log_Write()
 
         Log_Write_Timing(i, time_us);
     }
+
+    AP::dal().log_event3(AP_DAL::Event3::LoggingDone);
 }
 
 void NavEKF3::Log_Write_Timing(uint8_t _core, uint64_t time_us) const

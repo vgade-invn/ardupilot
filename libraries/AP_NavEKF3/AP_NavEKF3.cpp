@@ -907,6 +907,8 @@ void NavEKF3::UpdateFilter(void)
 */
 void NavEKF3::checkLaneSwitch(void)
 {
+    AP::dal().log_event3(AP_DAL::Event3::checkLaneSwitch);
+
     uint32_t now = AP::dal().millis();
     if (lastLaneSwitch_ms != 0 && now - lastLaneSwitch_ms < 5000) {
         // don't switch twice in 5 seconds
@@ -942,6 +944,8 @@ void NavEKF3::checkLaneSwitch(void)
 
 void NavEKF3::requestYawReset(void)
 {
+    AP::dal().log_event3(AP_DAL::Event3::requestYawReset);
+
     for (uint8_t i = 0; i < num_cores; i++) {
         core[i].EKFGSF_requestYawReset();
     }
@@ -952,6 +956,8 @@ void NavEKF3::requestYawReset(void)
 */
 float NavEKF3::updateCoreErrorScores()
 {
+    AP::dal().log_event3(AP_DAL::Event3::updateCoreErrorScores);
+
     for (uint8_t i = 0; i < num_cores; i++) {
         coreErrorScores[i] = core[i].errorScore();
     }
@@ -965,6 +971,8 @@ float NavEKF3::updateCoreErrorScores()
 */
 void NavEKF3::updateCoreRelativeErrors()
 {
+    AP::dal().log_event3(AP_DAL::Event3::updateCoreRelativeErrors);
+
     float error = 0;
     for (uint8_t i = 0; i < num_cores; i++) {
         if (i != primary) {
@@ -981,6 +989,8 @@ void NavEKF3::updateCoreRelativeErrors()
 // Reset the relative error values
 void NavEKF3::resetCoreErrors(void)
 {
+    AP::dal().log_event3(AP_DAL::Event3::resetCoreErrors);
+
     for (uint8_t i = 0; i < num_cores; i++) {
         coreRelativeErrors[i] = 0;
     }
@@ -1118,6 +1128,8 @@ void NavEKF3::getTiltError(int8_t instance, float &ang) const
 // reset body axis gyro bias estimates
 void NavEKF3::resetGyroBias(void)
 {
+    AP::dal().log_event3(AP_DAL::Event3::resetGyroBias);
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].resetGyroBias();
@@ -1132,6 +1144,8 @@ void NavEKF3::resetGyroBias(void)
 // If using a range finder for height no reset is performed and it returns false
 bool NavEKF3::resetHeightDatum(void)
 {
+    AP::dal().log_event3(AP_DAL::Event3::resetHeightDatum);
+
     bool status = true;
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
@@ -1151,6 +1165,8 @@ bool NavEKF3::resetHeightDatum(void)
 // Returns 1 if command accepted
 uint8_t NavEKF3::setInhibitGPS(void)
 {
+    AP::dal().log_event3(AP_DAL::Event3::setInhibitGPS);
+
     if (!core) {
         return 0;
     }
@@ -1290,6 +1306,8 @@ bool NavEKF3::getOriginLLH(int8_t instance, struct Location &loc) const
 // Returns false if the filter has rejected the attempt to set the origin
 bool NavEKF3::setOriginLLH(const Location &loc)
 {
+    AP::dal().log_SetOriginLLH3(loc);
+
     if (!core) {
         return false;
     }
@@ -1429,6 +1447,8 @@ void NavEKF3::writeOptFlowMeas(const uint8_t rawFlowQuality, const Vector2f &raw
 // write yaw angle sensor measurements
 void NavEKF3::writeEulerYawAngle(float yawAngle, float yawAngleErr, uint32_t timeStamp_ms, uint8_t type)
 {
+    AP::dal().log_writeEulerYawAngle(yawAngle, yawAngleErr, timeStamp_ms, type);
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].writeEulerYawAngle(yawAngle, yawAngleErr, timeStamp_ms, type);
@@ -1450,6 +1470,8 @@ void NavEKF3::writeEulerYawAngle(float yawAngle, float yawAngleErr, uint32_t tim
 */
 void NavEKF3::writeExtNavData(const Vector3f &pos, const Quaternion &quat, float posErr, float angErr, uint32_t timeStamp_ms, uint16_t delay_ms, uint32_t resetTime_ms)
 {
+    // AP::dal().log_WriteExtNavData(....);
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].writeExtNavData(pos, quat, posErr, angErr, timeStamp_ms, delay_ms, resetTime_ms);
@@ -1465,6 +1487,7 @@ void NavEKF3::writeExtNavData(const Vector3f &pos, const Quaternion &quat, float
 */
 void NavEKF3::writeExtNavVelData(const Vector3f &vel, float err, uint32_t timeStamp_ms, uint16_t delay_ms)
 {
+    // AP::dal().log_WriteExtNavVelData(....);
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].writeExtNavVelData(vel, err, timeStamp_ms, delay_ms);
@@ -1495,6 +1518,8 @@ void NavEKF3::getFlowDebug(int8_t instance, float &varFlow, float &gndOffset, fl
 */
 void NavEKF3::writeBodyFrameOdom(float quality, const Vector3f &delPos, const Vector3f &delAng, float delTime, uint32_t timeStamp_ms, uint16_t delay_ms, const Vector3f &posOffset)
 {
+    // AP::dal().log_WriteBodyFrameOdom(....);
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].writeBodyFrameOdom(quality, delPos, delAng, delTime, timeStamp_ms, delay_ms, posOffset);
@@ -1512,6 +1537,8 @@ void NavEKF3::writeBodyFrameOdom(float quality, const Vector3f &delPos, const Ve
 */
 void NavEKF3::writeWheelOdom(float delAng, float delTime, uint32_t timeStamp_ms, const Vector3f &posOffset, float radius)
 {
+    // AP::dal().log_WriteWheeloDom(....);
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].writeWheelOdom(delAng, delTime, timeStamp_ms, posOffset, radius);
@@ -1564,6 +1591,12 @@ bool NavEKF3::getRangeBeaconDebug(int8_t instance, uint8_t &ID, float &rng, floa
 // causes the EKF to start the EKF-GSF yaw estimator
 void NavEKF3::setTakeoffExpected(bool val)
 {
+    if (val) {
+        AP::dal().log_event3(AP_DAL::Event3::setTakeoffExpected);
+    } else {
+        AP::dal().log_event3(AP_DAL::Event3::unsetTakeoffExpected);
+    }
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].setTakeoffExpected(val);
@@ -1575,6 +1608,12 @@ void NavEKF3::setTakeoffExpected(bool val)
 // causes the EKF to compensate for expected barometer errors due to ground effect
 void NavEKF3::setTouchdownExpected(bool val)
 {
+    if (val) {
+        AP::dal().log_event3(AP_DAL::Event3::setTouchdownExpected);
+    } else {
+        AP::dal().log_event3(AP_DAL::Event3::unsetTouchdownExpected);
+    }
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].setTouchdownExpected(val);
@@ -1588,6 +1627,12 @@ void NavEKF3::setTouchdownExpected(bool val)
 // enabled by the combination of EK3_RNG_USE_HGT and EK3_RNG_USE_SPD parameters.
 void NavEKF3::setTerrainHgtStable(bool val)
 {
+    if (val) {
+        AP::dal().log_event3(AP_DAL::Event3::setTerrainHgtStable);
+    } else {
+        AP::dal().log_event3(AP_DAL::Event3::unsetTerrainHgtStable);
+    }
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].setTerrainHgtStable(val);
@@ -1903,6 +1948,8 @@ void NavEKF3::getTimingStatistics(int8_t instance, struct ekf_timing &timing) co
 // Writes the default equivalent airspeed in m/s to be used in forward flight if a measured airspeed is required and not available.
 void NavEKF3::writeDefaultAirSpeed(float airspeed)
 {
+    AP::dal().log_writeDefaultAirSpeed3(airspeed);
+
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
             core[i].writeDefaultAirSpeed(airspeed);

@@ -3,15 +3,19 @@
 #include <AP_Logger/LogStructure.h>
 
 #define LOG_IDS_FROM_DAL \
-    LOG_RFRH_MSG,  \
-    LOG_RFRF_MSG,  \
-    LOG_RFRR_MSG,  \
-    LOG_REV2_MSG,  \
-    LOG_RSO2_MSG,  \
-    LOG_RWA2_MSG,  \
-    LOG_RFRN_MSG,  \
-    LOG_RISH_MSG,  \
-    LOG_RISI_MSG,  \
+    LOG_RFRH_MSG, \
+    LOG_RFRF_MSG, \
+    LOG_RFRR_MSG, \
+    LOG_REV2_MSG, \
+    LOG_RSO2_MSG, \
+    LOG_RWA2_MSG, \
+    LOG_REV3_MSG, \
+    LOG_RSO3_MSG, \
+    LOG_RWA3_MSG, \
+    LOG_REY3_MSG, \
+    LOG_RFRN_MSG, \
+    LOG_RISH_MSG, \
+    LOG_RISI_MSG, \
     LOG_RISJ_MSG, \
     LOG_RBRH_MSG, \
     LOG_RBRI_MSG, \
@@ -146,6 +150,43 @@ struct PACKED log_RWA2 {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     float airspeed;
+};
+
+// @LoggerMessage: REV3
+// @Description: Replay Event
+struct PACKED log_REV3 {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t event;
+};
+
+// @LoggerMessage: RSO3
+// @Description: Replay Set Origin event
+struct PACKED log_RSO3 {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    int32_t lat;
+    int32_t lng;
+    int32_t alt;
+};
+
+// @LoggerMessage: RWA3
+// @Description: Replay set-default-airspeed event
+struct PACKED log_RWA3 {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float airspeed;
+};
+
+// @LoggerMessage: REY3
+// @Description: Replay Euler Yaw event
+struct PACKED log_REY3 {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float yawangle;
+    float yawangleerr;
+    uint32_t timestamp_ms;
+    uint8_t type;
 };
 
 // @LoggerMessage: RBRH
@@ -309,6 +350,14 @@ struct PACKED log_RMGI {
       "RSO2", "QIII", "TimeUS,Lat,Lon,Alt", "sDUm", "FGGB" }, \
     { LOG_RWA2_MSG, sizeof(log_RWA2), \
       "RWA2", "Qf", "TimeUS,Airspeed", "sn", "F0" }, \
+    { LOG_REV3_MSG, sizeof(log_REV3), \
+      "REV3", "QB", "TimeUS,Event", "s-", "F-" }, \
+    { LOG_RSO3_MSG, sizeof(log_RSO3), \
+      "RSO3", "QIII", "TimeUS,Lat,Lon,Alt", "sDUm", "FGGB" }, \
+    { LOG_RWA3_MSG, sizeof(log_RWA3), \
+      "RWA3", "Qf", "TimeUS,Airspeed", "sn", "F0" }, \
+    { LOG_REY3_MSG, sizeof(log_REY3), \
+      "REY3", "QffIB", "TimeUS,yawangle,yawangleerr,timestamp_ms,type", "s???-", "F???-" }, \
     { LOG_RISH_MSG, sizeof(log_RISH), \
       "RISH", "QHBBfBBI", "TimeUS,LR,PG,PA,LD,AC,GC,LU", "s-------", "F-------" }, \
     { LOG_RISI_MSG, sizeof(log_RISI), \

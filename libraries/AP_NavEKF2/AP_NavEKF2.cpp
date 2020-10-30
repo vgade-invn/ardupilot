@@ -1010,7 +1010,7 @@ void NavEKF2::getTiltError(int8_t instance, float &ang) const
 // reset body axis gyro bias estimates
 void NavEKF2::resetGyroBias(void)
 {
-    AP::dal().log_event2(AP_DAL::Event2::ResetGyroBias);
+    AP::dal().log_event2(AP_DAL::Event2::resetGyroBias);
 
     if (core) {
         for (uint8_t i=0; i<num_cores; i++) {
@@ -1026,7 +1026,7 @@ void NavEKF2::resetGyroBias(void)
 // If using a range finder for height no reset is performed and it returns false
 bool NavEKF2::resetHeightDatum(void)
 {
-    AP::dal().log_event2(AP_DAL::Event2::ResetHeightDatum);
+    AP::dal().log_event2(AP_DAL::Event2::resetHeightDatum);
 
     bool status = true;
     if (core) {
@@ -1049,7 +1049,7 @@ bool NavEKF2::resetHeightDatum(void)
 // Returns 2 if attitude, 3D-velocity, vertical position and relative horizontal position will be provided
 uint8_t NavEKF2::setInhibitGPS(void)
 {
-    AP::dal().log_event2(AP_DAL::Event2::InhibitGPS);
+    AP::dal().log_event2(AP_DAL::Event2::setInhibitGPS);
 
     if (!core) {
         return 0;

@@ -69,6 +69,9 @@ Things to look at later
   - circle back around the earth-rate stuff being initialised with zero latitude
   - rotation_vehicle_body_to_autopilot_body should be moved
   - fix our sensor libraries: be consistent with naming of "count" / num_instances / whatnot
+  - consider creating an AP_DAL_AHRS to hold ahrs method results
+  - use pull model for all sensors into the EKF
+    - e.g. external data will need to store a copy which the EKF then fetches and shoves into its observatton buffers
 
 Random notes
 ============
