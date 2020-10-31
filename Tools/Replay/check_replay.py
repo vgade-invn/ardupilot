@@ -11,6 +11,7 @@ parser = ArgumentParser(description=__doc__)
 parser.add_argument("--condition", default=None, help="condition for packets")
 parser.add_argument("--ekf2-only", action='store_true', help="only check EKF2")
 parser.add_argument("--ekf3-only", action='store_true', help="only check EKF3")
+parser.add_argument("--verbose", action='store_true', help="verbose output")
 parser.add_argument("logs", metavar="LOG", nargs="+")
 
 args = parser.parse_args()
@@ -23,6 +24,7 @@ def check_log(logfile):
     print("Processing log %s" % filename)
     count = 0
     errors = 0
+    counts = {}
 
     mlog = mavutil.mavlink_connection(filename)
 
@@ -53,6 +55,9 @@ def check_log(logfile):
             continue
         mb = base[mtype][core-100]
         count += 1
+        if not mtype in counts:
+            counts[mtype] = 0
+        counts[mtype] += 1
         mismatch = False
         for f in m._fieldnames:
             if f == 'C':
@@ -67,6 +72,8 @@ def check_log(logfile):
             print(mb)
             print(m)
     print("Processed %u messages, %u errors" % (count, errors))
+    if args.verbose:
+        print(counts)
 
 for filename in args.logs:
     check_log(filename)
