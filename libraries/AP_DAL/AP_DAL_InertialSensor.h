@@ -72,11 +72,7 @@ public:
 private:
 
     struct log_RISH _RISH;
-
-    union {
-        uint64_t x;
-        struct log_RISI _RISI[INS_MAX_INSTANCES];
-    };
+    struct log_RISI _RISI[INS_MAX_INSTANCES];
     struct log_RISJ _RISJ[INS_MAX_INSTANCES];
 
     uint8_t _primary_gyro;
