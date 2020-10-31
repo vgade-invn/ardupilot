@@ -841,6 +841,7 @@ void NavEKF2::UpdateFilter(void)
 */
 void NavEKF2::checkLaneSwitch(void)
 {
+    AP::dal().log_event2(AP_DAL::Event2::checkLaneSwitch);
     uint32_t now = AP::dal().millis();
     if (lastLaneSwitch_ms != 0 && now - lastLaneSwitch_ms < 5000) {
         // don't switch twice in 5 seconds
