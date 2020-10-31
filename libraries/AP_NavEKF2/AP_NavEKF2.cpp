@@ -660,7 +660,7 @@ bool NavEKF2::InitialiseFilter(void)
         }
 
         // check if there is enough memory to create the EKF cores
-        if (hal.util->available_memory() < sizeof(NavEKF2_core)*num_cores + 4096) {
+        if (AP::dal().available_memory() < sizeof(NavEKF2_core)*num_cores + 4096) {
             initFailure = InitFailures::NO_MEM;
             core_malloc_failed = true;
             GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "NavEKF2: not enough memory available");
@@ -668,7 +668,7 @@ bool NavEKF2::InitialiseFilter(void)
         }
 
         // try to allocate from CCM RAM, fallback to Normal RAM if not available or full
-        core = (NavEKF2_core*)hal.util->malloc_type(sizeof(NavEKF2_core)*num_cores, AP_HAL::Util::MEM_FAST);
+        core = (NavEKF2_core*)AP::dal().malloc_type(sizeof(NavEKF2_core)*num_cores, AP_DAL::MEM_FAST);
         if (core == nullptr) {
             initFailure = InitFailures::NO_MEM;
             core_malloc_failed = true;
@@ -813,7 +813,7 @@ void NavEKF2::UpdateFilter(void)
         }
     }
 
-    if (primary != 0 && core[0].healthy() && !hal.util->get_soft_armed()) {
+    if (primary != 0 && core[0].healthy() && !AP::dal().get_armed()) {
         // when on the ground and disarmed force the first lane. This
         // avoids us ending with with a lottery for which IMU is used
         // in each flight. Otherwise the alignment of the timing of
