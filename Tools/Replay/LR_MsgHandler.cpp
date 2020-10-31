@@ -262,7 +262,7 @@ void LR_MsgHandler_RBCI::process_message(uint8_t *msg)
 
 void LR_MsgHandler_RVOH::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RVOH*)(msg)));
+    AP::dal().handle_message(MSG_CAST(RVOH,msg));
 }
 
 #include <AP_AHRS/AP_AHRS.h>
