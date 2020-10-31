@@ -157,6 +157,7 @@ void NavEKF3_core::realignYawGPS()
             // keep roll and pitch and reset yaw
             rotationOrder order;
             bestRotationOrder(order);
+            xxprintf("resetQuatStateYawOnly2 %.12f\n", gpsYaw);
             resetQuatStateYawOnly(gpsYaw, sq(radians(45.0f)), order);
 
             // reset the velocity and position states as they will be inaccurate due to bad yaw
@@ -1483,6 +1484,7 @@ bool NavEKF3_core::EKFGSF_resetMainFilterYaw()
         // keep roll and pitch and reset yaw
         rotationOrder order;
         bestRotationOrder(order);
+        xxprintf("resetQuatStateYawOnly3 %.12f\n", yawEKFGSF);
         resetQuatStateYawOnly(yawEKFGSF, yawVarianceEKFGSF, order);
 
         // record the emergency reset event
@@ -1520,6 +1522,8 @@ bool NavEKF3_core::EKFGSF_resetMainFilterYaw()
 
 void NavEKF3_core::resetQuatStateYawOnly(float yaw, float yawVariance, rotationOrder order)
 {
+    xxprintf("resetQuatStateYawOnly %.12f %.12f %u\n",
+             yaw, yawVariance, unsigned(order));
     Quaternion quatBeforeReset = stateStruct.quat;
 
     // check if we should use a 321 or 312 Rotation order and update the quaternion
