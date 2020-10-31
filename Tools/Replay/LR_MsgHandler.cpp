@@ -20,6 +20,11 @@ void LR_MsgHandler_RFRH::process_message(uint8_t *msg)
     AP::dal().handle_message(MSG_CAST(RFRH,msg));
 }
 
+void LR_MsgHandler_RFRN::process_message(uint8_t *msg)
+{
+    AP::dal().handle_message(MSG_CAST(RFRN,msg));
+}
+
 void LR_MsgHandler_RFRF::process_message(uint8_t *msg)
 {
     const log_RFRF &rfrf = MSG_CAST(RFRF,msg);
