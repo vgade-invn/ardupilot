@@ -65,6 +65,8 @@
 
 class AP_AHRS;
 
+void xxprintf(const char *format, ...);
+
 class NavEKF2_core : public NavEKF_core_common
 {
 public:

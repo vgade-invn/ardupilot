@@ -189,17 +189,30 @@ void NavEKF2_core::SelectTasFusion()
         airSpdFusionDelayed = false;
     }
 
+    xxprintf("TAS %u (%.12e,%.12e,%.12e)\n", __LINE__,
+             stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
+
     // get true airspeed measurement
     readAirSpdData();
 
+    xxprintf("TAS %u (%.12e,%.12e,%.12e)\n", __LINE__,
+             stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
+    
     // If we haven't received airspeed data for a while, then declare the airspeed data as being timed out
     if (imuSampleTime_ms - tasDataNew.time_ms > frontend->tasRetryTime_ms) {
         tasTimeout = true;
     }
 
+    xxprintf("TAS %u dtf=%u statesInitialised=%u inhibitWindStates=%u\n", __LINE__,
+             unsigned(tasDataToFuse), unsigned(statesInitialised), unsigned(inhibitWindStates));
+    
     // if the filter is initialised, wind states are not inhibited and we have data to fuse, then perform TAS fusion
     if (tasDataToFuse && statesInitialised && !inhibitWindStates) {
+        xxprintf("TAS %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         FuseAirspeed();
+        xxprintf("TAS %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         prevTasStep_ms = imuSampleTime_ms;
     }
 }

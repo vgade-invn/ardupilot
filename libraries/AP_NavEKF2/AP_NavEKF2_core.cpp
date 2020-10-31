@@ -534,6 +534,11 @@ void NavEKF2_core::UpdateFilter(bool predict)
         return;
     }
 
+    xxprintf("UpdateFilter %u\n", AP::dal().millis());
+
+    xxprintf("AngErr0 (%.12e,%.12e,%.12e)\n",
+             stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
+    
     // start the timer used for load measurement
 #if ENABLE_EKF_TIMING
     void *istate = hal.scheduler->disable_interrupts_save();
@@ -557,43 +562,68 @@ void NavEKF2_core::UpdateFilter(bool predict)
     // Run the EKF equations to estimate at the fusion time horizon if new IMU data is available in the buffer
     if (runUpdates) {
         // Predict states using IMU data from the delayed time horizon
+        xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         UpdateStrapdownEquationsNED();
 
+        xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         // Predict the covariance growth
         CovariancePrediction();
 
+        xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
+        
         // Run the IMU prediction step for the GSF yaw estimator algorithm
         // using IMU and optionally true airspeed data.
         // Must be run before SelectMagFusion() to provide an up to date yaw estimate
         runYawEstimatorPrediction();
 
+        xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         // Update states using  magnetometer data
         SelectMagFusion();
 
+        xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         // Update states using GPS and altimeter data
         SelectVelPosFusion();
 
+        xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         // Run the GPS velocity correction step for the GSF yaw estimator algorithm
         // and use the yaw estimate to reset the main EKF yaw if requested
         // Muat be run after SelectVelPosFusion() so that fresh GPS data is available
         runYawEstimatorCorrection();
 
+        xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         // Update states using range beacon data
         SelectRngBcnFusion();
 
+        xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         // Update states using optical flow data
         SelectFlowFusion();
 
+        xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         // Update states using airspeed data
         SelectTasFusion();
 
+        xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         // Update states using sideslip constraint assumption for fly-forward vehicles
         SelectBetaFusion();
 
+        xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+                 stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
         // Update the filter status
         updateFilterStatus();
     }
 
+    xxprintf("AngErr %u (%.12e,%.12e,%.12e)\n", __LINE__,
+             stateStruct.angErr.x, stateStruct.angErr.y, stateStruct.angErr.z);
     // Wind output forward from the fusion to output time horizon
     calcOutputStates();
 
