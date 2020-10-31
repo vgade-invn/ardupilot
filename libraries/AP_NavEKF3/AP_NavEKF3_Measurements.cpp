@@ -1307,11 +1307,14 @@ float NavEKF3_core::MagDeclination(void) const
     // to ensure consistency with the table mag field. Otherwise use
     // the declination from the compass library
     if (have_table_earth_field && frontend->_mag_ef_limit > 0) {
+        xxprintf("magdec1 %.12f\n", table_declination);
         return table_declination;
     }
     if (!use_compass()) {
+        xxprintf("magdec3 %.12f\n", 0);
         return 0;
     }
+    xxprintf("magdec2 %.12f\n", AP::dal().get_compass()->get_declination());
     return AP::dal().get_compass()->get_declination();
 }
 
