@@ -612,7 +612,6 @@ NavEKF2::NavEKF2()
 }
 
 #include <stdio.h>
-static bool fred_initialised;
 
 // Initialise the filter
 bool NavEKF2::InitialiseFilter(void)
@@ -717,8 +716,6 @@ bool NavEKF2::InitialiseFilter(void)
     memset((void *)&pos_reset_data, 0, sizeof(pos_reset_data));
     memset(&pos_down_reset_data, 0, sizeof(pos_down_reset_data));
 
-    fred_initialised = true;
-
     return ret;
 }
 
@@ -751,10 +748,6 @@ bool NavEKF2::coreBetterScore(uint8_t new_core, uint8_t current_core) const
 // Update Filter States - this should be called whenever new IMU data is available
 void NavEKF2::UpdateFilter(void)
 {
-    if (!fred_initialised) {
-        abort();
-    }
-
     AP::dal().start_frame(AP_DAL::FrameType::UpdateFilterEKF2);
 
     if (!core) {
