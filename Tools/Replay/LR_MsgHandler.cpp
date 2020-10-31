@@ -9,18 +9,20 @@
 
 extern const AP_HAL::HAL& hal;
 
+#define MSG_CAST(sname,msg) *((log_ ##sname *)(msg+3))
+
 LR_MsgHandler::LR_MsgHandler(struct log_Format &_f) :
     MsgHandler(_f) {
 }
 
 void LR_MsgHandler_RFRH::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RFRH*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RFRH,msg));
 }
 
 void LR_MsgHandler_RFRF::process_message(uint8_t *msg)
 {
-    const log_RFRF &rfrf = *((log_RFRF*)(msg+3));
+    const log_RFRF &rfrf = MSG_CAST(RFRF,msg);
     AP::dal().handle_message(rfrf);
 
     switch ((AP_DAL::FrameType)rfrf.frame_type) {
@@ -43,7 +45,7 @@ void LR_MsgHandler_RFRF::process_message(uint8_t *msg)
 
 void LR_MsgHandler_REV2::process_message(uint8_t *msg)
 {
-    const log_REV2 &rev2 = *((log_REV2*)(msg+3));
+    const log_REV2 &rev2 = MSG_CAST(REV2,msg);
 
     switch ((AP_DAL::Event2)rev2.event) {
 
@@ -86,12 +88,15 @@ void LR_MsgHandler_REV2::process_message(uint8_t *msg)
     case AP_DAL::Event2::LoggingDone:
         ekf2.Log_Write();
         break;
+    case AP_DAL::Event2::checkLaneSwitch:
+        ekf2.checkLaneSwitch();
+        break;
     }
 }
 
 void LR_MsgHandler_RSO2::process_message(uint8_t *msg)
 {
-    const log_RSO2 &rso2 = *((log_RSO2*)(msg+3));
+    const log_RSO2 &rso2 = MSG_CAST(RSO2,msg);
     Location loc;
     loc.lat = rso2.lat;
     loc.lng = rso2.lng;
@@ -101,14 +106,14 @@ void LR_MsgHandler_RSO2::process_message(uint8_t *msg)
 
 void LR_MsgHandler_RWA2::process_message(uint8_t *msg)
 {
-    const log_RWA2 &rwa2 = *((log_RWA2*)(msg+3));
+    const log_RWA2 &rwa2 = MSG_CAST(RWA2,msg);
     ekf2.writeDefaultAirSpeed(rwa2.airspeed);
 }
 
 
 void LR_MsgHandler_REV3::process_message(uint8_t *msg)
 {
-    const log_REV3 &rev3 = *((log_REV3*)(msg+3));
+    const log_REV3 &rev3 = MSG_CAST(REV3,msg);
 
     switch ((AP_DAL::Event3)rev3.event) {
 
@@ -159,7 +164,7 @@ void LR_MsgHandler_REV3::process_message(uint8_t *msg)
 
 void LR_MsgHandler_RSO3::process_message(uint8_t *msg)
 {
-    const log_RSO3 &rso3 = *((log_RSO3*)(msg+3));
+    const log_RSO3 &rso3 = MSG_CAST(RSO3,msg);
     Location loc;
     loc.lat = rso3.lat;
     loc.lng = rso3.lng;
@@ -169,90 +174,90 @@ void LR_MsgHandler_RSO3::process_message(uint8_t *msg)
 
 void LR_MsgHandler_RWA3::process_message(uint8_t *msg)
 {
-    const log_RWA3 &rwa3 = *((log_RWA3*)(msg+3));
+    const log_RWA3 &rwa3 = MSG_CAST(RWA3,msg);
     ekf3.writeDefaultAirSpeed(rwa3.airspeed);
 }
 
 void LR_MsgHandler_REY3::process_message(uint8_t *msg)
 {
-    const log_RWA3 &rwa3 = *((log_RWA3*)(msg+3));
+    const log_RWA3 &rwa3 = MSG_CAST(RWA3,msg);
     ekf3.writeDefaultAirSpeed(rwa3.airspeed);
 }
 
 void LR_MsgHandler_RFRR::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RFRR*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RFRR,msg));
 }
 
 void LR_MsgHandler_RISH::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RISH*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RISH,msg));
 }
 void LR_MsgHandler_RISI::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RISI*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RISI,msg));
 }
 void LR_MsgHandler_RISJ::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RISJ*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RISJ,msg));
 }
 
 void LR_MsgHandler_RASH::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RASH*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RASH,msg));
 }
 void LR_MsgHandler_RASI::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RASI*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RASI,msg));
 }
 
 void LR_MsgHandler_RBRH::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RBRH*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RBRH,msg));
 }
 void LR_MsgHandler_RBRI::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RBRI*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RBRI,msg));
 }
 
 void LR_MsgHandler_RRNH::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RRNH*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RRNH,msg));
 }
 void LR_MsgHandler_RRNI::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RRNI*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RRNI,msg));
 }
 
 void LR_MsgHandler_RGPH::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RGPH*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RGPH,msg));
 }
 void LR_MsgHandler_RGPI::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RGPI*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RGPI,msg));
 }
 void LR_MsgHandler_RGPJ::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RGPJ*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RGPJ,msg));
 }
 
 void LR_MsgHandler_RMGH::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RMGH*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RMGH,msg));
 }
 void LR_MsgHandler_RMGI::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RMGI*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RMGI,msg));
 }
 
 void LR_MsgHandler_RBCH::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RBCH*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RBCH,msg));
 }
 void LR_MsgHandler_RBCI::process_message(uint8_t *msg)
 {
-    AP::dal().handle_message(*((log_RBCI*)(msg+3)));
+    AP::dal().handle_message(MSG_CAST(RBCI,msg));
 }
 
 void LR_MsgHandler_RVOH::process_message(uint8_t *msg)
