@@ -34,8 +34,6 @@
 
 #include "AP_NavEKF/EKFGSF_yaw.h"
 
-void xxprintf(const char *format, ...);
-
 // GPS pre-flight check bit locations
 #define MASK_GPS_NSATS      (1<<0)
 #define MASK_GPS_HDOP       (1<<1)

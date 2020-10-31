@@ -381,11 +381,6 @@ void NavEKF3_core::readMagData()
         consistentMagData = compass.consistent();
 
         // save magnetometer measurement to buffer to be fused later
-        xxprintf("MAG %u (%.12f,%.12f,%.12f)\n",
-                 magDataNew.time_ms,
-                 magDataNew.mag.x,
-                 magDataNew.mag.y,
-                 magDataNew.mag.z);
         storedMag.push(magDataNew);
 
         // remember time we read compass, to detect compass sensor failure
@@ -502,16 +497,6 @@ void NavEKF3_core::readIMUData()
         imuDataDownSampledNew.time_ms = imuSampleTime_ms;
 
         // Write data to the FIFO IMU buffer
-        xxprintf("IMU %u (%.12f,%.12f,%.12f) (%.12f,%.12f,%.12f) %.12f %.12f\n",
-                 imuDataDownSampledNew.time_ms,
-                 imuDataDownSampledNew.delAng.x,
-                 imuDataDownSampledNew.delAng.y,
-                 imuDataDownSampledNew.delAng.z,
-                 imuDataDownSampledNew.delVel.x,
-                 imuDataDownSampledNew.delVel.y,
-                 imuDataDownSampledNew.delVel.z,
-                 imuDataDownSampledNew.delAngDT,
-                 imuDataDownSampledNew.delVelDT);
         storedIMU.push_youngest_element(imuDataDownSampledNew);
 
         // calculate the achieved average time step rate for the EKF using a combination spike and LPF
@@ -671,7 +656,6 @@ void NavEKF3_core::readGpsData()
 
             // Read the GPS location in WGS-84 lat,long,height coordinates
             const struct Location &gpsloc = gps.location(selected_gps);
-            xxprintf("gpsalt=%f\n", gpsloc.alt*0.01);
 
             // Set the EKF origin and magnetic field declination if not previously set and GPS checks have passed
             if (gpsGoodToAlign && !validOrigin) {
@@ -683,7 +667,6 @@ void NavEKF3_core::readGpsData()
 
                 // Set the height of the NED origin
                 ekfGpsRefHgt = (double)0.01 * (double)gpsloc.alt + (double)outputDataNew.position.z;
-                xxprintf("ekfGpsRefHgt=%f galt=%f pz=%f\n", ekfGpsRefHgt, gpsloc.alt*0.01, outputDataNew.position.z);
 
                 // Set the uncertainty of the GPS origin height
                 ekfOriginHgtVar = sq(gpsHgtAccuracy);
@@ -712,15 +695,6 @@ void NavEKF3_core::readGpsData()
                 } else {
                     gpsDataNew.hgt = 0.01 * (gpsloc.alt - EKF_origin.alt);
                 }
-                xxprintf("GPX %u (%.12f,%.12f) (%.12f,%.12f,%.12f) %.12f ref:%.12f\n",
-                         gpsDataNew.time_ms,
-                         gpsDataNew.pos.x,
-                         gpsDataNew.pos.y,
-                         gpsDataNew.vel.x,
-                         gpsDataNew.vel.y,
-                         gpsDataNew.vel.z,
-                         gpsDataNew.hgt,
-                         ekfGpsRefHgt);
                 storedGPS.push(gpsDataNew);
                 // declare GPS available for use
                 gpsNotAvailable = false;
@@ -792,7 +766,6 @@ void NavEKF3_core::readBaroData()
         baroDataNew.time_ms = MAX(baroDataNew.time_ms,imuDataDelayed.time_ms);
 
         // save baro measurement to buffer to be fused later
-        xxprintf("BARO %u %.12f\n", baroDataNew.time_ms, baroDataNew.hgt);
         storedBaro.push(baroDataNew);
     }
 }
@@ -1307,14 +1280,11 @@ float NavEKF3_core::MagDeclination(void) const
     // to ensure consistency with the table mag field. Otherwise use
     // the declination from the compass library
     if (have_table_earth_field && frontend->_mag_ef_limit > 0) {
-        xxprintf("magdec1 %.12f\n", table_declination);
         return table_declination;
     }
     if (!use_compass()) {
-        xxprintf("magdec3 %.12f\n", 0);
         return 0;
     }
-    xxprintf("magdec2 %.12f\n", AP::dal().get_compass()->get_declination());
     return AP::dal().get_compass()->get_declination();
 }
 
