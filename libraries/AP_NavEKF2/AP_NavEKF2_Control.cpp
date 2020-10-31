@@ -55,7 +55,6 @@ void NavEKF2_core::setWindMagStateLearningMode()
 {
     // If we are on ground, or in constant position mode, or don't have the right vehicle and sensing to estimate wind, inhibit wind states
     bool setWindInhibit = (!useAirspeed() && !assume_zero_sideslip()) || onGround || (PV_AidingMode == AID_NONE);
-    xxprintf("SWI %u %u %u %u\n", useAirspeed(), assume_zero_sideslip(), onGround, unsigned(PV_AidingMode));
     if (!inhibitWindStates && setWindInhibit) {
         inhibitWindStates = true;
     } else if (inhibitWindStates && !setWindInhibit) {
