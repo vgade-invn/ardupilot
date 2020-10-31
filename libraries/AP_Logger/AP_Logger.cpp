@@ -867,6 +867,8 @@ void AP_Logger::WriteCritical(const char *name, const char *labels, const char *
 
 void AP_Logger::WriteV(const char *name, const char *labels, const char *units, const char *mults, const char *fmt, va_list arg_list, bool is_critical)
 {
+    // WriteV is not safe in replay as we can re-use IDs
+#if !APM_BUILD_TYPE(APM_BUILD_Replay)
     struct log_write_fmt *f = msg_fmt_for_name(name, labels, units, mults, fmt);
     if (f == nullptr) {
         // unable to map name to a messagetype; could be out of
@@ -887,6 +889,7 @@ void AP_Logger::WriteV(const char *name, const char *labels, const char *units, 
         backends[i]->Write(f->msg_type, arg_copy, is_critical);
         va_end(arg_copy);
     }
+#endif
 }
 
 bool AP_Logger::allow_start_ekf() const
