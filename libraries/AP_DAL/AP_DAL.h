@@ -200,6 +200,11 @@ public:
         _micros = _RFRH.time_us;
         _millis = _RFRH.time_us / 1000UL;
     }
+    void handle_message(const log_RFRN &msg) {
+        _home.lat = msg.lat;
+        _home.lng = msg.lng;
+        _home.alt = msg.alt;
+    }
     void handle_message(const log_RFRR &msg) {
         _RFRR = msg;
     }
