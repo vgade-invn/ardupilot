@@ -92,7 +92,7 @@ bool NavEKF2_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
 
     if ((yawEstimator == nullptr) && (frontend->_gsfRunMask & (1U<<core_index))) {
         // check if there is enough memory to create the EKF-GSF object
-        if (hal.util->available_memory() < sizeof(EKFGSF_yaw) + 1024) {
+        if (AP::dal().available_memory() < sizeof(EKFGSF_yaw) + 1024) {
             GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF2 IMU%u GSF: not enough memory",(unsigned)imu_index);
             return false;
         }
@@ -623,7 +623,7 @@ void NavEKF2_core::UpdateFilter(bool predict)
     if (filterStatus.value == 0 &&
         last_filter_ok_ms != 0 &&
         AP::dal().millis() - last_filter_ok_ms > 5000 &&
-        !hal.util->get_soft_armed()) {
+        !AP::dal().get_armed()) {
         // we've been unhealthy for 5 seconds after being healthy, reset the filter
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF2 IMU%u forced reset",(unsigned)imu_index);
         last_filter_ok_ms = 0;
