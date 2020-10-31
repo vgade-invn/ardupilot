@@ -154,15 +154,6 @@ void LR_MsgHandler_REV3::process_message(uint8_t *msg)
     case AP_DAL::Event3::checkLaneSwitch:
         ekf3.checkLaneSwitch();
         break;
-    case AP_DAL::Event3::updateCoreErrorScores:
-        ekf3.updateCoreErrorScores();
-        break;
-    case AP_DAL::Event3::updateCoreRelativeErrors:
-        ekf3.updateCoreRelativeErrors();
-        break;
-    case AP_DAL::Event3::resetCoreErrors:
-        ekf3.resetCoreErrors();
-        break;
     }
 }
 
