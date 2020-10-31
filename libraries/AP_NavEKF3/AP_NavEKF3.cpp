@@ -956,8 +956,6 @@ void NavEKF3::requestYawReset(void)
 */
 float NavEKF3::updateCoreErrorScores()
 {
-    AP::dal().log_event3(AP_DAL::Event3::updateCoreErrorScores);
-
     for (uint8_t i = 0; i < num_cores; i++) {
         coreErrorScores[i] = core[i].errorScore();
     }
@@ -971,8 +969,6 @@ float NavEKF3::updateCoreErrorScores()
 */
 void NavEKF3::updateCoreRelativeErrors()
 {
-    AP::dal().log_event3(AP_DAL::Event3::updateCoreRelativeErrors);
-
     float error = 0;
     for (uint8_t i = 0; i < num_cores; i++) {
         if (i != primary) {
@@ -989,8 +985,6 @@ void NavEKF3::updateCoreRelativeErrors()
 // Reset the relative error values
 void NavEKF3::resetCoreErrors(void)
 {
-    AP::dal().log_event3(AP_DAL::Event3::resetCoreErrors);
-
     for (uint8_t i = 0; i < num_cores; i++) {
         coreRelativeErrors[i] = 0;
     }

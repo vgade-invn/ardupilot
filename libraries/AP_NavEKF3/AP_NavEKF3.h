@@ -56,15 +56,6 @@ public:
     // returns false if we fail arming checks, in which case the buffer will be populated with a failure message
     bool pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const;
 
-    // Update instance error scores for all available cores 
-    float updateCoreErrorScores(void);
-
-    // Update relative error scores for all alternate available cores
-    void updateCoreRelativeErrors(void);
-
-    // Reset error scores for all available cores
-    void resetCoreErrors(void);
-
     // returns the index of the primary core
     // return -1 if no primary core selected
     int8_t getPrimaryCoreIndex(void) const;
@@ -595,6 +586,15 @@ private:
     // new_primary - index of the ekf instance that we are about to switch to as the primary
     // old_primary - index of the ekf instance that we are currently using as the primary
     void updateLaneSwitchPosDownResetData(uint8_t new_primary, uint8_t old_primary);
+
+    // Update instance error scores for all available cores 
+    float updateCoreErrorScores(void);
+
+    // Update relative error scores for all alternate available cores
+    void updateCoreRelativeErrors(void);
+
+    // Reset error scores for all available cores
+    void resetCoreErrors(void);
 
     // return true if a new core has a better score than an existing core, including
     // checks for alignment
