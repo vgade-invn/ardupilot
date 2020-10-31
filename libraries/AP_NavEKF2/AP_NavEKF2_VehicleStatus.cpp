@@ -341,6 +341,8 @@ void NavEKF2_core::detectFlight()
             largeHgtChange = true;
         }
 
+        xxprintf("ong MA=%u highGndSpd=%u highAirSpd=%u largeHgtChange=%u\n",
+                 motorsArmed, highGndSpd, highAirSpd, largeHgtChange);
         // Determine to a high certainty we are flying
         if (motorsArmed && highGndSpd && (highAirSpd || largeHgtChange)) {
             onGround = false;
@@ -349,6 +351,7 @@ void NavEKF2_core::detectFlight()
 
         // if is possible we are in flight, set the time this condition was last detected
         if (motorsArmed && (highGndSpd || highAirSpd || largeHgtChange)) {
+            xxprintf("airborne\n");
             airborneDetectTime_ms = imuSampleTime_ms;
             onGround = false;
         }
