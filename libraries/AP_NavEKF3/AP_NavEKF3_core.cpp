@@ -147,13 +147,6 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
     if(!storedOutput.init(imu_buffer_length)) {
         return false;
     }
-    xxprintf("EKF3 IMU%u buffs IMU=%u OBS=%u OF=%u EN:%u dt=%.4f\n",
-             (unsigned)imu_index,
-             (unsigned)imu_buffer_length,
-             (unsigned)obs_buffer_length,
-             (unsigned)flow_buffer_length,
-             (unsigned)extnav_buffer_length,
-             (double)dtEkfAvg);
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u buffs IMU=%u OBS=%u OF=%u EN:%u dt=%.4f",
                     (unsigned)imu_index,
                     (unsigned)imu_buffer_length,
@@ -625,73 +618,43 @@ void NavEKF3_core::UpdateFilter(bool predict)
         return;
     }
 
-    xxprintf("quat_start (%.12f,%.12f,%.12f,%.12f)\n",
-             stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-    
     fill_scratch_variables();
 
     // update sensor selection (for affinity)
     update_sensor_selection();
 
-    xxprintf("quatA (%.12f,%.12f,%.12f,%.12f)\n",
-             stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-    
     // TODO - in-flight restart method
 
     // Check arm status and perform required checks and mode changes
     controlFilterModes();
 
-    xxprintf("quatB (%.12f,%.12f,%.12f,%.12f)\n",
-             stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-    
     // read IMU data as delta angles and velocities
     readIMUData();
 
-    xxprintf("quatC (%.12f,%.12f,%.12f,%.12f)\n",
-             stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-    
     // Run the EKF equations to estimate at the fusion time horizon if new IMU data is available in the buffer
     if (runUpdates) {
         // Predict states using IMU data from the delayed time horizon
         UpdateStrapdownEquationsNED();
 
-        xxprintf("quatC2 (%.12f,%.12f,%.12f,%.12f)\n",
-                 stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-        
         // Predict the covariance growth
         CovariancePrediction(nullptr);
 
-        xxprintf("quatD (%.12f,%.12f,%.12f,%.12f)\n",
-                 stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-        
         // Run the IMU prediction step for the GSF yaw estimator algorithm
         // using IMU and optionally true airspeed data.
         // Must be run before SelectMagFusion() to provide an up to date yaw estimate
         runYawEstimatorPrediction();
 
-        xxprintf("quatE (%.12f,%.12f,%.12f,%.12f)\n",
-                 stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-        
         // Update states using  magnetometer or external yaw sensor data
         SelectMagFusion();
 
-        xxprintf("quatF (%.12f,%.12f,%.12f,%.12f)\n",
-                 stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-        
         // Update states using GPS and altimeter data
         SelectVelPosFusion();
-
-        xxprintf("quatG (%.12f,%.12f,%.12f,%.12f)\n",
-                 stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
 
         // Run the GPS velocity correction step for the GSF yaw estimator algorithm
         // and use the yaw estimate to reset the main EKF yaw if requested
         // Muat be run after SelectVelPosFusion() so that fresh GPS data is available
         runYawEstimatorCorrection();
 
-        xxprintf("quatG (%.12f,%.12f,%.12f,%.12f)\n",
-                 stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-        
         // Update states using range beacon data
         SelectRngBcnFusion();
 
@@ -713,9 +676,6 @@ void NavEKF3_core::UpdateFilter(bool predict)
 
     // Wind output forward from the fusion to output time horizon
     calcOutputStates();
-
-    xxprintf("quat_end (%.12f,%.12f,%.12f,%.12f)\n",
-             stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
 }
 
 void NavEKF3_core::correctDeltaAngle(Vector3f &delAng, float delAngDT, uint8_t gyro_index)
@@ -741,23 +701,10 @@ void NavEKF3_core::UpdateStrapdownEquationsNED()
     // the delta angle rotation quaternion and normalise
     // apply correction for earth's rotation rate
     // % * - and + operators have been overloaded
-    xxprintf("erate %.16e delAngDT %.16e\n", earthRateNED*1000.0, imuDataDelayed.delAngDT);
-    xxprintf("delAngCorrection %.16e %.16e %.16e\n",
-             delAngCorrected.x, delAngCorrected.y, delAngCorrected.z);
-
-    xxprintf("quatSX (%.16e,%.16e,%.16e,%.16e)\n",
-             stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-    
     stateStruct.quat.rotate(delAngCorrected - prevTnb * earthRateNED*imuDataDelayed.delAngDT);
-
-    xxprintf("quatS0 (%.16e,%.16e,%.16e,%.16e)\n",
-             stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
 
     stateStruct.quat.normalize();
 
-    xxprintf("quatS1 (%.16e,%.16e,%.16e,%.16e)\n",
-             stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-    
     // transform body delta velocities to delta velocities in the nav frame
     // use the nav frame from previous time step as the delta velocities
     // have been rotated into that frame
@@ -788,9 +735,6 @@ void NavEKF3_core::UpdateStrapdownEquationsNED()
         delVelNav.y *= gain;
     }
 
-    xxprintf("quatS2 (%.16f,%.16f,%.16f,%.16f)\n",
-             stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-    
     // save velocity for use in trapezoidal integration for position calcuation
     Vector3f lastVelocity = stateStruct.velocity;
 
@@ -807,9 +751,6 @@ void NavEKF3_core::UpdateStrapdownEquationsNED()
     // limit states to protect against divergence
     ConstrainStates();
 
-    xxprintf("quatS3 (%.16f,%.16f,%.16f,%.16f)\n",
-             stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-    
     // If main filter velocity states are valid, update the range beacon receiver position states
     if (filterStatus.flags.horiz_vel) {
         receiverPos += (stateStruct.velocity + lastVelocity) * (imuDataDelayed.delVelDT*0.5f);
@@ -833,13 +774,11 @@ void NavEKF3_core::calcOutputStates()
     // apply corrections to the IMU data
     Vector3f delAngNewCorrected = imuDataNew.delAng;
     Vector3f delVelNewCorrected = imuDataNew.delVel;
-    xxprintf("delVelNewCorrected=%.16f %.16f %.16f\n", delVelNewCorrected.x, delVelNewCorrected.y, delVelNewCorrected.z);
     correctDeltaAngle(delAngNewCorrected, imuDataNew.delAngDT, imuDataNew.gyro_index);
     correctDeltaVelocity(delVelNewCorrected, imuDataNew.delVelDT, imuDataNew.accel_index);
 
     // apply corrections to track EKF solution
     Vector3f delAng = delAngNewCorrected + delAngCorrection;
-    xxprintf("delAng=%.16f %.16f %.16f\n", delAng.x, delAng.y, delAng.z);
 
     // convert the rotation vector to its equivalent quaternion
     Quaternion deltaQuat;
@@ -847,15 +786,11 @@ void NavEKF3_core::calcOutputStates()
 
     // update the quaternion states by rotating from the previous attitude through
     // the delta angle rotation quaternion and normalise
-    xxprintf("quat0 (%.16f,%.16f,%.16f,%.16f)\n",
-             outputDataNew.quat.q1, outputDataNew.quat.q2, outputDataNew.quat.q3, outputDataNew.quat.q4);
     outputDataNew.quat *= deltaQuat;
     outputDataNew.quat.normalize();
 
     // calculate the body to nav cosine matrix
     Matrix3f Tbn_temp;
-    xxprintf("quat1 (%.16f,%.16f,%.16f,%.16f)\n",
-             outputDataNew.quat.q1, outputDataNew.quat.q2, outputDataNew.quat.q3, outputDataNew.quat.q4);
     outputDataNew.quat.rotation_matrix(Tbn_temp);
 
     // transform body delta velocities to delta velocities in the nav frame
@@ -866,8 +801,6 @@ void NavEKF3_core::calcOutputStates()
     Vector3f lastVelocity = outputDataNew.velocity;
 
     // sum delta velocities to get velocity
-    xxprintf("dvnav (%.16f,%.16f,%.16f) delVelDT=%.16f\n",
-             delVelNav.x, delVelNav.y, delVelNav.z, imuDataNew.delVelDT);
     outputDataNew.velocity += delVelNav;
 
     // Implement third order complementary filter for height and height rate
@@ -889,10 +822,6 @@ void NavEKF3_core::calcOutputStates()
     vertCompFiltState.pos += integ3_input; 
 
     // apply a trapezoidal integration to velocities to calculate position
-    xxprintf("poschange (%.16f,%.16f,%.16f) (%.16f,%.16f,%.16f) dt=%.16f\n",
-             outputDataNew.velocity.x, outputDataNew.velocity.y, outputDataNew.velocity.z,
-             lastVelocity.x, lastVelocity.y, lastVelocity.z,
-             imuDataNew.delVelDT);
     outputDataNew.position += (outputDataNew.velocity + lastVelocity) * (imuDataNew.delVelDT*0.5f);
 
     // If the IMU accelerometer is offset from the body frame origin, then calculate corrections
@@ -1735,8 +1664,6 @@ void NavEKF3_core::zeroCols(Matrix24 &covMat, uint8_t first, uint8_t last)
 void NavEKF3_core::StoreOutputReset()
 {
     outputDataNew.quat = stateStruct.quat;
-    xxprintf("quat3 (%.16f,%.16f,%.16f,%.16f)\n",
-             outputDataNew.quat.q1, outputDataNew.quat.q2, outputDataNew.quat.q3, outputDataNew.quat.q4);
     outputDataNew.velocity = stateStruct.velocity;
     outputDataNew.position = stateStruct.position;
     // write current measurement to entire table
@@ -1753,8 +1680,6 @@ void NavEKF3_core::StoreOutputReset()
 void NavEKF3_core::StoreQuatReset()
 {
     outputDataNew.quat = stateStruct.quat;
-    xxprintf("quat4 (%.16f,%.16f,%.16f,%.16f)\n",
-             outputDataNew.quat.q1, outputDataNew.quat.q2, outputDataNew.quat.q3, outputDataNew.quat.q4);
     // write current measurement to entire table
     for (uint8_t i=0; i<imu_buffer_length; i++) {
         storedOutput[i].quat = outputDataNew.quat;
@@ -1766,8 +1691,6 @@ void NavEKF3_core::StoreQuatReset()
 void NavEKF3_core::StoreQuatRotate(const Quaternion &deltaQuat)
 {
     outputDataNew.quat = outputDataNew.quat*deltaQuat;
-    xxprintf("quat5 (%.16f,%.16f,%.16f,%.16f)\n",
-             outputDataNew.quat.q1, outputDataNew.quat.q2, outputDataNew.quat.q3, outputDataNew.quat.q4);
     // write current measurement to entire table
     for (uint8_t i=0; i<imu_buffer_length; i++) {
         storedOutput[i].quat = storedOutput[i].quat*deltaQuat;
@@ -1907,7 +1830,6 @@ void NavEKF3_core::ConstrainStates()
 // calculate the NED earth spin vector in rad/sec
 void NavEKF3_core::calcEarthRateNED(Vector3f &omega, int32_t latitude) const
 {
-    xxprintf("calcEarthRateNED %ld\n", long(latitude));
     float lat_rad = radians(latitude*1.0e-7f);
     omega.x  = earthRate*cosf(lat_rad);
     omega.y  = 0;
@@ -1923,11 +1845,6 @@ void NavEKF3_core::setYawFromMag()
 
     // read the magnetometer data
     readMagData();
-
-    xxprintf("quat6 (%.12f,%.12f,%.12f,%.12f)\n",
-             stateStruct.quat.q1, stateStruct.quat.q2, stateStruct.quat.q3, stateStruct.quat.q4);
-   
-    xxprintf("magDataDel %.12f %.12f %.12f\n", magDataDelayed.mag.x, magDataDelayed.mag.y, magDataDelayed.mag.z);
 
     // use best of either 312 or 321 rotation sequence when calculating yaw
     rotationOrder order;
@@ -1951,7 +1868,6 @@ void NavEKF3_core::setYawFromMag()
     float yawAngMeasured = wrap_PI(-atan2f(magMeasNED.y, magMeasNED.x) + MagDeclination());
 
     // update quaternion states and covariances
-    xxprintf("resetQuatStateYawOnly1 %.12f %.12f\n", yawAngMeasured, MagDeclination());
     resetQuatStateYawOnly(yawAngMeasured, sq(MAX(frontend->_yawNoise, 1.0e-2f)), order);
 }
 
