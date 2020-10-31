@@ -15,7 +15,7 @@
 
 #include "LogStructure.h"
 
-#define DAL_CORE(c) AP::dal().core(c)
+#define DAL_CORE(c) AP::dal().logging_core(c)
 
 class AP_DAL {
 public:
@@ -41,6 +41,7 @@ public:
         unsetTerrainHgtStable     = 10,
         requestYawReset           = 11,
         LoggingDone               = 12,
+        checkLaneSwitch           = 13,
     };
 
     enum class Event3 {
@@ -263,7 +264,7 @@ public:
 #endif
 
     // map core number for replay
-    uint8_t core(uint8_t c) const;
+    uint8_t logging_core(uint8_t c) const;
 
 private:
 
