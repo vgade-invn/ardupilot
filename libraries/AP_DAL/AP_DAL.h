@@ -58,9 +58,6 @@ public:
         requestYawReset           = 11,
         LoggingDone               = 12,
         checkLaneSwitch           = 13,
-        updateCoreErrorScores     = 14,
-        updateCoreRelativeErrors  = 15,
-        resetCoreErrors           = 16,
     };
 
     // must remain the same as AP_AHRS_VehicleClass numbers-wise
