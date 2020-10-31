@@ -6,26 +6,6 @@
 #include <AP_DAL/AP_DAL.h>
 #include <stdio.h>
 
-void xxprintf(const char *format, ...)
-{
-#if APM_BUILD_TYPE(APM_BUILD_Replay) || CONFIG_HAL_BOARD == HAL_BOARD_SITL
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-    const char *fname = "/tmp/replay.log";
-#elif CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    const char *fname = "/tmp/real.log";
-#endif
-    static FILE *f;
-    if (!f) {
-        f = ::fopen(fname, "w");
-    }
-    va_list ap;
-    va_start(ap, format);
-    vfprintf(f, format, ap);
-    fflush(f);
-    va_end(ap);
-#endif
-}
-
 /********************************************************
 *              OPT FLOW AND RANGE FINDER                *
 ********************************************************/
