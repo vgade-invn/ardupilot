@@ -36,9 +36,6 @@
 struct log_RFRH {
     uint64_t time_us;
     uint32_t frame_number;
-    float trimx;
-    float trimy;
-    float trimz;
     float EAS2TAS;
     uint32_t available_memory;
     uint16_t time_flying_ms;
@@ -346,7 +343,7 @@ struct log_RVOH {
 
 #define LOG_STRUCTURE_FROM_DAL        \
     { LOG_RFRH_MSG, RLOG_SIZE(RFRH),                          \
-      "RFRH", "QIffffIHBBBBBBBB", "TimeUS,FN,TX,TY,TZ,E2T,AM,TF,State,NlRF,NlCRP,NlAS,FF,VC,ASE,EKT", "s---------------", "F---------------" }, \
+      "RFRH", "QIfIHBBBBBBBB", "TimeUS,FN,E2T,AM,TF,State,NlRF,NlCRP,NlAS,FF,VC,ASE,EKT", "s------------", "F------------" }, \
     { LOG_RFRF_MSG, RLOG_SIZE(RFRF),                                   \
       "RFRF", "QB", "TimeUS,FT", "s-", "F-" }, \
     { LOG_RFRN_MSG, RLOG_SIZE(RFRN),                            \
@@ -382,7 +379,7 @@ struct log_RVOH {
     { LOG_RRNH_MSG, RLOG_SIZE(RRNH),                                   \
       "RRNH", "Qhh", "TimeUS,GCl,MaxD", "s??", "F??" },  \
     { LOG_RRNI_MSG, RLOG_SIZE(RRNI),                                   \
-      "RRNI", "QfffHBBB", "TimeUS,OX,OY,OZ,Dist,Orient,Status,I", "s------#", "F-------" }, \
+      "RRNI", "QfffHBBB", "TimeUS,PX,PY,PZ,Dist,Orient,Status,I", "s------#", "F-------" }, \
     { LOG_RGPH_MSG, RLOG_SIZE(RGPH),                                   \
       "RGPH", "QBB", "TimeUS,NumInst,Primary", "s--", "F--" },  \
     { LOG_RGPI_MSG, RLOG_SIZE(RGPI),                                   \

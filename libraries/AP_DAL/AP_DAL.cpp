@@ -34,9 +34,6 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _RFRH.vehicle_class = ahrs.get_vehicle_class();
     _RFRH.fly_forward = ahrs.get_fly_forward();
     _trim = ahrs.get_trim();
-    _RFRH.trimx = _trim.x;
-    _RFRH.trimy = _trim.y;
-    _RFRH.trimz = _trim.z;
     _RFRH.ahrs_airspeed_sensor_enabled = AP::ahrs().airspeed_sensor_enabled();
     _RFRH.available_memory = hal.util->available_memory();
     _RFRH.time_flying_ms = AP::vehicle()->get_time_flying_ms();

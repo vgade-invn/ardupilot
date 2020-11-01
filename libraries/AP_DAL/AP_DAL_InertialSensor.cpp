@@ -27,8 +27,7 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RISI); i++) {
         log_RISI &RISI = _RISI[i];
-
-        RISI.time_us = time_us;
+        log_RISI old_RISI = RISI;
 
         // accel stuff
         RISI.use_accel = ins.use_accel(i);
@@ -38,18 +37,24 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
 
         RISI.delta_velocity_dt = ins.get_delta_velocity_dt(i);
 
-        WRITE_REPLAY_BLOCK(RISI, RISI);
+        if (memcmp(&RISI, &old_RISI, sizeof(RISI)) != 0) {
+            RISI.time_us = time_us;
+            WRITE_REPLAY_BLOCK(RISI, RISI);
+        }
 
         // gryo stuff
         log_RISJ &RISJ = _RISJ[i];
-        RISJ.time_us = time_us;
+        log_RISJ old_RISJ = RISJ;
         RISJ.use_gyro = ins.use_gyro(i);
         RISJ.gyro = ins.get_gyro(i);
 
         RISJ.delta_angle_dt = ins.get_delta_angle_dt(i);
         RISJ.get_delta_angle_ret = ins.get_delta_angle(i, RISJ.delta_angle);
 
-        WRITE_REPLAY_BLOCK(RISJ, RISJ);
+        if (memcmp(&RISJ, &old_RISJ, sizeof(RISJ)) != 0) {
+            RISJ.time_us = time_us;
+            WRITE_REPLAY_BLOCK(RISJ, RISJ);
+        }
 
         // update sensor position
         pos[i] = ins.get_imu_pos_offset(i);
