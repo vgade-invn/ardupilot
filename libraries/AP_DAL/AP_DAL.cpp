@@ -40,11 +40,14 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     WRITE_REPLAY_BLOCK(RFRH, _RFRH);
 
     // update RFRN data
+    const log_RFRN old = _RFRN;
     _home = ahrs.get_home();
     _RFRN.lat = _home.lat;
     _RFRN.lng = _home.lng;
     _RFRN.alt = _home.alt;
-    WRITE_REPLAY_BLOCK(RFRN, _RFRN);
+    if (STRUCT_NEQ(old, _RFRN)) {
+        WRITE_REPLAY_BLOCK(RFRN, _RFRN);
+    }
 
     // update body conversion
     _rotation_vehicle_body_to_autopilot_body = ahrs.get_rotation_vehicle_body_to_autopilot_body();
@@ -58,8 +61,11 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _beacon.start_frame(_RFRH.time_us);
     _visualodom.start_frame(_RFRH.time_us);
 
+    const log_RFRF old_RFRF = _RFRF;
     _RFRF.frame_type = (uint8_t)frametype;
-    WRITE_REPLAY_BLOCK(RFRF, _RFRF);
+    if (STRUCT_NEQ(old_RFRF, _RFRF)) {
+        WRITE_REPLAY_BLOCK(RFRF, _RFRF);
+    }
 
     // populate some derivative values:
     _micros = _RFRH.time_us;

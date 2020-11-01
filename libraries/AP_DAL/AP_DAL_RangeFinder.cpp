@@ -54,9 +54,12 @@ void AP_DAL_RangeFinder::start_frame(const uint64_t time_us)
     }
 
     // EKF only asks for this *down*.
+    const log_RRNH old = _RRNH;
     _RRNH.ground_clearance_cm = rangefinder->ground_clearance_cm_orient(ROTATION_PITCH_270);
     _RRNH.max_distance_cm = rangefinder->ground_clearance_cm_orient(ROTATION_PITCH_270);
-    WRITE_REPLAY_BLOCK(RRNH, _RRNH);
+    if (STRUCT_NEQ(old, _RRNH)) {
+        WRITE_REPLAY_BLOCK(RRNH, _RRNH);
+    }
 
     for (uint8_t i=0; i<RANGEFINDER_MAX_INSTANCES; i++) {
         auto *backend = rangefinder->get_backend(i);
@@ -77,10 +80,13 @@ AP_DAL_RangeFinder_Backend::AP_DAL_RangeFinder_Backend(struct log_RRNI &RRNI) :
 }
 
 void AP_DAL_RangeFinder_Backend::start_frame(uint64_t time_us, AP_RangeFinder_Backend *backend) {
+    const log_RRNI old = _RRNI;
     _RRNI.orientation = backend->orientation();
     _RRNI.status = (uint8_t)backend->status();
     _RRNI.pos_offset = backend->get_pos_offset();
-    WRITE_REPLAY_BLOCK(RRNI, _RRNI);
+    if (STRUCT_NEQ(old, _RRNI)) {
+        WRITE_REPLAY_BLOCK(RRNI, _RRNI);
+    }
 }
 
 

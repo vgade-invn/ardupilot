@@ -12,9 +12,13 @@ void AP_DAL_VisualOdom::start_frame(const uint64_t time_us)
 {
     const auto *vo = AP::visualodom();
 
+    const log_RVOH old = RVOH;
     RVOH.ptr_is_nullptr = (vo == nullptr);
     if (vo != nullptr) {
         RVOH.healthy = vo->healthy();
     }
-    WRITE_REPLAY_BLOCK(RVOH, RVOH);
+
+    if (STRUCT_NEQ(old, RVOH)) {
+        WRITE_REPLAY_BLOCK(RVOH, RVOH);
+    }
 }

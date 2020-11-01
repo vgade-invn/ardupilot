@@ -14,10 +14,13 @@ void AP_DAL_GPS::start_frame(const uint64_t time_us)
 {
     const auto &gps = AP::gps();
 
+    const log_RGPH old_RGPH = _RGPH;
     _RGPH.primary_sensor = gps.primary_sensor();
     _RGPH.num_sensors = gps.num_sensors();
 
-    WRITE_REPLAY_BLOCK(RGPH, _RGPH);
+    if (STRUCT_NEQ(old_RGPH, _RGPH)) {
+        WRITE_REPLAY_BLOCK(RGPH, _RGPH);
+    }
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RGPI); i++) {
         log_RGPI &RGPI = _RGPI[i];
