@@ -1784,6 +1784,8 @@ class AutoTest(ABC):
                 "name": name,
                 "labels": [],
             }
+            if getattr(thing.fields, 'field', None) is None:
+                raise NotAchievedException("no doc fields for %s" % name)
             for field in thing.fields.field:
 #                print("field: (%s)" % str(field))
                 fieldname = field.get("name")
