@@ -205,9 +205,6 @@ public:
         _home.lng = msg.lng;
         _home.alt = msg.alt;
     }
-    void handle_message(const log_RFRR &msg) {
-        _RFRR = msg;
-    }
     void handle_message(const log_RFRF &msg) {
         _RFRF = msg;
     }
@@ -281,8 +278,6 @@ private:
     struct log_RFRH _RFRH;
     struct log_RFRN _RFRN;
     struct log_RFRF _RFRF;
-    struct log_RFRR _RFRR;
-    struct log_RFRR _last_logged_RFRR;
 
     // cached variables for speed:
     uint32_t _micros;
@@ -290,7 +285,6 @@ private:
 
     Vector3f _trim;
     Matrix3f _rotation_vehicle_body_to_autopilot_body;
-    Matrix3f _last_logged_rotation_vehicle_body_to_autopilot_body;
     Location _home;
 
     AP_DAL_InertialSensor _ins;

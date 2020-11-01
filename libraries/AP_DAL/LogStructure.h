@@ -6,7 +6,6 @@
 #define LOG_IDS_FROM_DAL \
     LOG_RFRH_MSG, \
     LOG_RFRF_MSG, \
-    LOG_RFRR_MSG, \
     LOG_REV2_MSG, \
     LOG_RSO2_MSG, \
     LOG_RWA2_MSG, \
@@ -51,22 +50,6 @@ struct log_RFRH {
     uint8_t vehicle_class;
     uint8_t ahrs_airspeed_sensor_enabled;
     uint8_t ekf_type;
-    uint8_t _end;
-};
-
-// @LoggerMessage: RFRR
-// @Description: Replay vehicle rotation matrix
-struct log_RFRR {
-    uint64_t time_us;
-    float m0;
-    float m1;
-    float m2;
-    float m3;
-    float m4;
-    float m5;
-    float m6;
-    float m7;
-    float m8;
     uint8_t _end;
 };
 
@@ -370,8 +353,6 @@ struct log_RVOH {
       "RFRF", "QB", "TimeUS,FT", "s-", "F-" }, \
     { LOG_RFRN_MSG, RLOG_SIZE(RFRN),                            \
       "RFRN", "QIII", "TimeUS,HLat,HLon,HAlt", "sDUm", "FGGB" }, \
-    { LOG_RFRR_MSG, RLOG_SIZE(RFRR),                                   \
-      "RFRR", "Qfffffffff", "TimeUS,M0,M1,M2,M3,M4,M5,M6,M7,M8", "s---------", "F---------" }, \
     { LOG_REV2_MSG, RLOG_SIZE(REV2),                                   \
       "REV2", "QB", "TimeUS,Event", "s-", "F-" }, \
     { LOG_RSO2_MSG, RLOG_SIZE(RSO2),                         \

@@ -49,22 +49,8 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _RFRN.alt = _home.alt;
     WRITE_REPLAY_BLOCK(RFRN, _RFRN);
 
-    // update RFRR data:
+    // update body conversion
     _rotation_vehicle_body_to_autopilot_body = ahrs.get_rotation_vehicle_body_to_autopilot_body();
-    _RFRR.m0 = _rotation_vehicle_body_to_autopilot_body[0][0];
-    _RFRR.m1 = _rotation_vehicle_body_to_autopilot_body[0][1];
-    _RFRR.m2 = _rotation_vehicle_body_to_autopilot_body[0][2];
-    _RFRR.m3 = _rotation_vehicle_body_to_autopilot_body[1][0];
-    _RFRR.m4 = _rotation_vehicle_body_to_autopilot_body[1][1];
-    _RFRR.m5 = _rotation_vehicle_body_to_autopilot_body[1][2];
-    _RFRR.m6 = _rotation_vehicle_body_to_autopilot_body[2][0];
-    _RFRR.m7 = _rotation_vehicle_body_to_autopilot_body[2][1];
-    _RFRR.m8 = _rotation_vehicle_body_to_autopilot_body[2][2];
-    // consider logging the rotation, which shouldn't change too much...
-    if (memcmp((void*)&_last_logged_RFRR, (void*)&_RFRR, sizeof(_RFRR)) != 0) {
-        WRITE_REPLAY_BLOCK(RFRR, _RFRR);
-        _last_logged_RFRR = _RFRR;
-    }
 
     _ins.start_frame(_RFRH.time_us);
     _baro.start_frame(_RFRH.time_us);
