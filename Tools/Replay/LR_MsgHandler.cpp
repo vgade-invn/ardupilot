@@ -189,11 +189,6 @@ void LR_MsgHandler_REY3::process_message(uint8_t *msg)
     ekf3.writeDefaultAirSpeed(rwa3.airspeed);
 }
 
-void LR_MsgHandler_RFRR::process_message(uint8_t *msg)
-{
-    AP::dal().handle_message(MSG_CAST(RFRR,msg));
-}
-
 void LR_MsgHandler_RISH::process_message(uint8_t *msg)
 {
     AP::dal().handle_message(MSG_CAST(RISH,msg));

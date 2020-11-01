@@ -144,13 +144,6 @@ private:
     NavEKF3 &ekf3;
 };
 
-class LR_MsgHandler_RFRR : public LR_MsgHandler
-{
-public:
-    using LR_MsgHandler::LR_MsgHandler;
-    void process_message(uint8_t *msg) override;
-};
-
 class LR_MsgHandler_RISH : public LR_MsgHandler
 {
 public:
