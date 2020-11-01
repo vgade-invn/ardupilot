@@ -8,6 +8,7 @@ AP_DAL_InertialSensor::AP_DAL_InertialSensor()
         _RISI[i].instance = i;
         _RISJ[i].instance = i;
     }
+
 }
 
 void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
@@ -49,5 +50,8 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
         RISJ.get_delta_angle_ret = ins.get_delta_angle(i, RISJ.delta_angle);
 
         WRITE_REPLAY_BLOCK(RISJ, RISJ);
+
+        // update sensor position
+        pos[i] = ins.get_imu_pos_offset(i);
     }
 }

@@ -17,9 +17,8 @@ public:
     // return the selected loop rate at which samples are made available
     uint16_t get_loop_rate_hz(void) const { return _RISH.loop_rate_hz; }
 
-
     const Vector3f &get_imu_pos_offset(uint8_t instance) const {
-        return _RISI[instance].pos;
+        return pos[instance];
     }
 
     // accel stuff
@@ -63,6 +62,7 @@ public:
     }
     void handle_message(const log_RISI &msg) {
         _RISI[msg.instance] = msg;
+        pos[msg.instance] = AP::ins().get_imu_pos_offset(msg.instance);
     }
     void handle_message(const log_RISJ &msg) {
         _RISJ[msg.instance] = msg;
@@ -74,6 +74,9 @@ private:
     struct log_RISH _RISH;
     struct log_RISI _RISI[INS_MAX_INSTANCES];
     struct log_RISJ _RISJ[INS_MAX_INSTANCES];
+
+    // sensor positions
+    Vector3f pos[INS_MAX_INSTANCES];
 
     uint8_t _primary_gyro;
 
