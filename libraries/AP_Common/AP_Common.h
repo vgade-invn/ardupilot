@@ -159,3 +159,7 @@ template <typename T> void BIT_CLEAR (T& value, uint8_t bitnumber) noexcept {
      static_assert(std::is_integral<T>::value, "Integral required.");
      ((value) &= ~((T)(1U) << (bitnumber)));
  }
+
+// structure comparison macros
+#define STRUCT_EQ(s1, s2) (memcmp(&(s1),&(s2),sizeof(s1))==0)
+#define STRUCT_NEQ(s1, s2) (memcmp(&(s1),&(s2),sizeof(s1))!=0)
