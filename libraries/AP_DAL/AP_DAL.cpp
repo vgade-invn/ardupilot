@@ -58,7 +58,6 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _beacon.start_frame(_RFRH.time_us);
     _visualodom.start_frame(_RFRH.time_us);
 
-    _RFRF.time_us = _RFRH.time_us;
     _RFRF.frame_type = (uint8_t)frametype;
     WRITE_REPLAY_BLOCK(RFRF, _RFRF);
 
@@ -73,7 +72,6 @@ void AP_DAL::log_event2(AP_DAL::Event2 event)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_REV2 pkt{
-        time_us        : _RFRH.time_us,
         event          : uint8_t(event),
     };
     WRITE_REPLAY_BLOCK(REV2, pkt);
@@ -84,7 +82,6 @@ void AP_DAL::log_SetOriginLLH2(const Location &loc)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_RSO2 pkt{
-        time_us        : _RFRH.time_us,   // this isn't correct?
         lat            : loc.lat,
         lng            : loc.lng,
         alt            : loc.alt,
@@ -97,7 +94,6 @@ void AP_DAL::log_writeDefaultAirSpeed2(const float airspeed)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_RWA2 pkt{
-        time_us        : _RFRH.time_us,   // this isn't correct?
         airspeed:      airspeed,
     };
     WRITE_REPLAY_BLOCK(RWA2, pkt);
@@ -108,7 +104,6 @@ void AP_DAL::log_event3(AP_DAL::Event3 event)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_REV3 pkt{
-        time_us        : _RFRH.time_us,
         event          : uint8_t(event),
     };
     WRITE_REPLAY_BLOCK(REV3, pkt);
@@ -119,7 +114,6 @@ void AP_DAL::log_SetOriginLLH3(const Location &loc)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_RSO3 pkt{
-        time_us        : _RFRH.time_us,   // this isn't correct?
         lat            : loc.lat,
         lng            : loc.lng,
         alt            : loc.alt,
@@ -132,7 +126,6 @@ void AP_DAL::log_writeDefaultAirSpeed3(const float airspeed)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_RWA3 pkt{
-        time_us        : _RFRH.time_us,   // this isn't correct?
         airspeed:      airspeed,
     };
     WRITE_REPLAY_BLOCK(RWA3, pkt);
@@ -143,7 +136,6 @@ void AP_DAL::log_writeEulerYawAngle(float yawAngle, float yawAngleErr, uint32_t 
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
     const struct log_REY3 pkt{
-        time_us        : _RFRH.time_us,   // this isn't correct?
         yawangle       : yawAngle,
         yawangleerr    : yawAngleErr,
         timestamp_ms   : timeStamp_ms,

@@ -16,14 +16,12 @@ void AP_DAL_GPS::start_frame(const uint64_t time_us)
 
     _RGPH.primary_sensor = gps.primary_sensor();
     _RGPH.num_sensors = gps.num_sensors();
-    _RGPH.time_us = time_us;
 
     WRITE_REPLAY_BLOCK(RGPH, _RGPH);
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RGPI); i++) {
         log_RGPI &RGPI = _RGPI[i];
 
-        RGPI.time_us = time_us;
         RGPI.status = (GPS_Status)gps.status(i);
 
         const uint32_t last_message_time_ms = gps.last_message_time_ms(i);

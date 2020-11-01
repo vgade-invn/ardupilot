@@ -12,7 +12,6 @@ void AP_DAL_VisualOdom::start_frame(const uint64_t time_us)
 {
     const auto *vo = AP::visualodom();
 
-    RVOH.time_us = time_us;
     RVOH.ptr_is_nullptr = (vo == nullptr);
     if (vo != nullptr) {
         RVOH.healthy = vo->healthy();

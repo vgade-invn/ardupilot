@@ -15,7 +15,6 @@ void AP_DAL_Compass::start_frame(const uint64_t time_us)
 {
     const auto &compass = AP::compass();
 
-    _RMGH.time_us = time_us;
     _RMGH.count = compass.get_count();
     _RMGH.auto_declination_enabled = compass.auto_declination_enabled();
     _RMGH.declination = compass.get_declination();
@@ -31,7 +30,6 @@ void AP_DAL_Compass::start_frame(const uint64_t time_us)
             continue;
         }
         _last_logged_update_usec[i] = last_update_usec;
-        RMGI.time_us = time_us;
         RMGI.use_for_yaw = compass.use_for_yaw(i);
         RMGI.healthy = compass.healthy(i);
         memcpy((void*)&RMGI.offsets, (void*)&compass.get_offsets(i), sizeof(Vector3f));

@@ -77,7 +77,6 @@ AP_DAL_RangeFinder_Backend::AP_DAL_RangeFinder_Backend(struct log_RRNI &RRNI) :
 }
 
 void AP_DAL_RangeFinder_Backend::start_frame(uint64_t time_us, AP_RangeFinder_Backend *backend) {
-    _RRNI.time_us = time_us;
     _RRNI.orientation = backend->orientation();
     _RRNI.status = (uint8_t)backend->status();
     _RRNI.pos_offset = backend->get_pos_offset();

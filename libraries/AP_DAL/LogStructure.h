@@ -51,7 +51,6 @@ struct log_RFRH {
 };
 
 struct log_RFRN {
-    uint64_t time_us;
     int32_t lat;
     int32_t lng;
     int32_t alt;
@@ -59,14 +58,12 @@ struct log_RFRN {
 };
 
 struct log_RFRF {
-    uint64_t time_us;
     uint8_t frame_type;
     uint8_t _end;
 };
 
 // Replay Data Structure - Inertial Sensor header
 struct log_RISH {
-    uint64_t time_us;
     uint16_t loop_rate_hz;
     uint8_t primary_gyro;
     uint8_t primary_accel;
@@ -79,7 +76,6 @@ struct log_RISH {
 
 // Replay Data Structure - Inertial Sensor instance data
 struct log_RISI {
-    uint64_t time_us;
     Vector3f accel;
     Vector3f delta_velocity;
     float delta_velocity_dt;
@@ -91,7 +87,6 @@ struct log_RISI {
 
 // Replay Data Structure - Inertial Sensor instance data
 struct log_RISJ {
-    uint64_t time_us;
     Vector3f gyro;
     Vector3f delta_angle;
     float delta_angle_dt;
@@ -104,7 +99,6 @@ struct log_RISJ {
 // @LoggerMessage: REV2
 // @Description: Replay Event
 struct log_REV2 {
-    uint64_t time_us;
     uint8_t event;
     uint8_t _end;
 };
@@ -112,7 +106,6 @@ struct log_REV2 {
 // @LoggerMessage: RSO2
 // @Description: Replay Set Origin event
 struct log_RSO2 {
-    uint64_t time_us;
     int32_t lat;
     int32_t lng;
     int32_t alt;
@@ -122,7 +115,6 @@ struct log_RSO2 {
 // @LoggerMessage: RWA2
 // @Description: Replay set-default-airspeed event
 struct log_RWA2 {
-    uint64_t time_us;
     float airspeed;
     uint8_t _end;
 };
@@ -130,7 +122,6 @@ struct log_RWA2 {
 // @LoggerMessage: REV3
 // @Description: Replay Event
 struct log_REV3 {
-    uint64_t time_us;
     uint8_t event;
     uint8_t _end;
 };
@@ -138,7 +129,6 @@ struct log_REV3 {
 // @LoggerMessage: RSO3
 // @Description: Replay Set Origin event
 struct log_RSO3 {
-    uint64_t time_us;
     int32_t lat;
     int32_t lng;
     int32_t alt;
@@ -148,7 +138,6 @@ struct log_RSO3 {
 // @LoggerMessage: RWA3
 // @Description: Replay set-default-airspeed event
 struct log_RWA3 {
-    uint64_t time_us;
     float airspeed;
     uint8_t _end;
 };
@@ -156,7 +145,6 @@ struct log_RWA3 {
 // @LoggerMessage: REY3
 // @Description: Replay Euler Yaw event
 struct log_REY3 {
-    uint64_t time_us;
     float yawangle;
     float yawangleerr;
     uint32_t timestamp_ms;
@@ -167,7 +155,6 @@ struct log_REY3 {
 // @LoggerMessage: RBRH
 // @Description: Replay Data Barometer Header
 struct log_RBRH {
-    uint64_t time_us;
     uint8_t primary;
     uint8_t num_instances;
     uint8_t _end;
@@ -176,7 +163,6 @@ struct log_RBRH {
 // @LoggerMessage: RBRI
 // @Description: Replay Data Barometer Instance
 struct log_RBRI {
-    uint64_t time_us;
     uint32_t last_update_ms;
     float altitude;  // from get_altitude
     bool healthy;
@@ -187,7 +173,6 @@ struct log_RBRI {
 // @LoggerMessage: RRNH
 // @Description: Replay Data Rangefinder Header
 struct log_RRNH {
-    uint64_t time_us;
     // this is rotation-pitch-270!
     int16_t ground_clearance_cm;
     int16_t max_distance_cm;
@@ -197,7 +182,6 @@ struct log_RRNH {
 // @LoggerMessage: RRNI
 // @Description: Replay Data Rangefinder Instance
 struct log_RRNI {
-    uint64_t time_us;
     Vector3f pos_offset;
     uint16_t distance_cm;
     uint8_t orientation;
@@ -209,7 +193,6 @@ struct log_RRNI {
 // @LoggerMessage: RGPH
 // @Description: Replay Data GPS Header
 struct log_RGPH {
-    uint64_t time_us;
     uint8_t num_sensors;
     uint8_t primary_sensor;
     uint8_t _end;
@@ -218,7 +201,6 @@ struct log_RGPH {
 // @LoggerMessage: RGPI
 // @Description: Replay Data GPS Instance
 struct log_RGPI {
-    uint64_t time_us;
     uint32_t last_message_time_ms;
     int32_t lat;
     int32_t lng;
@@ -240,7 +222,6 @@ struct log_RGPI {
 // @LoggerMessage: RGPJ
 // @Description: Replay Data GPS Instance - more data
 struct log_RGPJ {
-    uint64_t time_us;
     Vector3f velocity;
     uint32_t speed_accuracy_returncode;
     float sacc;
@@ -253,7 +234,6 @@ struct log_RGPJ {
 
 // Replay Data Structure - Airspeed Sensor header
 struct log_RASH {
-    uint64_t time_us;
     uint8_t num_sensors;
     uint8_t primary;
     uint8_t _end;
@@ -261,7 +241,6 @@ struct log_RASH {
 
 // Replay Data Structure - Airspeed Sensor instance
 struct log_RASI {
-    uint64_t time_us;
     float airspeed;
     uint32_t last_update_ms;
     bool healthy;
@@ -273,7 +252,6 @@ struct log_RASI {
 // @LoggerMessage: RMGH
 // @Description: Replay Data Magnetometer Header
 struct log_RMGH {
-    uint64_t time_us;
     float declination;
     uint8_t count;
     bool auto_declination_enabled;
@@ -286,7 +264,6 @@ struct log_RMGH {
 // @LoggerMessage: RMGI
 // @Description: Replay Data Magnetometer Instance
 struct log_RMGI {
-    uint64_t time_us;
     uint32_t last_update_usec;
     Vector3f offsets;
     Vector3f field;
@@ -300,7 +277,6 @@ struct log_RMGI {
 // @LoggerMessage: RBCH
 // @Description: Replay Data Beacon Header
 struct log_RBCH {
-    uint64_t time_us;
     Vector3f vehicle_position_ned;
     float accuracy_estimate;
     int32_t origin_lat;
@@ -316,7 +292,6 @@ struct log_RBCH {
 // @LoggerMessage: RBCI
 // @Description: Replay Data Beacon Instance
 struct log_RBCI {
-    uint64_t time_us;
     uint32_t last_update_ms;
     Vector3f position;
     float distance;
@@ -328,7 +303,6 @@ struct log_RBCI {
 // @LoggerMessage: RVOH
 // @Description: Replay Data Visual Odometry data
 struct log_RVOH {
-    uint64_t time_us;
     Vector3f pos_offset;
     uint32_t delay_ms;
     uint8_t healthy;
@@ -345,54 +319,54 @@ struct log_RVOH {
     { LOG_RFRH_MSG, RLOG_SIZE(RFRH),                          \
       "RFRH", "QIfIHBBBBBBBB", "TimeUS,FN,E2T,AM,TF,State,NlRF,NlCRP,NlAS,FF,VC,ASE,EKT", "s------------", "F------------" }, \
     { LOG_RFRF_MSG, RLOG_SIZE(RFRF),                                   \
-      "RFRF", "QB", "TimeUS,FT", "s-", "F-" }, \
+      "RFRF", "B", "FT", "-", "-" }, \
     { LOG_RFRN_MSG, RLOG_SIZE(RFRN),                            \
-      "RFRN", "QIII", "TimeUS,HLat,HLon,HAlt", "sDUm", "FGGB" }, \
+      "RFRN", "III", "HLat,HLon,HAlt", "DUm", "GGB" }, \
     { LOG_REV2_MSG, RLOG_SIZE(REV2),                                   \
-      "REV2", "QB", "TimeUS,Event", "s-", "F-" }, \
+      "REV2", "B", "Event", "-", "-" }, \
     { LOG_RSO2_MSG, RLOG_SIZE(RSO2),                         \
-      "RSO2", "QIII", "TimeUS,Lat,Lon,Alt", "sDUm", "FGGB" }, \
+      "RSO2", "III", "Lat,Lon,Alt", "DUm", "GGB" }, \
     { LOG_RWA2_MSG, RLOG_SIZE(RWA2),                         \
-      "RWA2", "Qf", "TimeUS,Airspeed", "sn", "F0" }, \
+      "RWA2", "f", "Airspeed", "n", "0" }, \
     { LOG_REV3_MSG, RLOG_SIZE(REV3),                \
-      "REV3", "QB", "TimeUS,Event", "s-", "F-" }, \
+      "REV3", "B", "Event", "-", "-" }, \
     { LOG_RSO3_MSG, RLOG_SIZE(RSO3),                         \
-      "RSO3", "QIII", "TimeUS,Lat,Lon,Alt", "sDUm", "FGGB" }, \
+      "RSO3", "III", "Lat,Lon,Alt", "DUm", "GGB" }, \
     { LOG_RWA3_MSG, RLOG_SIZE(RWA3),                         \
-      "RWA3", "Qf", "TimeUS,Airspeed", "sn", "F0" }, \
+      "RWA3", "f", "Airspeed", "n", "0" }, \
     { LOG_REY3_MSG, RLOG_SIZE(REY3),                                   \
-      "REY3", "QffIB", "TimeUS,yawangle,yawangleerr,timestamp_ms,type", "s???-", "F???-" }, \
+      "REY3", "ffIB", "yawangle,yawangleerr,timestamp_ms,type", "???-", "???-" }, \
     { LOG_RISH_MSG, RLOG_SIZE(RISH),                                   \
-      "RISH", "QHBBfIBB", "TimeUS,LR,PG,PA,LD,LU,AC,GC", "s-------", "F-------" }, \
+      "RISH", "HBBfIBB", "LR,PG,PA,LD,LU,AC,GC", "-------", "-------" }, \
     { LOG_RISI_MSG, RLOG_SIZE(RISI),                                   \
-      "RISI", "QfffffffBBB", "TimeUS,AX,AY,AZ,DVX,DVY,DVZ,DVDT,UA,GDVR,I", "s---------#", "F----------" }, \
+      "RISI", "fffffffBBB", "AX,AY,AZ,DVX,DVY,DVZ,DVDT,UA,GDVR,I", "---------#", "----------" }, \
     { LOG_RISJ_MSG, RLOG_SIZE(RISJ),                                   \
-      "RISJ", "QfffffffBBB", "TimeUS,GX,GY,GZ,DAX,DAY,DAZ,DADT,UG,GDAR,I", "s---------#", "F----------" }, \
+      "RISJ", "fffffffBBB", "GX,GY,GZ,DAX,DAY,DAZ,DADT,UG,GDAR,I", "---------#", "----------" }, \
     { LOG_RASH_MSG, RLOG_SIZE(RASH),                                   \
-      "RASH", "QBB", "TimeUS,Primary,NumInst", "s--", "F--" },  \
+      "RASH", "BB", "Primary,NumInst", "--", "--" },  \
     { LOG_RASI_MSG, RLOG_SIZE(RASI),                                   \
-      "RASI", "QfIBBB", "TimeUS,Spd,UpdateMS,H,Use,I", "s----#", "F-----" }, \
+      "RASI", "fIBBB", "pd,UpdateMS,H,Use,I", "----#", "-----" }, \
     { LOG_RBRH_MSG, RLOG_SIZE(RBRH),                                   \
-      "RBRH", "QBB", "TimeUS,Primary,NumInst", "s--", "F--" },  \
+      "RBRH", "BB", "Primary,NumInst", "--", "--" },  \
     { LOG_RBRI_MSG, RLOG_SIZE(RBRI),                                   \
-      "RBRI", "QIfBB", "TimeUS,LastUpdate,Alt,H,I", "s---#", "F----" }, \
+      "RBRI", "IfBB", "LastUpdate,Alt,H,I", "---#", "----" }, \
     { LOG_RRNH_MSG, RLOG_SIZE(RRNH),                                   \
-      "RRNH", "Qhh", "TimeUS,GCl,MaxD", "s??", "F??" },  \
+      "RRNH", "hh", "GCl,MaxD", "??", "??" },  \
     { LOG_RRNI_MSG, RLOG_SIZE(RRNI),                                   \
-      "RRNI", "QfffHBBB", "TimeUS,PX,PY,PZ,Dist,Orient,Status,I", "s------#", "F-------" }, \
+      "RRNI", "fffHBBB", "PX,PY,PZ,Dist,Orient,Status,I", "------#", "-------" }, \
     { LOG_RGPH_MSG, RLOG_SIZE(RGPH),                                   \
-      "RGPH", "QBB", "TimeUS,NumInst,Primary", "s--", "F--" },  \
+      "RGPH", "BB", "NumInst,Primary", "--", "--" },  \
     { LOG_RGPI_MSG, RLOG_SIZE(RGPI),                                   \
-      "RGPI", "QIiiifffHBBBBBBB", "TimeUS,LMT,lat,lon,alt,ha,va,lg,hdp,st,hvv,harc,varc,ns,lgrc,I", "s--------------#", "F---------------" }, \
+      "RGPI", "IiiifffHBBBBBBB", "LMT,lat,lon,alt,ha,va,lg,hdp,st,hvv,harc,varc,ns,lgrc,I", "--------------#", "---------------" }, \
     { LOG_RGPJ_MSG, RLOG_SIZE(RGPJ),                                   \
-      "RGPJ", "QfffIfffBB", "TimeUS,vx,vy,vz,sarc,sa,yd,yda,ydrc,I", "s--------#", "F---------" }, \
+      "RGPJ", "fffIfffBB", "vx,vy,vz,sarc,sa,yd,yda,ydrc,I", "--------#", "---------" }, \
     { LOG_RMGH_MSG, RLOG_SIZE(RMGH),                                   \
-      "RMGH", "QBBfBBB", "TimeUS,Dec,NumInst,AutoDec,NumEna,LOE,C", "s------", "F------" },  \
+      "RMGH", "BBfBBB", "Dec,NumInst,AutoDec,NumEna,LOE,C", "------", "------" },  \
     { LOG_RMGI_MSG, RLOG_SIZE(RMGI),                                   \
-      "RMGI", "QIffffffBBBB", "TimeUS,LU,OX,OY,OZ,FX,FY,FZ,UFY,H,HSF,I", "s----------#", "F-----------" },                                        \
+      "RMGI", "IffffffBBBB", "LU,OX,OY,OZ,FX,FY,FZ,UFY,H,HSF,I", "----------#", "-----------" },                                        \
     { LOG_RBCH_MSG, RLOG_SIZE(RBCH),                                   \
-      "RBCH", "QffffiiiBBBB", "TimeUS,PX,PY,PZ,AE,OLat,OLng,OAlt,GVPR,NumInst,ORet,NPtr", "s-----------", "F-----------" },  \
+      "RBCH", "ffffiiiBBBB", "PX,PY,PZ,AE,OLat,OLng,OAlt,GVPR,NumInst,ORet,NPtr", "-----------", "-----------" },  \
     { LOG_RBCI_MSG, RLOG_SIZE(RBCI),                                   \
-      "RBCI", "QIffffBB", "TimeUS,LU,PX,PY,PZ,Dist,H,I", "ssmmmm-#", "F?0000--" }, \
+      "RBCI", "IffffBB", "LU,PX,PY,PZ,Dist,H,I", "smmmm-#", "?0000--" }, \
     { LOG_RVOH_MSG, RLOG_SIZE(RVOH),                                   \
-      "RVOH", "QfffIBBB", "TimeUS,OX,OY,OZ,Del,H,Ena,NPtr", "s-------", "F-------" },
+      "RVOH", "fffIBBB", "OX,OY,OZ,Del,H,Ena,NPtr", "-------", "-------" },

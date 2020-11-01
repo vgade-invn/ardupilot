@@ -13,7 +13,6 @@ void AP_DAL_Baro::start_frame(const uint64_t time_us)
 {
     const auto &baro = AP::baro();
 
-    _RBRH.time_us = time_us;
     _RBRH.primary = baro.get_primary();
     _RBRH.num_instances = baro.num_instances();
     WRITE_REPLAY_BLOCK(RBRH, _RBRH);
@@ -25,7 +24,6 @@ void AP_DAL_Baro::start_frame(const uint64_t time_us)
             continue;
         }
         _last_logged_update_ms[i] = last_update_ms;
-        RBRI.time_us = time_us;
         RBRI.last_update_ms = last_update_ms;
         RBRI.healthy = baro.healthy(i);
         RBRI.altitude = baro.get_altitude(i);

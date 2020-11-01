@@ -16,7 +16,6 @@ void AP_DAL_Airspeed::start_frame(const uint64_t time_us)
         return;
     }
 
-    _RASH.time_us = time_us;
     _RASH.num_sensors = airspeed->get_num_sensors();
     _RASH.primary = airspeed->get_primary();
     WRITE_REPLAY_BLOCK(RASH, _RASH);
@@ -28,7 +27,6 @@ void AP_DAL_Airspeed::start_frame(const uint64_t time_us)
             continue;
         }
         _last_logged_update_ms[i] = last_update_ms;
-        RASI.time_us = time_us;
         RASI.last_update_ms = last_update_ms;
         RASI.healthy = airspeed->healthy(i);
         RASI.use = airspeed->use(i);

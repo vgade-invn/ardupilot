@@ -15,7 +15,6 @@ void AP_DAL_Beacon::start_frame(const uint64_t time_us)
 {
     const auto *beacon = AP::beacon();
 
-    _RBCH.time_us = time_us;
     _RBCH.ptr_is_nullptr = (beacon == nullptr);
     if (beacon != nullptr) {
         _RBCH.count = beacon->count();
@@ -38,7 +37,6 @@ void AP_DAL_Beacon::start_frame(const uint64_t time_us)
             continue;
         }
         _last_logged_update_ms[i] = last_update_ms;
-        RBCI.time_us = time_us;
         RBCI.last_update_ms = last_update_ms;
         RBCI.position = beacon->beacon_position(i);
         RBCI.distance = beacon->beacon_distance(i);
