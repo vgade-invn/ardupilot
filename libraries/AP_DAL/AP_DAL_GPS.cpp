@@ -29,7 +29,6 @@ void AP_DAL_GPS::start_frame(const uint64_t time_us)
         const uint32_t last_message_time_ms = gps.last_message_time_ms(i);
         if (last_message_time_ms == _last_logged_message_time_ms[i]) {
             // assume that no other state changes if we don't get a message.
-            // Counterexample: antenna offset
             return;
         }
         _last_logged_message_time_ms[i] = last_message_time_ms;
@@ -53,7 +52,9 @@ void AP_DAL_GPS::start_frame(const uint64_t time_us)
         RGPJ.velocity = gps.velocity(i);
         RGPJ.speed_accuracy_returncode = gps.speed_accuracy(i, RGPJ.sacc);
         RGPJ.gps_yaw_deg_returncode = gps.gps_yaw_deg(i, RGPJ.yaw_deg, RGPJ.yaw_accuracy_deg);
-        RGPJ.antenna_offset = gps.get_antenna_offset(i);
         WRITE_REPLAY_BLOCK(RGPJ, RGPJ);
+
+        // also fetch antenna offset for this frame
+        antenna_offset[i] = gps.get_antenna_offset(i);
     }
 }

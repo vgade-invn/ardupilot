@@ -247,7 +247,6 @@ struct log_RGPJ {
     Vector3f velocity;
     uint32_t speed_accuracy_returncode;
     float sacc;
-    Vector3f antenna_offset;
     float yaw_deg;
     float yaw_accuracy_deg;
     uint8_t gps_yaw_deg_returncode;
@@ -389,7 +388,7 @@ struct log_RVOH {
     { LOG_RGPI_MSG, RLOG_SIZE(RGPI),                                   \
       "RGPI", "QIiiifffHBBBBBBB", "TimeUS,LMT,lat,lon,alt,ha,va,lg,hdp,st,hvv,harc,varc,ns,lgrc,I", "s--------------#", "F---------------" }, \
     { LOG_RGPJ_MSG, RLOG_SIZE(RGPJ),                                   \
-      "RGPJ", "QfffIffffffBB", "TimeUS,vx,vy,vz,sarc,sa,aox,aoy,aoz,yd,yda,ydrc,I", "s-----------#", "F------------" }, \
+      "RGPJ", "QfffIfffBB", "TimeUS,vx,vy,vz,sarc,sa,yd,yda,ydrc,I", "s--------#", "F---------" }, \
     { LOG_RMGH_MSG, RLOG_SIZE(RMGH),                                   \
       "RMGH", "QBBfBBB", "TimeUS,Dec,NumInst,AutoDec,NumEna,LOE,C", "s------", "F------" },  \
     { LOG_RMGI_MSG, RLOG_SIZE(RMGI),                                   \

@@ -125,7 +125,7 @@ public:
 
     // return a 3D vector defining the offset of the GPS antenna in meters relative to the body frame origin
     const Vector3f &get_antenna_offset(uint8_t instance) const {
-        return _RGPJ[instance].antenna_offset;
+        return antenna_offset[instance];
     }
 
     void start_frame(const uint64_t time_us);
@@ -136,6 +136,7 @@ public:
     }
     void handle_message(const log_RGPI &msg) {
         _RGPI[msg.instance] = msg;
+        antenna_offset[msg.instance] = AP::gps().get_antenna_offset(msg.instance);
     }
     void handle_message(const log_RGPJ &msg) {
         _RGPJ[msg.instance] = msg;
@@ -147,6 +148,8 @@ private:
     struct log_RGPH _RGPH;
     struct log_RGPI _RGPI[GPS_MAX_INSTANCES];
     struct log_RGPJ _RGPJ[GPS_MAX_INSTANCES];
+
+    Vector3f antenna_offset[GPS_MAX_INSTANCES];
 
     uint32_t _last_logged_message_time_ms[GPS_MAX_INSTANCES];
 };
