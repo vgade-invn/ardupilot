@@ -36,7 +36,7 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
 
         RISI.delta_velocity_dt = ins.get_delta_velocity_dt(i);
 
-        if (memcmp(&RISI, &old_RISI, sizeof(RISI)) != 0) {
+        if (STRUCT_NEQ(RISI, old_RISI)) {
             WRITE_REPLAY_BLOCK(RISI, RISI);
         }
 
@@ -49,7 +49,7 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
         RISJ.delta_angle_dt = ins.get_delta_angle_dt(i);
         RISJ.get_delta_angle_ret = ins.get_delta_angle(i, RISJ.delta_angle);
 
-        if (memcmp(&RISJ, &old_RISJ, sizeof(RISJ)) != 0) {
+        if (STRUCT_NEQ(RISJ, old_RISJ)) {
             WRITE_REPLAY_BLOCK(RISJ, RISJ);
         }
 

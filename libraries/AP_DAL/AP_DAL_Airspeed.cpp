@@ -16,12 +16,16 @@ void AP_DAL_Airspeed::start_frame(const uint64_t time_us)
         return;
     }
 
+    const log_RASH old = _RASH;
     _RASH.num_sensors = airspeed->get_num_sensors();
     _RASH.primary = airspeed->get_primary();
-    WRITE_REPLAY_BLOCK(RASH, _RASH);
+    if (STRUCT_NEQ(old, _RASH)) {
+        WRITE_REPLAY_BLOCK(RASH, _RASH);
+    }
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RASI); i++) {
         log_RASI &RASI = _RASI[i];
+        log_RASI old_RASI = RASI;
         const uint32_t last_update_ms = airspeed->last_update_ms(i);
         if (last_update_ms == _last_logged_update_ms[i]) {
             continue;
@@ -31,6 +35,8 @@ void AP_DAL_Airspeed::start_frame(const uint64_t time_us)
         RASI.healthy = airspeed->healthy(i);
         RASI.use = airspeed->use(i);
         RASI.airspeed = airspeed->get_airspeed(i);
-        WRITE_REPLAY_BLOCK(RASI, RASI);
+        if (STRUCT_NEQ(old_RASI, RASI)) {
+            WRITE_REPLAY_BLOCK(RASI, RASI);
+        }
     }
 }
