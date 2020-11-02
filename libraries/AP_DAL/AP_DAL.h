@@ -21,10 +21,10 @@ class AP_DAL {
 public:
 
     enum class FrameType {
-        InitialiseFilterEKF2 = 10,
-        UpdateFilterEKF2 = 20,
-        InitialiseFilterEKF3 = 30,
-        UpdateFilterEKF3 = 40,
+        InitialiseFilterEKF2 = 1<<0,
+        UpdateFilterEKF2 = 1<<1,
+        InitialiseFilterEKF3 = 1<<2,
+        UpdateFilterEKF3 = 1<<3,
     };
 
     enum class Event2 {
@@ -283,6 +283,7 @@ private:
     Vector3f _trim;
     Matrix3f _rotation_vehicle_body_to_autopilot_body;
     Location _home;
+    uint32_t _last_imu_time_us;
 
     AP_DAL_InertialSensor _ins;
     AP_DAL_Baro _baro;

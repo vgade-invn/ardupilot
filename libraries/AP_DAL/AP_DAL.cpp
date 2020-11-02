@@ -19,9 +19,16 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
 
     const AP_AHRS &ahrs = AP::ahrs();
 
-    _RFRH.time_us = AP_HAL::micros64();
-    _RFRH.time_flying_ms = AP::vehicle()->get_time_flying_ms();
-    WRITE_REPLAY_BLOCK(RFRH, _RFRH);
+    const uint32_t imu_us = AP::ins().get_last_update_usec();
+    if (_last_imu_time_us != imu_us) {
+        _last_imu_time_us = imu_us;
+        _RFRH.time_us = AP_HAL::micros64();
+        _RFRH.time_flying_ms = AP::vehicle()->get_time_flying_ms();
+        WRITE_REPLAY_BLOCK(RFRH, _RFRH);
+        _RFRH.frame_types = 0;
+    }
+
+    _RFRH.frame_types |= uint8_t(frametype);
 
     // update RFRN data
     const log_RFRN old = _RFRN;
