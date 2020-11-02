@@ -192,10 +192,6 @@ void LR_MsgHandler_RISI::process_message(uint8_t *msg)
 {
     AP::dal().handle_message(MSG_CAST(RISI,msg));
 }
-void LR_MsgHandler_RISJ::process_message(uint8_t *msg)
-{
-    AP::dal().handle_message(MSG_CAST(RISJ,msg));
-}
 
 void LR_MsgHandler_RASH::process_message(uint8_t *msg)
 {
