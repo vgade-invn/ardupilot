@@ -34,7 +34,14 @@ protected:
 class LR_MsgHandler_RFRH : public LR_MsgHandler
 {
 public:
-    LR_MsgHandler_RFRH(struct log_Format &_f, NavEKF2 &_ekf2, NavEKF3 &_ekf3) :
+    using LR_MsgHandler::LR_MsgHandler;
+    void process_message(uint8_t *msg) override;
+};
+
+class LR_MsgHandler_RFRF : public LR_MsgHandler
+{
+public:
+    LR_MsgHandler_RFRF(struct log_Format &_f, NavEKF2 &_ekf2, NavEKF3 &_ekf3) :
         LR_MsgHandler(_f),
         ekf2(_ekf2),
         ekf3(_ekf3) {}

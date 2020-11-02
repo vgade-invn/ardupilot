@@ -136,23 +136,6 @@ void Replay::_parse_command_line(uint8_t argc, char * const argv[])
     }
 }
 
-
-// catch floating point exceptions
-static void _replay_sig_fpe(int signum)
-{
-    fprintf(stderr, "ERROR: Floating point exception - flushing logger...\n");
-
-    // replay.flush_logger();
-    fprintf(stderr, "ERROR: ... and aborting.\n");
-    // if (replay.check_solution) {
-    //     FILE *f = fopen("replay_results.txt","a");
-    //     fprintf(f, "%s\tFPE\tFPE\tFPE\tFPE\tFPE\n",
-    //             replay.log_filename);
-    //     fclose(f);
-    // }
-    abort();
-}
-
 void Replay::setup()
 {
     ::printf("Starting\n");

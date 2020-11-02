@@ -17,8 +17,13 @@ LR_MsgHandler::LR_MsgHandler(struct log_Format &_f) :
 
 void LR_MsgHandler_RFRH::process_message(uint8_t *msg)
 {
-    const log_RFRH *RFRH = (const log_RFRH *)(msg+3);
-    uint8_t frame_types = RFRH->frame_types;
+    AP::dal().handle_message(MSG_CAST(RFRH,msg));
+}
+
+void LR_MsgHandler_RFRF::process_message(uint8_t *msg)
+{
+    const log_RFRF &RFRF = MSG_CAST(RFRF,msg);
+    uint8_t frame_types = RFRF.frame_types;
     if (frame_types & uint8_t(AP_DAL::FrameType::InitialiseFilterEKF2)) {
         ekf2.InitialiseFilter();
     }
@@ -31,7 +36,12 @@ void LR_MsgHandler_RFRH::process_message(uint8_t *msg)
     if (frame_types & uint8_t(AP_DAL::FrameType::UpdateFilterEKF3)) {
         ekf3.UpdateFilter();
     }
-    AP::dal().handle_message(MSG_CAST(RFRH,msg));
+    if (frame_types & uint8_t(AP_DAL::FrameType::LogWriteEKF2)) {
+        ekf2.Log_Write();
+    }
+    if (frame_types & uint8_t(AP_DAL::FrameType::LogWriteEKF3)) {
+        ekf3.Log_Write();
+    }
 }
 
 void LR_MsgHandler_RFRN::process_message(uint8_t *msg)
@@ -80,9 +90,6 @@ void LR_MsgHandler_REV2::process_message(uint8_t *msg)
         break;
     case AP_DAL::Event2::requestYawReset:
         ekf2.requestYawReset();
-        break;
-    case AP_DAL::Event2::LoggingDone:
-        ekf2.Log_Write();
         break;
     case AP_DAL::Event2::checkLaneSwitch:
         ekf2.checkLaneSwitch();
@@ -148,9 +155,6 @@ void LR_MsgHandler_REV3::process_message(uint8_t *msg)
         break;
     case AP_DAL::Event3::requestYawReset:
         ekf3.requestYawReset();
-        break;
-    case AP_DAL::Event3::LoggingDone:
-        ekf3.Log_Write();
         break;
     case AP_DAL::Event3::checkLaneSwitch:
         ekf3.checkLaneSwitch();
