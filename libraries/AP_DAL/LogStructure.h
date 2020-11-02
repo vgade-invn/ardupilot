@@ -74,7 +74,6 @@ struct log_RISH {
 
 // Replay Data Structure - Inertial Sensor instance data
 struct log_RISI {
-    Vector3f accel;
     Vector3f delta_velocity;
     float delta_velocity_dt;
     uint8_t use_accel;
@@ -85,7 +84,6 @@ struct log_RISI {
 
 // Replay Data Structure - Inertial Sensor instance data
 struct log_RISJ {
-    Vector3f gyro;
     Vector3f delta_angle;
     float delta_angle_dt;
     uint8_t use_gyro;
@@ -337,9 +335,9 @@ struct log_RVOH {
     { LOG_RISH_MSG, RLOG_SIZE(RISH),                                   \
       "RISH", "HBBfBB", "LR,PG,PA,LD,AC,GC", "------", "------" }, \
     { LOG_RISI_MSG, RLOG_SIZE(RISI),                                   \
-      "RISI", "fffffffBBB", "AX,AY,AZ,DVX,DVY,DVZ,DVDT,UA,GDVR,I", "---------#", "----------" }, \
+      "RISI", "ffffBBB", "DVX,DVY,DVZ,DVDT,UA,GDVR,I", "------#", "-------" }, \
     { LOG_RISJ_MSG, RLOG_SIZE(RISJ),                                   \
-      "RISJ", "fffffffBBB", "GX,GY,GZ,DAX,DAY,DAZ,DADT,UG,GDAR,I", "---------#", "----------" }, \
+      "RISJ", "ffffBBB", "DAX,DAY,DAZ,DADT,UG,GDAR,I", "------#", "-------" }, \
     { LOG_RASH_MSG, RLOG_SIZE(RASH),                                   \
       "RASH", "BB", "Primary,NumInst", "--", "--" },  \
     { LOG_RASI_MSG, RLOG_SIZE(RASI),                                   \
