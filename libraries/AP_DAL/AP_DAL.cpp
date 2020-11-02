@@ -26,7 +26,7 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     }
     _last_imu_time_us = imu_us;
 
-    WRITE_REPLAY_BLOCK(RFRF, _RFRF);
+    end_frame();
     _RFRF.frame_types = uint8_t(frametype);
     
     _RFRH.time_flying_ms = AP::vehicle()->get_time_flying_ms();
@@ -76,9 +76,18 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
 #endif
 }
 
+void AP_DAL::end_frame(void)
+{
+    if (_RFRF.frame_types != 0) {
+        WRITE_REPLAY_BLOCK(RFRF, _RFRF);
+        _RFRF.frame_types = 0;
+    }
+}
+
 void AP_DAL::log_event2(AP_DAL::Event2 event)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
+    end_frame();
     const struct log_REV2 pkt{
         event          : uint8_t(event),
     };
@@ -111,6 +120,7 @@ void AP_DAL::log_writeDefaultAirSpeed2(const float airspeed)
 void AP_DAL::log_event3(AP_DAL::Event3 event)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
+    end_frame();
     const struct log_REV3 pkt{
         event          : uint8_t(event),
     };

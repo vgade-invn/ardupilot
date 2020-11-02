@@ -80,6 +80,7 @@ public:
     }
 
     void start_frame(FrameType frametype);
+    void end_frame(void);
     uint64_t micros64() { return _RFRH.time_us; }
     uint32_t micros() { return _micros; }
     uint32_t millis() { return _millis; }
