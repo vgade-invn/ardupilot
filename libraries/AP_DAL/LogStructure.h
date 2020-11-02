@@ -61,7 +61,6 @@ struct log_RISH {
     uint8_t primary_gyro;
     uint8_t primary_accel;
     float loop_delta_t;
-    uint32_t last_update_usec;
     uint8_t accel_count;
     uint8_t gyro_count;
     uint8_t _end;
@@ -328,7 +327,7 @@ struct log_RVOH {
     { LOG_REY3_MSG, RLOG_SIZE(REY3),                                   \
       "REY3", "ffIB", "yawangle,yawangleerr,timestamp_ms,type", "???-", "???-" }, \
     { LOG_RISH_MSG, RLOG_SIZE(RISH),                                   \
-      "RISH", "HBBfIBB", "LR,PG,PA,LD,LU,AC,GC", "-------", "-------" }, \
+      "RISH", "HBBfBB", "LR,PG,PA,LD,AC,GC", "------", "------" }, \
     { LOG_RISI_MSG, RLOG_SIZE(RISI),                                   \
       "RISI", "fffffffBBB", "AX,AY,AZ,DVX,DVY,DVZ,DVDT,UA,GDVR,I", "---------#", "----------" }, \
     { LOG_RISJ_MSG, RLOG_SIZE(RISJ),                                   \

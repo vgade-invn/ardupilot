@@ -15,18 +15,21 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
 {
     const auto &ins = AP::ins();
 
+    const log_RISH old_RISH = _RISH;
+
     _RISH.loop_rate_hz = ins.get_loop_rate_hz();
     _RISH.primary_gyro = ins.get_primary_gyro();
     _RISH.loop_delta_t = ins.get_loop_delta_t();
     _RISH.primary_accel = ins.get_primary_accel();
     _RISH.accel_count = ins.get_accel_count();
     _RISH.gyro_count = ins.get_gyro_count();
-    _RISH.last_update_usec = ins.get_last_update_usec();
-    WRITE_REPLAY_BLOCK(RISH, _RISH);
+    if (STRUCT_NEQ(old_RISH, _RISH)) {
+        WRITE_REPLAY_BLOCK(RISH, _RISH);
+    }
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RISI); i++) {
         log_RISI &RISI = _RISI[i];
-        log_RISI old_RISI = RISI;
+        const log_RISI old_RISI = RISI;
 
         // accel stuff
         RISI.use_accel = ins.use_accel(i);
@@ -42,7 +45,7 @@ void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
 
         // gryo stuff
         log_RISJ &RISJ = _RISJ[i];
-        log_RISJ old_RISJ = RISJ;
+        const log_RISJ old_RISJ = RISJ;
         RISJ.use_gyro = ins.use_gyro(i);
         RISJ.gyro = ins.get_gyro(i);
 

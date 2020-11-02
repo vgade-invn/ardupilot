@@ -11,9 +11,6 @@ public:
 
     // InertialSensor-like methods:
 
-    // return time in microseconds of last update() call
-    uint32_t get_last_update_usec(void) const { return _RISH.last_update_usec; }
-
     // return the selected loop rate at which samples are made available
     uint16_t get_loop_rate_hz(void) const { return _RISH.loop_rate_hz; }
 
