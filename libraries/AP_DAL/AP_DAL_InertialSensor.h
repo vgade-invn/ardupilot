@@ -36,14 +36,14 @@ public:
     uint8_t get_gyro_count(void) const { return _RISH.gyro_count; }
     uint8_t get_primary_gyro(void) const { return _RISH.primary_gyro; };
 
-    bool use_gyro(uint8_t instance) const { return _RISJ[instance].use_gyro; }
+    bool use_gyro(uint8_t instance) const { return _RISI[instance].use_gyro; }
     const Vector3f     &get_gyro(uint8_t i) const { return gyro_filtered[i]; }
     const Vector3f     &get_gyro() const { return get_gyro(_primary_gyro); }
     bool get_delta_angle(uint8_t i, Vector3f &delta_angle) const {
-        delta_angle = _RISJ[i].delta_angle;
-        return _RISJ[i].get_delta_angle_ret;
+        delta_angle = _RISI[i].delta_angle;
+        return _RISI[i].get_delta_angle_ret;
     }
-    float get_delta_angle_dt(uint8_t i) const { return _RISJ[i].delta_angle_dt; }
+    float get_delta_angle_dt(uint8_t i) const { return _RISI[i].delta_angle_dt; }
 
     // return the main loop delta_t in seconds
     float get_loop_delta_t(void) const { return _RISH.loop_delta_t; }
@@ -60,11 +60,7 @@ public:
     void handle_message(const log_RISI &msg) {
         _RISI[msg.instance] = msg;
         pos[msg.instance] = AP::ins().get_imu_pos_offset(msg.instance);
-        update_accel(msg.instance);
-    }
-    void handle_message(const log_RISJ &msg) {
-        _RISJ[msg.instance] = msg;
-        update_gyro(msg.instance);
+        update_filtered(msg.instance);
     }
 #endif
 
@@ -74,7 +70,6 @@ private:
 
     struct log_RISH _RISH;
     struct log_RISI _RISI[INS_MAX_INSTANCES];
-    struct log_RISJ _RISJ[INS_MAX_INSTANCES];
 
     // sensor positions
     Vector3f pos[INS_MAX_INSTANCES];
@@ -87,6 +82,5 @@ private:
     void log_header(uint64_t time_us);
     void log_instance(uint64_t time_us, uint8_t i);
 
-    void update_gyro(uint8_t i);
-    void update_accel(uint8_t i);
+    void update_filtered(uint8_t i);
 };

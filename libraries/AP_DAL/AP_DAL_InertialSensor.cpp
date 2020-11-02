@@ -6,7 +6,6 @@ AP_DAL_InertialSensor::AP_DAL_InertialSensor()
 {
     for (uint8_t i=0; i<ARRAY_SIZE(_RISI); i++) {
         _RISI[i].instance = i;
-        _RISJ[i].instance = i;
     }
 
 }
@@ -33,26 +32,18 @@ void AP_DAL_InertialSensor::start_frame()
 
         // accel stuff
         RISI.use_accel = ins.use_accel(i);
-
         RISI.get_delta_velocity_ret = ins.get_delta_velocity(i, RISI.delta_velocity);
         RISI.delta_velocity_dt = ins.get_delta_velocity_dt(i);
-        update_accel(i);
+
+        // gryo stuff
+        RISI.use_gyro = ins.use_gyro(i);
+        RISI.delta_angle_dt = ins.get_delta_angle_dt(i);
+        RISI.get_delta_angle_ret = ins.get_delta_angle(i, RISI.delta_angle);
+
+        update_filtered(i);
 
         if (STRUCT_NEQ(RISI, old_RISI)) {
             WRITE_REPLAY_BLOCK(RISI, RISI);
-        }
-
-        // gryo stuff
-        log_RISJ &RISJ = _RISJ[i];
-        const log_RISJ old_RISJ = RISJ;
-        RISJ.use_gyro = ins.use_gyro(i);
-
-        RISJ.delta_angle_dt = ins.get_delta_angle_dt(i);
-        RISJ.get_delta_angle_ret = ins.get_delta_angle(i, RISJ.delta_angle);
-        update_gyro(i);
-
-        if (STRUCT_NEQ(RISJ, old_RISJ)) {
-            WRITE_REPLAY_BLOCK(RISJ, RISJ);
         }
 
         // update sensor position
@@ -60,14 +51,9 @@ void AP_DAL_InertialSensor::start_frame()
     }
 }
 
-// update filtered gyro
-void AP_DAL_InertialSensor::update_gyro(uint8_t i)
+// update filtered gyro and accel
+void AP_DAL_InertialSensor::update_filtered(uint8_t i)
 {
-    gyro_filtered[i] = gyro_filtered[i] * alpha + (_RISJ[i].delta_angle/_RISJ[i].delta_angle_dt) * (1-alpha);
-}
-
-// update filtered accel
-void AP_DAL_InertialSensor::update_accel(uint8_t i)
-{
+    gyro_filtered[i] = gyro_filtered[i] * alpha + (_RISI[i].delta_angle/_RISI[i].delta_angle_dt) * (1-alpha);
     accel_filtered[i] = accel_filtered[i] * alpha + (_RISI[i].delta_velocity/_RISI[i].delta_velocity_dt) * (1-alpha);
 }

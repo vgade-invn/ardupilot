@@ -16,7 +16,6 @@
     LOG_RFRN_MSG, \
     LOG_RISH_MSG, \
     LOG_RISI_MSG, \
-    LOG_RISJ_MSG, \
     LOG_RBRH_MSG, \
     LOG_RBRI_MSG, \
     LOG_RRNH_MSG, \
@@ -75,19 +74,13 @@ struct log_RISH {
 // Replay Data Structure - Inertial Sensor instance data
 struct log_RISI {
     Vector3f delta_velocity;
-    float delta_velocity_dt;
-    uint8_t use_accel;
-    uint8_t get_delta_velocity_ret;
-    uint8_t instance;
-    uint8_t _end;
-};
-
-// Replay Data Structure - Inertial Sensor instance data
-struct log_RISJ {
     Vector3f delta_angle;
+    float delta_velocity_dt;
     float delta_angle_dt;
-    uint8_t use_gyro;
-    uint8_t get_delta_angle_ret;
+    uint8_t use_accel:1;
+    uint8_t use_gyro:1;
+    uint8_t get_delta_velocity_ret:1;
+    uint8_t get_delta_angle_ret:1;
     uint8_t instance;
     uint8_t _end;
 };
@@ -335,9 +328,7 @@ struct log_RVOH {
     { LOG_RISH_MSG, RLOG_SIZE(RISH),                                   \
       "RISH", "HBBfBB", "LR,PG,PA,LD,AC,GC", "------", "------" }, \
     { LOG_RISI_MSG, RLOG_SIZE(RISI),                                   \
-      "RISI", "ffffBBB", "DVX,DVY,DVZ,DVDT,UA,GDVR,I", "------#", "-------" }, \
-    { LOG_RISJ_MSG, RLOG_SIZE(RISJ),                                   \
-      "RISJ", "ffffBBB", "DAX,DAY,DAZ,DADT,UG,GDAR,I", "------#", "-------" }, \
+      "RISI", "ffffffffBB", "DVX,DVY,DVZ,DAX,DAY,DAZ,DVDT,DADT,Flags,I", "---------#", "----------" }, \
     { LOG_RASH_MSG, RLOG_SIZE(RASH),                                   \
       "RASH", "BB", "Primary,NumInst", "--", "--" },  \
     { LOG_RASI_MSG, RLOG_SIZE(RASI),                                   \

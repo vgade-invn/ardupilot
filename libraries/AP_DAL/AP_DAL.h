@@ -214,9 +214,6 @@ public:
     void handle_message(const log_RISI &msg) {
         _ins.handle_message(msg);
     }
-    void handle_message(const log_RISJ &msg) {
-        _ins.handle_message(msg);
-    }
 
     void handle_message(const log_RASH &msg) {
         _airspeed.handle_message(msg);
