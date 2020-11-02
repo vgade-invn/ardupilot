@@ -25,29 +25,6 @@ void LR_MsgHandler_RFRN::process_message(uint8_t *msg)
     AP::dal().handle_message(MSG_CAST(RFRN,msg));
 }
 
-void LR_MsgHandler_RFRF::process_message(uint8_t *msg)
-{
-    const log_RFRF &rfrf = MSG_CAST(RFRF,msg);
-    AP::dal().handle_message(rfrf);
-
-    switch ((AP_DAL::FrameType)rfrf.frame_type) {
-
-    case AP_DAL::FrameType::InitialiseFilterEKF2:
-        ekf2.InitialiseFilter();
-        break;
-    case AP_DAL::FrameType::UpdateFilterEKF2:
-        ekf2.UpdateFilter();
-        break;
-
-    case AP_DAL::FrameType::InitialiseFilterEKF3:
-        ekf3.InitialiseFilter();
-        break;
-    case AP_DAL::FrameType::UpdateFilterEKF3:
-        ekf3.UpdateFilter();
-        break;
-    }
-}
-
 void LR_MsgHandler_REV2::process_message(uint8_t *msg)
 {
     const log_REV2 &rev2 = MSG_CAST(REV2,msg);
