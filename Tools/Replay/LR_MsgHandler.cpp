@@ -17,6 +17,20 @@ LR_MsgHandler::LR_MsgHandler(struct log_Format &_f) :
 
 void LR_MsgHandler_RFRH::process_message(uint8_t *msg)
 {
+    const log_RFRH *RFRH = (const log_RFRH *)(msg+3);
+    uint8_t frame_types = RFRH->frame_types;
+    if (frame_types & uint8_t(AP_DAL::FrameType::InitialiseFilterEKF2)) {
+        ekf2.InitialiseFilter();
+    }
+    if (frame_types & uint8_t(AP_DAL::FrameType::UpdateFilterEKF2)) {
+        ekf2.UpdateFilter();
+    }
+    if (frame_types & uint8_t(AP_DAL::FrameType::InitialiseFilterEKF3)) {
+        ekf3.InitialiseFilter();
+    }
+    if (frame_types & uint8_t(AP_DAL::FrameType::UpdateFilterEKF3)) {
+        ekf3.UpdateFilter();
+    }
     AP::dal().handle_message(MSG_CAST(RFRH,msg));
 }
 
