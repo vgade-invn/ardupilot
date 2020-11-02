@@ -35,10 +35,16 @@
 // Replay Data Structures
 struct log_RFRH {
     uint64_t time_us;
-    uint32_t frame_number;
+    uint16_t time_flying_ms;
+    uint8_t _end;
+};
+
+struct log_RFRN {
+    int32_t lat;
+    int32_t lng;
+    int32_t alt;
     float EAS2TAS;
     uint32_t available_memory;
-    uint16_t time_flying_ms;
     uint8_t state_bitmask;
     uint8_t rangefinder_ptr_is_null;
     uint8_t get_compass_is_null;
@@ -47,13 +53,6 @@ struct log_RFRH {
     uint8_t vehicle_class;
     uint8_t ahrs_airspeed_sensor_enabled;
     uint8_t ekf_type;
-    uint8_t _end;
-};
-
-struct log_RFRN {
-    int32_t lat;
-    int32_t lng;
-    int32_t alt;
     uint8_t _end;
 };
 
@@ -317,11 +316,11 @@ struct log_RVOH {
 
 #define LOG_STRUCTURE_FROM_DAL        \
     { LOG_RFRH_MSG, RLOG_SIZE(RFRH),                          \
-      "RFRH", "QIfIHBBBBBBBB", "TimeUS,FN,E2T,AM,TF,State,NlRF,NlCRP,NlAS,FF,VC,ASE,EKT", "s------------", "F------------" }, \
+      "RFRH", "QH", "TimeUS,TF", "s-", "F-" }, \
     { LOG_RFRF_MSG, RLOG_SIZE(RFRF),                                   \
       "RFRF", "B", "FT", "-", "-" }, \
     { LOG_RFRN_MSG, RLOG_SIZE(RFRN),                            \
-      "RFRN", "III", "HLat,HLon,HAlt", "DUm", "GGB" }, \
+      "RFRN", "IIIfIBBBBBBBB", "HLat,HLon,HAlt,E2T,AM,State,NlRF,NlCRP,NlAS,FF,VC,ASE,EKT", "DUm??????????", "GGB----------" }, \
     { LOG_REV2_MSG, RLOG_SIZE(REV2),                                   \
       "REV2", "B", "Event", "-", "-" }, \
     { LOG_RSO2_MSG, RLOG_SIZE(RSO2),                         \

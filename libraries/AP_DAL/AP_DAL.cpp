@@ -17,34 +17,31 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
 {
 #if !APM_BUILD_TYPE(APM_BUILD_AP_DAL_Standalone) && !APM_BUILD_TYPE(APM_BUILD_Replay)
 
-    // update RFRH data
-    _RFRH.state_bitmask = 0;
-    if (hal.util->get_soft_armed()) {
-        _RFRH.state_bitmask |= uint8_t(StateMask::ARMED);
-    }
-
     const AP_AHRS &ahrs = AP::ahrs();
 
-    _RFRH.frame_number++;
     _RFRH.time_us = AP_HAL::micros64();
-    _RFRH.get_compass_is_null = AP::ahrs().get_compass() == nullptr;
-    _RFRH.rangefinder_ptr_is_null = AP::rangefinder() == nullptr;
-    _RFRH.airspeed_ptr_is_null = AP::airspeed() == nullptr;
-    _RFRH.EAS2TAS = AP::baro().get_EAS2TAS();
-    _RFRH.vehicle_class = ahrs.get_vehicle_class();
-    _RFRH.fly_forward = ahrs.get_fly_forward();
-    _trim = ahrs.get_trim();
-    _RFRH.ahrs_airspeed_sensor_enabled = AP::ahrs().airspeed_sensor_enabled();
-    _RFRH.available_memory = hal.util->available_memory();
     _RFRH.time_flying_ms = AP::vehicle()->get_time_flying_ms();
     WRITE_REPLAY_BLOCK(RFRH, _RFRH);
 
     // update RFRN data
     const log_RFRN old = _RFRN;
+    // update RFRH data
+    _RFRN.state_bitmask = 0;
+    if (hal.util->get_soft_armed()) {
+        _RFRN.state_bitmask |= uint8_t(StateMask::ARMED);
+    }
     _home = ahrs.get_home();
     _RFRN.lat = _home.lat;
     _RFRN.lng = _home.lng;
     _RFRN.alt = _home.alt;
+    _RFRN.get_compass_is_null = AP::ahrs().get_compass() == nullptr;
+    _RFRN.rangefinder_ptr_is_null = AP::rangefinder() == nullptr;
+    _RFRN.airspeed_ptr_is_null = AP::airspeed() == nullptr;
+    _RFRN.EAS2TAS = AP::baro().get_EAS2TAS();
+    _RFRN.vehicle_class = ahrs.get_vehicle_class();
+    _RFRN.fly_forward = ahrs.get_fly_forward();
+    _RFRN.ahrs_airspeed_sensor_enabled = AP::ahrs().airspeed_sensor_enabled();
+    _RFRN.available_memory = hal.util->available_memory();
     if (STRUCT_NEQ(old, _RFRN)) {
         WRITE_REPLAY_BLOCK(RFRN, _RFRN);
     }
@@ -71,6 +68,7 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _micros = _RFRH.time_us;
     _millis = _RFRH.time_us / 1000UL;
 
+    _trim = ahrs.get_trim();
 #endif
 }
 
@@ -168,7 +166,7 @@ void *AP_DAL::malloc_type(size_t size, Memory_Type mem_type)
 
 const AP_DAL_Compass *AP_DAL::get_compass() const
 {
-    if (_RFRH.get_compass_is_null) {
+    if (_RFRN.get_compass_is_null) {
         return nullptr;
     }
     return &_compass;

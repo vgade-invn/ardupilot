@@ -98,17 +98,17 @@ public:
     };
 
     // returns armed state for the current frame
-    bool get_armed() { return _RFRH.state_bitmask & uint8_t(StateMask::ARMED); }
+    bool get_armed() { return _RFRN.state_bitmask & uint8_t(StateMask::ARMED); }
 
     // memory available at start of current frame.  While this could
     // potentially change as we go through the frame, the
     // ramifications of being out of memory are that you don't start
     // the EKF, so the simplicity of having one value for the entire
     // frame is worthwhile.
-    uint32_t available_memory() { return _RFRH.available_memory; }
+    uint32_t available_memory() { return _RFRN.available_memory; }
 
     int8_t get_ekf_type(void) const {
-        return _RFRH.ekf_type;
+        return _RFRN.ekf_type;
     }
 
     int snprintf(char* str, size_t size, const char *format, ...);
@@ -124,13 +124,13 @@ public:
     AP_DAL_Baro &baro() { return _baro; }
     AP_DAL_GPS &gps() { return _gps; }
     AP_DAL_RangeFinder *rangefinder() {
-        if (_RFRH.rangefinder_ptr_is_null) {
+        if (_RFRN.rangefinder_ptr_is_null) {
             return nullptr;
         }
         return &_rangefinder;
     }
     AP_DAL_Airspeed *airspeed() {
-        if (_RFRH.airspeed_ptr_is_null) {
+        if (_RFRN.airspeed_ptr_is_null) {
             return nullptr;
         }
         return &_airspeed;
@@ -156,22 +156,22 @@ public:
 
     // random methods that AP_NavEKF3 wants to call on AHRS:
     bool airspeed_sensor_enabled(void) const {
-        return _RFRH.ahrs_airspeed_sensor_enabled;
+        return _RFRN.ahrs_airspeed_sensor_enabled;
     }
 
     // this replaces AP::ahrs()->EAS2TAS(), which should probably go
     // away in favour of just using the Baro method.
     // get apparent to true airspeed ratio
     float get_EAS2TAS(void) const {
-        return _RFRH.EAS2TAS;
+        return _RFRN.EAS2TAS;
     }
 
     VehicleClass get_vehicle_class(void) const {
-        return (VehicleClass)_RFRH.vehicle_class;
+        return (VehicleClass)_RFRN.vehicle_class;
     }
 
     bool get_fly_forward(void) const {
-        return _RFRH.fly_forward;
+        return _RFRN.fly_forward;
     }
 
     // get trim
@@ -201,6 +201,7 @@ public:
         _millis = _RFRH.time_us / 1000UL;
     }
     void handle_message(const log_RFRN &msg) {
+        _RFRN = msg;
         _home.lat = msg.lat;
         _home.lng = msg.lng;
         _home.alt = msg.alt;
