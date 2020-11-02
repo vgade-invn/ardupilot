@@ -805,8 +805,6 @@ void NavEKF3::UpdateFilter(void)
 
     imuSampleTime_us = AP::dal().micros64();
 
-    const auto &ins = AP::dal().ins();
-
     bool statePredictEnabled[num_cores];
     for (uint8_t i=0; i<num_cores; i++) {
         // if we have not overrun by more than 3 IMU frames, and we
@@ -814,7 +812,8 @@ void NavEKF3::UpdateFilter(void)
         // loop then suppress the prediction step. This allows
         // multiple EKF instances to cooperate on scheduling
         if (core[i].getFramesSincePredict() < (_framesPerPrediction+3) &&
-            (AP::dal().micros() - ins.get_last_update_usec()) > _frameTimeUsec/3) {
+            // need sub-frame micros for this test
+            (AP::dal().micros64() - imuSampleTime_us) > _frameTimeUsec/3) {
             statePredictEnabled[i] = false;
         } else {
             statePredictEnabled[i] = true;
