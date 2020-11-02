@@ -25,6 +25,8 @@ public:
         UpdateFilterEKF2 = 1<<1,
         InitialiseFilterEKF3 = 1<<2,
         UpdateFilterEKF3 = 1<<3,
+        LogWriteEKF2 = 1<<4,
+        LogWriteEKF3 = 1<<5,
     };
 
     enum class Event2 {
@@ -40,8 +42,7 @@ public:
         setTerrainHgtStable       =  9,
         unsetTerrainHgtStable     = 10,
         requestYawReset           = 11,
-        LoggingDone               = 12,
-        checkLaneSwitch           = 13,
+        checkLaneSwitch           = 12,
     };
 
     enum class Event3 {
@@ -57,8 +58,7 @@ public:
         setTerrainHgtStable       =  9,
         unsetTerrainHgtStable     = 10,
         requestYawReset           = 11,
-        LoggingDone               = 12,
-        checkLaneSwitch           = 13,
+        checkLaneSwitch           = 12,
     };
 
     // must remain the same as AP_AHRS_VehicleClass numbers-wise
@@ -274,6 +274,7 @@ private:
     static AP_DAL *_singleton;
 
     struct log_RFRH _RFRH;
+    struct log_RFRF _RFRF;
     struct log_RFRN _RFRN;
 
     // cached variables for speed:
@@ -298,3 +299,6 @@ private:
 namespace AP {
     AP_DAL &dal();
 };
+
+void xxprintf(const char *format, ...);
+

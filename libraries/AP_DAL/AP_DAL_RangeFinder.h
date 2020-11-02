@@ -26,7 +26,7 @@ public:
     // DAL methods:
     AP_DAL_RangeFinder();
 
-    void start_frame(const uint64_t time_us);
+    void start_frame();
 
     class AP_DAL_RangeFinder_Backend *get_backend(uint8_t id) const;
 
@@ -70,7 +70,7 @@ public:
     const Vector3f &get_pos_offset() const { return _RRNI.pos_offset; }
 
     // DAL methods:
-    void start_frame(uint64_t time_us, AP_RangeFinder_Backend *backend);
+    void start_frame(AP_RangeFinder_Backend *backend);
 
 private:
 

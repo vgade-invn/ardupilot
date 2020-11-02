@@ -11,7 +11,7 @@ AP_DAL_Beacon::AP_DAL_Beacon()
     }
 }
 
-void AP_DAL_Beacon::start_frame(const uint64_t time_us)
+void AP_DAL_Beacon::start_frame()
 {
     const auto *beacon = AP::beacon();
 

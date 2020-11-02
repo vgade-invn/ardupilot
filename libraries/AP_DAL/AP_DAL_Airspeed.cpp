@@ -9,7 +9,7 @@ AP_DAL_Airspeed::AP_DAL_Airspeed()
     }
 }
 
-void AP_DAL_Airspeed::start_frame(const uint64_t time_us)
+void AP_DAL_Airspeed::start_frame()
 {
     const auto *airspeed = AP::airspeed();
     if (airspeed == nullptr) {

@@ -355,6 +355,8 @@ void NavEKF3::Log_Write()
 
     uint64_t time_us = AP::dal().micros64();
 
+    xxprintf("ek3 logging %u\n", uint32_t(time_us));
+
     // note that several of these functions exit-early if they're not
     // attempting to log the primary core.
     for (uint8_t i=0; i<activeCores(); i++) {
@@ -380,7 +382,7 @@ void NavEKF3::Log_Write()
         Log_Write_Timing(i, time_us);
     }
 
-    AP::dal().log_event3(AP_DAL::Event3::LoggingDone);
+    AP::dal().start_frame(AP_DAL::FrameType::LogWriteEKF3);
 }
 
 void NavEKF3::Log_Write_Timing(uint8_t _core, uint64_t time_us) const

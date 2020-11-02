@@ -11,7 +11,7 @@ AP_DAL_Compass::AP_DAL_Compass()
     }
 }
 
-void AP_DAL_Compass::start_frame(const uint64_t time_us)
+void AP_DAL_Compass::start_frame()
 {
     const auto &compass = AP::compass();
 

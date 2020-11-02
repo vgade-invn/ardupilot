@@ -38,7 +38,7 @@ public:
     // methods for being part of AP_DAL:
     AP_DAL_Baro();
 
-    void start_frame(const uint64_t time_us);
+    void start_frame();
 
 #if APM_BUILD_TYPE(APM_BUILD_Replay)
     void handle_message(const log_RBRH &msg) {

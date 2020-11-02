@@ -56,7 +56,7 @@ public:
     // AP_DAL methods:
     AP_DAL_Compass();
 
-    void start_frame(const uint64_t time_us);
+    void start_frame();
 
 #if APM_BUILD_TYPE(APM_BUILD_Replay)
     void handle_message(const log_RMGH &msg) {

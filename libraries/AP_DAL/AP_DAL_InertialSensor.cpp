@@ -11,7 +11,7 @@ AP_DAL_InertialSensor::AP_DAL_InertialSensor()
 
 }
 
-void AP_DAL_InertialSensor::start_frame(const uint64_t time_us)
+void AP_DAL_InertialSensor::start_frame()
 {
     const auto &ins = AP::ins();
 

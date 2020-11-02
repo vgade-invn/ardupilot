@@ -46,7 +46,7 @@ int16_t AP_DAL_RangeFinder::max_distance_cm_orient(enum Rotation orientation) co
     return _RRNH.max_distance_cm;
 }
 
-void AP_DAL_RangeFinder::start_frame(const uint64_t time_us)
+void AP_DAL_RangeFinder::start_frame()
 {
     const auto *rangefinder = AP::rangefinder();
     if (rangefinder == nullptr) {
@@ -67,7 +67,7 @@ void AP_DAL_RangeFinder::start_frame(const uint64_t time_us)
         if (backend == nullptr) {
             return;
         }
-        _backend[i]->start_frame(time_us, backend);
+        _backend[i]->start_frame(backend);
     }
 }
 
@@ -79,7 +79,7 @@ AP_DAL_RangeFinder_Backend::AP_DAL_RangeFinder_Backend(struct log_RRNI &RRNI) :
 {
 }
 
-void AP_DAL_RangeFinder_Backend::start_frame(uint64_t time_us, AP_RangeFinder_Backend *backend) {
+void AP_DAL_RangeFinder_Backend::start_frame(AP_RangeFinder_Backend *backend) {
     const log_RRNI old = _RRNI;
     _RRNI.orientation = backend->orientation();
     _RRNI.status = (uint8_t)backend->status();

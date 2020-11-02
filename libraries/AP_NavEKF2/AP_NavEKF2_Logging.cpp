@@ -307,7 +307,7 @@ void NavEKF2::Log_Write()
         Log_Write_Timing(i, time_us);
     }
 
-    AP::dal().log_event2(AP_DAL::Event2::LoggingDone);
+    AP::dal().start_frame(AP_DAL::FrameType::LogWriteEKF2);
 }
 
 void NavEKF2::Log_Write_GSF(uint8_t _core, uint64_t time_us) const

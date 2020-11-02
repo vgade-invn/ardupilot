@@ -9,7 +9,7 @@ AP_DAL_Baro::AP_DAL_Baro()
     }
 }
 
-void AP_DAL_Baro::start_frame(const uint64_t time_us)
+void AP_DAL_Baro::start_frame()
 {
     const auto &baro = AP::baro();
 

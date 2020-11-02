@@ -672,6 +672,8 @@ bool NavEKF3::InitialiseFilter(void)
 
     imuSampleTime_us = AP::dal().micros64();
 
+    xxprintf("EK3 init imuSampleTime_us=%u\n", imuSampleTime_us);
+
     // remember expected frame time
     _frameTimeUsec = 1e6 / ins.get_loop_rate_hz();
 
@@ -804,6 +806,8 @@ void NavEKF3::UpdateFilter(void)
     }
 
     imuSampleTime_us = AP::dal().micros64();
+
+    xxprintf("EK3 update imuSampleTime_us=%u\n", imuSampleTime_us);
 
     bool statePredictEnabled[num_cores];
     for (uint8_t i=0; i<num_cores; i++) {

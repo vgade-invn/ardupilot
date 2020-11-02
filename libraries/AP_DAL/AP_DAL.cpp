@@ -20,19 +20,21 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     const AP_AHRS &ahrs = AP::ahrs();
 
     const uint32_t imu_us = AP::ins().get_last_update_usec();
-    if (_last_imu_time_us != imu_us) {
-        _last_imu_time_us = imu_us;
-        _RFRH.time_us = AP_HAL::micros64();
-        _RFRH.time_flying_ms = AP::vehicle()->get_time_flying_ms();
-        WRITE_REPLAY_BLOCK(RFRH, _RFRH);
-        _RFRH.frame_types = 0;
+    if (_last_imu_time_us == imu_us) {
+        _RFRF.frame_types |= uint8_t(frametype);
+        return;
     }
+    _last_imu_time_us = imu_us;
 
-    _RFRH.frame_types |= uint8_t(frametype);
+    WRITE_REPLAY_BLOCK(RFRF, _RFRF);
+    _RFRF.frame_types = uint8_t(frametype);
+    
+    _RFRH.time_flying_ms = AP::vehicle()->get_time_flying_ms();
+    _RFRH.time_us = AP_HAL::micros64();
+    WRITE_REPLAY_BLOCK(RFRH, _RFRH);
 
     // update RFRN data
     const log_RFRN old = _RFRN;
-    // update RFRH data
     _RFRN.state_bitmask = 0;
     if (hal.util->get_soft_armed()) {
         _RFRN.state_bitmask |= uint8_t(StateMask::ARMED);
@@ -56,20 +58,21 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     // update body conversion
     _rotation_vehicle_body_to_autopilot_body = ahrs.get_rotation_vehicle_body_to_autopilot_body();
 
-    _ins.start_frame(_RFRH.time_us);
-    _baro.start_frame(_RFRH.time_us);
-    _gps.start_frame(_RFRH.time_us);
-    _compass.start_frame(_RFRH.time_us);
-    _airspeed.start_frame(_RFRH.time_us);
-    _rangefinder.start_frame(_RFRH.time_us);
-    _beacon.start_frame(_RFRH.time_us);
-    _visualodom.start_frame(_RFRH.time_us);
+    _ins.start_frame();
+    _baro.start_frame();
+    _gps.start_frame();
+    _compass.start_frame();
+    _airspeed.start_frame();
+    _rangefinder.start_frame();
+    _beacon.start_frame();
+    _visualodom.start_frame();
 
     // populate some derivative values:
     _micros = _RFRH.time_us;
     _millis = _RFRH.time_us / 1000UL;
 
     _trim = ahrs.get_trim();
+
 #endif
 }
 
@@ -193,3 +196,24 @@ AP_DAL &dal()
 }
 
 };
+
+void xxprintf(const char *format, ...)
+{
+#if APM_BUILD_TYPE(APM_BUILD_Replay) || CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    const char *fname = "/tmp/replay.log";
+#elif CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    const char *fname = "/tmp/real.log";
+#endif
+    static FILE *f;
+    if (!f) {
+        f = ::fopen(fname, "w");
+    }
+    va_list ap;
+    va_start(ap, format);
+    vfprintf(f, format, ap);
+    fflush(f);
+    va_end(ap);
+#endif
+}
+

@@ -10,7 +10,7 @@ AP_DAL_GPS::AP_DAL_GPS()
     }
 }
 
-void AP_DAL_GPS::start_frame(const uint64_t time_us)
+void AP_DAL_GPS::start_frame()
 {
     const auto &gps = AP::gps();
 
