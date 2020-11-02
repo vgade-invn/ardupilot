@@ -5,7 +5,6 @@
 
 #define LOG_IDS_FROM_DAL \
     LOG_RFRH_MSG, \
-    LOG_RFRF_MSG, \
     LOG_REV2_MSG, \
     LOG_RSO2_MSG, \
     LOG_RWA2_MSG, \
@@ -53,11 +52,6 @@ struct log_RFRN {
     uint8_t vehicle_class;
     uint8_t ahrs_airspeed_sensor_enabled;
     uint8_t ekf_type;
-    uint8_t _end;
-};
-
-struct log_RFRF {
-    uint8_t frame_type;
     uint8_t _end;
 };
 
@@ -317,8 +311,6 @@ struct log_RVOH {
 #define LOG_STRUCTURE_FROM_DAL        \
     { LOG_RFRH_MSG, RLOG_SIZE(RFRH),                          \
       "RFRH", "QH", "TimeUS,TF", "s-", "F-" }, \
-    { LOG_RFRF_MSG, RLOG_SIZE(RFRF),                                   \
-      "RFRF", "B", "FT", "-", "-" }, \
     { LOG_RFRN_MSG, RLOG_SIZE(RFRN),                            \
       "RFRN", "IIIfIBBBBBBBB", "HLat,HLon,HAlt,E2T,AM,State,NlRF,NlCRP,NlAS,FF,VC,ASE,EKT", "DUm??????????", "GGB----------" }, \
     { LOG_REV2_MSG, RLOG_SIZE(REV2),                                   \

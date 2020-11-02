@@ -206,9 +206,6 @@ public:
         _home.lng = msg.lng;
         _home.alt = msg.alt;
     }
-    void handle_message(const log_RFRF &msg) {
-        _RFRF = msg;
-    }
 
     void handle_message(const log_RISH &msg) {
         _ins.handle_message(msg);
@@ -278,7 +275,6 @@ private:
 
     struct log_RFRH _RFRH;
     struct log_RFRN _RFRN;
-    struct log_RFRF _RFRF;
 
     // cached variables for speed:
     uint32_t _micros;

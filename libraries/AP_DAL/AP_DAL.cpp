@@ -58,12 +58,6 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _beacon.start_frame(_RFRH.time_us);
     _visualodom.start_frame(_RFRH.time_us);
 
-    const log_RFRF old_RFRF = _RFRF;
-    _RFRF.frame_type = (uint8_t)frametype;
-    if (STRUCT_NEQ(old_RFRF, _RFRF)) {
-        WRITE_REPLAY_BLOCK(RFRF, _RFRF);
-    }
-
     // populate some derivative values:
     _micros = _RFRH.time_us;
     _millis = _RFRH.time_us / 1000UL;
