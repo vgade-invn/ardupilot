@@ -57,17 +57,19 @@ void AP_DAL_RangeFinder::start_frame()
     const log_RRNH old = _RRNH;
     _RRNH.ground_clearance_cm = rangefinder->ground_clearance_cm_orient(ROTATION_PITCH_270);
     _RRNH.max_distance_cm = rangefinder->ground_clearance_cm_orient(ROTATION_PITCH_270);
-    if (STRUCT_NEQ(old, _RRNH)) {
-        WRITE_REPLAY_BLOCK(RRNH, _RRNH);
-    }
+    _RRNH.backend_mask = 0;
 
     for (uint8_t i=0; i<RANGEFINDER_MAX_INSTANCES; i++) {
         auto *backend = rangefinder->get_backend(i);
-        _get_backend_returnptr[i] = backend;
         if (backend == nullptr) {
-            return;
+            break;
         }
+        _RRNH.backend_mask |= (1U<<i);
         _backend[i]->start_frame(backend);
+    }
+
+    if (STRUCT_NEQ(old, _RRNH)) {
+        WRITE_REPLAY_BLOCK(RRNH, _RRNH);
     }
 }
 
@@ -97,7 +99,7 @@ AP_DAL_RangeFinder_Backend *AP_DAL_RangeFinder::get_backend(uint8_t id) const
         return nullptr;
     }
 
-   if (_get_backend_returnptr[id] == nullptr) {
+   if ((_RRNH.backend_mask & (1U<<id)) == 0) {
        return nullptr;
    }
 

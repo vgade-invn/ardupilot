@@ -45,8 +45,6 @@ private:
     struct log_RRNI _RRNI[RANGEFINDER_MAX_INSTANCES];
 
     AP_DAL_RangeFinder_Backend *_backend[RANGEFINDER_MAX_INSTANCES];
-
-    AP_RangeFinder_Backend *_get_backend_returnptr[RANGEFINDER_MAX_INSTANCES];
 };
 
 

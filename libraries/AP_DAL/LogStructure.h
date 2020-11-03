@@ -165,6 +165,7 @@ struct log_RRNH {
     // this is rotation-pitch-270!
     int16_t ground_clearance_cm;
     int16_t max_distance_cm;
+    uint16_t backend_mask;
     uint8_t _end;
 };
 
@@ -338,7 +339,7 @@ struct log_RVOH {
     { LOG_RBRI_MSG, RLOG_SIZE(RBRI),                                   \
       "RBRI", "IfBB", "LastUpdate,Alt,H,I", "---#", "----" }, \
     { LOG_RRNH_MSG, RLOG_SIZE(RRNH),                                   \
-      "RRNH", "hh", "GCl,MaxD", "??", "??" },  \
+      "RRNH", "hhH", "GCl,MaxD,BMask", "???", "???" },  \
     { LOG_RRNI_MSG, RLOG_SIZE(RRNI),                                   \
       "RRNI", "fffHBBB", "PX,PY,PZ,Dist,Orient,Status,I", "------#", "-------" }, \
     { LOG_RGPH_MSG, RLOG_SIZE(RGPH),                                   \
