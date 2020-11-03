@@ -1284,9 +1284,6 @@ bool AP_Logger::log_while_disarmed(void) const
     if (_params.log_disarmed != 0) {
         return true;
     }
-    if (_params.log_replay != 0) {
-        return true;
-    }
 
     uint32_t now = AP_HAL::millis();
     uint32_t persist_ms = HAL_LOGGER_ARM_PERSIST*1000U;
