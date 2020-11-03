@@ -34,7 +34,7 @@
 // Replay Data Structures
 struct log_RFRH {
     uint64_t time_us;
-    uint16_t time_flying_ms;
+    uint32_t time_flying_ms;
     uint8_t _end;
 };
 
@@ -307,7 +307,7 @@ struct log_RVOH {
 
 #define LOG_STRUCTURE_FROM_DAL        \
     { LOG_RFRH_MSG, RLOG_SIZE(RFRH),                          \
-      "RFRH", "QH", "TimeUS,TF", "s-", "F-" }, \
+      "RFRH", "QI", "TimeUS,TF", "s-", "F-" }, \
     { LOG_RFRF_MSG, RLOG_SIZE(RFRF),                          \
       "RFRF", "B", "FTypes", "-", "-" }, \
     { LOG_RFRN_MSG, RLOG_SIZE(RFRN),                            \
