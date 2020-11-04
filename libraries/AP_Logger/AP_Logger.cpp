@@ -651,16 +651,23 @@ void AP_Logger::WriteBlock(const void *pBuffer, uint16_t size) {
     FOR_EACH_BACKEND(WriteBlock(pBuffer, size));
 }
 
-// start functions pass straight through to backend:
-void AP_Logger::WriteReplayBlock(uint8_t msg_id, const void *pBuffer, uint16_t size) {
+// write a replay block. This differs from other as it returns false if a backend doesn't
+// have space for the msg
+bool AP_Logger::WriteReplayBlock(uint8_t msg_id, const void *pBuffer, uint16_t size) {
+    bool ret = true;
     if (log_replay()) {
         uint8_t buf[3+size];
         buf[0] = HEAD_BYTE1;
         buf[1] = HEAD_BYTE2;
         buf[2] = msg_id;
         memcpy(&buf[3], pBuffer, size);
-        WritePrioritisedBlock(buf, sizeof(buf), true);
+        for (uint8_t i=0; i<_next_backend; i++) {
+            if (!backends[i]->WritePrioritisedBlock(buf, sizeof(buf), true)) {
+                ret = false;
+            }
+        }
     }
+    return ret;
 }
 
 void AP_Logger::WriteCriticalBlock(const void *pBuffer, uint16_t size) {
