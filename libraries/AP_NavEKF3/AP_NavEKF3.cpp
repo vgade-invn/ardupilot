@@ -663,12 +663,12 @@ NavEKF3::NavEKF3()
 // Initialise the filter
 bool NavEKF3::InitialiseFilter(void)
 {
-    AP::dal().start_frame(AP_DAL::FrameType::InitialiseFilterEKF3);
-
-    if (_enable == 0) {
+    if (_enable == 0 || _imuMask == 0) {
         return false;
     }
     const auto &ins = AP::dal().ins();
+
+    AP::dal().start_frame(AP_DAL::FrameType::InitialiseFilterEKF3);
 
     imuSampleTime_us = AP::dal().micros64();
 
@@ -677,7 +677,13 @@ bool NavEKF3::InitialiseFilter(void)
 
     // expected number of IMU frames per prediction
     _framesPerPrediction = uint8_t((EKF_TARGET_DT / (_frameTimeUsec * 1.0e-6) + 0.5));
-    
+
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+    if (ins.get_accel_count() == 0) {
+        return false;
+    }
+#endif
+
     if (core == nullptr) {
 
         // don't run multiple filters for 1 IMU
@@ -709,7 +715,7 @@ bool NavEKF3::InitialiseFilter(void)
 
         //try to allocate from CCM RAM, fallback to Normal RAM if not available or full
         core = (NavEKF3_core*)AP::dal().malloc_type(sizeof(NavEKF3_core)*num_cores, AP::dal().MEM_FAST);
-            if (core == nullptr) {
+        if (core == nullptr) {
             _enable.set(0);
             GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 allocation failed");
             return false;
