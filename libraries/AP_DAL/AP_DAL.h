@@ -267,6 +267,10 @@ public:
     // map core number for replay
     uint8_t logging_core(uint8_t c) const;
 
+    // write out a DAL log message. If old_msg is non-null, then
+    // only write if the content has changed
+    static void WriteLogMessage(enum LogMessages msg_type, void *msg, const void *old_msg, uint8_t msg_size);
+
 private:
 
     static AP_DAL *_singleton;
@@ -292,7 +296,13 @@ private:
     AP_DAL_Airspeed _airspeed;
     AP_DAL_Beacon _beacon;
     AP_DAL_VisualOdom _visualodom;
+
+    static bool logging_started;
+    static bool force_write;
 };
+
+#define WRITE_REPLAY_BLOCK(sname,v) AP_DAL::WriteLogMessage(LOG_## sname ##_MSG, &v, nullptr, offsetof(log_ ##sname, _end))
+#define WRITE_REPLAY_BLOCK_IFCHANGD(sname,v,old) AP_DAL::WriteLogMessage(LOG_## sname ##_MSG, &v, &old, offsetof(log_ ##sname, _end))
 
 namespace AP {
     AP_DAL &dal();

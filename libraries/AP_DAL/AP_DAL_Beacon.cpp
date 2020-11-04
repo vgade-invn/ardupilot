@@ -3,6 +3,7 @@
 #include <AP_Beacon/AP_Beacon.h>
 
 #include <AP_Logger/AP_Logger.h>
+#include "AP_DAL.h"
 
 AP_DAL_Beacon::AP_DAL_Beacon()
 {
@@ -26,9 +27,7 @@ void AP_DAL_Beacon::start_frame()
         _RBCH.origin_lng = _origin.lng;
         _RBCH.origin_alt = _origin.alt;
     }
-    if (STRUCT_NEQ(old, _RBCH)) {
-        WRITE_REPLAY_BLOCK(RBCH, _RBCH);
-    }
+    WRITE_REPLAY_BLOCK_IFCHANGD(RBCH, _RBCH, old);
     if (beacon == nullptr) {
         return;
     }
@@ -46,8 +45,6 @@ void AP_DAL_Beacon::start_frame()
         RBCI.distance = beacon->beacon_distance(i);
         RBCI.healthy = beacon->beacon_healthy(i);
 
-        if (STRUCT_NEQ(old_RBCI, RBCI)) {
-            WRITE_REPLAY_BLOCK(RBCI, RBCI);
-        }
+        WRITE_REPLAY_BLOCK_IFCHANGD(RBCI, RBCI, old_RBCI);
     }
 }

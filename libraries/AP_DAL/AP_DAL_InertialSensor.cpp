@@ -1,6 +1,7 @@
 #include "AP_DAL_InertialSensor.h"
 
 #include <AP_Logger/AP_Logger.h>
+#include "AP_DAL.h"
 
 AP_DAL_InertialSensor::AP_DAL_InertialSensor()
 {
@@ -22,9 +23,7 @@ void AP_DAL_InertialSensor::start_frame()
     _RISH.primary_accel = ins.get_primary_accel();
     _RISH.accel_count = ins.get_accel_count();
     _RISH.gyro_count = ins.get_gyro_count();
-    if (STRUCT_NEQ(old_RISH, _RISH)) {
-        WRITE_REPLAY_BLOCK(RISH, _RISH);
-    }
+    WRITE_REPLAY_BLOCK_IFCHANGD(RISH, _RISH, old_RISH);
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RISI); i++) {
         log_RISI &RISI = _RISI[i];
@@ -42,9 +41,7 @@ void AP_DAL_InertialSensor::start_frame()
 
         update_filtered(i);
 
-        if (STRUCT_NEQ(RISI, old_RISI)) {
-            WRITE_REPLAY_BLOCK(RISI, RISI);
-        }
+        WRITE_REPLAY_BLOCK_IFCHANGD(RISI, RISI, old_RISI);
 
         // update sensor position
         pos[i] = ins.get_imu_pos_offset(i);

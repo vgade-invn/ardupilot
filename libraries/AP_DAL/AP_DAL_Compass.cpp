@@ -3,6 +3,7 @@
 #include <AP_Compass/AP_Compass.h>
 
 #include <AP_Logger/AP_Logger.h>
+#include "AP_DAL.h"
 
 AP_DAL_Compass::AP_DAL_Compass()
 {
@@ -22,9 +23,7 @@ void AP_DAL_Compass::start_frame()
     _RMGH.num_enabled = compass.get_num_enabled();
     _RMGH.consistent = compass.consistent();
 
-    if (STRUCT_NEQ(old, _RMGH)) {
-        WRITE_REPLAY_BLOCK(RMGH, _RMGH);
-    }
+    WRITE_REPLAY_BLOCK_IFCHANGD(RMGH, _RMGH, old);
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RMGI); i++) {
         log_RMGI &RMGI = _RMGI[i];
@@ -41,8 +40,6 @@ void AP_DAL_Compass::start_frame()
         RMGI.last_update_usec = last_update_usec;
         memcpy((void*)&RMGI.field, (void*)&compass.get_field(i), sizeof(Vector3f));
 
-        if (STRUCT_NEQ(old_RMGI, _RMGI)) {
-            WRITE_REPLAY_BLOCK(RMGI, RMGI);
-        }
+        WRITE_REPLAY_BLOCK_IFCHANGD(RMGI, RMGI, old_RMGI);
     }
 }

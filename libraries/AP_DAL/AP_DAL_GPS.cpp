@@ -1,6 +1,7 @@
 #include "AP_DAL_GPS.h"
 
 #include <AP_Logger/AP_Logger.h>
+#include "AP_DAL.h"
 
 AP_DAL_GPS::AP_DAL_GPS()
 {
@@ -18,9 +19,7 @@ void AP_DAL_GPS::start_frame()
     _RGPH.primary_sensor = gps.primary_sensor();
     _RGPH.num_sensors = gps.num_sensors();
 
-    if (STRUCT_NEQ(old_RGPH, _RGPH)) {
-        WRITE_REPLAY_BLOCK(RGPH, _RGPH);
-    }
+    WRITE_REPLAY_BLOCK_IFCHANGD(RGPH, _RGPH, old_RGPH);
 
     for (uint8_t i=0; i<ARRAY_SIZE(_RGPI); i++) {
         log_RGPI &RGPI = _RGPI[i];

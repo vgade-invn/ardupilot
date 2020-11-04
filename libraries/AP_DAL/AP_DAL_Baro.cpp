@@ -1,6 +1,7 @@
 #include "AP_DAL_Baro.h"
 
 #include <AP_Logger/AP_Logger.h>
+#include "AP_DAL.h"
 
 AP_DAL_Baro::AP_DAL_Baro()
 {
@@ -16,9 +17,7 @@ void AP_DAL_Baro::start_frame()
     const log_RBRH old_RBRH = _RBRH;
     _RBRH.primary = baro.get_primary();
     _RBRH.num_instances = baro.num_instances();
-    if (STRUCT_NEQ(old_RBRH, _RBRH)) {
-        WRITE_REPLAY_BLOCK(RBRH, _RBRH);
-    }
+    WRITE_REPLAY_BLOCK_IFCHANGD(RBRH, _RBRH, old_RBRH);
 
     for (uint8_t i=0; i<BARO_MAX_INSTANCES; i++) {
         log_RBRI &RBRI = _RBRI[i];
@@ -31,9 +30,7 @@ void AP_DAL_Baro::start_frame()
         RBRI.last_update_ms = last_update_ms;
         RBRI.healthy = baro.healthy(i);
         RBRI.altitude = baro.get_altitude(i);
-        if (STRUCT_NEQ(old, RBRI)) {
-            WRITE_REPLAY_BLOCK(RBRI, _RBRI[i]);
-        }
+        WRITE_REPLAY_BLOCK_IFCHANGD(RBRI, _RBRI[i], old);
     }
 }
 

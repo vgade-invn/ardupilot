@@ -3,6 +3,7 @@
 #include <AP_Logger/AP_Logger.h>
 
 #include <AP_RangeFinder/AP_RangeFinder_Backend.h>
+#include "AP_DAL.h"
 
 AP_DAL_RangeFinder::AP_DAL_RangeFinder()
 {
@@ -68,9 +69,7 @@ void AP_DAL_RangeFinder::start_frame()
         _backend[i]->start_frame(backend);
     }
 
-    if (STRUCT_NEQ(old, _RRNH)) {
-        WRITE_REPLAY_BLOCK(RRNH, _RRNH);
-    }
+    WRITE_REPLAY_BLOCK_IFCHANGD(RRNH, _RRNH, old);
 }
 
 
@@ -86,9 +85,7 @@ void AP_DAL_RangeFinder_Backend::start_frame(AP_RangeFinder_Backend *backend) {
     _RRNI.orientation = backend->orientation();
     _RRNI.status = (uint8_t)backend->status();
     _RRNI.pos_offset = backend->get_pos_offset();
-    if (STRUCT_NEQ(old, _RRNI)) {
-        WRITE_REPLAY_BLOCK(RRNI, _RRNI);
-    }
+    WRITE_REPLAY_BLOCK_IFCHANGD(RRNI, _RRNI, old);
 }
 
 

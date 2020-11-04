@@ -303,8 +303,6 @@ struct log_RVOH {
 
 #define RLOG_SIZE(sname) 3+offsetof(struct log_ ##sname,_end)
 
-#define WRITE_REPLAY_BLOCK(sname,v) AP::logger().WriteReplayBlock(LOG_## sname ##_MSG, &v, offsetof(log_ ##sname, _end))
-
 #define LOG_STRUCTURE_FROM_DAL        \
     { LOG_RFRH_MSG, RLOG_SIZE(RFRH),                          \
       "RFRH", "QI", "TimeUS,TF", "s-", "F-" }, \
