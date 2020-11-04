@@ -25,16 +25,26 @@ void LR_MsgHandler_RFRF::process_message(uint8_t *msg)
     const log_RFRF &RFRF = MSG_CAST(RFRF,msg);
     uint8_t frame_types = RFRF.frame_types;
     if (frame_types & uint8_t(AP_DAL::FrameType::InitialiseFilterEKF2)) {
-        ekf2.InitialiseFilter();
+        ekf2_init_done = ekf2.InitialiseFilter();
     }
     if (frame_types & uint8_t(AP_DAL::FrameType::UpdateFilterEKF2)) {
-        ekf2.UpdateFilter();
+        if (!ekf2_init_done) {
+            ekf2_init_done = ekf2.InitialiseFilter();
+        }
+        if (ekf2_init_done) {
+            ekf2.UpdateFilter();
+        }
     }
     if (frame_types & uint8_t(AP_DAL::FrameType::InitialiseFilterEKF3)) {
-        ekf3.InitialiseFilter();
+        ekf3_init_done = ekf3.InitialiseFilter();
     }
     if (frame_types & uint8_t(AP_DAL::FrameType::UpdateFilterEKF3)) {
-        ekf3.UpdateFilter();
+        if (!ekf3_init_done) {
+            ekf3_init_done = ekf3.InitialiseFilter();
+        }
+        if (ekf3_init_done) {
+            ekf3.UpdateFilter();
+        }
     }
     if (frame_types & uint8_t(AP_DAL::FrameType::LogWriteEKF2)) {
         ekf2.Log_Write();

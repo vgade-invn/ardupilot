@@ -50,6 +50,8 @@ public:
 private:
     NavEKF2 &ekf2;
     NavEKF3 &ekf3;
+    bool ekf2_init_done;
+    bool ekf3_init_done;
 };
 
 class LR_MsgHandler_RFRN : public LR_MsgHandler
