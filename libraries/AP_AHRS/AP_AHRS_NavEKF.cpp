@@ -428,6 +428,8 @@ const Vector3f &AP_AHRS_NavEKF::get_accel_ef_blended(void) const
     return _accel_ef_ekf_blended;
 }
 
+#include <stdio.h>
+
 void AP_AHRS_NavEKF::reset(bool recover_eulers)
 {
     // support locked access functions to AHRS data
@@ -1988,6 +1990,22 @@ bool AP_AHRS_NavEKF::get_hgt_ctrl_limit(float& limit) const
 // this is not related to terrain following
 void AP_AHRS_NavEKF::set_terrain_hgt_stable(bool stable)
 {
+    switch (terrainHgtStableState) {
+    case TriState::UNKNOWN:
+        break;
+    case TriState::True:
+        if (stable) {
+            return;
+        }
+        break;
+    case TriState::False:
+        if (!stable) {
+            return;
+        }
+        break;
+    }
+    terrainHgtStableState = (TriState)stable;
+
 #if HAL_NAVEKF2_AVAILABLE
     EKF2.setTerrainHgtStable(stable);
 #endif
@@ -2106,6 +2124,22 @@ bool AP_AHRS_NavEKF::get_variances(float &velVar, float &posVar, float &hgtVar, 
 
 void AP_AHRS_NavEKF::setTakeoffExpected(bool val)
 {
+    switch (takeoffExpectedState) {
+    case TriState::UNKNOWN:
+        break;
+    case TriState::True:
+        if (val) {
+            return;
+        }
+        break;
+    case TriState::False:
+        if (!val) {
+            return;
+        }
+        break;
+    }
+    takeoffExpectedState = (TriState)val;
+
 #if HAL_NAVEKF2_AVAILABLE
     EKF2.setTakeoffExpected(val);
 #endif
@@ -2116,6 +2150,22 @@ void AP_AHRS_NavEKF::setTakeoffExpected(bool val)
 
 void AP_AHRS_NavEKF::setTouchdownExpected(bool val)
 {
+    switch (touchdownExpectedState) {
+    case TriState::UNKNOWN:
+        break;
+    case TriState::True:
+        if (val) {
+            return;
+        }
+        break;
+    case TriState::False:
+        if (!val) {
+            return;
+        }
+        break;
+    }
+    touchdownExpectedState = (TriState)val;
+
 #if HAL_NAVEKF2_AVAILABLE
     EKF2.setTouchdownExpected(val);
 #endif
