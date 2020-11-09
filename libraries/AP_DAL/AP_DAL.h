@@ -14,6 +14,12 @@
 #include <stdint.h>
 #include <cstddef>
 
+#include <stdio.h>
+
+#ifndef SHOWLINE
+#define SHOWLINE do { ::printf("line %s:%u\n", __FILE__, __LINE__); } while(0)
+#endif
+
 
 #define DAL_CORE(c) AP::dal().logging_core(c)
 
@@ -221,15 +227,19 @@ public:
 
     // Replay support:
     void handle_message(const log_RFRH &msg) {
+        SHOWLINE;
         _RFRH = msg;
         _micros = _RFRH.time_us;
         _millis = _RFRH.time_us / 1000UL;
+        SHOWLINE;
     }
     void handle_message(const log_RFRN &msg) {
+        SHOWLINE;
         _RFRN = msg;
         _home.lat = msg.lat;
         _home.lng = msg.lng;
         _home.alt = msg.alt;
+        SHOWLINE;
     }
     void handle_message(const log_RFRF &msg, NavEKF2 &ekf2, NavEKF3 &ekf3);
 
