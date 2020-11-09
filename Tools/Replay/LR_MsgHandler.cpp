@@ -2,7 +2,6 @@
 #include "LogReader.h"
 #include "Replay.h"
 
-#include <AP_HAL_Linux/Scheduler.h>
 #include <AP_DAL/AP_DAL.h>
 
 #include <cinttypes>
@@ -278,24 +277,13 @@ bool LR_MsgHandler_PARM::set_parameter(const char *name, const float value)
         }
     }
 
-    return _set_parameter_callback(name, value);
+    return LogReader::set_parameter(name, value);
 }
 
 void LR_MsgHandler_PARM::process_message(uint8_t *msg)
 {
     const uint8_t parameter_name_len = AP_MAX_NAME_SIZE + 1; // null-term
     char parameter_name[parameter_name_len];
-    uint64_t time_us;
-
-    if (field_value(msg, "TimeUS", time_us)) {
-    } else {
-        // older logs can have a lot of FMT and PARM messages up the
-        // front which don't have timestamps.  Since in Replay we run
-        // AP_Logger's IO only when stop_clock is called, we can
-        // overflow AP_Logger's ringbuffer.  This should force us to
-        // do IO:
-        hal.scheduler->stop_clock(((Linux::Scheduler*)hal.scheduler)->stopped_clock_usec());
-    }
 
     require_field(msg, "Name", parameter_name, parameter_name_len);
 
