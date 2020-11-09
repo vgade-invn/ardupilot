@@ -4,8 +4,8 @@
 import boards
 
 def build(bld):
-    if isinstance(bld.get_board(), boards.chibios):
-        return
+    #if isinstance(bld.get_board(), boards.chibios):
+    #    return
 
     vehicle = bld.path.name
 
