@@ -2,6 +2,35 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_Scheduler/AP_Scheduler.h>
 
+#ifdef HELI_BUILD
+// heli defines
+
+#define AUTOTUNE_TESTING_STEP_TIMEOUT_MS   5000U    // timeout for tuning mode's testing step
+#define AUTOTUNE_RD_BACKOFF                1.0f     // Rate D gains are reduced to 50% of their maximum value discovered during tuning
+#define AUTOTUNE_RP_BACKOFF                1.0f     // Rate P gains are reduced to 97.5% of their maximum value discovered during tuning
+#define AUTOTUNE_SP_BACKOFF                0.9f     // Stab P gains are reduced to 90% of their maximum value discovered during tuning
+#define AUTOTUNE_ACCEL_RP_BACKOFF          1.0f     // back off from maximum acceleration
+#define AUTOTUNE_ACCEL_Y_BACKOFF           1.0f     // back off from maximum acceleration
+#define AUTOTUNE_Y_FILT_FREQ              10.0f     // Autotune filter frequency when testing Yaw
+#define AUTOTUNE_RP_ACCEL_MIN           4000.0f     // Minimum acceleration for Roll and Pitch
+#define AUTOTUNE_Y_ACCEL_MIN            1000.0f     // Minimum acceleration for Yaw
+
+#else
+
+// Frame specific defaults
+#define AUTOTUNE_TESTING_STEP_TIMEOUT_MS   1000U    // timeout for tuning mode's testing step
+#define AUTOTUNE_RD_BACKOFF                1.0f     // Rate D gains are reduced to 50% of their maximum value discovered during tuning
+#define AUTOTUNE_RP_BACKOFF                1.0f     // Rate P gains are reduced to 97.5% of their maximum value discovered during tuning
+#define AUTOTUNE_SP_BACKOFF                0.9f     // Stab P gains are reduced to 90% of their maximum value discovered during tuning
+#define AUTOTUNE_ACCEL_RP_BACKOFF          1.0f     // back off from maximum acceleration
+#define AUTOTUNE_ACCEL_Y_BACKOFF           1.0f     // back off from maximum acceleration
+#define AUTOTUNE_Y_FILT_FREQ              10.0f     // Autotune filter frequency when testing Yaw
+#define AUTOTUNE_RP_ACCEL_MIN           4000.0f     // Minimum acceleration for Roll and Pitch
+#define AUTOTUNE_Y_ACCEL_MIN            1000.0f     // Minimum acceleration for Yaw
+
+#endif // HELI_BUILD
+
+
 /*
  * autotune support for multicopters
  *
@@ -521,28 +550,28 @@ void AC_AutoTune::control_attitude()
                 switch (axis) {
                 case ROLL:
                     tune_roll_rd = MAX(min_d, tune_roll_rd * AUTOTUNE_RD_BACKOFF);
-                    tune_roll_rp = MAX(AUTOTUNE_RP_MIN, tune_roll_rp * AUTOTUNE_RD_BACKOFF);
+                    tune_roll_rp = MAX(get_rp_min(), tune_roll_rp * AUTOTUNE_RD_BACKOFF);
                     break;
                 case PITCH:
                     tune_pitch_rd = MAX(min_d, tune_pitch_rd * AUTOTUNE_RD_BACKOFF);
-                    tune_pitch_rp = MAX(AUTOTUNE_RP_MIN, tune_pitch_rp * AUTOTUNE_RD_BACKOFF);
+                    tune_pitch_rp = MAX(get_rp_min(), tune_pitch_rp * AUTOTUNE_RD_BACKOFF);
                     break;
                 case YAW:
-                    tune_yaw_rLPF = MAX(AUTOTUNE_RLPF_MIN, tune_yaw_rLPF * AUTOTUNE_RD_BACKOFF);
-                    tune_yaw_rp = MAX(AUTOTUNE_RP_MIN, tune_yaw_rp * AUTOTUNE_RD_BACKOFF);
+                    tune_yaw_rLPF = MAX(get_rlpf_min(), tune_yaw_rLPF * AUTOTUNE_RD_BACKOFF);
+                    tune_yaw_rp = MAX(get_rp_min(), tune_yaw_rp * AUTOTUNE_RD_BACKOFF);
                     break;
                 }
                 break;
             case RP_UP:
                 switch (axis) {
                 case ROLL:
-                    tune_roll_rp = MAX(AUTOTUNE_RP_MIN, tune_roll_rp * AUTOTUNE_RP_BACKOFF);
+                    tune_roll_rp = MAX(get_rp_min(), tune_roll_rp * AUTOTUNE_RP_BACKOFF);
                     break;
                 case PITCH:
-                    tune_pitch_rp = MAX(AUTOTUNE_RP_MIN, tune_pitch_rp * AUTOTUNE_RP_BACKOFF);
+                    tune_pitch_rp = MAX(get_rp_min(), tune_pitch_rp * AUTOTUNE_RP_BACKOFF);
                     break;
                 case YAW:
-                    tune_yaw_rp = MAX(AUTOTUNE_RP_MIN, tune_yaw_rp * AUTOTUNE_RP_BACKOFF);
+                    tune_yaw_rp = MAX(get_rp_min(), tune_yaw_rp * AUTOTUNE_RP_BACKOFF);
                     break;
                 }
                 break;
@@ -551,15 +580,15 @@ void AC_AutoTune::control_attitude()
             case SP_UP:
                 switch (axis) {
                 case ROLL:
-                    tune_roll_sp = MAX(AUTOTUNE_SP_MIN, tune_roll_sp * AUTOTUNE_SP_BACKOFF);
+                    tune_roll_sp = MAX(get_sp_min(), tune_roll_sp * AUTOTUNE_SP_BACKOFF);
                     tune_roll_accel = MAX(AUTOTUNE_RP_ACCEL_MIN, test_accel_max * AUTOTUNE_ACCEL_RP_BACKOFF);
                     break;
                 case PITCH:
-                    tune_pitch_sp = MAX(AUTOTUNE_SP_MIN, tune_pitch_sp * AUTOTUNE_SP_BACKOFF);
+                    tune_pitch_sp = MAX(get_sp_min(), tune_pitch_sp * AUTOTUNE_SP_BACKOFF);
                     tune_pitch_accel = MAX(AUTOTUNE_RP_ACCEL_MIN, test_accel_max * AUTOTUNE_ACCEL_RP_BACKOFF);
                     break;
                 case YAW:
-                    tune_yaw_sp = MAX(AUTOTUNE_SP_MIN, tune_yaw_sp * AUTOTUNE_SP_BACKOFF);
+                    tune_yaw_sp = MAX(get_sp_min(), tune_yaw_sp * AUTOTUNE_SP_BACKOFF);
                     tune_yaw_accel = MAX(AUTOTUNE_Y_ACCEL_MIN, test_accel_max * AUTOTUNE_ACCEL_Y_BACKOFF);
                     break;
                 }

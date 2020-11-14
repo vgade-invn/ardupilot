@@ -60,64 +60,6 @@
 #define AUTOTUNE_DWELL_CYCLES                10
 
 
-#ifdef HELI_BUILD
-// heli defines
-#define AUTOTUNE_TESTING_STEP_TIMEOUT_MS   5000U    // timeout for tuning mode's testing step
-#define AUTOTUNE_RD_STEP                  0.0005f     // minimum increment when increasing/decreasing Rate D term
-#define AUTOTUNE_RP_STEP                  0.005f     // minimum increment when increasing/decreasing Rate P term
-#define AUTOTUNE_SP_STEP                  0.05f     // minimum increment when increasing/decreasing Stab P term
-#define AUTOTUNE_PI_RATIO_FOR_TESTING      0.1f     // I is set 10x smaller than P during testing
-#define AUTOTUNE_PI_RATIO_FINAL            1.0f     // I is set 1x P after testing
-#define AUTOTUNE_YAW_PI_RATIO_FINAL        0.1f     // I is set 1x P after testing
-#define AUTOTUNE_RD_MAX                  0.020f     // maximum Rate D value
-#define AUTOTUNE_RLPF_MIN                  1.0f     // minimum Rate Yaw filter value
-#define AUTOTUNE_RLPF_MAX                  20.0f     // maximum Rate Yaw filter value
-#define AUTOTUNE_RP_MIN                   0.01f     // minimum Rate P value
-#define AUTOTUNE_RP_MAX                    2.0f     // maximum Rate P value
-#define AUTOTUNE_SP_MAX                   10.0f     // maximum Stab P value
-#define AUTOTUNE_SP_MIN                    0.5f     // maximum Stab P value
-#define AUTOTUNE_RP_ACCEL_MIN           4000.0f     // Minimum acceleration for Roll and Pitch
-#define AUTOTUNE_Y_ACCEL_MIN            1000.0f     // Minimum acceleration for Yaw
-#define AUTOTUNE_Y_FILT_FREQ              10.0f     // Autotune filter frequency when testing Yaw
-#define AUTOTUNE_D_UP_DOWN_MARGIN          0.2f     // The margin below the target that we tune D in
-#define AUTOTUNE_RD_BACKOFF                1.0f     // Rate D gains are reduced to 50% of their maximum value discovered during tuning
-#define AUTOTUNE_RP_BACKOFF                1.0f     // Rate P gains are reduced to 97.5% of their maximum value discovered during tuning
-#define AUTOTUNE_SP_BACKOFF                0.9f     // Stab P gains are reduced to 90% of their maximum value discovered during tuning
-#define AUTOTUNE_ACCEL_RP_BACKOFF          1.0f     // back off from maximum acceleration
-#define AUTOTUNE_ACCEL_Y_BACKOFF           1.0f     // back off from maximum acceleration
-#define AUTOTUNE_FFI_RATIO_FOR_TESTING     0.5f     // I is set 2x smaller than VFF during testing
-#define AUTOTUNE_FFI_RATIO_FINAL           0.5f     // I is set 0.5x VFF after testing
-
-#else
-
-// Frame specific defaults
-#define AUTOTUNE_TESTING_STEP_TIMEOUT_MS   1000U    // timeout for tuning mode's testing step
-#define AUTOTUNE_RD_STEP                  0.05f     // minimum increment when increasing/decreasing Rate D term
-#define AUTOTUNE_RP_STEP                  0.05f     // minimum increment when increasing/decreasing Rate P term
-#define AUTOTUNE_SP_STEP                  0.05f     // minimum increment when increasing/decreasing Stab P term
-#define AUTOTUNE_PI_RATIO_FOR_TESTING      0.1f     // I is set 10x smaller than P during testing
-#define AUTOTUNE_PI_RATIO_FINAL            1.0f     // I is set 1x P after testing
-#define AUTOTUNE_YAW_PI_RATIO_FINAL        0.1f     // I is set 1x P after testing
-#define AUTOTUNE_RD_MAX                  0.200f     // maximum Rate D value
-#define AUTOTUNE_RLPF_MIN                  1.0f     // minimum Rate Yaw filter value
-#define AUTOTUNE_RLPF_MAX                  5.0f     // maximum Rate Yaw filter value
-#define AUTOTUNE_RP_MIN                   0.01f     // minimum Rate P value
-#define AUTOTUNE_RP_MAX                    2.0f     // maximum Rate P value
-#define AUTOTUNE_SP_MAX                   20.0f     // maximum Stab P value
-#define AUTOTUNE_SP_MIN                    0.5f     // maximum Stab P value
-#define AUTOTUNE_RP_ACCEL_MIN           4000.0f     // Minimum acceleration for Roll and Pitch
-#define AUTOTUNE_Y_ACCEL_MIN            1000.0f     // Minimum acceleration for Yaw
-#define AUTOTUNE_Y_FILT_FREQ              10.0f     // Autotune filter frequency when testing Yaw
-#define AUTOTUNE_D_UP_DOWN_MARGIN          0.2f     // The margin below the target that we tune D in
-#define AUTOTUNE_RD_BACKOFF                1.0f     // Rate D gains are reduced to 50% of their maximum value discovered during tuning
-#define AUTOTUNE_RP_BACKOFF                1.0f     // Rate P gains are reduced to 97.5% of their maximum value discovered during tuning
-#define AUTOTUNE_SP_BACKOFF                0.9f     // Stab P gains are reduced to 90% of their maximum value discovered during tuning
-#define AUTOTUNE_ACCEL_RP_BACKOFF          1.0f     // back off from maximum acceleration
-#define AUTOTUNE_ACCEL_Y_BACKOFF           1.0f     // back off from maximum acceleration
-#define AUTOTUNE_FFI_RATIO_FOR_TESTING     0.5f     // I is set 2x smaller than VFF during testing
-#define AUTOTUNE_FFI_RATIO_FINAL           0.5f     // I is set 0.5x VFF after testing
-
-#endif // HELI_BUILD
 
 class AC_AutoTune {
 public:
@@ -342,6 +284,9 @@ protected:
     virtual float get_intra_test_ri() = 0;
     virtual float get_load_tuned_ri() = 0;
     virtual float get_load_tuned_yaw_rd() = 0;
+    virtual float get_rp_min() = 0;
+    virtual float get_sp_min() = 0;
+    virtual float get_rlpf_min() = 0;
 
     // Functions added for heli autotune
 
