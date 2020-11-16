@@ -284,9 +284,9 @@ protected:
     virtual float get_intra_test_ri() = 0;
     virtual float get_load_tuned_ri() = 0;
     virtual float get_load_tuned_yaw_rd() = 0;
-    virtual float get_rp_min() = 0;
-    virtual float get_sp_min() = 0;
-    virtual float get_rlpf_min() = 0;
+    virtual float get_rp_min() const = 0;
+    virtual float get_sp_min() const = 0;
+    virtual float get_rlpf_min() const = 0;
 
     // Functions added for heli autotune
 
