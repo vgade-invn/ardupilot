@@ -150,6 +150,7 @@ bool AP_InertialSensor_Invensense::_init()
 
 void AP_InertialSensor_Invensense::_fifo_reset(bool log_error)
 {
+    palToggleLine(HAL_GPIO_PIN_DEBUG1);
     uint32_t now = AP_HAL::millis();
     if (log_error &&
         !hal.scheduler->in_expected_delay() &&
