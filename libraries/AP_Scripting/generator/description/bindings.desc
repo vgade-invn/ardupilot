@@ -12,6 +12,7 @@ userdata Location field loiter_xtrack boolean read write
 
 userdata Location method get_distance float Location
 userdata Location method offset void float -FLT_MAX FLT_MAX float -FLT_MAX FLT_MAX
+userdata Location method offset_bearing void float -FLT_MAX FLT_MAX float -FLT_MAX FLT_MAX
 userdata Location method get_vector_from_origin_NEU boolean Vector3f'Null
 userdata Location method get_bearing float Location
 userdata Location method get_distance_NED Vector3f Location
@@ -258,6 +259,7 @@ singleton AP_Mission method get_current_do_cmd_id uint16_t
 singleton AP_Mission method num_commands uint16_t
 singleton AP_Mission method get_item boolean uint16_t 0 UINT16_MAX mavlink_mission_item_int_t'Null
 singleton AP_Mission method set_item boolean uint16_t 0 UINT16_MAX mavlink_mission_item_int_t
+singleton AP_Mission method clear boolean
 
 userdata mavlink_mission_item_int_t field param1 float read write -FLT_MAX FLT_MAX
 userdata mavlink_mission_item_int_t field param2 float read write -FLT_MAX FLT_MAX
