@@ -992,10 +992,10 @@ private:
     void update_sensor_status_flags();
 
     void service_statustext(void);
-#if HAL_MEM_CLASS <= HAL_MEM_CLASS_192 || CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#if HAL_MEM_CLASS <= HAL_MEM_CLASS_192
     static const uint8_t _status_capacity = 5;
 #else
-    static const uint8_t _status_capacity = 30;
+    static const uint8_t _status_capacity = 50;
 #endif
 
     // a lock for the statustext queue, to make it safe to use send_text()
