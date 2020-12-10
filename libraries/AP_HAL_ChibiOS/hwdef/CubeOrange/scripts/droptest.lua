@@ -32,6 +32,9 @@ local APPROACH_DIST_MAX = 6400
 local BASE_DIST = 1390
 local STEP_RATIO = 0.5
 
+-- see if we are running on SITL
+local is_SITL = param:get('SIM_SPEEDUP')
+
 function get_glide_slope()
    GLIDE_SLOPE = param:get('SCR_USER2')
    if GLIDE_SLOPE <= 0 then
@@ -235,10 +238,6 @@ function mission_update()
       gcs:send_text(0, string.format("Invalid current cnum %u", cnum))
       return
    end
-   if m:command() ~= NAV_WAYPOINT then
-      -- only update when tracking to a waypoint (not LAND)
-      return
-   end
    local loc = get_position()
    if loc == nil then
       return
@@ -253,6 +252,10 @@ function mission_update()
                                   cnum, feet(current_distance), feet(current_alt), current_slope,
                                   feet(-current_err)))
 
+   if m:command() ~= NAV_WAYPOINT then
+      -- only update when tracking to a waypoint (not LAND)
+      return
+   end
    if not is_change_candidate(cnum) then
       -- only change if on a candidate now
       return false
@@ -550,6 +553,8 @@ gcs:send_text(0, string.format("LANDING_AMSL %.1f GLIDE_SLOPE %.1f", LANDING_AMS
 
 fix_WP_heights()
 
+local last_armed = false
+
 function update()
    if rc:has_valid_input() and rc:get_pwm(8) > 1800 then
       -- disable automation
@@ -560,9 +565,16 @@ function update()
    if not arming:is_armed() and create_mission_check() then
       create_mission()
    end
-   
+
    local t = 0.001 * millis():tofloat()
-   local state = button:get_button_state(button_number)
+   local state
+   if is_SITL then
+      -- use armed state for button in SITL
+      state = arming:is_armed()
+   else
+      state = button:get_button_state(button_number)
+   end
+
    if state ~= button_state then
       gcs:send_text(0, string.format("release: " .. tostring(state)))
       button_state = state
