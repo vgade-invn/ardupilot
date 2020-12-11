@@ -556,7 +556,7 @@ fix_WP_heights()
 local last_armed = false
 
 function update()
-   if rc:has_valid_input() and rc:get_pwm(8) > 1800 then
+   if not is_SITL and rc:has_valid_input() and rc:get_pwm(8) > 1800 then
       -- disable automation
       notify:handle_rgb(255,255,255,10)
       return update, 100
