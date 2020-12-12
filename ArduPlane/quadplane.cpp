@@ -1409,6 +1409,10 @@ bool QuadPlane::assistance_needed(float aspeed)
 
     in_pre_assist = false;
 
+    if (force_assist) {
+        return true;
+    }
+
     if (assist_speed <= 0) {
         // assistance disabled
         in_angle_assist = false;

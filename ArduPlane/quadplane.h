@@ -153,6 +153,9 @@ public:
 
     MAV_TYPE get_mav_type(void) const;
 
+    // true when in RC option for forced assist is on
+    bool force_assist;
+
 private:
     AP_AHRS_NavEKF &ahrs;
     AP_Vehicle::MultiCopter aparm;
@@ -385,7 +388,7 @@ private:
 
     // true when in pre-transition assist
     bool in_pre_assist:1;
-    
+
     struct {
         // time when motors reached lower limit
         uint32_t lower_limit_start_ms;
