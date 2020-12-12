@@ -470,6 +470,13 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @User: Standard
     AP_GROUPINFO("ASSIST_ALT", 16, QuadPlane, assist_alt, 0),
 
+    // @Param: PRETRANS_TIME
+    // @DisplayName: Pre-transition time
+    // @Description: This is the amount of time before expected transition to start VTOL motors in AUTO mode back transitions
+    // @Units: s
+    // @RebootRequired: False
+    AP_GROUPINFO("PRETRANS_TIME", 21, QuadPlane, pre_transition_time, 0),
+
     AP_GROUPEND
 };
 
@@ -1384,6 +1391,24 @@ float QuadPlane::desired_auto_yaw_rate_cds(void) const
  */
 bool QuadPlane::assistance_needed(float aspeed)
 {
+    /*
+      check for pre-assistance for transition approach
+     */
+    if (pre_transition_time > 0 &&
+        plane.control_mode == &plane.mode_auto &&
+        plane.auto_state.wp_is_vtol_land_approach) {
+        const float time_to_transition = plane.auto_state.wp_distance / plane.ahrs.groundspeed();
+        if (time_to_transition <= pre_transition_time) {
+            if (!in_pre_assist) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Started pre-assist at %.1fm", plane.auto_state.wp_distance);
+            }
+            in_pre_assist = true;
+            return true;
+        }
+    }
+
+    in_pre_assist = false;
+
     if (assist_speed <= 0) {
         // assistance disabled
         in_angle_assist = false;
