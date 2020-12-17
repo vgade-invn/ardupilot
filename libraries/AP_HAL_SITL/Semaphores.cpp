@@ -9,22 +9,40 @@ extern const AP_HAL::HAL& hal;
 
 using namespace HALSITL;
 
+/*
+  we use a simple spinlock on cygwin as the performance of posix locks
+  is atrocious. This does mean we have a race in taking locks, but
+  otherwie SITL on cygwin is unusable
+ */
+
 // construct a semaphore
 Semaphore::Semaphore()
 {
+#if HAL_SEMAPHORE_SPINLOCK
+    _lock = 0;
+#else
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&_lock, &attr);
+#endif
+    owner = (pthread_t)-1;
 }
 
 
 bool Semaphore::give()
 {
     take_count--;
+#if HAL_SEMAPHORE_SPINLOCK
+    _lock--;
+    if (_lock < 0) {
+        AP_HAL::panic("Bad semaphore usage");
+    }
+#else
     if (pthread_mutex_unlock(&_lock) != 0) {
         AP_HAL::panic("Bad semaphore usage");
     }
+#endif
     if (take_count == 0) {
         owner = (pthread_t)-1;
     }
@@ -42,7 +60,20 @@ void Semaphore::check_owner()
 bool Semaphore::take(uint32_t timeout_ms)
 {
     if (timeout_ms == HAL_SEMAPHORE_BLOCK_FOREVER) {
-        if (pthread_mutex_lock(&_lock) == 0) {
+        bool lock_ok;
+#if HAL_SEMAPHORE_SPINLOCK
+        pthread_t self = pthread_self();
+        if (owner != self) {
+            while (_lock > 0 || owner != (pthread_t)-1) ;
+            _lock = 1;
+        } else {
+            _lock++;
+        }
+        lock_ok = true;
+#else
+        lock_ok = (pthread_mutex_lock(&_lock) == 0);
+#endif
+        if (lock_ok) {
             owner = pthread_self();
             take_count++;
             return true;
@@ -68,7 +99,18 @@ bool Semaphore::take(uint32_t timeout_ms)
 
 bool Semaphore::take_nonblocking()
 {
-    if (pthread_mutex_trylock(&_lock) == 0) {
+    bool lock_ok;
+#if HAL_SEMAPHORE_SPINLOCK
+    if (owner != pthread_self() && owner != (pthread_t)-1) {
+        lock_ok = false;
+    } else {
+        _lock++;
+        lock_ok = true;
+    }
+#else
+    lock_ok = (pthread_mutex_trylock(&_lock) == 0);
+#endif
+    if (lock_ok) {
         owner = pthread_self();
         take_count++;
         return true;
