@@ -177,6 +177,9 @@ protected:
     float local_ground_level;            // ground level at local position
     bool lock_step_scheduled;
 
+    Vector3d balloon_velocity;           // balloon velocity NED
+    Vector3d balloon_position;           // ballon position NED from origin
+
     // battery model
     Battery battery;
 
