@@ -228,6 +228,8 @@ const AP_Param::GroupInfo SITL::var_info3[] = {
 
     // a method to force alt change for testing
     AP_GROUPINFO("SET_ALT", 37, SITL, setalt, 0),
+    AP_GROUPINFO("SET_PITCH", 38, SITL, setpitch, 0),
+    AP_GROUPINFO("SET_SPEED", 39, SITL, setspeed, 0),
 
     // user settable parameters for the 1st barometer
     // @Param: BARO_RND

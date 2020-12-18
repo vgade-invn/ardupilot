@@ -238,6 +238,8 @@ public:
     AP_Float buoyancy; // submarine buoyancy in Newtons
     AP_Int16 loop_rate_hz;
     AP_Float setalt;
+    AP_Float setpitch;
+    AP_Float setspeed;
 
 #ifdef SFML_JOYSTICK
     AP_Int8 sfml_joystick_id;
