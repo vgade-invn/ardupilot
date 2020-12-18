@@ -520,6 +520,9 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
 {
     const float delta_time = frame_time_us * 1.0e-6f;
 
+    // update eas2tas
+    eas2tas = AP_Baro::get_EAS2TAS_for_alt_amsl(-position.z);
+
     // update rotational rates in body frame
     gyro += rot_accel * delta_time;
 
@@ -552,7 +555,7 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
     position += velocity_ef * delta_time;
 
     // velocity relative to air mass, in earth frame
-    velocity_air_ef = velocity_ef + wind_ef;
+    velocity_air_ef = (velocity_ef + wind_ef) / eas2tas;
 
     // velocity relative to airmass in body frame
     velocity_air_bf = dcm.transposed() * velocity_air_ef;
@@ -853,7 +856,7 @@ void Aircraft::extrapolate_sensors(float delta_time)
     // new velocity and position vectors
     velocity_ef += accel_earth * delta_time;
     position += velocity_ef * delta_time;
-    velocity_air_ef = velocity_ef + wind_ef;
+    velocity_air_ef = (velocity_ef + wind_ef) / eas2tas;
     velocity_air_bf = dcm.transposed() * velocity_air_ef;
 }
 

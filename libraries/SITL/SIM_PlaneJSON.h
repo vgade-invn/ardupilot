@@ -177,6 +177,11 @@ protected:
     Vector3f getForce(float inputAileron, float inputElevator, float inputRudder) const;
     Vector3f getTorque(float inputAileron, float inputElevator, float inputRudder, const Vector3f &force) const;
     void calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel);
+
+    Vector3f balloon_velocity;           // balloon velocity NED
+    Vector3f balloon_position{0.0f, 0.0f, -51.5f}; // balloon position NED from origin
+    bool plane_ground_release; // true when the plane is released from its ground constraint
+    bool plane_air_release;    // true when plane has separated from the airborne launching platform
 };
 
 } // namespace SITL
