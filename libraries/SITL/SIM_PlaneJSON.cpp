@@ -163,7 +163,7 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
     betarad = constrain_float(betarad, -model.betaRadMax, model.betaRadMax);
 
     Vector3f force;
-    if (plane_air_release) {
+    if (plane_air_release || !hal.util->get_soft_armed()) {
         force = getForce(aileron, elevator, rudder);
         rot_accel = getTorque(aileron, elevator, rudder, force);
     } else {
@@ -239,6 +239,12 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
         accel_body.x -= vel_body.x * 0.3f;
     }
 
+    auto *_sitl = AP::sitl();
+    if (!is_zero(_sitl->setalt)) {
+        position.z = -_sitl->setalt;
+        ::printf("setalt to %.2fm\n", _sitl->setalt.get());
+        _sitl->setalt.set_and_save(0);
+    }
 }
     
 /*

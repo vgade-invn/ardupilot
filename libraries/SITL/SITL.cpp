@@ -226,6 +226,9 @@ const AP_Param::GroupInfo SITL::var_info3[] = {
     AP_SUBGROUPINFO(baro[1], "BAR2_", 35, SITL, SITL::BaroParm),
     AP_SUBGROUPINFO(baro[2], "BAR3_", 36, SITL, SITL::BaroParm),
 
+    // a method to force alt change for testing
+    AP_GROUPINFO("SET_ALT", 37, SITL, setalt, 0),
+
     // user settable parameters for the 1st barometer
     // @Param: BARO_RND
     // @DisplayName: Baro Noise
