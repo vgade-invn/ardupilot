@@ -195,6 +195,9 @@ public:
     void handle_external(const AP_ExternalAHRS::baro_data_message_t &pkt);
 #endif
     
+    // lookup expected pressure for a given altitude. Used for SITL backend
+    static void get_pressure_temperature_for_alt_amsl(float alt_amsl, float &pressure, float &temperature_K);
+
 private:
     // singleton
     static AP_Baro *_singleton;
@@ -289,6 +292,12 @@ private:
     // semaphore for API access from threads
     HAL_Semaphore                      _rsem;
 
+    enum class Options : uint8_t {
+        USE_ATMOS_TABLE = (1U<<0),
+    };
+
+    AP_Int32                           _options;
+
 #if HAL_BARO_WIND_COMP_ENABLED
     /*
       return pressure correction for wind based on GND_WCOEF parameters
@@ -300,6 +309,11 @@ private:
     void Write_Baro(void);
     void Write_Baro_instance(uint64_t time_us, uint8_t baro_instance);
     
+    // two different atomspheric models
+    float get_altitude_difference_function(float base_pressure, float pressure) const;
+    float get_altitude_difference_table(float base_pressure, float pressure) const;
+    float get_EAS2TAS_table(float pressure);
+    float get_EAS2TAS_function(float altitude, float pressure);
 };
 
 namespace AP {
