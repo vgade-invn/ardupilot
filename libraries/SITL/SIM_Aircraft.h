@@ -178,7 +178,7 @@ protected:
     bool lock_step_scheduled;
 
     Vector3d balloon_velocity;           // balloon velocity NED
-    Vector3d balloon_position;           // ballon position NED from origin
+    Vector3d balloon_position{0.0f, 0.0f, -49.0f};           // ballon position NED from origin
 
     // battery model
     Battery battery;
@@ -242,6 +242,7 @@ protected:
         GROUND_BEHAVIOR_NO_MOVEMENT,
         GROUND_BEHAVIOR_FWD_ONLY,
         GROUND_BEHAVIOR_TAILSITTER,
+        GROUND_BEHAVIOUR_NOSESITTER,
     } ground_behavior;
 
     bool use_smoothing;
