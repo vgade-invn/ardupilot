@@ -172,10 +172,7 @@ protected:
     float airspeed_pitot;                // m/s, apparent airspeed, as seen by fwd pitot tube
     float battery_voltage = -1.0f;
     float battery_current;
-    Vector3f balloon_velocity;           // balloon velocity NED
-    Vector3f balloon_position{0.0f, 0.0f, -51.5f}; // balloon position NED from origin
-    bool plane_ground_release; // true when the plane is released from its ground constraint
-    bool plane_air_release;    // true when plane has separated from the airborne launching platform
+    float eas2tas = 1.0;
 
     // battery model
     Battery battery;

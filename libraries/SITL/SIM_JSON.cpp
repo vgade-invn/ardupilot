@@ -284,7 +284,7 @@ void JSON::recv_fdm(const struct sitl_input &input)
     }
 
     // velocity relative to airmass in body frame
-    velocity_air_bf = dcm.transposed() * velocity_ef;
+    velocity_air_bf = dcm.transposed() * velocity_ef / eas2tas;
 
     // airspeed
     airspeed = velocity_air_bf.length();
