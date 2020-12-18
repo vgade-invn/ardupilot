@@ -20,6 +20,8 @@
 #include <AP_Logger/AP_Logger.h>
 #include <AP_AHRS/AP_AHRS.h>
 
+extern const AP_HAL::HAL& hal;
+
 using namespace SITL;
 
 PlaneJSON::PlaneJSON(const char *frame_str) :
@@ -27,6 +29,10 @@ PlaneJSON::PlaneJSON(const char *frame_str) :
 {
     ground_behavior = GROUND_BEHAVIOUR_NOSESITTER;
     model = default_model;
+    auto *_sitl = AP::sitl();
+    _sitl->setalt.set_and_save(0);
+    _sitl->setspeed.set_and_save(0);
+    _sitl->setpitch.set_and_save(0);
 }
 
 // Torque calculation function
@@ -239,11 +245,32 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
         accel_body.x -= vel_body.x * 0.3f;
     }
 
-    auto *_sitl = AP::sitl();
-    if (!is_zero(_sitl->setalt)) {
-        position.z = -_sitl->setalt;
-        ::printf("setalt to %.2fm\n", _sitl->setalt.get());
-        _sitl->setalt.set_and_save(0);
+    // constrain accelerations
+    accel_body.x = constrain_float(accel_body.x, -16*GRAVITY_MSS, 16*GRAVITY_MSS);
+    accel_body.y = constrain_float(accel_body.y, -16*GRAVITY_MSS, 16*GRAVITY_MSS);
+    accel_body.z = constrain_float(accel_body.z, -16*GRAVITY_MSS, 16*GRAVITY_MSS);
+
+    if (hal.util->get_soft_armed()) {
+        auto *_sitl = AP::sitl();
+        if (!is_zero(_sitl->setalt)) {
+            position.z = -_sitl->setalt;
+            ::printf("setalt to %.2fm\n", _sitl->setalt.get());
+            _sitl->setalt.set_and_save(0);
+        }
+        if (!is_zero(_sitl->setpitch)) {
+            float r, p, y;
+            dcm.to_euler(&r, &p, &y);
+            dcm.from_euler(r, radians(_sitl->setpitch), y);
+        }
+        if (!on_ground() && !is_zero(_sitl->setspeed)) {
+            float eas = _sitl->setspeed.get();
+            float eas_old = velocity_air_bf.x;
+            float scale = is_zero(eas_old)?1:eas / eas_old;
+            ::printf("speed scale=%.9f\n", scale);
+            velocity_air_bf *= scale;
+            velocity_air_ef *= scale;
+            velocity_ef *= scale;
+        }
     }
 }
     
