@@ -243,13 +243,26 @@ static float lookup_atmospheric_table_alt(const float pressure)
 /*
   return an interpolated density in meters given a pressure
  */
-static float lookup_atmospheric_table_density(const float pressure)
+static float lookup_atmospheric_table_density_by_pressure(const float pressure)
 {
     uint32_t idx = lookup_atmospheric_table_by_pressure(pressure);
     const float slope =
         (atmospheric_table[idx].density - atmospheric_table[idx-1].density) /
         (atmospheric_table[idx-1].pressure_Pa - atmospheric_table[idx].pressure_Pa);
     return atmospheric_table[idx-1].density - slope * (pressure - atmospheric_table[idx-1].pressure_Pa);
+}
+
+/*
+  return an interpolated density in meters given an altitude
+ */
+static float lookup_atmospheric_table_density_by_alt(const float alt_amsl)
+{
+    uint32_t idx = lookup_atmospheric_table_by_alt(alt_amsl);
+    const float alt_feet = alt_amsl / FEET_TO_METERS;
+    const float slope =
+        (atmospheric_table[idx].density - atmospheric_table[idx-1].density) /
+        (atmospheric_table[idx-1].amsl_feet - atmospheric_table[idx].amsl_feet);
+    return atmospheric_table[idx-1].density - slope * (alt_feet - atmospheric_table[idx-1].amsl_feet);
 }
 
 
@@ -288,7 +301,7 @@ void AP_Baro::get_pressure_temperature_for_alt_amsl(float alt_m, float &pressure
 */
 float AP_Baro::get_EAS2TAS_table(float pressure)
 {
-    float density = lookup_atmospheric_table_density(pressure);
+    float density = lookup_atmospheric_table_density_by_pressure(pressure);
     if (!is_positive(density)) {
         // we really are not likely to get this high
         const uint32_t table_size = ARRAY_SIZE(atmospheric_table);
@@ -336,6 +349,18 @@ float AP_Baro::get_EAS2TAS_function(float altitude, float pressure)
     return _EAS2TAS;
 }
 
+
+#if HAL_BARO_ATMOSPHERIC_TABLE
+/*
+  return scale factor that converts from equivalent to true airspeed
+  used by SITL only
+*/
+float AP_Baro::get_EAS2TAS_for_alt_amsl(float alt_amsl)
+{
+    const float density = lookup_atmospheric_table_density_by_alt(alt_amsl);
+    return sqrtf(SSL_AIR_DENSITY / MAX(0.00001,density));
+}
+#endif
 
 /*
   return current scale factor that converts from equivalent to true airspeed
