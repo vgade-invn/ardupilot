@@ -36,7 +36,7 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] = {
 
     // @Param: 2SRV_RMAX_UP
 	// @DisplayName: Pitch up max rate
-	// @Description: Maximum pitch up rate that the pitch controller demands (degrees/sec) in ACRO mode.
+	// @Description: Maximum pitch up rate that the pitch controller demands (degrees/sec) in ACRO mode. Normal g loading should be limited using the PTCH2SRV_NGLIM parameter.
 	// @Range: 0 100
 	// @Units: deg/s
 	// @Increment: 1
@@ -45,7 +45,7 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] = {
 
     // @Param: 2SRV_RMAX_DN
 	// @DisplayName: Pitch down max rate
-	// @Description: This sets the maximum nose down pitch rate that the controller will demand (degrees/sec). Setting it to zero disables the limit.
+	// @Description: This sets the maximum nose down pitch rate that the controller will demand (degrees/sec). Setting it to zero disables the limit. Normal g loading should be limited using the PTCH2SRV_NGLIM parameter.
 	// @Range: 0 100
 	// @Units: deg/s
 	// @Increment: 1
@@ -130,6 +130,14 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] = {
 
     AP_SUBGROUPINFO(rate_pid, "_RATE_", 11, AP_PitchController, AC_PID),
     
+    // @Param: NGLIM
+    // @DisplayName: Normal load factor limit
+    // @Description: This limits the demanded pitch rate to a value that limits g loading to the value specified in the + and - direction. This limit is additional to that specified by PTCH2SRV_RMAX_UP and PTCH2SRV_RMAX_DN.
+    // @Range: 2.0 10.0
+    // @Increment: 0.5
+    // @User: Advanced
+    AP_GROUPINFO("NGLIM", 12, AP_PitchController, _ng_limit, 2.0f),
+
     AP_GROUPEND
 };
 
@@ -297,9 +305,7 @@ int32_t AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool 
     angle_err_deg = angle_err * 0.01;
     float desired_rate = angle_err_deg / gains.tau;
 	
-	// limit the maximum pitch rate demand. Don't apply when inverted
-	// as the rates will be tuned when upright, and it is common that
-	// much higher rates are needed inverted	
+	// legacy rate limit that doesn't use airspeed
 	if (!inverted) {
         if (gains.rmax_neg && desired_rate < -gains.rmax_neg) {
             desired_rate = -gains.rmax_neg;
@@ -311,6 +317,15 @@ int32_t AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool 
 	if (inverted) {
 		desired_rate = -desired_rate;
 	}
+
+	// apply pitch rate limits that prevent specified normal g loading being exceeded
+	const float VTAS = aspeed * _ahrs.get_EAS2TAS();
+	const float g_div_vtas = GRAVITY_MSS / VTAS;
+	const float zero_ng_pitch_rate = - g_div_vtas * _ahrs.get_DCM_rotation_body_to_ned().a.z;
+	const float ng_pitch_rate = g_div_vtas * MAX(_ng_limit, 2.0f);
+	const float max_pitch_rate_dps = degrees(zero_ng_pitch_rate + ng_pitch_rate);
+	const float min_pitch_rate_dps = degrees(zero_ng_pitch_rate - ng_pitch_rate);
+	desired_rate = constrain_float(desired_rate, min_pitch_rate_dps, max_pitch_rate_dps);
 
 	// Apply the turn correction offset
 	desired_rate = desired_rate + rate_offset;

@@ -49,8 +49,7 @@ private:
     AP_AutoTune::ATGains gains;
     AP_AutoTune *autotune;
     bool failed_autotune_alloc;
-	AP_Int16 _max_rate_neg;
-	AP_Float _roll_ff;
+    AP_Float _roll_ff;
 	uint32_t _last_t;
     float _last_out;
     AC_PID rate_pid{0.04, 0.15, 0, 0.345, 0.666, 3, 0, 12, 0.02, 150, 1};
@@ -60,6 +59,7 @@ private:
 
     int32_t _get_rate_out(float desired_rate, float scaler, bool disable_integrator, float aspeed);
     float   _get_coordination_rate_offset(float &aspeed, bool &inverted) const;
+    AP_Float _ng_limit;                     // normal load factor limit in the + and - direction
 
     AP_AHRS &_ahrs;
 };
