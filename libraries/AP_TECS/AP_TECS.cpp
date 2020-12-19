@@ -848,6 +848,7 @@ void AP_TECS::_detect_bad_descent(void)
 void AP_TECS::_update_pitch(void)
 {
     float max_sink_rate = _maxSinkRate;
+    float max_climb_rate = _maxClimbRate;
     if (_maxSinkRate_approach > 0 && _flags.is_doing_auto_land) {
         // special sink rate for approach to accommodate steep slopes and reverse thrust.
         // A special check must be done to see if we're LANDing on approach but also if
@@ -855,6 +856,11 @@ void AP_TECS::_update_pitch(void)
         // we have a steep slope with a short approach we'll want to allow acquiring the
         // glide slope right away.
         max_sink_rate = _maxSinkRate_approach;
+    } else if (_options & OPTION_GLIDER_ONLY) {
+        // adjust sink and climb limits EAS to TAS ratio
+        const float EAS2TAS = _ahrs.get_EAS2TAS();
+        max_sink_rate  *= EAS2TAS;
+        max_climb_rate *= EAS2TAS;
     }
 
     // Calculate Speed/Height Control Weighting
@@ -895,7 +901,7 @@ void AP_TECS::_update_pitch(void)
     float SEB_error = SEB_dem - (_SPE_est * SPE_weighting - _SKE_est * _SKE_weighting);
 
     // track demanded height using the specified time constant
-    float SEBdot_dem = constrain_float(_hgt_rate_dem * GRAVITY_MSS + SEB_error / timeConstant(), -max_sink_rate * GRAVITY_MSS, _maxClimbRate * GRAVITY_MSS);
+    float SEBdot_dem = constrain_float(_hgt_rate_dem * GRAVITY_MSS + SEB_error / timeConstant(), -max_sink_rate * GRAVITY_MSS, max_climb_rate * GRAVITY_MSS);
 
     // rate of change of potential energy is required by total energy controller
     _SPEdot_dem = (_SPE_dem * SPE_weighting - _SPE_est) * SPE_weighting / timeConstant();
