@@ -145,18 +145,21 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
     float throttle = filtered_servo_range(input, 2);
     float balloon  = filtered_servo_range(input, 5);
 
+    auto *_sitl = AP::sitl();
+
     // Move balloon upwards using balloon velocity from channel 6
     // Aircraft is released from ground constraint when channel 6 PWM > 1010
     // Once released, plane will be dropped when balloonBurstHeight is reached or channel 6 is set to PWM 1000
-    if (!plane_air_release) {
+    if (!plane_air_release && _sitl->balloon_burst > 0) {
         if (plane_ground_release) {
-            balloon_velocity = Vector3f(wind_ef.x, wind_ef.y, -model.balloonAscentRate * balloon);
+            balloon_velocity = Vector3f(wind_ef.x, wind_ef.y, -_sitl->balloon_rate * balloon);
             balloon_position += balloon_velocity * (1.0e-6f * (float)frame_time_us);
         } else {
             // stop wind dragging balloon before release
             balloon_velocity.zero();
         }
-        if ((0.01f * (float)home.alt - position.z > model.balloonBurstHeight) || (plane_ground_release && balloon < 0.01f)) {
+        if ((0.01f * (float)home.alt - position.z > _sitl->balloon_burst) || (plane_ground_release && balloon < 0.01f)) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Balloon release at %.1fm AMSL", -position.z);
             plane_air_release = true;
         }
     }
@@ -169,7 +172,7 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
     betarad = constrain_float(betarad, -model.betaRadMax, model.betaRadMax);
 
     Vector3f force;
-    if (plane_air_release || !hal.util->get_soft_armed()) {
+    if (plane_air_release || !hal.util->get_soft_armed() || _sitl->balloon_burst <= 0) {
         force = getForce(aileron, elevator, rudder);
         rot_accel = getTorque(aileron, elevator, rudder, force);
     } else {
@@ -251,9 +254,10 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
     accel_body.z = constrain_float(accel_body.z, -16*GRAVITY_MSS, 16*GRAVITY_MSS);
 
     if (hal.util->get_soft_armed()) {
-        auto *_sitl = AP::sitl();
         if (!is_zero(_sitl->setalt)) {
-            position.z = -_sitl->setalt;
+            float delta = _sitl->setalt + position.z;
+            position.z -= delta;
+            balloon_position.z -= delta;
             ::printf("setalt to %.2fm\n", _sitl->setalt.get());
             _sitl->setalt.set_and_save(0);
         }
