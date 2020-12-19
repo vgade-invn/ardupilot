@@ -240,7 +240,7 @@ public:
     AP_Float setalt;
     AP_Float setpitch;
     AP_Float setspeed;
-    AP_Float balloon_burst;
+    AP_Float balloon_burst_amsl; // height of ballon burst in m AMSL
     AP_Float balloon_rate;
 
 #ifdef SFML_JOYSTICK
