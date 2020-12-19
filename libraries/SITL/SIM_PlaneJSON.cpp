@@ -295,3 +295,12 @@ void PlaneJSON::update(const struct sitl_input &input)
     // update magnetic field
     update_mag_field_bf();
 }
+
+/*
+   return true if we are on the ground
+*/
+bool PlaneJSON::on_ground() const
+{
+    // prevent bouncing around ground
+    return Aircraft::on_ground() && plane_air_release;
+}
