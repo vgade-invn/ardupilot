@@ -240,6 +240,8 @@ public:
     AP_Float setalt;
     AP_Float setpitch;
     AP_Float setspeed;
+    AP_Float balloon_burst;
+    AP_Float balloon_rate;
 
 #ifdef SFML_JOYSTICK
     AP_Int8 sfml_joystick_id;

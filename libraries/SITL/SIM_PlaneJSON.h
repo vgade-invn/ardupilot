@@ -169,8 +169,6 @@ protected:
         // balloon launch parameters
         float tetherLength = 50.0f;       // length of tether from balloon to aircraft (m)
         float tetherPogoFreq = 2.0f;      // measured vertical frequency of on tether (Hz)
-        float balloonBurstHeight = 30000; // height AMSL that the balloon will burst (m)
-        float balloonAscentRate = 10.0f;  // maximum balloon ascent rate
 
     } default_model;
 
