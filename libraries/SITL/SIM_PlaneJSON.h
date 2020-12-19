@@ -41,7 +41,6 @@ public:
 
 protected:
     const float hover_throttle = 0.7f;
-    const float air_density = SSL_AIR_DENSITY; // kg/m^3 at sea level, ISA conditions
     float alpharad;
     float betarad;
 
