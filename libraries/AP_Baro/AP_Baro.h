@@ -117,6 +117,9 @@ public:
     // EAS2TAS for SITL
     static float get_EAS2TAS_for_alt_amsl(float alt_amsl);
 
+    // get air densityfor SITL
+    static float get_air_density_for_alt_amsl(float alt_amsl);
+    
     // get air density / sea level density - decreases as altitude climbs
     float get_air_density_ratio(void);
 
