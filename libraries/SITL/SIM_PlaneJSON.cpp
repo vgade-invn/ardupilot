@@ -27,7 +27,8 @@ using namespace SITL;
 PlaneJSON::PlaneJSON(const char *frame_str) :
     Aircraft(frame_str)
 {
-    ground_behavior = GROUND_BEHAVIOUR_NOSESITTER;
+    ground_behavior = GROUND_BEHAVIOR_NO_MOVEMENT;
+    carriage_state = carriageState::WAITING_FOR_PICKUP;
     model = default_model;
     auto *_sitl = AP::sitl();
     _sitl->setalt.set_and_save(0);
@@ -137,29 +138,26 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
 
 void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel)
 {
+    auto *_sitl = AP::sitl();
     float aileron  = filtered_servo_angle(input, 0);
     float elevator = filtered_servo_angle(input, 1);
     float rudder   = filtered_servo_angle(input, 3);
     float throttle = filtered_servo_range(input, 2);
     float balloon  = filtered_servo_range(input, 5);
 
-    auto *_sitl = AP::sitl();
-
     // Move balloon upwards using balloon velocity from channel 6
     // Aircraft is released from ground constraint when channel 6 PWM > 1010
     // Once released, plane will be dropped when balloonBurstHeight is reached or channel 6 is set to PWM 1000
-    if (!plane_air_release && _sitl->balloon_burst > 0) {
-        if (plane_ground_release) {
-            balloon_velocity = Vector3f(wind_ef.x, wind_ef.y, -_sitl->balloon_rate * balloon);
-            balloon_position += balloon_velocity * (1.0e-6f * (float)frame_time_us);
-        } else {
-            // stop wind dragging balloon before release
-            balloon_velocity.zero();
+    if (carriage_state == carriageState::WAITING_FOR_RELEASE) {
+        balloon_velocity = Vector3f(wind_ef.x, wind_ef.y, -_sitl->balloon_rate * balloon);
+        balloon_position += balloon_velocity * (1.0e-6f * (float)frame_time_us);
+        if (balloon < 0.01f || 0.01f * (float)home.alt - position.z > _sitl->balloon_burst) {
+            carriage_state = carriageState::RELEASED;
         }
-        if ((0.01f * (float)home.alt - position.z > _sitl->balloon_burst) || (plane_ground_release && balloon < 0.01f)) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Balloon release at %.1fm AMSL", -position.z);
-            plane_air_release = true;
-        }
+    } else if (carriage_state == carriageState::WAITING_FOR_PICKUP) {
+        // Don't allow the balloon to drag sideways until the pickup
+        balloon_velocity = Vector3f(0.0f, 0.0f, -_sitl->balloon_rate * balloon);
+        balloon_position += balloon_velocity * (1.0e-6f * (float)frame_time_us);
     }
 
     // calculate angle of attack
@@ -170,75 +168,18 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
     betarad = constrain_float(betarad, -model.betaRadMax, model.betaRadMax);
 
     Vector3f force;
-    if (plane_air_release || !hal.util->get_soft_armed() || _sitl->balloon_burst <= 0) {
+
+    if (!update_balloon(balloon, force, rot_accel)) {
         force = getForce(aileron, elevator, rudder);
         rot_accel = getTorque(aileron, elevator, rudder, force);
-    } else {
-        // assume a 50m tether with a 1Hz pogo frequency and damping ratio of 0.2
-        Vector3f tether_pos_bf = Vector3f(-1.0f,0.0f,0.0f); // tether attaches to vehicle tail approx 1m behind c.g.
-        const float tether_length = 50.0f;
-        const float omega = 2.0f * M_2PI; // rad/sec
-        const  float zeta = 0.7f;
-        float tether_stiffness = model.mass * sq(omega); // N/m
-        float tether_damping = 2.0f * zeta * omega / model.mass; // N/(m/s)
-        // NED relative position vector from tether attachment on plane to balloon attachment
-        Vector3f relative_position = balloon_position - (position + dcm * tether_pos_bf);
-        const float separation_distance = relative_position.length();
-        if (separation_distance > tether_length) {
-            // NED unit vector pointing from tether attachment on plane to attachment on balloon
-            Vector3f tether_unit_vec_ef = relative_position.normalized();
 
-            // NED velocity of attahment point on plane
-            Vector3f attachment_velocity_ef = velocity_ef + dcm * (gyro % tether_pos_bf);
+        // scale thrust to match nose up hover throttle
+        float thrust_scale = (model.mass * GRAVITY_MSS) / model.hoverThrottle;
+        float thrust   = throttle * thrust_scale;
+        force += Vector3f(thrust, 0, 0);
+    } 
 
-            // NED velocity of attachment point on balloon as seen by observer on attachemnt point on plane
-            Vector3f relative_velocity = balloon_velocity - attachment_velocity_ef;
-
-            float separation_speed = relative_velocity * tether_unit_vec_ef;
-
-            // rate increase in separation between attachment point on plane and balloon
-            // tension force in tether due to stiffness and damping
-            float tension_force = MAX(0.0f, (separation_distance - tether_length) * tether_stiffness + separation_speed * tether_damping);
-
-            if (!plane_ground_release && tension_force > model.mass * GRAVITY_MSS && balloon > 0.01f) {
-                plane_ground_release = true;
-            }
-
-            // debug print for line tension
-            // static uint32_t counter=0;
-            // if (counter>1200) {
-            //     counter=0;
-            //     printf("%e , %e , %e\n",(separation_distance - tether_length) * tether_stiffness, separation_speed * tether_damping, position.z);
-            // }
-            // counter++;
-
-            Vector3f tension_force_vector_ef = tether_unit_vec_ef * tension_force;
-            Vector3f tension_force_vector_bf = dcm.transposed() * tension_force_vector_ef;
-            force = tension_force_vector_bf;
-
-            // drag force due to lateral motion assuming projected area from Y is 20% of projected area seen from Z and
-            // assuming bluff body drag characteristic. In reality we would need an aero model that worked flying backwards,
-            // but this will have to do for now.
-            Vector3f aero_force_bf = Vector3f(0.0f, 0.2f * velocity_air_bf.y * fabsf(velocity_air_bf.y), velocity_air_bf.z * fabsf(velocity_air_bf.z));
-            aero_force_bf *= air_density * model.Sref;
-            force -= aero_force_bf;
-
-            Vector3f tension_moment_vector_bf = tether_pos_bf % tension_force_vector_bf;
-            Vector3f tension_rot_accel = Vector3f(tension_moment_vector_bf.x/model.IXX, tension_moment_vector_bf.y/model.IYY, tension_moment_vector_bf.z/model.IZZ);
-            rot_accel = tension_rot_accel;
-
-            // add some rotation damping due to air resistance assuming a 2 sec damping time constant at SL density
-            // TODO model roll damping with more accuracy using Clp data for zero alpha as a first approximation
-            rot_accel -= gyro * 0.5f * air_density;
-        }
-    }
-
-    // scale thrust to match nose up hover throttle
-    float thrust_scale = (model.mass * GRAVITY_MSS) / model.hoverThrottle;
-    float thrust   = throttle * thrust_scale;
-
-    accel_body = Vector3f(thrust, 0, 0) + force;
-    accel_body /= model.mass;
+    accel_body = force / model.mass;
 
     if (on_ground()) {
         // add some ground friction
@@ -288,7 +229,17 @@ void PlaneJSON::update(const struct sitl_input &input)
     
     calculate_forces(input, rot_accel, accel_body);
     
-    update_dynamics(rot_accel);
+    if (carriage_state == carriageState::WAITING_FOR_PICKUP) {
+        // Handle special case where plane is being held nose down waiting to be lifted
+        accel_body = dcm.transposed() * Vector3f(0.0f, 0.0f, -GRAVITY_MSS);
+        velocity_ef.zero();
+        gyro.zero();
+        dcm.from_euler(0.0f, radians(-80.0f), radians(home_yaw));
+        use_smoothing = true;
+        adjust_frame_time(constrain_float(sitl->loop_rate_hz, rate_hz-1, rate_hz+1));
+    } else {
+        update_dynamics(rot_accel);
+    }
     update_external_payload(input);
 
     // update lat/lon/altitude
@@ -305,5 +256,86 @@ void PlaneJSON::update(const struct sitl_input &input)
 bool PlaneJSON::on_ground() const
 {
     // prevent bouncing around ground
-    return Aircraft::on_ground() && plane_air_release;
+    // prevent bouncing around ground
+    // don't do ground interaction if being carried
+    return (hagl() <= 0.001f &&
+            carriage_state != carriageState::WAITING_FOR_PICKUP &&
+            carriage_state != carriageState::WAITING_FOR_RELEASE);
+}
+
+/*
+  implement balloon lift
+  controlled by SIM_BLN_BURST and SIM_BLN_RATE
+ */
+bool PlaneJSON::update_balloon(float balloon, Vector3f &force, Vector3f &rot_accel)
+{
+    if (!hal.util->get_soft_armed()) {
+        return false;
+    }
+
+    if (carriage_state != carriageState::WAITING_FOR_PICKUP &&
+        carriage_state != carriageState::WAITING_FOR_RELEASE) {
+        // balloon not active
+        return false;
+    }
+
+    // assume a 50m tether with a 1Hz pogo frequency and damping ratio of 0.2
+    Vector3f tether_pos_bf = Vector3f(-1.0f,0.0f,0.0f); // tether attaches to vehicle tail approx 1m behind c.g.
+    const float omega = model.tetherPogoFreq * M_2PI; // rad/sec
+    const  float zeta = 0.7f;
+    float tether_stiffness = model.mass * sq(omega); // N/m
+    float tether_damping = 2.0f * zeta * omega / model.mass; // N/(m/s)
+    // NED relative position vector from tether attachment on plane to balloon attachment
+    Vector3f relative_position = balloon_position - (position + dcm * tether_pos_bf);
+    const float separation_distance = relative_position.length();
+
+    // NED unit vector pointing from tether attachment on plane to attachment on balloon
+    Vector3f tether_unit_vec_ef = relative_position.normalized();
+
+    // NED velocity of attahment point on plane
+    Vector3f attachment_velocity_ef = velocity_ef + dcm * (gyro % tether_pos_bf);
+
+    // NED velocity of attachment point on balloon as seen by observer on attachemnt point on plane
+    Vector3f relative_velocity = balloon_velocity - attachment_velocity_ef;
+
+    float separation_speed = relative_velocity * tether_unit_vec_ef;
+
+    // rate increase in separation between attachment point on plane and balloon
+    // tension force in tether due to stiffness and damping
+    float tension_force = MAX(0.0f, (separation_distance - model.tetherLength) * tether_stiffness);
+    if (tension_force > 0.0f) {
+        tension_force += constrain_float(separation_speed * tether_damping, 0.0f, 0.05f * tension_force);
+    }
+
+    if (carriage_state == carriageState::WAITING_FOR_PICKUP && tension_force > 1.2f * model.mass * GRAVITY_MSS && balloon > 0.01f) {
+        carriage_state = carriageState::WAITING_FOR_RELEASE;
+    }
+
+    if (carriage_state == carriageState::WAITING_FOR_RELEASE) {
+        Vector3f tension_force_vector_ef = tether_unit_vec_ef * tension_force;
+        Vector3f tension_force_vector_bf = dcm.transposed() * tension_force_vector_ef;
+        force = tension_force_vector_bf;
+
+        // drag force due to lateral motion assuming projected area from Y is 20% of projected area seen from Z and
+        // assuming bluff body drag characteristic. In reality we would need an aero model that worked flying backwards,
+        // but this will have to do for now.
+        Vector3f aero_force_bf = Vector3f(0.0f, 0.2f * velocity_air_bf.y * fabsf(velocity_air_bf.y), velocity_air_bf.z * fabsf(velocity_air_bf.z));
+        aero_force_bf *= air_density * model.Sref;
+        force -= aero_force_bf;
+
+        Vector3f tension_moment_vector_bf = tether_pos_bf % tension_force_vector_bf;
+        Vector3f tension_rot_accel = Vector3f(tension_moment_vector_bf.x/model.IXX, tension_moment_vector_bf.y/model.IYY, tension_moment_vector_bf.z/model.IZZ);
+        rot_accel = tension_rot_accel;
+
+        // add some rotation damping due to air resistance assuming a 2 sec damping time constant at SL density
+        // TODO model roll damping with more accuracy using Clp data for zero alpha as a first approximation
+        rot_accel -= gyro * 0.5f * air_density;
+    } else {
+        // thether is either slack awaiting pickup or released
+        rot_accel.zero();
+        force = dcm.transposed() * Vector3f(0.0f, 0.0f, -GRAVITY_MSS * model.mass);
+    }
+
+    // balloon is active
+    return true;
 }
