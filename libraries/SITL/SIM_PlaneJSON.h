@@ -175,11 +175,18 @@ protected:
 
     Vector3f getForce(float inputAileron, float inputElevator, float inputRudder) const;
     Vector3f getTorque(float inputAileron, float inputElevator, float inputRudder, const Vector3f &force) const;
+    bool update_balloon(float balloon, Vector3f &force, Vector3f &rot_accel);
     void calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel);
 
     Vector3f balloon_velocity;           // balloon velocity NED
-    Vector3f balloon_position{0.0f, 0.0f, -51.5f}; // balloon position NED from origin
-    bool plane_ground_release; // true when the plane is released from its ground constraint
+    Vector3f balloon_position{0.0f, 0.0f, -45.0f}; // balloon position NED from origin
+
+    enum class carriageState {
+        NONE = 0, // no carriage option available
+        WAITING_FOR_PICKUP = 1, // in launch cradle waiting to be picked up by launch vehicle
+        WAITING_FOR_RELEASE = 2, // being carried by luanch vehicle waitng to be released
+        RELEASED = 3 // had been released by launch vehicle
+    } carriage_state;
     bool plane_air_release;    // true when plane has separated from the airborne launching platform
 };
 
