@@ -71,5 +71,6 @@ private:
     float _D_gain_modifier = 1.0f;          // Gain modifier applied to the angular rate feedback to prevent excessive slew rate
     AP_Float _slew_rate_max;                // Maximum permitted angular rate control feedback servo slew rate (deg/sec)
     AP_Float _slew_rate_tau;                // Time constant used to recover gain after a slew rate exceedance (sec)
+    AP_Float _ng_limit;                     // normal load factor limit in the + and - direction
 
 };
