@@ -40,8 +40,7 @@ Vector3f PlaneJSON::getTorque(float inputAileron, float inputElevator, float inp
 {
     // Calculate dynamic pressure
     const auto &m = model;
-    float rho = air_density;
-    double qPa = 0.5*rho*sq(airspeed);
+    double qPa = 0.5*air_density*sq(velocity_air_bf.length());
     const float aileron_rad = inputAileron * radians(m.aileronDeflectionLimitDeg);
     const float elevator_rad = inputElevator * radians(m.elevatorDeflectionLimitDeg);
     const float rudder_rad = inputRudder * radians(m.rudderDeflectionLimitDeg);
@@ -105,8 +104,7 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
     const float rudder_rad = inputRudder * radians(m.rudderDeflectionLimitDeg);
 
     // dynamic pressure
-    float rho = air_density;
-    double qPa = 0.5*rho*sq(airspeed);
+    double qPa = 0.5*air_density*sq(velocity_air_bf.length());
 
     float CA = m.CA2 * sq(alpharad) + m.CA1 * alpharad + m.CA0;
     float CY = (m.CY2 * sq(alpharad) + m.CY1 * alpharad + m.CY0) * betarad;
@@ -268,8 +266,9 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
         }
         if (!on_ground() && !is_zero(_sitl->setspeed)) {
             float eas = _sitl->setspeed.get();
-            float eas_old = velocity_air_bf.x;
-            float scale = is_zero(eas_old)?1:eas / eas_old;
+            float tas = eas * eas2tas;
+            float tas_old = velocity_air_bf.x;
+            float scale = is_zero(tas_old)?1:tas / tas_old;
             ::printf("speed scale=%.9f\n", scale);
             velocity_air_bf *= scale;
             velocity_air_ef *= scale;
