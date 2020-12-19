@@ -352,14 +352,23 @@ float AP_Baro::get_EAS2TAS_function(float altitude, float pressure)
 
 #if HAL_BARO_ATMOSPHERIC_TABLE
 /*
+  return air density for altitude, used for SITL
+*/
+float AP_Baro::get_air_density_for_alt_amsl(float alt_amsl)
+{
+    return lookup_atmospheric_table_density_by_alt(alt_amsl);
+}
+
+/*
   return scale factor that converts from equivalent to true airspeed
   used by SITL only
 */
 float AP_Baro::get_EAS2TAS_for_alt_amsl(float alt_amsl)
 {
-    const float density = lookup_atmospheric_table_density_by_alt(alt_amsl);
+    const float density = get_air_density_for_alt_amsl(alt_amsl);
     return sqrtf(SSL_AIR_DENSITY / MAX(0.00001,density));
 }
+
 #endif
 
 /*
