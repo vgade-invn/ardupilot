@@ -69,7 +69,7 @@ public:
 
     // Rate of change of velocity along X body axis in m/s^2
     float get_VXdot(void) override {
-        return _vel_dot;
+        return _vel_dot_hpf_out;
     }
 
     // return current target airspeed
@@ -244,8 +244,10 @@ private:
     // pitch demand rate limiter state
     float _last_pitch_dem;
 
-    // Rate of change of speed along X axis
-    float _vel_dot;
+    // Filter states for rate of change of speed along X axis
+    AverageFilterFloat_Size5 _vdot_filter; // 5point average filter using floats
+    float _vel_dot_hpf_in;  // previous input to high pass filter
+    float _vel_dot_hpf_out; // output from high pass filter
 
     // Equivalent airspeed
     float _EAS;
@@ -428,9 +430,6 @@ private:
 
     // Calculate specific total energy rate limits
     void _update_STE_rate_lim(void);
-
-    // declares a 5point average filter using floats
-    AverageFilterFloat_Size5 _vdot_filter;
 
     // current time constant
     float timeConstant(void) const;

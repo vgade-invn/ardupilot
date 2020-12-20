@@ -392,8 +392,10 @@ void AP_TECS::update_50hz(void)
     const float vel_dot_raw = body_frame_vdot * vel_unit_wrt_wind;
     // take 5 point moving average and apply a high pass time constant to prevent steady state airspeed errors
     // due to acceleraion offsets
-    _vel_dot += _vdot_filter.apply(vel_dot_raw) - _vel_dot;
-    _vel_dot *= (1.0f - _DT / timeConstant());
+    const float input = _vdot_filter.apply(vel_dot_raw);
+    _vel_dot_hpf_out += _vdot_filter.apply(vel_dot_raw) - _vel_dot_hpf_in;
+    _vel_dot_hpf_in = input;
+    _vel_dot_hpf_out *= (1.0f - _DT / timeConstant());
 
 }
 
@@ -449,7 +451,7 @@ void AP_TECS::_update_speed(float load_factor)
         integDTAS_input = MAX(integDTAS_input , 0.0f);
     }
     _integDTAS_state = _integDTAS_state + integDTAS_input * DT;
-    float TAS_input = _integDTAS_state + _vel_dot + aspdErr * _spdCompFiltOmega * 1.4142f;
+    float TAS_input = _integDTAS_state + _vel_dot_hpf_out + aspdErr * _spdCompFiltOmega * 1.4142f;
     _TAS_state = _TAS_state + TAS_input * DT;
     // limit the airspeed to a minimum of 3 m/s
     _TAS_state = MAX(_TAS_state, 3.0f);
@@ -638,7 +640,7 @@ void AP_TECS::_update_energies(void)
 
     // Calculate specific energy rate
     _SPEdot = _climb_rate * GRAVITY_MSS;
-    _SKEdot = _TAS_state * _vel_dot;
+    _SKEdot = _TAS_state * _vel_dot_hpf_out;
 
 }
 
@@ -1278,7 +1280,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
         (double)_hgt_rate_dem,
         (double)_TAS_dem_adj,
         (double)_TAS_state,
-        (double)_vel_dot,
+        (double)_vel_dot_hpf_out,
         (double)_integTHR_state,
         (double)_integSEB_state,
         (double)_throttle_dem,
