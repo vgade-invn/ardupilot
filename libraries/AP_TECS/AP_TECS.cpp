@@ -381,21 +381,21 @@ void AP_TECS::update_50hz(void)
     }
 
     // Update and average speed rate of change
-    // Get DCM
     const Matrix3f &rotMat = _ahrs.get_rotation_body_to_ned();
-    // define unit vector in body frame aligned with average wind relative velocity vector
+    // Unit vector in body frame aligned with average wind relative velocity vector
     const Vector3f vel_unit_wrt_wind = Vector3f(cosf(radians(_trim_aoa)), 0.0f, sinf(radians(_trim_aoa)));
-    // calculate the measured acceleration vector along the wind relative velocity vector
+    // calculate the measured rate of change of speed along the wind relative velocity vector
     Vector3f earth_frame_vdot = _ahrs.get_accel_ef();
     earth_frame_vdot.z += GRAVITY_MSS;
     const Vector3f body_frame_vdot = rotMat.mul_transpose(earth_frame_vdot);
     const float vel_dot_raw = body_frame_vdot * vel_unit_wrt_wind;
-    // take 5 point moving average and apply a high pass time constant to prevent steady state airspeed errors
-    // due to acceleraion offsets
-    const float input = _vdot_filter.apply(vel_dot_raw);
-    _vel_dot_hpf_out += _vdot_filter.apply(vel_dot_raw) - _vel_dot_hpf_in;
-    _vel_dot_hpf_in = input;
-    _vel_dot_hpf_out *= (1.0f - _DT / timeConstant());
+    // Place filter time constants a factor of 5 above and 5 below the TECS time constant
+    const float alpha_hpf = _DT / (5.0f * timeConstant());
+    const float alpha_lpf = sq(5.0f) * alpha_hpf;
+    _vel_dot_lpf_out = (1.0f - alpha_lpf) * _vel_dot_lpf_out + alpha_lpf * vel_dot_raw;
+    _vel_dot_hpf_out += _vel_dot_lpf_out - _vel_dot_hpf_in;
+    _vel_dot_hpf_in = _vel_dot_lpf_out;
+    _vel_dot_hpf_out *= (1.0f - alpha_hpf);
 
 }
 
@@ -451,7 +451,7 @@ void AP_TECS::_update_speed(float load_factor)
         integDTAS_input = MAX(integDTAS_input , 0.0f);
     }
     _integDTAS_state = _integDTAS_state + integDTAS_input * DT;
-    float TAS_input = _integDTAS_state + _vel_dot_hpf_out + aspdErr * _spdCompFiltOmega * 1.4142f;
+    float TAS_input = _integDTAS_state + _vel_dot_lpf_out + aspdErr * _spdCompFiltOmega * 1.4142f;
     _TAS_state = _TAS_state + TAS_input * DT;
     // limit the airspeed to a minimum of 3 m/s
     _TAS_state = MAX(_TAS_state, 3.0f);

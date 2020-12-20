@@ -245,7 +245,7 @@ private:
     float _last_pitch_dem;
 
     // Filter states for rate of change of speed along X axis
-    AverageFilterFloat_Size5 _vdot_filter; // 5point average filter using floats
+    float _vel_dot_lpf_out; // output from low pass filter
     float _vel_dot_hpf_in;  // previous input to high pass filter
     float _vel_dot_hpf_out; // output from high pass filter
 
