@@ -950,17 +950,11 @@ void AP_TECS::_update_pitch(void)
         SEBdot_dem_total += _PITCHminf * gainInv;
     }
 
-    // Calculate max and min values for integrator state that will allow for no more than
-    // 5deg of saturation. This allows for some pitch variation due to gusts before the
-    // integrator is clipped. Otherwise the effectiveness of the integrator will be reduced in turbulence
-    float integSEB_min = (gainInv * (_PITCHminf - radians(5.0f))) - SEBdot_dem_total;
-    float integSEB_max = (gainInv * (_PITCHmaxf + radians(5.0f))) - SEBdot_dem_total;
-
     // Calculate integrator state, constraining input if pitch limits are exceeded
     // don't allow the integrator to rise by more than 10% of its full
     // range in one step. This prevents single value glitches from
     // causing massive integrator changes. See Issue#4066
-    float integSEB_range = integSEB_max - integSEB_min;
+    float integSEB_range = gainInv * (_PITCHmaxf -_PITCHminf);
     float integSEB_delta = constrain_float(SEBdot_error * _get_i_gain() * _DT, -integSEB_range*0.1f, integSEB_range*0.1f);
 
     // predict what pitch will be with uncontrained integration
@@ -974,7 +968,7 @@ void AP_TECS::_update_pitch(void)
         // fade out integrator if saturating
         _integSEB_state *= (1.0f - _DT / timeConstant());
     }
-    _integSEB_state = constrain_float(_integSEB_state, integSEB_min, integSEB_max);
+    _integSEB_state = constrain_float(_integSEB_state, -0.5f * integSEB_range, 0.5f * integSEB_range);
 
     logging.SEB_delta = integSEB_delta;
     
@@ -1006,7 +1000,7 @@ void AP_TECS::_update_pitch(void)
     }
 
     _last_pitch_dem = _pitch_dem;
-    AP::logger().Write("TEC3","TimeUS,PEW,EBD,EBE,EBDD,EBDE,EBDDT,Imin,Imax,I","Qfffffffff",
+    AP::logger().Write("TEC3","TimeUS,PEW,EBD,EBE,EBDD,EBDE,EBDDT,Irng,I","Qffffffff",
                     AP_HAL::micros64(),
                     (double)SPE_weighting,      // PEW
                     (double)SEB_dem,            // EBD
@@ -1014,8 +1008,7 @@ void AP_TECS::_update_pitch(void)
                     (double)SEBdot_dem,         // EBDD
                     (double)SEBdot_error,       // EBDE
                     (double)SEBdot_dem_total,   // EBDDT
-                    (double)integSEB_min,       // Imin
-                    (double)integSEB_max,       // Imax
+                    (double)integSEB_range,     // Irng
                     (double)_integSEB_state);   // I
 }
 
