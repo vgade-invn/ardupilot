@@ -390,8 +390,10 @@ void AP_TECS::update_50hz(void)
     earth_frame_vdot.z += GRAVITY_MSS;
     const Vector3f body_frame_vdot = rotMat.mul_transpose(earth_frame_vdot);
     const float vel_dot_raw = body_frame_vdot * vel_unit_wrt_wind;
-    // take 5 point moving average
-    _vel_dot = _vdot_filter.apply(vel_dot_raw);
+    // take 5 point moving average and apply a high pass time constant to prevent steady state airspeed errors
+    // due to acceleraion offsets
+    _vel_dot += _vdot_filter.apply(vel_dot_raw) - _vel_dot;
+    _vel_dot *= (1.0f - _DT / timeConstant());
 
 }
 
