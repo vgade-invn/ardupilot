@@ -290,6 +290,15 @@ const AP_Param::GroupInfo AP_TECS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("HDEM_TCONST", 33, AP_TECS, _hgt_dem_tconst, 2.0f),
 
+    // @Param: TRIM_AOA
+    // @DisplayName: Trim angle of attack
+    // @Description: Set to the pitch angle in level flight at the trim airspeed.
+    // @Range: -5.0 15.0
+    // @Units: deg
+    // @Increment: 0.5
+    // @User: Advanced
+    AP_GROUPINFO("TRIM_AOA", 34, AP_TECS, _trim_aoa, 3.0f),
+
     AP_GROUPEND
 };
 
@@ -374,10 +383,15 @@ void AP_TECS::update_50hz(void)
     // Update and average speed rate of change
     // Get DCM
     const Matrix3f &rotMat = _ahrs.get_rotation_body_to_ned();
-    // Calculate speed rate of change
-    float temp = rotMat.c.x * GRAVITY_MSS + AP::ins().get_accel().x;
+    // define unit vector in body frame aligned with average wind relative velocity vector
+    const Vector3f vel_unit_wrt_wind = Vector3f(cosf(radians(_trim_aoa)), 0.0f, sinf(radians(_trim_aoa)));
+    // calculate the measured acceleration vector along the wind relative velocity vector
+    Vector3f earth_frame_vdot = _ahrs.get_accel_ef();
+    earth_frame_vdot.z += GRAVITY_MSS;
+    const Vector3f body_frame_vdot = rotMat.mul_transpose(earth_frame_vdot);
+    const float vel_dot_raw = body_frame_vdot * vel_unit_wrt_wind;
     // take 5 point moving average
-    _vel_dot = _vdot_filter.apply(temp);
+    _vel_dot = _vdot_filter.apply(vel_dot_raw);
 
 }
 
@@ -969,6 +983,9 @@ void AP_TECS::_update_pitch(void)
     if (_flags.is_gliding) {
         _pitch_dem_unc += (_TAS_dem_adj - _pitch_ff_v0) * _pitch_ff_k;
     }
+
+    // Add trim angle of attack
+    _pitch_dem_unc += radians(_trim_aoa);
 
     // Constrain pitch demand
     _pitch_dem = constrain_float(_pitch_dem_unc, _PITCHminf, _PITCHmaxf);

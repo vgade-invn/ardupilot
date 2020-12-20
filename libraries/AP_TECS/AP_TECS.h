@@ -191,6 +191,7 @@ private:
     AP_Int8  _land_pitch_trim;
     AP_Float _flare_holdoff_hgt;
     AP_Float _hgt_dem_tconst;
+    AP_Float _trim_aoa;
 
     enum {
         OPTION_GLIDER_ONLY=(1<<0),
