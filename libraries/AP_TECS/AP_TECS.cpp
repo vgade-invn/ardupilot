@@ -901,7 +901,8 @@ void AP_TECS::_update_pitch(void)
     float SEB_error = SEB_dem - (_SPE_est * SPE_weighting - _SKE_est * _SKE_weighting);
 
     // track demanded height using the specified time constant
-    float SEBdot_dem = constrain_float(_hgt_rate_dem * GRAVITY_MSS + SEB_error / timeConstant(), -max_sink_rate * GRAVITY_MSS, max_climb_rate * GRAVITY_MSS);
+    const float SEBdot_dem_ff = (_options & OPTION_GLIDER_ONLY) ? 0.0f : _hgt_rate_dem * GRAVITY_MSS;
+    float SEBdot_dem = constrain_float(SEBdot_dem_ff + SEB_error / timeConstant(), -max_sink_rate * GRAVITY_MSS, max_climb_rate * GRAVITY_MSS);
 
     // rate of change of potential energy is required by total energy controller
     _SPEdot_dem = (_SPE_dem * SPE_weighting - _SPE_est) * SPE_weighting / timeConstant();
@@ -988,15 +989,15 @@ void AP_TECS::_update_pitch(void)
     _last_pitch_dem = _pitch_dem;
     AP::logger().Write("TEC3","TimeUS,PEW,EBD,EBE,EBDD,EBDE,EBDDT,Imin,Imax,I","Qfffffffff",
                     AP_HAL::micros64(),
-                    (double)SPE_weighting,
-                    (double)SEB_dem,
-                    (double)SEB_error,
-                    (double)SEBdot_dem,
-                    (double)SEBdot_error,
-                    (double)SEBdot_dem_total,
-                    (double)integSEB_min,
-                    (double)integSEB_max,
-                    (double)_integSEB_state);
+                    (double)SPE_weighting,      // PEW
+                    (double)SEB_dem,            // EBD
+                    (double)SEB_error,          // EBE
+                    (double)SEBdot_dem,         // EBDD
+                    (double)SEBdot_error,       // EBDE
+                    (double)SEBdot_dem_total,   // EBDDT
+                    (double)integSEB_min,       // Imin
+                    (double)integSEB_max,       // Imax
+                    (double)_integSEB_state);   // I
 }
 
 void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
