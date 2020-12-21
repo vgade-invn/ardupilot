@@ -99,6 +99,10 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
         } else {
             return quadplane.do_vtol_land(cmd);
         }
+
+    case MAV_CMD_USER_1:
+        do_pullup(cmd);
+        break;
         
     // Conditional commands
 
@@ -254,6 +258,9 @@ bool Plane::verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
 
     case MAV_CMD_NAV_ALTITUDE_WAIT:
         return verify_altitude_wait(cmd);
+
+    case MAV_CMD_USER_1:
+        return verify_pullup(cmd);
 
     case MAV_CMD_NAV_VTOL_TAKEOFF:
         return quadplane.verify_vtol_takeoff(cmd);
@@ -804,7 +811,8 @@ bool Plane::verify_altitude_wait(const AP_Mission::Mission_Command &cmd)
         gcs().send_text(MAV_SEVERITY_INFO,"Reached altitude");
         return true;
     }
-    if (auto_state.sink_rate > cmd.content.altitude_wait.descent_rate) {
+    if (cmd.content.altitude_wait.descent_rate > 0 &&
+        auto_state.sink_rate > cmd.content.altitude_wait.descent_rate) {
         gcs().send_text(MAV_SEVERITY_INFO, "Reached descent rate %.1f m/s", (double)auto_state.sink_rate);
         return true;        
     }
@@ -1074,4 +1082,64 @@ bool Plane::verify_loiter_heading(bool init)
     }
 
     return plane.mode_loiter.isHeadingLinedUp(next_WP_loc, next_nav_cmd.content.location);
+}
+
+
+/*
+  first stage pullup from balloon release
+ */
+void Plane::do_pullup(const AP_Mission::Mission_Command &cmd)
+{
+    pullup.stage = PullupStage::WAIT_AIRSPEED;
+    auto_state.idle_mode = false;
+    float aspeed;
+    if (!ahrs.airspeed_estimate(aspeed)) {
+        aspeed = -1;
+    }
+    gcs().send_text(MAV_SEVERITY_INFO, "Start pullup airspeed %.1fm/s", aspeed);
+}
+
+/*
+  first stage pullup from balloon release, verify completion
+ */
+bool Plane::verify_pullup(const AP_Mission::Mission_Command &cmd)
+{
+    switch (pullup.stage) {
+    case PullupStage::WAIT_AIRSPEED: {
+        float aspeed;
+        if (ahrs.airspeed_estimate(aspeed) && aspeed > cmd.content.user_command.param1) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Pullup airspeed %.1fm/s", aspeed);
+            pullup.stage = PullupStage::WAIT_PITCH;
+        }
+        return false;
+    }
+    case PullupStage::WAIT_PITCH: {
+        if (ahrs.pitch_sensor > cmd.content.user_command.param2*100 && labs(ahrs.roll_sensor) < 9000) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Pullup pitch p=%.1f r=%.1f",
+                            ahrs.pitch_sensor*0.01,
+                            ahrs.roll_sensor*0.01);
+            pullup.stage = PullupStage::WAIT_LEVEL;
+        }
+        return false;
+    }
+    case PullupStage::WAIT_LEVEL: {
+        if (ahrs.pitch_sensor > aparm.pitch_limit_min_cd && labs(ahrs.roll_sensor) < aparm.roll_limit_cd) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Pullup level r=%.1f p=%.1f",
+                            ahrs.roll_sensor*0.01,
+                            ahrs.pitch_sensor*0.01);
+            pullup.stage = PullupStage::NONE;
+        }
+        return false;
+    }
+        case PullupStage::NONE:
+    default:
+        break;
+    }
+    return true;
+}
+
+// return true if in a pullup manoeuvre
+bool Plane::in_pullup(void) const
+{
+    return control_mode == &mode_auto && mission.get_current_nav_cmd().id == MAV_CMD_USER_1;
 }

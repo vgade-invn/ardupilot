@@ -427,6 +427,11 @@ void Plane::stabilize()
     }
     float speed_scaler = get_speed_scaler();
 
+    if (in_pullup()) {
+        stabilize_pullup(speed_scaler);
+        return;
+    }
+
     uint32_t now = AP_HAL::millis();
     if (quadplane.in_tailsitter_vtol_transition(now)) {
         /*
@@ -754,4 +759,46 @@ void Plane::update_load_factor(void)
         nav_roll_cd = constrain_int32(nav_roll_cd, -roll_limit, roll_limit);
         roll_limit_cd = MIN(roll_limit_cd, roll_limit);
     }    
+}
+
+
+/*
+  stabilize during pullup from balloon drop
+ */
+void Plane::stabilize_pullup(float speed_scaler)
+{
+    switch (pullup.stage) {
+    case PullupStage::WAIT_AIRSPEED: {
+        SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 0);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0);
+        plane.nav_pitch_cd = 0;
+        plane.nav_roll_cd = 0;
+        pitchController.reset_I();
+        yawController.reset_I();
+        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_rate_out(0, speed_scaler));
+        break;
+    }
+    case PullupStage::WAIT_PITCH: {
+        yawController.reset_I();
+        plane.nav_roll_cd = 0;
+        plane.nav_pitch_cd = 0;
+        SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_rate_out(0, speed_scaler));
+        float aspeed;
+        if (ahrs.airspeed_estimate(aspeed)) {
+            const float tas = MAX(1, aspeed * ahrs.get_EAS2TAS());
+            const float pitch_rate = degrees(2 * GRAVITY_MSS / tas);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, rollController.get_rate_out(pitch_rate, speed_scaler));
+        }
+        break;
+    }
+    case PullupStage::WAIT_LEVEL:
+    default:
+        nav_pitch_cd = 0;
+        nav_roll_cd = 0;
+        stabilize_roll(speed_scaler);
+        stabilize_pitch(speed_scaler);
+        stabilize_yaw(speed_scaler);
+        break;
+    }
 }

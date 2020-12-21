@@ -914,6 +914,11 @@ private:
     bool start_command_callback(const AP_Mission::Mission_Command &cmd);
     bool verify_command_callback(const AP_Mission::Mission_Command& cmd);
 
+    bool in_pullup() const;
+    void do_pullup(const AP_Mission::Mission_Command &cmd);
+    bool verify_pullup(const AP_Mission::Mission_Command &cmd);
+    void stabilize_pullup(float speed_scaler);
+
     // commands.cpp
     void set_guided_WP(void);
     void update_home();
@@ -1138,6 +1143,17 @@ private:
     };
 
     FlareMode flare_mode;
+
+    enum class PullupStage : uint8_t {
+        NONE=0,
+        WAIT_AIRSPEED,
+        WAIT_PITCH,
+        WAIT_LEVEL
+    };
+
+    struct {
+        PullupStage stage;
+    } pullup;
 
 public:
     void failsafe_check(void);

@@ -166,8 +166,9 @@ void Plane::ahrs_update()
  */
 void Plane::update_speed_height(void)
 {
-    if (control_mode->does_auto_throttle()) {
-	    // Call TECS 50Hz update. Note that we call this regardless of
+    if (control_mode->does_auto_throttle() &&
+        !auto_state.idle_mode && !in_pullup()) {
+        // Call TECS 50Hz update. Note that we call this regardless of
 	    // throttle suppressed, as this needs to be running for
 	    // takeoff detection
         SpdHgt_Controller->update_50hz();
@@ -487,8 +488,8 @@ void Plane::update_alt()
 
     update_flight_stage();
 
-    if (control_mode->does_auto_throttle() && !throttle_suppressed) {
-
+    if (control_mode->does_auto_throttle() && !throttle_suppressed &&
+        !auto_state.idle_mode && !in_pullup()) {
         float distance_beyond_land_wp = 0;
         if (flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND && current_loc.past_interval_finish_line(prev_WP_loc, next_WP_loc)) {
             distance_beyond_land_wp = current_loc.get_distance(next_WP_loc);
