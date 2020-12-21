@@ -428,9 +428,14 @@ void AP_TECS::_update_speed(float load_factor)
 
     // Reset states of time since last update is too large
     if (DT > 1.0f) {
-        _TAS_state = (_EAS * EAS2TAS);
+        if (_ahrs.airspeed_estimate(_EAS)) {
+            _TAS_state = (_EAS * EAS2TAS);
+        } else {
+            // If no airspeed available use average of min and max
+            _TAS_state = EAS2TAS * (aparm.airspeed_min.get() + (float)aparm.airspeed_max.get());
+        }
         _integDTAS_state = 0.0f;
-        DT = 0.02f; // when first starting TECS, use the most likely time constant
+        DT = 0.02f;
     }
 
     // Get airspeed or default to halfway between min and max if
