@@ -416,7 +416,7 @@ void AP_TECS::_update_speed(float load_factor)
     if (aparm.stall_prevention) {
         // when stall prevention is active we raise the mimimum
         // airspeed based on aerodynamic load factor
-        _TASmin *= load_factor;
+        _TASmin *= safe_sqrt(load_factor);
     }
 
     if (_TASmax < _TASmin) {
