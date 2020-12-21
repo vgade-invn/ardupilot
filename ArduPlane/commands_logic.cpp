@@ -742,6 +742,11 @@ bool Plane::verify_loiter_to_alt(const AP_Mission::Mission_Command &cmd)
         result = verify_loiter_heading(false);
     }
 
+    // additional check for altitude target, even if blown off course
+    if (current_loc.alt < cmd.content.location.alt) {
+        result = true;
+    }
+    
     if (result) {
         gcs().send_text(MAV_SEVERITY_INFO,"Loiter to alt complete");
     }
