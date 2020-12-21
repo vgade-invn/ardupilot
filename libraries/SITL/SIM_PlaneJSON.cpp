@@ -156,6 +156,7 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
         if (balloon < 0.01f || height_AMSL > _sitl->balloon_burst_amsl || input.servos[8] > 1750) {
             ::printf("dropped at %i m AMSL\n", (int)height_AMSL);
             carriage_state = carriageState::RELEASED;
+            use_smoothing = false;
         }
     } else if (carriage_state == carriageState::WAITING_FOR_PICKUP) {
         // Don't allow the balloon to drag sideways until the pickup
