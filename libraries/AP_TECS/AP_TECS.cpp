@@ -928,7 +928,7 @@ void AP_TECS::_update_pitch(void)
     float SEB_error = SEB_dem - (_SPE_est * SPE_weighting - _SKE_est * _SKE_weighting);
 
     // track demanded height using the specified time constant
-    const float SEBdot_dem_ff = (_options & OPTION_GLIDER_ONLY) ? 0.0f : _hgt_rate_dem * GRAVITY_MSS;
+    const float SEBdot_dem_ff = (_flags.is_gliding) ? 0.0f : _hgt_rate_dem * GRAVITY_MSS;
     float SEBdot_dem = constrain_float(SEBdot_dem_ff + SEB_error / timeConstant(), -max_sink_rate * GRAVITY_MSS, max_climb_rate * GRAVITY_MSS);
 
     // rate of change of potential energy is required by total energy controller
