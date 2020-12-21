@@ -769,6 +769,8 @@ void Plane::stabilize_pullup(float speed_scaler)
 {
     switch (pullup.stage) {
     case PullupStage::WAIT_AIRSPEED: {
+        steering_control.rudder = 0;
+        steering_control.steering = 0;
         SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 0);
         SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0);
         plane.nav_pitch_cd = 0;
@@ -782,6 +784,8 @@ void Plane::stabilize_pullup(float speed_scaler)
         yawController.reset_I();
         plane.nav_roll_cd = 0;
         plane.nav_pitch_cd = 0;
+        steering_control.rudder = 0;
+        steering_control.steering = 0;
         SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0);
         SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_rate_out(0, speed_scaler));
         float aspeed;
