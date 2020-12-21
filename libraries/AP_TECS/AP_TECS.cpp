@@ -883,11 +883,12 @@ void AP_TECS::_update_pitch(void)
         // we have a steep slope with a short approach we'll want to allow acquiring the
         // glide slope right away.
         max_sink_rate = _maxSinkRate_approach;
-    } else if (_options & OPTION_GLIDER_ONLY) {
-        // adjust sink and climb limits EAS to TAS ratio
-        const float EAS2TAS = _ahrs.get_EAS2TAS();
-        max_sink_rate  *= EAS2TAS;
-        max_climb_rate *= EAS2TAS;
+    } else if (_flags.is_gliding) {
+        // Special case where it is important that the vertical speed limits
+        // are matched to the pitch limits becasue pitch angle is the only method
+        // of controlling airspeed when gliding.
+        max_sink_rate  = - _TAS_dem * sinf(_PITCHminf - radians(_trim_aoa));
+        max_climb_rate = _TAS_dem * sinf(_PITCHmaxf - radians(_trim_aoa));
     }
 
     // Calculate Speed/Height Control Weighting
