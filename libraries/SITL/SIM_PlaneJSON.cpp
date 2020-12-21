@@ -152,7 +152,8 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
         balloon_velocity = Vector3f(-wind_ef.x, -wind_ef.y, -wind_ef.z -_sitl->balloon_rate * balloon);
         balloon_position += balloon_velocity * (1.0e-6f * (float)frame_time_us);
         const float height_AMSL = 0.01f * (float)home.alt - position.z;
-        if (balloon < 0.01f || height_AMSL > _sitl->balloon_burst_amsl) {
+        // release at burst height or when channel 9 goes high
+        if (balloon < 0.01f || height_AMSL > _sitl->balloon_burst_amsl || input.servos[8] > 1750) {
             ::printf("dropped at %i m AMSL\n", (int)height_AMSL);
             carriage_state = carriageState::RELEASED;
         }
