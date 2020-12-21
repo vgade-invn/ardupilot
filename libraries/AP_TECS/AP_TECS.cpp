@@ -389,9 +389,9 @@ void AP_TECS::update_50hz(void)
     earth_frame_vdot.z += GRAVITY_MSS;
     const Vector3f body_frame_vdot = rotMat.mul_transpose(earth_frame_vdot);
     const float vel_dot_raw = body_frame_vdot * vel_unit_wrt_wind;
-    // Place filter time constants a factor of 5 above and 5 below the TECS time constant
+    // Place filter time constants a factor of 5 above and 10 below the TECS time constant
     const float alpha_hpf = _DT / (5.0f * timeConstant());
-    const float alpha_lpf = sq(5.0f) * alpha_hpf;
+    const float alpha_lpf = 50.0f * alpha_hpf;
     _vel_dot_lpf_out = (1.0f - alpha_lpf) * _vel_dot_lpf_out + alpha_lpf * vel_dot_raw;
     _vel_dot_hpf_out += _vel_dot_lpf_out - _vel_dot_hpf_in;
     _vel_dot_hpf_in = _vel_dot_lpf_out;
