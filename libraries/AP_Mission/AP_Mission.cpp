@@ -385,7 +385,7 @@ bool AP_Mission::replace_cmd(uint16_t index, const Mission_Command& cmd)
 bool AP_Mission::is_nav_cmd(const Mission_Command& cmd)
 {
     // NAV commands all have ids below MAV_CMD_NAV_LAST except NAV_SET_YAW_SPEED
-    return (cmd.id <= MAV_CMD_NAV_LAST || cmd.id == MAV_CMD_NAV_SET_YAW_SPEED);
+    return (cmd.id <= MAV_CMD_NAV_LAST || cmd.id == MAV_CMD_NAV_SET_YAW_SPEED || cmd.id == MAV_CMD_USER_1);
 }
 
 /// get_next_nav_cmd - gets next "navigation" command found at or after start_index
@@ -1140,6 +1140,12 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
         cmd.content.scripting.p3 = packet.param4;
         break;
 
+    case MAV_CMD_USER_1 ... MAV_CMD_USER_5:
+        cmd.content.user_command.param1 = packet.param1;
+        cmd.content.user_command.param2 = packet.param2;
+        cmd.content.user_command.param3 = packet.param3;
+        break;
+        
     default:
         // unrecognised command
         return MAV_MISSION_UNSUPPORTED;
@@ -1594,6 +1600,12 @@ bool AP_Mission::mission_cmd_to_mavlink_int(const AP_Mission::Mission_Command& c
         packet.param2 = cmd.content.scripting.p1;
         packet.param3 = cmd.content.scripting.p2;
         packet.param4 = cmd.content.scripting.p3;
+        break;
+
+    case MAV_CMD_USER_1 ... MAV_CMD_USER_5:
+        packet.param1 = cmd.content.user_command.param1;
+        packet.param2 = cmd.content.user_command.param2;
+        packet.param3 = cmd.content.user_command.param3;
         break;
 
     default:
@@ -2305,6 +2317,8 @@ const char *AP_Mission::Mission_Command::type() const
         return "Winch";
     case MAV_CMD_DO_SEND_SCRIPT_MESSAGE:
         return "Scripting";
+    case MAV_CMD_USER_1 ... MAV_CMD_USER_5:
+        return "USER";
 
     default:
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
