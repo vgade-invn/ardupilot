@@ -475,9 +475,18 @@ void AP_TECS::_update_speed_demand(void)
 
     // calculate velocity rate limits based on physical performance limits
     // provision to use a different rate limit if bad descent or underspeed condition exists
-    // Use 50% of maximum energy rate to allow margin for total energy contgroller
-    const float velRateMax = 0.5f * _STEdot_max / _TAS_state;
-    const float velRateMin = 0.5f * _STEdot_min / _TAS_state;
+    float velRateMin, velRateMax;
+    if (_flags.is_gliding) {
+        // The rate of acceleration is a function of the how much the flight path angle
+        // can be lowered or raised
+        const float glide_angle_delta = 0.5f * (_PITCHmaxf - _PITCHminf);
+        velRateMax =   GRAVITY_MSS * sinf(glide_angle_delta);
+        velRateMin = - velRateMax;
+    } else {
+        // Use 50% of maximum energy rate to allow margin for total energy contgroller
+        velRateMax = 0.5f * _STEdot_max / _TAS_state;
+        velRateMin = 0.5f * _STEdot_min / _TAS_state;
+    }
     const float TAS_dem_previous = _TAS_dem_adj;
 
     // Apply rate limit
@@ -1087,7 +1096,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
     _DT = MAX(_DT, 0.001f);
     _update_pitch_throttle_last_usec = now;
 
-    _flags.is_gliding = _flags.gliding_requested || _flags.propulsion_failed || aparm.throttle_max==0;
+    _flags.is_gliding = _options & OPTION_GLIDER_ONLY || _flags.gliding_requested || _flags.propulsion_failed || aparm.throttle_max==0;
     _flags.is_doing_auto_land = (flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND);
     _distance_beyond_land_wp = distance_beyond_land_wp;
     _flight_stage = flight_stage;
