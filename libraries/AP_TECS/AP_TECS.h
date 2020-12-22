@@ -264,7 +264,7 @@ private:
     // This is the demand tracked by the TECS control loops
     float _TAS_dem_lpf;
 
-    // Instance with 10Hz sample rate and 5 sec time constant
+    // LPF applied to demanded airspeed after it has been rate limited
     LowPassFilter2pFloat _TAS_dem_filter;
 
     // Equivalent airspeed demand
