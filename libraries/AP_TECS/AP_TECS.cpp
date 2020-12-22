@@ -406,12 +406,25 @@ void AP_TECS::_update_speed(float load_factor)
     float DT = (now - _update_speed_last_usec) * 1.0e-6f;
     _update_speed_last_usec = now;
 
-    // Convert equivalent airspeeds to true airspeeds
+    _EAS2TAS = _ahrs.get_EAS2TAS();
 
-    float EAS2TAS = _ahrs.get_EAS2TAS();
-    _TAS_dem = _EAS_dem * EAS2TAS;
-    _TASmax   = aparm.airspeed_max * EAS2TAS;
-    _TASmin   = aparm.airspeed_min * EAS2TAS;
+    // Reset states of time since last update is too large
+    if (DT > 1.0f) {
+        if (_ahrs.airspeed_estimate(_EAS)) {
+            _TAS_state = (_EAS * _EAS2TAS);
+        } else {
+            // If no airspeed available use average of min and max
+            _TAS_state = _EAS2TAS * (aparm.airspeed_min.get() + (float)aparm.airspeed_max.get());
+        }
+        _integDTAS_state = 0.0f;
+        _TAS_dem_adj = _TAS_dem_lpf = _EAS_dem * _EAS2TAS;
+        DT = 0.02f;
+    }
+
+    // Convert equivalent airspeeds to true airspeeds
+    _TAS_dem = _EAS_dem * _EAS2TAS;
+    _TASmax   = aparm.airspeed_max * _EAS2TAS;
+    _TASmin   = aparm.airspeed_min * _EAS2TAS;
 
     if (aparm.stall_prevention) {
         // when stall prevention is active we raise the mimimum
@@ -421,21 +434,6 @@ void AP_TECS::_update_speed(float load_factor)
 
     if (_TASmax < _TASmin) {
         _TASmax = _TASmin;
-    }
-    if (_TASmin > _TAS_dem) {
-        _TASmin = _TAS_dem;
-    }
-
-    // Reset states of time since last update is too large
-    if (DT > 1.0f) {
-        if (_ahrs.airspeed_estimate(_EAS)) {
-            _TAS_state = (_EAS * EAS2TAS);
-        } else {
-            // If no airspeed available use average of min and max
-            _TAS_state = EAS2TAS * (aparm.airspeed_min.get() + (float)aparm.airspeed_max.get());
-        }
-        _integDTAS_state = 0.0f;
-        DT = 0.02f;
     }
 
     // Get airspeed or default to halfway between min and max if
@@ -449,7 +447,7 @@ void AP_TECS::_update_speed(float load_factor)
     // Implement a second order complementary filter to obtain a
     // smoothed airspeed estimate
     // airspeed estimate is held in _TAS_state
-    float aspdErr = (_EAS * EAS2TAS) - _TAS_state;
+    float aspdErr = (_EAS * _EAS2TAS) - _TAS_state;
     float integDTAS_input = aspdErr * _spdCompFiltOmega * _spdCompFiltOmega;
     // Prevent state from winding up
     if (_TAS_state < 3.1f) {
@@ -492,8 +490,8 @@ void AP_TECS::_update_speed_demand(void)
         velRateMax = 0.5f * _STEdot_max / _TAS_state;
         velRateMin = 0.5f * _STEdot_min / _TAS_state;
     }
-    const float TAS_dem_previous = _TAS_dem_adj;
 
+    const float TAS_dem_previous = _TAS_dem_adj;
     // Apply rate limit
     if ((_TAS_dem - TAS_dem_previous) > (velRateMax * _DT))
     {
@@ -510,8 +508,20 @@ void AP_TECS::_update_speed_demand(void)
         _TAS_rate_dem = (_TAS_dem - TAS_dem_previous) / _DT;
         _TAS_dem_adj = _TAS_dem;
     }
+
     // Constrain speed demand again to protect against bad values on initialisation.
     _TAS_dem_adj = constrain_float(_TAS_dem_adj, _TASmin, _TASmax);
+
+        // gliders need a smoother speed demand to prevent unwanted pitch transients
+    if (_flags.is_gliding) {
+        const float filt_coef = _DT / timeConstant();
+        _TAS_dem_lpf = (1.0f - filt_coef) * _TAS_dem_lpf + filt_coef * _TAS_dem_adj;
+    } else {
+        _TAS_dem_lpf = _TAS_dem_adj;
+    }
+
+    // Constrain speed demand again to protect against bad values on initialisation.
+    _TAS_dem_lpf = constrain_float(_TAS_dem_lpf, _TASmin, _TASmax);
 }
 
 void AP_TECS::_update_height_demand(void)
@@ -643,7 +653,7 @@ void AP_TECS::_update_energies(void)
 {
     // Calculate specific energy demands
     _SPE_dem = _hgt_dem * GRAVITY_MSS;
-    _SKE_dem = 0.5f * _TAS_dem_adj * _TAS_dem_adj;
+    _SKE_dem = 0.5f * _TAS_dem_lpf * _TAS_dem_lpf;
 
     // Calculate specific energy rate demands
     _SKEdot_dem = _TAS_state * _TAS_rate_dem;
@@ -996,7 +1006,7 @@ void AP_TECS::_update_pitch(void)
 
     // Add a feedforward term from demanded airspeed to pitch
     if (_flags.is_gliding) {
-        _pitch_dem_unc += (_TAS_dem_adj - _pitch_ff_v0) * _pitch_ff_k;
+        _pitch_dem_unc += (_TAS_dem_lpf - _pitch_ff_v0) * _pitch_ff_k;
     }
 
     // Add trim angle of attack
@@ -1048,8 +1058,10 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _hgt_afe              = hgt_afe;
         _hgt_dem_in_prev      = hgt_afe;
         _hgt_dem_lpf          = hgt_afe;
-        _hgt_dem_rate_ltd = hgt_afe;
+        _hgt_dem_rate_ltd     = hgt_afe;
+        _EAS2TAS              = _ahrs.get_EAS2TAS();
         _TAS_dem_adj          = _TAS_dem;
+        _TAS_dem_lpf          = _TAS_dem;
         _DT                   = 0.02f; // when first starting TECS, use the most likely time constant
         _lag_comp_hgt_offset  = 0.0f;
         _post_TO_hgt_offset   = 0.0f;
@@ -1073,6 +1085,7 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _hgt_dem_lpf          = hgt_afe;
         _hgt_dem_rate_ltd = hgt_afe;
         _TAS_dem_adj          = _TAS_dem;
+        _TAS_dem_lpf          = _TAS_dem;
         _post_TO_hgt_offset   = _climb_rate * _hgt_dem_tconst;
         _flags.underspeed     = false;
         _flags.badDescent     = false;
@@ -1212,7 +1225,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
     }
 
     if (flight_stage == AP_Vehicle::FixedWing::FLIGHT_TAKEOFF || flight_stage == AP_Vehicle::FixedWing::FLIGHT_ABORT_LAND) {
-        if (!_flags.reached_speed_takeoff && _TAS_state >= _TAS_dem_adj) {
+        if (!_flags.reached_speed_takeoff && _TAS_state >= _TAS_dem_lpf) {
             // we have reached our target speed in takeoff, allow for
             // normal throttle control
             _flags.reached_speed_takeoff = true;
@@ -1295,7 +1308,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
         (double)_hgt_dem_in,
         (double)_hgt_dem,
         (double)_hgt_rate_dem,
-        (double)_TAS_dem_adj,
+        (double)_TAS_dem_lpf,
         (double)_TAS_state,
         (double)_vel_dot_hpf_out,
         (double)_integTHR_state,

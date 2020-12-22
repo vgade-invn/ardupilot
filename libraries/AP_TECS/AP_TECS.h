@@ -256,11 +256,18 @@ private:
     float _TASmax;
     float _TASmin;
 
-    // Current true airspeed demand
+    // Current true airspeed demand after limiting
     float _TAS_dem;
+
+    // Current true airspeed demand after low pass filtering
+    // This is the demand tracked by the TECS control loops
+    float _TAS_dem_lpf;
 
     // Equivalent airspeed demand
     float _EAS_dem;
+
+    // Conversion from EAS to TAS
+    float _EAS2TAS;
 
     // height demands
     float _hgt_dem_in;          // height demand input from autopilot (m)
@@ -281,7 +288,6 @@ private:
     float _lag_comp_hgt_offset;
 
     // Speed demand after application of rate limiting
-    // This is the demand tracked by the TECS control loops
     float _TAS_dem_adj;
 
     // Speed rate demand after application of rate limiting
