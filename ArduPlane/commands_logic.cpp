@@ -1134,7 +1134,7 @@ bool Plane::verify_pullup(const AP_Mission::Mission_Command &cmd)
     return false;
     }
     case PullupStage::WAIT_LEVEL: {
-        if (ahrs.pitch_sensor > MIN(0 , aparm.pitch_limit_max_cd - 5000)) {
+        if (ahrs.pitch_sensor > MIN(0 , aparm.pitch_limit_max_cd - 500)) {
             if (labs(ahrs.roll_sensor) < aparm.roll_limit_cd) {
                 gcs().send_text(MAV_SEVERITY_INFO, "Pullup level r=%.1f p=%.1f",
                                 ahrs.roll_sensor*0.01,
