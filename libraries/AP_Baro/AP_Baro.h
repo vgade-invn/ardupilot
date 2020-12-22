@@ -280,6 +280,7 @@ private:
     AP_Int8                             _ext_bus; // bus number for external barometer
     float                               _last_altitude_EAS2TAS;
     float                               _EAS2TAS;
+    float                               _EAS2TAS_slope;
     float                               _external_temperature;
     uint32_t                            _last_external_temperature_ms;
     DerivativeFilterFloat_Size7         _climb_rate_filter;
@@ -318,7 +319,7 @@ private:
     // two different atomspheric models
     float get_altitude_difference_function(float base_pressure, float pressure) const;
     float get_altitude_difference_table(float base_pressure, float pressure) const;
-    float get_EAS2TAS_table(float pressure);
+    float get_EAS2TAS_table_by_alt(float alt_amsl);
     float get_EAS2TAS_function(float altitude, float pressure);
 };
 
