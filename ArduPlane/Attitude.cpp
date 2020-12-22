@@ -790,15 +790,14 @@ void Plane::stabilize_pullup(float speed_scaler)
         SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_rate_out(0, speed_scaler));
         float aspeed;
         if (ahrs.airspeed_estimate(aspeed)) {
-            const float tas = MAX(1, aspeed * ahrs.get_EAS2TAS());
-            const float pitch_rate = degrees(2 * GRAVITY_MSS / tas);
-            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, rollController.get_rate_out(pitch_rate, speed_scaler));
+            nav_pitch_cd = aparm.pitch_limit_max_cd;
+            stabilize_pitch(speed_scaler);
         }
         break;
     }
     case PullupStage::WAIT_LEVEL:
     default:
-        nav_pitch_cd = 0;
+        nav_pitch_cd = aparm.pitch_limit_max_cd;
         nav_roll_cd = 0;
         stabilize_roll(speed_scaler);
         stabilize_pitch(speed_scaler);
