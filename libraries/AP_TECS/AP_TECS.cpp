@@ -342,6 +342,7 @@ void AP_TECS::update_50hz(void)
         _climb_rate = 0.0f;
         _height_filter.dd_height = 0.0f;
         DT = 0.02f; // when first starting TECS, use the most likely value
+        _TAS_dem_filter.set_cutoff_frequency(10,sqrtf(0.2f));
     }
     _update_50hz_last_usec = now;
 
@@ -418,6 +419,7 @@ void AP_TECS::_update_speed(float load_factor)
         }
         _integDTAS_state = 0.0f;
         _TAS_dem_adj = _TAS_dem_lpf = _EAS_dem * _EAS2TAS;
+        _TAS_dem_filter.reset(_TAS_dem_adj);
         DT = 0.02f;
     }
 
@@ -514,8 +516,8 @@ void AP_TECS::_update_speed_demand(void)
 
         // gliders need a smoother speed demand to prevent unwanted pitch transients
     if (_flags.is_gliding) {
-        const float filt_coef = _DT / timeConstant();
-        _TAS_dem_lpf = (1.0f - filt_coef) * _TAS_dem_lpf + filt_coef * _TAS_dem_adj;
+        _TAS_dem_filter.set_cutoff_frequency(1.0f / _DT , 1.0f / sqrtf(timeConstant()));
+        _TAS_dem_lpf = _TAS_dem_filter.apply(_TAS_dem_adj);
     } else {
         _TAS_dem_lpf = _TAS_dem_adj;
     }
