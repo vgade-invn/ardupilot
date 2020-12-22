@@ -241,6 +241,18 @@ static float lookup_atmospheric_table_alt(const float pressure)
 }
 
 /*
+  return an interpolated density in meters given a pressure
+ */
+static float lookup_atmospheric_table_density_by_pressure(const float pressure)
+{
+    uint32_t idx = lookup_atmospheric_table_by_pressure(pressure);
+    const float slope =
+        (atmospheric_table[idx].density - atmospheric_table[idx-1].density) /
+        (atmospheric_table[idx-1].pressure_Pa - atmospheric_table[idx].pressure_Pa);
+    return atmospheric_table[idx-1].density - slope * (pressure - atmospheric_table[idx-1].pressure_Pa);
+}
+
+/*
   return an interpolated density in meters given an altitude
  */
 static float lookup_atmospheric_table_density_by_alt(const float alt_amsl)
@@ -287,9 +299,9 @@ void AP_Baro::get_pressure_temperature_for_alt_amsl(float alt_m, float &pressure
   return current scale factor that converts from equivalent to true airspeed
   uses atmospheric tables
 */
-float AP_Baro::get_EAS2TAS_table_by_alt(float alt_amsl)
+float AP_Baro::get_EAS2TAS_table(float pressure)
 {
-    float density = lookup_atmospheric_table_density_by_alt(alt_amsl);
+    float density = lookup_atmospheric_table_density_by_pressure(pressure);
     if (!is_positive(density)) {
         // we really are not likely to get this high
         const uint32_t table_size = ARRAY_SIZE(atmospheric_table);
@@ -334,7 +346,6 @@ float AP_Baro::get_EAS2TAS_function(float altitude, float pressure)
         return 1.0f;
     }
     return sqrtf(eas2tas_squared);
-    return _EAS2TAS;
 }
 
 
@@ -364,31 +375,16 @@ float AP_Baro::get_EAS2TAS_for_alt_amsl(float alt_amsl)
 */
 float AP_Baro::get_EAS2TAS(void)
 {
-    float altitude = get_altitude();
-    float alt_change = altitude - _last_altitude_EAS2TAS;
+    const float pressure = get_pressure();
 
 #if HAL_BARO_ATMOSPHERIC_TABLE
     // optionally use the tables
     if (uint32_t(_options.get()) & uint32_t(Options::USE_ATMOS_TABLE)) {
-        if ((fabsf(alt_change) < 25.0f) && !is_zero(_EAS2TAS)) {
-            // not enough change to require re-calculating
-            return _EAS2TAS + alt_change * _EAS2TAS_slope;
-        }
-        _EAS2TAS = get_EAS2TAS_table_by_alt(altitude);
-        _last_altitude_EAS2TAS = altitude;
-        _EAS2TAS_slope = (get_EAS2TAS_table_by_alt(altitude+10) - _EAS2TAS) * 0.1;
-        return _EAS2TAS;
+        return get_EAS2TAS_table(pressure);
     }
 #endif
 
-    if ((fabsf(alt_change) < 25.0f) && !is_zero(_EAS2TAS)) {
-        // not enough change to require re-calculating
-        return _EAS2TAS;
-    }
     // otherwise use function
-    const float pressure = get_pressure();
-    _EAS2TAS = get_EAS2TAS_function(altitude, pressure);
-    _last_altitude_EAS2TAS = altitude;
-    return _EAS2TAS;
+    return get_EAS2TAS_function(get_altitude(), pressure);
 }
 
