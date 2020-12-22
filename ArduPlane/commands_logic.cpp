@@ -1127,12 +1127,26 @@ bool Plane::verify_pullup(const AP_Mission::Mission_Command &cmd)
         }
         return false;
     }
+    case PullupStage::PUSH_NOSE_DOWN: {
+        if (labs(ahrs.roll_sensor) < aparm.roll_limit_cd) {
+            pullup.stage = PullupStage::WAIT_LEVEL;
+        }
+    return false;
+    }
     case PullupStage::WAIT_LEVEL: {
-        if (ahrs.pitch_sensor > MIN(0 , aparm.pitch_limit_max_cd - 5000) && labs(ahrs.roll_sensor) < aparm.roll_limit_cd) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Pullup level r=%.1f p=%.1f",
-                            ahrs.roll_sensor*0.01,
-                            ahrs.pitch_sensor*0.01);
-            pullup.stage = PullupStage::NONE;
+        if (ahrs.pitch_sensor > MIN(0 , aparm.pitch_limit_max_cd - 5000)) {
+            if (labs(ahrs.roll_sensor) < aparm.roll_limit_cd) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Pullup level r=%.1f p=%.1f",
+                                ahrs.roll_sensor*0.01,
+                                ahrs.pitch_sensor*0.01);
+                pullup.stage = PullupStage::NONE;
+            } else {
+                // push nose down and wait to get roll control back
+                gcs().send_text(MAV_SEVERITY_ALERT, "Pullup level roll bad r=%.1f p=%.1f",
+                                ahrs.roll_sensor*0.01,
+                                ahrs.pitch_sensor*0.01);
+                pullup.stage = PullupStage::PUSH_NOSE_DOWN;
+            }
         }
         return false;
     }

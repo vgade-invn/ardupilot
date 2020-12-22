@@ -796,12 +796,20 @@ void Plane::stabilize_pullup(float speed_scaler)
         }
         break;
     }
+    case PullupStage::PUSH_NOSE_DOWN: {
+        nav_pitch_cd = aparm.pitch_limit_min_cd;
+        stabilize_pitch(speed_scaler);
+        nav_roll_cd = 0;
+        stabilize_roll(speed_scaler);
+        stabilize_yaw(speed_scaler);
+        break;
+    }
     case PullupStage::WAIT_LEVEL:
     default:
         nav_pitch_cd = aparm.pitch_limit_max_cd;
+        stabilize_pitch(speed_scaler);
         nav_roll_cd = 0;
         stabilize_roll(speed_scaler);
-        stabilize_pitch(speed_scaler);
         stabilize_yaw(speed_scaler);
         break;
     }
