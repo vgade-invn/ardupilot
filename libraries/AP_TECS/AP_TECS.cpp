@@ -979,7 +979,8 @@ void AP_TECS::_update_pitch(void)
     _pitch_dem_unc = (SEBdot_dem_total + _integSEB_state + integSEB_delta) / gainInv;
 
     // integrate SEB rate error and apply integrator state limits
-    const bool inhibit_integrator = (_pitch_dem_unc > _PITCHmaxf && integSEB_delta > 0.0f) || (_pitch_dem_unc < _PITCHminf && integSEB_delta < 0.0f);
+    const bool inhibit_integrator = ((_pitch_dem_unc > _PITCHmaxf || _pitch_rate_clip_state == Saturation::HIGH) && integSEB_delta > 0.0f) ||
+                                    ((_pitch_dem_unc < _PITCHminf || _pitch_rate_clip_state == Saturation::LOW ) && integSEB_delta < 0.0f);
     if (!inhibit_integrator) {
         _integSEB_state += integSEB_delta;
     } else if (is_positive(integSEB_delta * _hgt_rate_err_integ)) {
@@ -1010,11 +1011,15 @@ void AP_TECS::_update_pitch(void)
 
     if ((_pitch_dem - _last_pitch_dem) > ptchRateIncr)
     {
+        _pitch_rate_clip_state = Saturation::HIGH;
         _pitch_dem = _last_pitch_dem + ptchRateIncr;
     }
     else if ((_pitch_dem - _last_pitch_dem) < -ptchRateIncr)
     {
         _pitch_dem = _last_pitch_dem - ptchRateIncr;
+        _pitch_rate_clip_state = Saturation::LOW;
+    } else {
+        _pitch_rate_clip_state = Saturation::NONE;
     }
 
     _last_pitch_dem = _pitch_dem;

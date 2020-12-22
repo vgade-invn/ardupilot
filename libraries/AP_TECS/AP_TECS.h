@@ -391,6 +391,14 @@ private:
     } logging;
 
     AP_Int8 _use_synthetic_airspeed;
+
+    enum class Saturation {
+        NONE = 0,
+        LOW = 1,
+        HIGH = 2
+    };
+
+    Saturation _pitch_rate_clip_state;
     
     // use synthetic airspeed for next loop
     bool _use_synthetic_airspeed_once;
