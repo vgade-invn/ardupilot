@@ -406,34 +406,25 @@ void AP_TECS::_update_speed(float load_factor)
     float DT = (now - _update_speed_last_usec) * 1.0e-6f;
     _update_speed_last_usec = now;
 
-    _EAS2TAS = _ahrs.get_EAS2TAS();
+    _update_airspeed_conversions();
 
     // Reset states of time since last update is too large
     if (DT > 1.0f) {
-        if (_ahrs.airspeed_estimate(_EAS)) {
-            _TAS_state = (_EAS * _EAS2TAS);
-        } else {
-            // If no airspeed available use average of min and max
-            _TAS_state = _EAS2TAS * (aparm.airspeed_min.get() + (float)aparm.airspeed_max.get());
-        }
-        _integDTAS_state = 0.0f;
-        _TAS_dem_adj = _TAS_dem_lpf_1 = _TAS_dem_lpf_2 = _EAS_dem * _EAS2TAS;
+        _reset_airspeed_states();
         DT = 0.1f;
     }
 
-    // Convert equivalent airspeeds to true airspeeds
-    _TAS_dem = _EAS_dem * _EAS2TAS;
-    _TASmax   = aparm.airspeed_max * _EAS2TAS;
-    _TASmin   = aparm.airspeed_min * _EAS2TAS;
+    _EASmax   = aparm.airspeed_max;
+    _EASmin   = aparm.airspeed_min;
 
     if (aparm.stall_prevention) {
         // when stall prevention is active we raise the mimimum
         // airspeed based on aerodynamic load factor
-        _TASmin *= safe_sqrt(load_factor);
+        _EASmin *= safe_sqrt(load_factor);
     }
 
-    if (_TASmax < _TASmin) {
-        _TASmax = _TASmin;
+    if (_EASmax < _EASmin) {
+        _EASmax = _EASmin;
     }
 
     // Get airspeed or default to halfway between min and max if
@@ -470,11 +461,11 @@ void AP_TECS::_update_speed_demand(void)
     // into the ground due to an unachievable airspeed value
     if ((_flags.badDescent) || (_flags.underspeed))
     {
-        _TAS_dem = _TASmin;
+        _EAS_dem = _EASmin;
     }
 
-    // Constrain speed demand, taking into account the load factor
-    _TAS_dem = constrain_float(_TAS_dem, _TASmin, _TASmax);
+    // Constrain speed demand
+    _EAS_dem = constrain_float(_EAS_dem, _EASmin, _EASmax);
 
     // calculate velocity rate limits based on physical performance limits
     // provision to use a different rate limit if bad descent or underspeed condition exists
@@ -490,38 +481,36 @@ void AP_TECS::_update_speed_demand(void)
         velRateMax = 0.5f * _STEdot_max / _TAS_state;
         velRateMin = 0.5f * _STEdot_min / _TAS_state;
     }
+    velRateMax *= _TAS2EAS;
+    velRateMin *= _TAS2EAS;
 
-    const float TAS_dem_previous = _TAS_dem_adj;
     // Apply rate limit
-    if ((_TAS_dem - TAS_dem_previous) > (velRateMax * _DT))
+    const float EAS_dem_previous = _EAS_dem_rlim;
+    if ((_EAS_dem - EAS_dem_previous) > (velRateMax * _DT))
     {
-        _TAS_dem_adj = TAS_dem_previous + velRateMax * _DT;
+        _EAS_dem_rlim = EAS_dem_previous + velRateMax * _DT;
     }
-    else if ((_TAS_dem - TAS_dem_previous) < (velRateMin * _DT))
+    else if ((_EAS_dem - EAS_dem_previous) < (velRateMin * _DT))
     {
-        _TAS_dem_adj = TAS_dem_previous + velRateMin * _DT;
+        _EAS_dem_rlim = EAS_dem_previous + velRateMin * _DT;
     }
     else
     {
-        _TAS_dem_adj = _TAS_dem;
+        _EAS_dem_rlim = _EAS_dem;
     }
-
-    // Constrain speed demand again to protect against bad values on initialisation.
-    _TAS_dem_adj = constrain_float(_TAS_dem_adj, _TASmin, _TASmax);
 
     // gliders need a smoother speed demand to prevent unwanted pitch transients
     if (_flags.is_gliding && _options & OPTION_SMOOTH_SPEED) {
         const float tconst = timeConstant();
         const float filt_coef = _DT / tconst;
-        _TAS_dem_lpf_1 = constrain_float(_TAS_dem_lpf_1, _TASmin, _TASmax);
-        _TAS_dem_lpf_1 = (1.0f - filt_coef) * _TAS_dem_lpf_1 + filt_coef * _TAS_dem_adj;
-        _TAS_rate_dem = (_TAS_dem_lpf_1 - _TAS_dem_adj) / tconst;
-        _TAS_dem_lpf_2 = (1.0f - filt_coef) * _TAS_dem_lpf_2 + filt_coef * _TAS_dem_lpf_1;
-        _TAS_dem_lpf_2 = constrain_float(_TAS_dem_lpf_2, _TASmin, _TASmax);
+        _EAS_dem_lpf_1 = (1.0f - filt_coef) * _EAS_dem_lpf_1 + filt_coef * _EAS_dem_rlim;
+        _TAS_rate_dem = _TAS2EAS * (_EAS_dem_lpf_1 - _EAS_dem_rlim) / tconst;
+        _EAS_dem_lpf_2 = (1.0f - filt_coef) * _EAS_dem_lpf_2 + filt_coef * _EAS_dem_lpf_1;
     } else {
-        _TAS_dem_lpf_2 = _TAS_dem_lpf_1 = _TAS_dem_adj;
-        _TAS_rate_dem = (_TAS_dem_adj - TAS_dem_previous) / _DT;
+        _EAS_dem_lpf_2 = _EAS_dem_lpf_1 = _EAS_dem_rlim;
+        _TAS_rate_dem = _TAS2EAS * (_EAS_dem_rlim - EAS_dem_previous) / _DT;
     }
+    _TAS_dem =  _EAS2TAS * constrain_float(_EAS_dem_lpf_2, , _EASmax);
 }
 
 void AP_TECS::_update_height_demand(void)
@@ -622,20 +611,20 @@ void AP_TECS::_detect_underspeed(void)
     // it if we are now more than 15% above min speed, and haven't
     // been below min speed for at least 3 seconds.
     if (_flags.underspeed &&
-        _TAS_state >= _TASmin * 1.15f &&
+        _TAS_state >= _EASmin * 1.15f &&
         AP_HAL::millis() - _underspeed_start_ms > 3000U) {
         _flags.underspeed = false;
     }
 
     if (_flight_stage == AP_Vehicle::FixedWing::FLIGHT_VTOL) {
         _flags.underspeed = false;
-    } else if (((_TAS_state < _TASmin * 0.9f) &&
+    } else if (((_TAS_state < _EASmin * 0.9f) &&
             (_throttle_dem >= _THRmaxf * 0.95f) &&
             !_landing.is_flaring()) ||
             ((_height < _hgt_dem) && _flags.underspeed))
     {
         _flags.underspeed = true;
-        if (_TAS_state < _TASmin * 0.9f) {
+        if (_TAS_state < _EASmin * 0.9f) {
             // reset start time as we are still underspeed
             _underspeed_start_ms = AP_HAL::millis();
         }
@@ -653,7 +642,7 @@ void AP_TECS::_update_energies(void)
 {
     // Calculate specific energy demands
     _SPE_dem = _hgt_dem * GRAVITY_MSS;
-    _SKE_dem = 0.5f * _TAS_dem_lpf_2 * _TAS_dem_lpf_2;
+    _SKE_dem = 0.5f * _TAS_dem * _TAS_dem;
 
     // Calculate specific energy rate demands
     _SKEdot_dem = _TAS_state * _TAS_rate_dem;
@@ -675,14 +664,14 @@ float AP_TECS::timeConstant(void) const
 {
     if (_flags.is_doing_auto_land) {
         if (_landTimeConst < 0.1f) {
-            return 0.1f * sqrtf(_ahrs.get_EAS2TAS());
+            return 0.1f * sqrtf(_EAS2TAS);
         }
         return _landTimeConst;
     }
     if (_timeConst < 0.1f) {
-        return 0.1f * sqrtf(_ahrs.get_EAS2TAS());
+        return 0.1f * sqrtf(_EAS2TAS);
     }
-    return _timeConst * sqrtf(_ahrs.get_EAS2TAS());
+    return _timeConst * sqrtf(_EAS2TAS);
 }
 
 /*
@@ -691,8 +680,8 @@ float AP_TECS::timeConstant(void) const
 void AP_TECS::_update_throttle_with_airspeed(void)
 {
     // Calculate limits to be applied to potential energy error to prevent over or underspeed occurring due to large height errors
-    float SPE_err_max = 0.5f * _TASmax * _TASmax - _SKE_dem;
-    float SPE_err_min = 0.5f * _TASmin * _TASmin - _SKE_dem;
+    float SPE_err_max = 0.5f * _EASmax * _EASmax - _SKE_dem;
+    float SPE_err_min = 0.5f * _EASmin * _EASmin - _SKE_dem;
 
     if (_flight_stage == AP_Vehicle::FixedWing::FLIGHT_VTOL) {
         /*
@@ -1006,7 +995,7 @@ void AP_TECS::_update_pitch(void)
 
     // Add a feedforward term from demanded airspeed to pitch
     if (_flags.is_gliding) {
-        _pitch_dem_unc += (_TAS_dem_lpf_2 - _pitch_ff_v0) * _pitch_ff_k;
+        _pitch_dem_unc += (_EAS_dem_rlim - _pitch_ff_v0) * _pitch_ff_k;
     }
 
     // Add trim angle of attack
@@ -1059,10 +1048,8 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _hgt_dem_in_prev      = hgt_afe;
         _hgt_dem_lpf          = hgt_afe;
         _hgt_dem_rate_ltd     = hgt_afe;
-        _EAS2TAS              = _ahrs.get_EAS2TAS();
-        _TAS_dem_adj          = _TAS_dem;
-        _TAS_dem_lpf_1        = _TAS_dem;
-        _TAS_dem_lpf_2        = _TAS_dem;
+        _update_airspeed_conversions();
+        _reset_airspeed_states();
         _DT                   = 0.1f; // when first starting TECS, use the most likely time constant
         _lag_comp_hgt_offset  = 0.0f;
         _post_TO_hgt_offset   = 0.0f;
@@ -1085,9 +1072,7 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _hgt_afe              = hgt_afe;
         _hgt_dem_lpf          = hgt_afe;
         _hgt_dem_rate_ltd = hgt_afe;
-        _TAS_dem_adj          = _TAS_dem;
-        _TAS_dem_lpf_1        = _TAS_dem;
-        _TAS_dem_lpf_2        = _TAS_dem;
+        _reset_airspeed_states();
         _post_TO_hgt_offset   = _climb_rate * _hgt_dem_tconst;
         _flags.underspeed     = false;
         _flags.badDescent     = false;
@@ -1227,7 +1212,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
     }
 
     if (flight_stage == AP_Vehicle::FixedWing::FLIGHT_TAKEOFF || flight_stage == AP_Vehicle::FixedWing::FLIGHT_ABORT_LAND) {
-        if (!_flags.reached_speed_takeoff && _TAS_state >= _TAS_dem_lpf_2) {
+        if (!_flags.reached_speed_takeoff && _TAS_state >= _TAS_dem) {
             // we have reached our target speed in takeoff, allow for
             // normal throttle control
             _flags.reached_speed_takeoff = true;
@@ -1310,7 +1295,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
         (double)_hgt_dem_in,
         (double)_hgt_dem,
         (double)_hgt_rate_dem,
-        (double)_TAS_dem_lpf_2,
+        (double)_TAS_dem,
         (double)_TAS_state,
         (double)_vel_dot_hpf_out,
         (double)_integTHR_state,
@@ -1330,8 +1315,9 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
     // @Field: KErr: difference between estimated kinetic energy and desired kinetic energy
     // @Field: PErr: difference between estimated potential energy and desired potential energy
     // @Field: EDelta: current error in speed/balance weighting
-    // @Field: LF: aerodynamic load factor
-    AP::logger().Write("TEC2", "TimeUS,pmax,pmin,KErr,PErr,EDelta,LF,TDJ",
+    // @Field: LF: aerodynamic load factor as received
+    // @Field: EASdem: demanded equivalent airspeed as received
+    AP::logger().Write("TEC2", "TimeUS,pmax,pmin,KErr,PErr,EDelta,LF,EASdem",
                        "s-------",
                        "F-------",
                        "Qfffffff",
@@ -1342,5 +1328,24 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
                        (double)logging.SPE_error,
                        (double)logging.SEB_delta,
                        (double)load_factor,
-                       (double)_TAS_dem_adj);
+                       (double)_EAS_dem);
+}
+
+void AP_TECS::_update_airspeed_conversions(void)
+{
+    // limit value to range in AP_Baro atmosphere tables
+    _EAS2TAS = constrain_float(_ahrs.get_EAS2TAS(), sqrtf(1.22506f/1.86000f), sqrtf(1.22506f/0.00170f));
+    _TAS2EAS = 1.0f / _EAS2TAS;
+}
+
+void AP_TECS::_reset_airspeed_states(void)
+{
+        if (!_ahrs.airspeed_estimate(_EAS)) {
+            // If no airspeed available use average of min and max
+            _EAS = 0.5f * (aparm.airspeed_min.get() + (float)aparm.airspeed_max.get());
+        }
+        _EAS_dem_rlim = _EAS_dem_lpf_1 = _EAS_dem_lpf_2 = _EAS_dem = _EAS;
+        _integDTAS_state = 0.0f;
+        _TAS_state = _EAS * _EAS2TAS;
+        _TAS_dem = _TAS_state;
 }

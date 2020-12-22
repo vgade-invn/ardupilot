@@ -33,6 +33,10 @@ public:
         , _landing(landing)
     {
         AP_Param::setup_object_defaults(this, var_info);
+
+        // These variables can be used by an external getter before the main TECS loop runs
+        _TAS_dem = 0.0f;
+        _EAS2TAS = 1.0f;
     }
 
     /* Do not allow copies */
@@ -74,7 +78,7 @@ public:
 
     // return current target airspeed
     float get_target_airspeed(void) const override {
-        return _TAS_dem_adj / _ahrs.get_EAS2TAS();
+        return _TAS_dem / _EAS2TAS;
     }
 
     // return maximum climb rate
@@ -250,26 +254,26 @@ private:
     float _vel_dot_hpf_in;  // previous input to high pass filter
     float _vel_dot_hpf_out; // output from high pass filter
 
-    // Equivalent airspeed
+    // Equivalent airspeed measurement from vehicle
     float _EAS;
 
-    // True airspeed limits
-    float _TASmax;
-    float _TASmin;
+    // Equivalent airspeed limits
+    float _EASmax;
+    float _EASmin;
 
-    // Current true airspeed demand after limiting
+    // Current true airspeed demand after limiting and filtering as used by total energy control loops
     float _TAS_dem;
 
-    // States for sequential low pass filters applied to the rate limited TAS demand
-    // before it is used by the control loops.
-    float _TAS_dem_lpf_1;
-    float _TAS_dem_lpf_2;
+    // States for sequential low pass filters applied to the rate limited EAS demand
+    float _EAS_dem_lpf_1;
+    float _EAS_dem_lpf_2;
 
-    // Equivalent airspeed demand
+    // Equivalent airspeed demand as received and before any limiting or filtering
     float _EAS_dem;
 
-    // Conversion from EAS to TAS
+    // Conversions between EAS and TAS
     float _EAS2TAS;
+    float _TAS2EAS;
 
     // height demands
     float _hgt_dem_in;          // height demand input from autopilot (m)
@@ -289,8 +293,8 @@ private:
     // last lag compensation offset applied to height demand
     float _lag_comp_hgt_offset;
 
-    // Speed demand after application of rate limiting
-    float _TAS_dem_adj;
+    // Equivalent airspeed demand after application of range and rate limits
+    float _EAS_dem_rlim;
 
     // Speed rate demand after application of rate limiting
     // This is the demand tracked by the TECS control loops
@@ -449,4 +453,10 @@ private:
 
     // current time constant
     float timeConstant(void) const;
+
+    // Update conversions between EAS and TAS
+    void _update_airspeed_conversions(void);
+
+    // reset airspeed filter states
+    void _reset_airspeed_states(void);
 };
