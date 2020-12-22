@@ -44,6 +44,8 @@ public:
 
     void convert_pid();
 
+    float get_ng_limit(void) { return _ng_limit; }
+
 private:
     const AP_Vehicle::FixedWing &aparm;
     AP_AutoTune::ATGains gains;
