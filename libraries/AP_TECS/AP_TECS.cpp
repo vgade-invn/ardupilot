@@ -341,6 +341,7 @@ void AP_TECS::update_50hz(void)
     if (DT > 1.0f) {
         _climb_rate = 0.0f;
         _height_filter.dd_height = 0.0f;
+        _height_filter.height = _height;
         DT = 0.1f; // when first starting TECS, use the most likely value
     }
     _update_50hz_last_usec = now;
@@ -371,13 +372,8 @@ void AP_TECS::update_50hz(void)
         _climb_rate += integ2_input * DT;
 
         float integ3_input = _climb_rate + hgt_err * _hgtCompFiltOmega * 3.0f;
-        // If more than 1 second has elapsed since last update then reset the integrator state
-        // to the measured height
-        if (DT > 1.0f) {
-            _height_filter.height = _height;
-        } else {
-            _height_filter.height += integ3_input*DT;
-        }
+
+        _height_filter.height += integ3_input*DT;
     }
 
     // Update and average speed rate of change
