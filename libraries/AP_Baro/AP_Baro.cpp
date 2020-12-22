@@ -370,9 +370,6 @@ void AP_Baro::update_calibration()
 
     // always update the guessed ground temp
     _guessed_ground_temperature = get_external_temperature();
-
-    // force EAS2TAS to recalculate
-    _EAS2TAS = 0;
 }
 
 // return air density / sea level density - decreases as altitude climbs
