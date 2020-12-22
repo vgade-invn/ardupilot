@@ -483,8 +483,8 @@ void AP_TECS::_update_speed_demand(void)
     float velRateMin, velRateMax;
     if (_flags.is_gliding) {
         // The rate of acceleration is a function of the how much the flight path angle
-        // can be lowered or raised
-        const float glide_angle_delta = 0.5f * (_PITCHmaxf - _PITCHminf);
+        // can be lowered or raised. Use half of max available.
+        const float glide_angle_delta = 0.25f * (_PITCHmaxf - _PITCHminf);
         velRateMax =   GRAVITY_MSS * sinf(glide_angle_delta);
         velRateMin = - velRateMax;
     } else {
@@ -665,14 +665,14 @@ float AP_TECS::timeConstant(void) const
 {
     if (_flags.is_doing_auto_land) {
         if (_landTimeConst < 0.1f) {
-            return 0.1f;
+            return 0.1f * sqrtf(_ahrs.get_EAS2TAS());
         }
         return _landTimeConst;
     }
     if (_timeConst < 0.1f) {
-        return 0.1f;
+        return 0.1f * sqrtf(_ahrs.get_EAS2TAS());
     }
-    return _timeConst;
+    return _timeConst * sqrtf(_ahrs.get_EAS2TAS());
 }
 
 /*
@@ -934,8 +934,8 @@ void AP_TECS::_update_pitch(void)
     float SEB_error = SEB_dem - (_SPE_est * SPE_weighting - _SKE_est * _SKE_weighting);
 
     // track demanded height using the specified time constant
-    const float SEBdot_dem_ff = (_flags.is_gliding) ? 0.0f : _hgt_rate_dem * GRAVITY_MSS;
-    float SEBdot_dem = constrain_float(SEBdot_dem_ff + SEB_error / timeConstant(), -max_sink_rate * GRAVITY_MSS, max_climb_rate * GRAVITY_MSS);
+    const float SEBdot_dem_ff1 = (_flags.is_gliding) ? 0.0f : _hgt_rate_dem * GRAVITY_MSS;
+    float SEBdot_dem = constrain_float(SEBdot_dem_ff1 + SEB_error / timeConstant(), -max_sink_rate * GRAVITY_MSS, max_climb_rate * GRAVITY_MSS);
 
     // rate of change of potential energy is required by total energy controller
     _SPEdot_dem = (_SPE_dem * SPE_weighting - _SPE_est) * SPE_weighting / timeConstant();
@@ -955,7 +955,8 @@ void AP_TECS::_update_pitch(void)
     } else if (!is_zero(_land_pitch_damp) && _flags.is_doing_auto_land) {
         pitch_damp = _land_pitch_damp;
     }
-    float SEBdot_dem_total = SEBdot_dem + SEBdot_error * pitch_damp;
+    const float SEBdot_dem_ff2 = (_flags.is_gliding) ? - _SKEdot_dem * _SKE_weighting : 0.0f;
+    float SEBdot_dem_total = SEBdot_dem_ff2 + SEBdot_dem + SEBdot_error * pitch_damp;
 
     // inverse of gain from SEB to pitch angle
     float gainInv = (_TAS_state * GRAVITY_MSS);
