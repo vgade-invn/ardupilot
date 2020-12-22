@@ -154,6 +154,15 @@ AP_PitchController::AP_PitchController(AP_AHRS &ahrs, const AP_Vehicle::FixedWin
 */
 int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool disable_integrator, float aspeed)
 {
+	// apply pitch rate limits that prevent specified normal g loading being exceeded
+	const float VTAS = aspeed * _ahrs.get_EAS2TAS();
+	const float g_div_vtas = GRAVITY_MSS / VTAS;
+	const float zero_ng_pitch_rate = - g_div_vtas * _ahrs.get_DCM_rotation_body_to_ned().c.z;
+	const float ng_pitch_rate = g_div_vtas * MAX(_ng_limit, 2.0f);
+	const float max_pitch_rate_dps = degrees(zero_ng_pitch_rate + ng_pitch_rate);
+	const float min_pitch_rate_dps = degrees(zero_ng_pitch_rate - ng_pitch_rate);
+    desired_rate = constrain_float(desired_rate, min_pitch_rate_dps, max_pitch_rate_dps);
+
     const float dt = AP::scheduler().get_loop_period_s();
     const float eas2tas = _ahrs.get_EAS2TAS();
     bool limit_I = fabsf(_last_out) >= 45;
@@ -317,15 +326,6 @@ int32_t AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool 
 	if (inverted) {
 		desired_rate = -desired_rate;
 	}
-
-	// apply pitch rate limits that prevent specified normal g loading being exceeded
-	const float VTAS = aspeed * _ahrs.get_EAS2TAS();
-	const float g_div_vtas = GRAVITY_MSS / VTAS;
-	const float zero_ng_pitch_rate = - g_div_vtas * _ahrs.get_DCM_rotation_body_to_ned().a.z;
-	const float ng_pitch_rate = g_div_vtas * MAX(_ng_limit, 2.0f);
-	const float max_pitch_rate_dps = degrees(zero_ng_pitch_rate + ng_pitch_rate);
-	const float min_pitch_rate_dps = degrees(zero_ng_pitch_rate - ng_pitch_rate);
-	desired_rate = constrain_float(desired_rate, min_pitch_rate_dps, max_pitch_rate_dps);
 
 	// Apply the turn correction offset
 	desired_rate = desired_rate + rate_offset;
