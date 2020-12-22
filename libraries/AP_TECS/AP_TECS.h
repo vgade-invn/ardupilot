@@ -24,7 +24,6 @@
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <AP_SpdHgtControl/AP_SpdHgtControl.h>
 #include <AP_Landing/AP_Landing.h>
-#include <Filter/LowPassFilter2p.h>
 
 class AP_TECS : public AP_SpdHgtControl {
 public:
@@ -260,12 +259,10 @@ private:
     // Current true airspeed demand after limiting
     float _TAS_dem;
 
-    // Current true airspeed demand after low pass filtering
-    // This is the demand tracked by the TECS control loops
-    float _TAS_dem_lpf;
-
-    // LPF applied to demanded airspeed after it has been rate limited
-    LowPassFilter2pFloat _TAS_dem_filter;
+    // States for sequential low pass filters applied to the rate limited TAS demand
+    // before it is used by the control loops.
+    float _TAS_dem_lpf_1;
+    float _TAS_dem_lpf_2;
 
     // Equivalent airspeed demand
     float _EAS_dem;

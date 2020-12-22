@@ -342,7 +342,6 @@ void AP_TECS::update_50hz(void)
         _climb_rate = 0.0f;
         _height_filter.dd_height = 0.0f;
         DT = 0.1f; // when first starting TECS, use the most likely value
-        _TAS_dem_filter.set_cutoff_frequency(10,sqrtf(0.2f));
     }
     _update_50hz_last_usec = now;
 
@@ -418,8 +417,7 @@ void AP_TECS::_update_speed(float load_factor)
             _TAS_state = _EAS2TAS * (aparm.airspeed_min.get() + (float)aparm.airspeed_max.get());
         }
         _integDTAS_state = 0.0f;
-        _TAS_dem_adj = _TAS_dem_lpf = _EAS_dem * _EAS2TAS;
-        _TAS_dem_filter.reset(_TAS_dem_adj);
+        _TAS_dem_adj = _TAS_dem_lpf_1 = _TAS_dem_lpf_2 = _EAS_dem * _EAS2TAS;
         DT = 0.1f;
     }
 
@@ -498,32 +496,32 @@ void AP_TECS::_update_speed_demand(void)
     if ((_TAS_dem - TAS_dem_previous) > (velRateMax * _DT))
     {
         _TAS_dem_adj = TAS_dem_previous + velRateMax * _DT;
-        _TAS_rate_dem = velRateMax;
     }
     else if ((_TAS_dem - TAS_dem_previous) < (velRateMin * _DT))
     {
         _TAS_dem_adj = TAS_dem_previous + velRateMin * _DT;
-        _TAS_rate_dem = velRateMin;
     }
     else
     {
-        _TAS_rate_dem = (_TAS_dem - TAS_dem_previous) / _DT;
         _TAS_dem_adj = _TAS_dem;
     }
 
     // Constrain speed demand again to protect against bad values on initialisation.
     _TAS_dem_adj = constrain_float(_TAS_dem_adj, _TASmin, _TASmax);
 
-        // gliders need a smoother speed demand to prevent unwanted pitch transients
+    // gliders need a smoother speed demand to prevent unwanted pitch transients
     if (_flags.is_gliding) {
-        _TAS_dem_filter.set_cutoff_frequency(10 , 1.0f / sqrtf(timeConstant()));
-        _TAS_dem_lpf = _TAS_dem_filter.apply(_TAS_dem_adj);
+        const float tconst = timeConstant();
+        const float filt_coef = _DT / tconst;
+        _TAS_dem_lpf_1 = constrain_float(_TAS_dem_lpf_1, _TASmin, _TASmax);
+        _TAS_dem_lpf_1 = (1.0f - filt_coef) * _TAS_dem_lpf_1 + filt_coef * _TAS_dem_adj;
+        _TAS_rate_dem = (_TAS_dem_lpf_1 - _TAS_dem_adj) / tconst;
+        _TAS_dem_lpf_2 = (1.0f - filt_coef) * _TAS_dem_lpf_2 + filt_coef * _TAS_dem_lpf_1;
+        _TAS_dem_lpf_2 = constrain_float(_TAS_dem_lpf_2, _TASmin, _TASmax);
     } else {
-        _TAS_dem_lpf = _TAS_dem_adj;
+        _TAS_dem_lpf_2 = _TAS_dem_lpf_1 = _TAS_dem_adj;
+        _TAS_rate_dem = (_TAS_dem_adj - TAS_dem_previous) / _DT;
     }
-
-    // Constrain speed demand again to protect against bad values on initialisation.
-    _TAS_dem_lpf = constrain_float(_TAS_dem_lpf, _TASmin, _TASmax);
 }
 
 void AP_TECS::_update_height_demand(void)
@@ -655,7 +653,7 @@ void AP_TECS::_update_energies(void)
 {
     // Calculate specific energy demands
     _SPE_dem = _hgt_dem * GRAVITY_MSS;
-    _SKE_dem = 0.5f * _TAS_dem_lpf * _TAS_dem_lpf;
+    _SKE_dem = 0.5f * _TAS_dem_lpf_2 * _TAS_dem_lpf_2;
 
     // Calculate specific energy rate demands
     _SKEdot_dem = _TAS_state * _TAS_rate_dem;
@@ -1008,7 +1006,7 @@ void AP_TECS::_update_pitch(void)
 
     // Add a feedforward term from demanded airspeed to pitch
     if (_flags.is_gliding) {
-        _pitch_dem_unc += (_TAS_dem_lpf - _pitch_ff_v0) * _pitch_ff_k;
+        _pitch_dem_unc += (_TAS_dem_lpf_2 - _pitch_ff_v0) * _pitch_ff_k;
     }
 
     // Add trim angle of attack
@@ -1063,8 +1061,8 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _hgt_dem_rate_ltd     = hgt_afe;
         _EAS2TAS              = _ahrs.get_EAS2TAS();
         _TAS_dem_adj          = _TAS_dem;
-        _TAS_dem_lpf          = _TAS_dem;
-        _TAS_dem_filter.reset(_TAS_dem);
+        _TAS_dem_lpf_1        = _TAS_dem;
+        _TAS_dem_lpf_2        = _TAS_dem;
         _DT                   = 0.1f; // when first starting TECS, use the most likely time constant
         _lag_comp_hgt_offset  = 0.0f;
         _post_TO_hgt_offset   = 0.0f;
@@ -1088,8 +1086,8 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _hgt_dem_lpf          = hgt_afe;
         _hgt_dem_rate_ltd = hgt_afe;
         _TAS_dem_adj          = _TAS_dem;
-        _TAS_dem_lpf          = _TAS_dem;
-        _TAS_dem_filter.reset(_TAS_dem);
+        _TAS_dem_lpf_1        = _TAS_dem;
+        _TAS_dem_lpf_2        = _TAS_dem;
         _post_TO_hgt_offset   = _climb_rate * _hgt_dem_tconst;
         _flags.underspeed     = false;
         _flags.badDescent     = false;
@@ -1229,7 +1227,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
     }
 
     if (flight_stage == AP_Vehicle::FixedWing::FLIGHT_TAKEOFF || flight_stage == AP_Vehicle::FixedWing::FLIGHT_ABORT_LAND) {
-        if (!_flags.reached_speed_takeoff && _TAS_state >= _TAS_dem_lpf) {
+        if (!_flags.reached_speed_takeoff && _TAS_state >= _TAS_dem_lpf_2) {
             // we have reached our target speed in takeoff, allow for
             // normal throttle control
             _flags.reached_speed_takeoff = true;
@@ -1312,7 +1310,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
         (double)_hgt_dem_in,
         (double)_hgt_dem,
         (double)_hgt_rate_dem,
-        (double)_TAS_dem_lpf,
+        (double)_TAS_dem_lpf_2,
         (double)_TAS_state,
         (double)_vel_dot_hpf_out,
         (double)_integTHR_state,
