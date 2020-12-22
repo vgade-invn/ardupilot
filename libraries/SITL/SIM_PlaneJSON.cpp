@@ -87,11 +87,13 @@ Vector3f PlaneJSON::getTorque(float inputAileron, float inputElevator, float inp
     float Mz = Cn * qPa * m.Sref * m.refSpan;
 
 
+#if 0
     AP::logger().Write("GLT", "TimeUS,Alpha,Beta,Cl,Cm,Cn", "Qfffff",
                        AP_HAL::micros64(),
                        degrees(alpharad),
                        degrees(betarad),
                        Cl, Cm, Cn);
+#endif
 
     return Vector3f(Mx/m.IXX, My/m.IYY, Mz/m.IZZ);
 }
@@ -127,11 +129,13 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
     float Fy =  CY * qPa * m.Sref;
     float Fz = -CN * qPa * m.Sref;
 
+#if 0
     AP::logger().Write("GLF", "TimeUS,Alpha,Beta,CA,CY,CN", "Qfffff",
                        AP_HAL::micros64(),
                        degrees(alpharad),
                        degrees(betarad),
                        CA, CY, CN);
+#endif
     
     return Vector3f(Fx, Fy, Fz);
 }
