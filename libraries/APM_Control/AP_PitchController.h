@@ -48,6 +48,8 @@ public:
     AP_Float &kD(void) { return gains.D; }
     AP_Float &kFF(void) { return gains.FF; }
 
+    float get_ng_limit(void) { return _ng_limit; }
+
 private:
     const AP_Vehicle::FixedWing &aparm;
     AP_AutoTune::ATGains gains;
