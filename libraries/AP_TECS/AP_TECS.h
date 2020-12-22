@@ -195,6 +195,7 @@ private:
 
     enum {
         OPTION_GLIDER_ONLY=(1<<0),
+        OPTION_SMOOTH_SPEED=(1<<1),
     };
 
     AP_Float _pitch_ff_v0;

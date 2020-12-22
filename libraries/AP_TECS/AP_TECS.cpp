@@ -245,7 +245,7 @@ const AP_Param::GroupInfo AP_TECS::var_info[] = {
     // @Param: OPTIONS
     // @DisplayName: Extra TECS options
     // @Description: This allows the enabling of special features in the speed/height controller.
-    // @Bitmask: 0:GliderOnly
+    // @Bitmask: 0:GliderOnly,1:SmoothSpeed
     // @User: Advanced
     AP_GROUPINFO("OPTIONS", 28, AP_TECS, _options, 0),
 
@@ -510,7 +510,7 @@ void AP_TECS::_update_speed_demand(void)
     _TAS_dem_adj = constrain_float(_TAS_dem_adj, _TASmin, _TASmax);
 
     // gliders need a smoother speed demand to prevent unwanted pitch transients
-    if (_flags.is_gliding) {
+    if (_flags.is_gliding && _options & OPTION_SMOOTH_SPEED) {
         const float tconst = timeConstant();
         const float filt_coef = _DT / tconst;
         _TAS_dem_lpf_1 = constrain_float(_TAS_dem_lpf_1, _TASmin, _TASmax);
