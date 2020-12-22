@@ -1151,7 +1151,8 @@ private:
         NONE=0,
         WAIT_AIRSPEED,
         WAIT_PITCH,
-        WAIT_LEVEL
+        WAIT_LEVEL,
+        PUSH_NOSE_DOWN
     };
 
     struct {
