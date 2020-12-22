@@ -1064,6 +1064,7 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _EAS2TAS              = _ahrs.get_EAS2TAS();
         _TAS_dem_adj          = _TAS_dem;
         _TAS_dem_lpf          = _TAS_dem;
+        _TAS_dem_filter.reset(_TAS_dem);
         _DT                   = 0.02f; // when first starting TECS, use the most likely time constant
         _lag_comp_hgt_offset  = 0.0f;
         _post_TO_hgt_offset   = 0.0f;
@@ -1088,6 +1089,7 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _hgt_dem_rate_ltd = hgt_afe;
         _TAS_dem_adj          = _TAS_dem;
         _TAS_dem_lpf          = _TAS_dem;
+        _TAS_dem_filter.reset(_TAS_dem);
         _post_TO_hgt_offset   = _climb_rate * _hgt_dem_tconst;
         _flags.underspeed     = false;
         _flags.badDescent     = false;
@@ -1123,7 +1125,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
     _DT = MAX(_DT, 0.001f);
     _update_pitch_throttle_last_usec = now;
 
-    _flags.is_gliding = _options & OPTION_GLIDER_ONLY || _flags.gliding_requested || _flags.propulsion_failed || aparm.throttle_max==0;
+    _flags.is_gliding = ((_options & OPTION_GLIDER_ONLY) != 0) || _flags.gliding_requested || _flags.propulsion_failed || aparm.throttle_max==0;
     _flags.is_doing_auto_land = (flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND);
     _distance_beyond_land_wp = distance_beyond_land_wp;
     _flight_stage = flight_stage;
@@ -1331,15 +1333,16 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
     // @Field: PErr: difference between estimated potential energy and desired potential energy
     // @Field: EDelta: current error in speed/balance weighting
     // @Field: LF: aerodynamic load factor
-    AP::logger().Write("TEC2", "TimeUS,pmax,pmin,KErr,PErr,EDelta,LF",
-                       "s------",
-                       "F------",
-                       "Qffffff",
+    AP::logger().Write("TEC2", "TimeUS,pmax,pmin,KErr,PErr,EDelta,LF,TDJ",
+                       "s-------",
+                       "F-------",
+                       "Qfffffff",
                        now,
                        (double)degrees(_PITCHmaxf),
                        (double)degrees(_PITCHminf),
                        (double)logging.SKE_error,
                        (double)logging.SPE_error,
                        (double)logging.SEB_delta,
-                       (double)load_factor);
+                       (double)load_factor,
+                       (double)_TAS_dem_adj);
 }
