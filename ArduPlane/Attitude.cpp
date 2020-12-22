@@ -790,8 +790,9 @@ void Plane::stabilize_pullup(float speed_scaler)
         SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_rate_out(0, speed_scaler));
         float aspeed;
         if (ahrs.airspeed_estimate(aspeed)) {
-            nav_pitch_cd = aparm.pitch_limit_max_cd;
-            stabilize_pitch(speed_scaler);
+            const float tas = MAX(1, aspeed * ahrs.get_EAS2TAS());
+            const float pitch_rate = degrees(pitchController.get_ng_limit() * GRAVITY_MSS / tas);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, pitchController.get_rate_out(pitch_rate, speed_scaler));
         }
         break;
     }
