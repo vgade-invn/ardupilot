@@ -506,7 +506,7 @@ void AP_TECS::_update_speed_demand(void)
         _EAS_dem_lpf_2 = _EAS_dem_lpf_1 = _EAS_dem_rlim;
         _TAS_rate_dem = _TAS2EAS * (_EAS_dem_rlim - EAS_dem_previous) / _DT;
     }
-    _TAS_dem =  _EAS2TAS * constrain_float(_EAS_dem_lpf_2, , _EASmax);
+    _TAS_dem =  _EAS2TAS * constrain_float(_EAS_dem_lpf_2, _EASmin, _EASmax);
 }
 
 void AP_TECS::_update_height_demand(void)
