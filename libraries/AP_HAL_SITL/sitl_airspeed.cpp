@@ -15,6 +15,7 @@
 #include "SITL_State.h"
 #include <SITL/SITL.h>
 #include <AP_Math/AP_Math.h>
+#include <AP_Airspeed/AP_Airspeed.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -45,8 +46,8 @@ void SITL_State::_update_airspeed(float airspeed)
     
     // apply noise to the differential pressure. This emulates the way
     // airspeed noise reduces with speed
-    airspeed = sqrtf(fabsf(2*(diff_pressure + _sitl->arspd_noise[0] * rand_float())));
-    airspeed2 = sqrtf(fabsf(2*(diff_pressure + _sitl->arspd_noise[1] * rand_float())));
+    airspeed = AP_Airspeed::calc_EAS(diff_pressure + _sitl->arspd_noise[0] * rand_float(), static_pressure);
+    airspeed2 = AP_Airspeed::calc_EAS(diff_pressure + _sitl->arspd_noise[1] * rand_float(), static_pressure);
 
     // check sensor failure
     if (is_positive(_sitl->arspd_fail[0])) {
@@ -60,13 +61,13 @@ void SITL_State::_update_airspeed(float airspeed)
         // compute a realistic pressure report given some level of trapper air pressure in the tube and our current altitude
         // algorithm taken from https://en.wikipedia.org/wiki/Calibrated_airspeed#Calculation_from_impact_pressure
         float tube_pressure = fabsf(_sitl->arspd_fail_pressure[0] - _barometer->get_pressure() + _sitl->arspd_fail_pitot_pressure[0]);
-        airspeed = 340.29409348 * sqrt(5 * (pow((tube_pressure / SSL_AIR_PRESSURE + 1), 2.0/7.0) - 1.0));
+        airspeed = AP_Airspeed::calc_EAS(tube_pressure,static_pressure);
     }
     if (!is_zero(_sitl->arspd_fail_pressure[1])) {
         // compute a realistic pressure report given some level of trapper air pressure in the tube and our current altitude
         // algorithm taken from https://en.wikipedia.org/wiki/Calibrated_airspeed#Calculation_from_impact_pressure
         float tube_pressure = fabsf(_sitl->arspd_fail_pressure[1] - _barometer->get_pressure() + _sitl->arspd_fail_pitot_pressure[1]);
-        airspeed2 = 340.29409348 * sqrt(5 * (pow((tube_pressure / SSL_AIR_PRESSURE + 1), 2.0/7.0) - 1.0));
+        airspeed2 = AP_Airspeed::calc_EAS(tube_pressure,static_pressure);
     }
 
     float airspeed_pressure = pcorrect * calc_differential_pressure(airspeed, static_pressure);
