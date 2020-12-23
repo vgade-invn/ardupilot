@@ -182,6 +182,10 @@ public:
 #if HAL_MSP_AIRSPEED_ENABLED
     void handle_msp(const MSP::msp_airspeed_data_message_t &pkt);
 #endif
+
+    // convert pitot differential pressure to EAS
+    static float calc_EAS(float diff_pressure, float static_pressure);
+
     
 private:
     static AP_Airspeed *_singleton;
@@ -272,9 +276,6 @@ private:
     AP_Airspeed_Backend *sensor[AIRSPEED_MAX_SENSORS];
 
     void Log_Airspeed();
-
-    // convert pitot differential pressure to EAS
-    float calc_EAS(float diff_pressure, float static_pressure);
 
     // convert pitot differential pressure to EAS, applying corrections
     float calc_corrected_EAS(uint8_t sensor, float diff_pressure);
