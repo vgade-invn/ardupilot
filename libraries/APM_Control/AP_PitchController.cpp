@@ -139,14 +139,14 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] = {
 */
 int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool disable_integrator, float aspeed)
 {
-	// apply pitch rate limits that prevent specified normal g loading being exceeded
-	const float VTAS = aspeed * _ahrs.get_EAS2TAS();
-	const float g_div_vtas = GRAVITY_MSS / VTAS;
-	const float zero_ng_pitch_rate = - g_div_vtas * _ahrs.get_DCM_rotation_body_to_ned().c.z;
-	const float ng_pitch_rate = g_div_vtas * MAX(_ng_limit, 2.0f);
-	const float max_pitch_rate_dps = degrees(zero_ng_pitch_rate + ng_pitch_rate);
-	const float min_pitch_rate_dps = degrees(zero_ng_pitch_rate - ng_pitch_rate);
-	desired_rate = constrain_float(desired_rate, min_pitch_rate_dps, max_pitch_rate_dps);
+    // apply pitch rate limits that prevent specified normal g loading being exceeded
+    const float VTAS = aspeed * _ahrs.get_EAS2TAS();
+    const float g_div_vtas = GRAVITY_MSS / MAX(VTAS,0.1);
+    const float zero_ng_pitch_rate = - g_div_vtas * _ahrs.get_DCM_rotation_body_to_ned().c.z;
+    const float ng_pitch_rate = g_div_vtas * MAX(_ng_limit, 2.0f);
+    const float max_pitch_rate_dps = degrees(zero_ng_pitch_rate + ng_pitch_rate);
+    const float min_pitch_rate_dps = degrees(zero_ng_pitch_rate - ng_pitch_rate);
+    desired_rate = constrain_float(desired_rate, min_pitch_rate_dps, max_pitch_rate_dps);
 
 	uint32_t tnow = AP_HAL::millis();
 	uint32_t dt = tnow - _last_t;
