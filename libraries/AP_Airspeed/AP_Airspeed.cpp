@@ -503,6 +503,7 @@ void AP_Airspeed::update_calibration(uint8_t i, float raw_pressure)
 */
 float AP_Airspeed::calc_EAS(float diff_pressure, float static_pressure)
 {
+    diff_pressure = MAX(diff_pressure,0);
     return sqrtf((1.0/SSL_AIR_DENSITY) * 7 * static_pressure * (powf(diff_pressure/static_pressure+1,2.0/7.0)-1));
 }
 
