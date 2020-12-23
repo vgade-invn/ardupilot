@@ -129,15 +129,36 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
     float Fy =  CY * qPa * m.Sref;
     float Fz = -CN * qPa * m.Sref;
 
-#if 0
-    AP::logger().Write("GLF", "TimeUS,Alpha,Beta,CA,CY,CN", "Qfffff",
-                       AP_HAL::micros64(),
-                       degrees(alpharad),
-                       degrees(betarad),
-                       CA, CY, CN);
-#endif
-    
-    return Vector3f(Fx, Fy, Fz);
+    Vector3f ret = Vector3f(Fx, Fy, Fz);
+
+    float Flift = Fx * sin(alpharad)  - Fz * cos(alpharad);
+    float Fdrag = -Fx * cos(alpharad) - Fz * sin(alpharad);
+    float sim_LD = 0.1 * constrain_float(Flift/MAX(1.0e-6,Fdrag),0,20) + 0.9 * sim_LD;
+
+    {
+        static uint32_t last_drag_ms;
+        uint32_t now = AP_HAL::millis();
+        if (now - last_drag_ms > 100 &&
+            location.alt*0.01 < 30500 &&
+            airspeed > 5) {
+            last_drag_ms = now;
+            AP::logger().Write("SLD", "TimeUS,AltFt,AltM,EAS,TAS,AD,Fl,Fd,LD,Elev,AoA,Fx,Fy,Fz,q", "Qffffffffffffff",
+                               AP_HAL::micros64(),
+                               (location.alt*0.01)/FEET_TO_METERS,
+                               location.alt*0.01,
+                               velocity_air_bf.length()/eas2tas,
+                               velocity_air_bf.length(),
+                               air_density,
+                               Flift, Fdrag, sim_LD,
+                               degrees(elevator_rad),
+                               degrees(alpharad),
+                               Fx, Fy, Fz,
+                               qPa);
+        }
+    }
+
+
+    return ret;
 }
 
 void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel)
