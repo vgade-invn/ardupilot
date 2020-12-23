@@ -33,10 +33,6 @@ public:
         , _landing(landing)
     {
         AP_Param::setup_object_defaults(this, var_info);
-
-        // These variables can be used by an external getter before the main TECS loop runs
-        _TAS_dem = 0.0f;
-        _EAS2TAS = 1.0f;
     }
 
     /* Do not allow copies */
@@ -78,7 +74,7 @@ public:
 
     // return current target airspeed
     float get_target_airspeed(void) const override {
-        return _TAS_dem / _EAS2TAS;
+        return _TAS_dem * _TAS2EAS;
     }
 
     // return maximum climb rate
