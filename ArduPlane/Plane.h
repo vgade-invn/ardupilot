@@ -616,6 +616,7 @@ private:
 
     // a smoothed airspeed estimate, used for limiting roll angle
     float smoothed_airspeed;
+    float glide_slope;
 
     // Mission library
     AP_Mission mission{

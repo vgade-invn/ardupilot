@@ -369,6 +369,12 @@ void Plane::stabilize_acro(float speed_scaler)
  */
 void Plane::stabilize()
 {
+    Vector3f vel;
+    if (ahrs.get_velocity_NED(vel) && vel.z > 0.1) {
+        const float gs = sqrt(sq(vel.x)+sq(vel.y)) / vel.z;
+        glide_slope = 0.95 * glide_slope + 0.05 * gs;
+    }
+
     if (control_mode == &mode_manual) {
         // reset steering controls
         steer_state.locked_course = false;

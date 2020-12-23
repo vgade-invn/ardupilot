@@ -286,7 +286,7 @@ void Plane::update_loiter(uint16_t radius)
           that is going to be switching to QRTL when it gets within
           RTL_RADIUS
         */
-        nav_controller->update_waypoint(prev_WP_loc, next_WP_loc);
+        nav_controller->update_waypoint(current_loc, next_WP_loc);
     } else {
         nav_controller->update_loiter(next_WP_loc, radius, loiter.direction);
     }

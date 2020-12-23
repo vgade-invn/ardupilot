@@ -602,6 +602,7 @@ bool Plane::verify_nav_wp(const AP_Mission::Mission_Command& cmd)
         }
     }
 
+    auto_state.crosstrack = false;
     if (auto_state.crosstrack) {
         nav_controller->update_waypoint(prev_WP_loc, flex_next_WP_loc);
     } else {
@@ -886,8 +887,13 @@ void Plane::do_loiter_at_location()
     next_WP_loc = current_loc;
 }
 
+extern float sim_LD;
+
 bool Plane::do_change_speed(const AP_Mission::Mission_Command& cmd)
 {
+    gcs().send_text(MAV_SEVERITY_INFO, "alt %.1f EAS %.2f L/D %.2f  sim_LD %.2f\n",
+                    current_loc.alt*0.01, smoothed_airspeed, glide_slope, sim_LD);
+
     switch (cmd.content.speed.speed_type)
     {
     case 0:             // Airspeed

@@ -98,6 +98,8 @@ Vector3f PlaneJSON::getTorque(float inputAileron, float inputElevator, float inp
     return Vector3f(Mx/m.IXX, My/m.IYY, Mz/m.IZZ);
 }
 
+float sim_LD;
+
 // Force calculation, return vector in Newtons
 Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inputRudder) const
 {
@@ -137,7 +139,25 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
                        CA, CY, CN);
 #endif
     
-    return Vector3f(Fx, Fy, Fz);
+    Vector3f ret = Vector3f(Fx, Fy, Fz);
+
+    float Flift = Fx * sin(alpharad)  - Fz * cos(alpharad);
+    float Fdrag = -Fx * cos(alpharad) - Fz * sin(alpharad);
+    sim_LD = 0.1 * constrain_float(Flift/MAX(1.0e-6,Fdrag),0,20) + 0.9 * sim_LD;
+
+    {
+        static uint32_t last_drag_ms;
+        uint32_t now = AP_HAL::millis();
+        if (now - last_drag_ms > 100) {
+            last_drag_ms = now;
+            AP::logger().Write("SLD", "TimeUS,Flift,Fdrag,LD", "Qfff",
+                               AP_HAL::micros64(),
+                               Flift, Fdrag, sim_LD);
+        }
+    }
+
+
+    return ret;
 }
 
 void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel)
