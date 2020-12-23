@@ -182,6 +182,13 @@ const AP_Param::GroupInfo AP_Airspeed::var_info[] = {
     AP_GROUPINFO("_WIND_WARN", 23, AP_Airspeed, _wind_warn, 0),
 #endif
 
+    // @Param: _PCORRECT
+    // @DisplayName: Pitot pressure correction
+    // @Description: Calibrates pitot tube pressure to velocity. Increasing this value will indicate a higher airspeed at any given dynamic pressure. A value of 1.0 is correct for an ideal pitot tube.
+    // @Increment: 0.1
+    // @User: Advanced
+    AP_GROUPINFO("_PCORRECT", 24, AP_Airspeed, param[0].pcorrect, 1.0),
+
 #if AIRSPEED_MAX_SENSORS > 1
     // @Param: 2_TYPE
     // @DisplayName: Second Airspeed type
@@ -247,19 +254,14 @@ const AP_Param::GroupInfo AP_Airspeed::var_info[] = {
 
     // Note that 21, 22 and 23 are used above by the _OPTIONS, _WIND_MAX and _WIND_WARN parameters.  Do not use them!!
 
-    // @Param: _PCORRECT
-    // @DisplayName: Pitot pressure correction
-    // @Description: Calibrates pitot tube pressure to velocity. Increasing this value will indicate a higher airspeed at any given dynamic pressure. A value of 1.0 is correct for an ideal pitot tube.
-    // @Increment: 0.1
-    // @User: Advanced
-    AP_GROUPINFO("_PCORRECT", 24, AP_Airspeed, param[0].pcorrect, 1.0),
-
+#if AIRSPEED_MAX_SENSORS > 1
     // @Param: 2_PCORRECT
     // @DisplayName: Pitot pressure correction for 2nd sensor
     // @Description: Calibrates pitot tube pressure to velocity. Increasing this value will indicate a higher airspeed at any given dynamic pressure. A value of 1.0 is correct for an ideal pitot tube.
     // @Increment: 0.1
     // @User: Advanced
     AP_GROUPINFO("2_PCORRECT", 25, AP_Airspeed, param[1].pcorrect, 1.0),
+#endif
 
     AP_GROUPEND
 };
