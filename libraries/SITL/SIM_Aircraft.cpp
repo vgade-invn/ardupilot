@@ -524,8 +524,8 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
     const float delta_time = frame_time_us * 1.0e-6f;
 
     // update eas2tas and air density
-    eas2tas = AP_Baro::get_EAS2TAS_for_alt_amsl(-position.z);
-    air_density = AP_Baro::get_air_density_for_alt_amsl(-position.z);
+    eas2tas = AP_Baro::get_EAS2TAS_for_alt_amsl(location.alt*0.01);
+    air_density = AP_Baro::get_air_density_for_alt_amsl(location.alt*0.01);
 
     // update rotational rates in body frame
     gyro += rot_accel * delta_time;
