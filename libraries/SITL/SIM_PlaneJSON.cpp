@@ -133,11 +133,12 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
 
     float Flift = Fx * sin(alpharad)  - Fz * cos(alpharad);
     float Fdrag = -Fx * cos(alpharad) - Fz * sin(alpharad);
-    float sim_LD = 0.1 * constrain_float(Flift/MAX(1.0e-6,Fdrag),0,20) + 0.9 * sim_LD;
 
     {
         static uint32_t last_drag_ms;
+        static float sim_LD;
         uint32_t now = AP_HAL::millis();
+        sim_LD = 0.1 * constrain_float(Flift/MAX(1.0e-6,Fdrag),0,20) + 0.9 * sim_LD;
         if (now - last_drag_ms > 100 &&
             location.alt*0.01 < 30500 &&
             airspeed > 5) {
