@@ -304,3 +304,8 @@ include ../ArduPlane/quadplane.h depends APM_BUILD_TYPE(APM_BUILD_ArduPlane)
 singleton QuadPlane alias quadplane
 singleton QuadPlane depends APM_BUILD_TYPE(APM_BUILD_ArduPlane)
 singleton QuadPlane method in_vtol_mode boolean
+
+include AP_Parachute/AP_Parachute.h
+singleton AP_Parachute alias parachute
+singleton AP_Parachute method release void
+singleton AP_Parachute method released boolean
