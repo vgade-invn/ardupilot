@@ -17,6 +17,7 @@ local BALLOON_RELEASE_CHAN = 10
 local chute_check_armed = false
 local chute_check_margin = 50
 local target_keas = 55
+local max_alt_ft = 0.0
 
 -- constrain a value between limits
 function constrain(v, vmin, vmax)
@@ -150,21 +151,20 @@ local speeds_90k = {
 }
 
 function select_speed_schedule()
-   kft = param:get('SCR_USER4')
-   if kft == 9 then
+   if max_alt_ft > 70000 then
       return speeds_90k
    end
-   if kft == 25 then
-      return speeds_25k
-   end
-   if kft == 45 then
-      return speeds_45k
-   end
-   if kft == 60 then
+   if max_alt_ft > 50000 then
       return speeds_60k
    end
-   if kft == 90 then
-      return speeds_90k
+   if max_alt_ft > 40000 then
+      return speeds_45k
+   end
+   if max_alt_ft > 20000 then
+      return speeds_25k
+   end
+   if max_alt_ft > 8000 then
+      return speeds_9k
    end
    return nil
 end
@@ -177,13 +177,18 @@ function adjust_target_speed()
       -- balloon not released yet
       return
    end
+   local loc = ahrs:get_position()
+   local alt_ft = loc:alt() * 0.01 * METERS_TO_FEET
+
+   if alt_ft > max_alt_ft then
+      max_alt_ft = alt_ft
+   end
+
    speed_schedule = select_speed_schedule()
    if not speed_schedule then
       return
    end
 
-   local loc = ahrs:get_position()
-   local alt_ft = loc:alt() * 0.01 * METERS_TO_FEET
 
    local num_rows = #speed_schedule
 
