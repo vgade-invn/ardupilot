@@ -151,6 +151,9 @@ local speeds_90k = {
 }
 
 function select_speed_schedule()
+   if param:get("SCR_USER4") == 0 then
+      return nil
+   end
    if max_alt_ft > 70000 then
       return speeds_90k
    end
