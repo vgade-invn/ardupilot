@@ -165,9 +165,9 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
 void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel)
 {
     auto *_sitl = AP::sitl();
-    float aileron  = filtered_servo_angle(input, 0);
-    float elevator = filtered_servo_angle(input, 1);
-    float rudder   = filtered_servo_angle(input, 3);
+    float aileron  = filtered_servo_angle(input, 0, 400);
+    float elevator = filtered_servo_angle(input, 1, 400);
+    float rudder   = filtered_servo_angle(input, 3, 400);
     float throttle = filtered_servo_range(input, 2);
     float balloon  = filtered_servo_range(input, 5);
 
