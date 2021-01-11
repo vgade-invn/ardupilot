@@ -812,7 +812,9 @@ bool Plane::verify_continue_and_change_alt()
  */
 bool Plane::verify_altitude_wait(const AP_Mission::Mission_Command &cmd)
 {
-    if (current_loc.alt > cmd.content.altitude_wait.altitude*100.0f) {
+    const float alt_diff = current_loc.alt - cmd.content.altitude_wait.altitude*100.0f;
+    const float time_to_alt = alt_diff / MIN(auto_state.sink_rate, -0.01);
+    if (alt_diff > 0) {
         gcs().send_text(MAV_SEVERITY_INFO,"Reached altitude");
         return true;
     }
@@ -823,7 +825,8 @@ bool Plane::verify_altitude_wait(const AP_Mission::Mission_Command &cmd)
     }
 
     // if requested, wiggle servos
-    if (cmd.content.altitude_wait.wiggle_time != 0) {
+    if (cmd.content.altitude_wait.wiggle_time != 0 &&
+        (auto_state.sink_rate > 0 || time_to_alt > cmd.content.altitude_wait.wiggle_time*5)) {
         static uint32_t last_wiggle_ms;
         if (auto_state.idle_wiggle_stage == 0 &&
             AP_HAL::millis() - last_wiggle_ms > cmd.content.altitude_wait.wiggle_time*1000) {
