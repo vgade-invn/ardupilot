@@ -19,9 +19,9 @@ table of fence limits from home by alt AMSL
 altitudes in feet, limits in meters
 --]]
 local fence_limits = {
-  { 9000, 6000 }, -- 6km at 9k ft
-  { 6000, 3000 }, -- 3km at 6k ft
-  { 3000, 1000 }, -- 1km at 3k ft
+  { 9000, 9000 }, -- 9km at 9k ft
+  { 6000, 6000 }, -- 6km at 6k ft
+  { 3000, 3000 }, -- 3km at 3k ft
 }
 
 local fence_triggered = false
