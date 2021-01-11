@@ -328,6 +328,8 @@ void AP_TECS::update_50hz(void)
     // Widnall W.S, Sinha P.K,
     // AIAA Journal of Guidance and Control, 78-1307R
 
+    _update_airspeed_conversions();
+
     /*
       if we have a vertical position estimate from the EKF then use
       it, otherwise use barometric altitude
