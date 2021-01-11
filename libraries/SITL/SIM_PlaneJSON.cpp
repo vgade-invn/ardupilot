@@ -165,11 +165,12 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
 void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel)
 {
     auto *_sitl = AP::sitl();
-    float aileron  = filtered_servo_angle(input, 0, 400);
-    float elevator = filtered_servo_angle(input, 1, 400);
+    float aileron  = 0.5*(filtered_servo_angle(input, 1, 400) + filtered_servo_angle(input, 4, 400));
+    float elevator = filtered_servo_angle(input, 2, 400);
     float rudder   = filtered_servo_angle(input, 3, 400);
-    float throttle = filtered_servo_range(input, 2);
+    float throttle = 0;
     float balloon  = filtered_servo_range(input, 5);
+    float balloon_cut = filtered_servo_range(input, 9);
 
     // Move balloon upwards using balloon velocity from channel 6
     // Aircraft is released from ground constraint when channel 6 PWM > 1010
@@ -179,7 +180,7 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
         balloon_position += balloon_velocity * (1.0e-6f * (float)frame_time_us);
         const float height_AMSL = 0.01f * (float)home.alt - position.z;
         // release at burst height or when channel 9 goes high
-        if (balloon < 0.01f || height_AMSL > _sitl->balloon_burst_amsl || input.servos[8] > 1750) {
+        if (balloon < 0.01f || height_AMSL > _sitl->balloon_burst_amsl || balloon_cut > 0.8) {
             ::printf("dropped at %i m AMSL\n", (int)height_AMSL);
             carriage_state = carriageState::RELEASED;
             use_smoothing = false;
