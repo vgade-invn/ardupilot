@@ -815,7 +815,7 @@ bool Plane::verify_altitude_wait(const AP_Mission::Mission_Command &cmd)
     const float alt_diff = current_loc.alt - cmd.content.altitude_wait.altitude*100.0f;
     const float time_to_alt = alt_diff / MIN(auto_state.sink_rate, -0.01);
     if (alt_diff > 0) {
-        gcs().send_text(MAV_SEVERITY_INFO,"Reached altitude");
+        gcs().send_text(MAV_SEVERITY_INFO,"Reached altitude (%.1fm AMSL)", current_loc.alt*0.01);
         return true;
     }
     if (cmd.content.altitude_wait.descent_rate > 0 &&
@@ -1104,7 +1104,7 @@ void Plane::do_pullup(const AP_Mission::Mission_Command &cmd)
     if (!ahrs.airspeed_estimate(aspeed)) {
         aspeed = -1;
     }
-    gcs().send_text(MAV_SEVERITY_INFO, "Start pullup airspeed %.1fm/s", aspeed);
+    gcs().send_text(MAV_SEVERITY_INFO, "Start pullup airspeed %.1fm/s at %.1fm AMSL", aspeed, current_loc.alt*0.01);
 }
 
 /*
@@ -1116,16 +1116,17 @@ bool Plane::verify_pullup(const AP_Mission::Mission_Command &cmd)
     case PullupStage::WAIT_AIRSPEED: {
         float aspeed;
         if (ahrs.airspeed_estimate(aspeed) && aspeed > cmd.content.user_command.param1) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Pullup airspeed %.1fm/s", aspeed);
+            gcs().send_text(MAV_SEVERITY_INFO, "Pullup airspeed %.1fm alt %.1fm AMSL", aspeed, current_loc.alt*0.01);
             pullup.stage = PullupStage::WAIT_PITCH;
         }
         return false;
     }
     case PullupStage::WAIT_PITCH: {
         if (ahrs.pitch_sensor > cmd.content.user_command.param2*100 && labs(ahrs.roll_sensor) < 9000) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Pullup pitch p=%.1f r=%.1f",
+            gcs().send_text(MAV_SEVERITY_INFO, "Pullup pitch p=%.1f r=%.1f alt %.1fm AMSL",
                             ahrs.pitch_sensor*0.01,
-                            ahrs.roll_sensor*0.01);
+                            ahrs.roll_sensor*0.01,
+                            current_loc.alt*0.01);
             pullup.stage = PullupStage::WAIT_LEVEL;
         }
         return false;
@@ -1139,9 +1140,9 @@ bool Plane::verify_pullup(const AP_Mission::Mission_Command &cmd)
     case PullupStage::WAIT_LEVEL: {
         if (ahrs.pitch_sensor > MIN(0 , aparm.pitch_limit_max_cd - 500)) {
             if (labs(ahrs.roll_sensor) < aparm.roll_limit_cd) {
-                gcs().send_text(MAV_SEVERITY_INFO, "Pullup level r=%.1f p=%.1f",
+                gcs().send_text(MAV_SEVERITY_INFO, "Pullup level r=%.1f p=%.1f alt %.1fm AMSL",
                                 ahrs.roll_sensor*0.01,
-                                ahrs.pitch_sensor*0.01);
+                                ahrs.pitch_sensor*0.01, current_loc.alt*0.01);
                 pullup.stage = PullupStage::NONE;
             } else {
                 // push nose down and wait to get roll control back
