@@ -3,6 +3,17 @@ local MODE_AUTO = 10
 local FEET_TO_METERS = 0.3048
 local METERS_TO_FEET = 1.0/FEET_TO_METERS
 
+-- altitude to force chute open if in AUTO and we've cut balloon free
+local CHUTE_OPEN_ALT = 3000*FEET_TO_METERS
+
+local K_PARACHUTE = 27
+
+local NAVLIGHTS_CHAN = 8
+
+-- chute checking is enabled when 50m above chute deploy alt
+local chute_check_armed = false
+local chute_check_margin = 50
+
 -- constrain a value between limits
 function constrain(v, vmin, vmax)
    if v < vmin then
@@ -25,6 +36,7 @@ local fence_limits = {
 }
 
 local fence_triggered = false
+local chute_triggered = false
 
 function get_dist_home()
    local loc = ahrs:get_position()
@@ -73,9 +85,37 @@ function adjust_target_speed()
    -- nothing yet
 end
 
+function check_chute()
+   local loc = ahrs:get_position()
+   local alt = loc:alt() * 0.01
+   if not chute_check_armed then
+      if alt > CHUTE_OPEN_ALT + chute_check_margin then
+         gcs:send_text(0, string.format("Armed chute check at %.0fm", alt))
+         chute_check_armed = true
+      end
+   end
+   if chute_check_armed and alt < CHUTE_OPEN_ALT then
+      if not chute_triggered then
+         chute_triggered = true
+         gcs:send_text(0, string.format("Triggering chute at %.0fm", alt))
+         parachute:release()
+      end
+   end
+end
+
+function update_lights()
+   if arming:is_armed() then
+      SRV_Channels:set_output_pwm_chan(NAVLIGHTS_CHAN-1, 1400)
+   else
+      SRV_Channels:set_output_pwm_chan(NAVLIGHTS_CHAN-1, 1000)
+   end
+end
+
 function update()
+   update_lights()
    if arming:is_armed() and vehicle:get_mode() == MODE_AUTO then
       check_fence()
+      check_chute()
       adjust_target_speed()
    end
 
