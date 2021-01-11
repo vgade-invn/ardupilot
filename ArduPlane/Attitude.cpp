@@ -725,6 +725,7 @@ void Plane::stabilize_pullup(float speed_scaler)
         plane.nav_roll_cd = 0;
         pitchController.reset_I();
         yawController.reset_I();
+        last_stabilize_ms = AP_HAL::millis();
         SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_rate_out(0, speed_scaler));
         break;
     }
@@ -734,6 +735,7 @@ void Plane::stabilize_pullup(float speed_scaler)
         plane.nav_pitch_cd = 0;
         steering_control.rudder = 0;
         steering_control.steering = 0;
+        last_stabilize_ms = AP_HAL::millis();
         SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0);
         SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_rate_out(0, speed_scaler));
         float aspeed;
@@ -746,6 +748,7 @@ void Plane::stabilize_pullup(float speed_scaler)
     }
     case PullupStage::PUSH_NOSE_DOWN: {
         nav_pitch_cd = aparm.pitch_limit_min_cd;
+        last_stabilize_ms = AP_HAL::millis();
         stabilize_pitch(speed_scaler);
         nav_roll_cd = 0;
         stabilize_roll(speed_scaler);
@@ -755,6 +758,7 @@ void Plane::stabilize_pullup(float speed_scaler)
     case PullupStage::WAIT_LEVEL:
     default:
         nav_pitch_cd = aparm.pitch_limit_max_cd;
+        last_stabilize_ms = AP_HAL::millis();
         stabilize_pitch(speed_scaler);
         nav_roll_cd = 0;
         stabilize_roll(speed_scaler);
