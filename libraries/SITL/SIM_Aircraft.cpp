@@ -828,11 +828,11 @@ float Aircraft::filtered_idx(float v, uint8_t idx)
 
 /*
   return a filtered servo input as a value from -1 to 1
-  servo is assumed to be 1000 to 2000, trim at 1500
+  servo is assumed to be 1500-range to 1500+range, trim at 1500
  */
-float Aircraft::filtered_servo_angle(const struct sitl_input &input, uint8_t idx)
+float Aircraft::filtered_servo_angle(const struct sitl_input &input, uint8_t idx, uint16_t pwm_range)
 {
-    const float v = (input.servos[idx] - 1500)/500.0f;
+    const float v = constrain_float((input.servos[idx] - 1500)/float(pwm_range), -1, 1);
     return filtered_idx(v, idx);
 }
 
