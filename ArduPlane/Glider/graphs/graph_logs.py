@@ -22,7 +22,7 @@ graphs = [
     ('TECS Speed', 'knots(TECS.sp)/CTUN.E2T<KEAS> knots(TECS.spdem)/CTUN.E2T<KEAS_Target> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Attitude Control', 'ATT.Roll ATT.Pitch ATT.DesRoll ATT.DesPitch feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Speeds', 'knots(TECS.sp)/CTUN.E2T<KEAS> knots(TECS.sp)<KTAS> feet(GPS.Alt):2<AltAMSL(Ft)>'),
-    ('Surfaces', 'AETR.Elev*12.5/4500+1.5625<Elevator(deg)> AETR.Ail*15.5/4500<Aileron(deg)> AETR.Rudd*18.5/4500<Rudder(deg)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
+    ('Surfaces', 'AETR.Elev*12.5/4500+1.25<Elevator(deg)> AETR.Ail*15.5/4500<Aileron(deg)> AETR.Rudd*18.5/4500<Rudder(deg)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Angle of Attack', 'constrain(SLD.AoA,-15,15)<AOA(deg)> constrain(AOA.SSA,-15,15){abs(AOA.AOA)<10}<SSA(deg)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('G-Force', 'sqrt(IMU.AccX**2+IMU.AccY**2+IMU.AccZ**2)<AccelLength(m/s/s)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Distance To Home', 'distance_lat_lon(GPS.Lat,GPS.Lng,34.905429,-117.883702)/1852.0<DistToHome(nm)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
