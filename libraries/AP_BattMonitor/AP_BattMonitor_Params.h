@@ -17,8 +17,8 @@ public:
         BattMonitor_LowVoltageSource_Raw            = 0,
         BattMonitor_LowVoltageSource_SagCompensated = 1
     };
-    enum BattMonitor_Options {
-        BattMonitor_Ignore_UAVCAN_SoC               = 0,
+    enum class Options : uint8_t {
+        Ignore_UAVCAN_SoC = (1U<<0),
     };
 
     BattMonitor_LowVoltage_Source failsafe_voltage_source(void) { return (enum BattMonitor_LowVoltage_Source)_failsafe_voltage_source.get(); }
