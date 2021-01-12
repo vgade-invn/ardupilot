@@ -5,9 +5,6 @@
 
 bool ModeFollow::_enter()
 {
-    plane.throttle_allows_nudging = true;
-    plane.auto_throttle_mode = true;
-    plane.auto_navigation_mode = true;
     follow_sysid = 0;
 
     plane.guided_WP_loc = plane.current_loc;
