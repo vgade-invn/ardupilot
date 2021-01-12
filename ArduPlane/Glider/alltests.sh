@@ -10,3 +10,5 @@ rm -rf logs
 ./runtest.py mission7 --location KEDW5 --speed-scheduling
 ./runtest.py mission8 --location KEDW6 --speed-scheduling
 ./runtest.py mission9 --location KEDW6 --speed-scheduling
+./graphs/filter.sh test_runs/mission?.bin
+./graphs/graph_logs.py test_runs/mission?-glide.bin
