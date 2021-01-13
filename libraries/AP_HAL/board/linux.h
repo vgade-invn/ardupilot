@@ -87,6 +87,7 @@
     #define HAL_EXTERNAL_AHRS_DEFAULT 1
     #define HAL_SERIAL3_PROTOCOL 36
     #define HAL_COMPASS_DEFAULT HAL_COMPASS_NONE
+    #define HAL_AIRSPEED_TYPE_DEFAULT 0
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO
     #define HAL_BOARD_LOG_DIRECTORY "/data/ftp/internal_000/ardupilot/logs"
     #define HAL_BOARD_TERRAIN_DIRECTORY "/data/ftp/internal_000/ardupilot/terrain"
