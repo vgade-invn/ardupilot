@@ -102,6 +102,7 @@ public:
         AP_Param::setup_object_defaults(this, var_gps);
         AP_Param::setup_object_defaults(this, var_mag);
         AP_Param::setup_object_defaults(this, var_ins);
+        AP_Param::setup_object_defaults(this, var_servo);
 #ifdef SFML_JOYSTICK
         AP_Param::setup_object_defaults(this, var_sfml_joystick);
 #endif // SFML_JOYSTICK
@@ -163,6 +164,7 @@ public:
     static const struct AP_Param::GroupInfo var_gps[];
     static const struct AP_Param::GroupInfo var_mag[];
     static const struct AP_Param::GroupInfo var_ins[];
+    static const struct AP_Param::GroupInfo var_servo[];
 #ifdef SFML_JOYSTICK
     static const struct AP_Param::GroupInfo var_sfml_joystick[];
 #endif //SFML_JOYSTICK
@@ -184,7 +186,10 @@ public:
     AP_Vector3f mag_offdiag[HAL_COMPASS_MAX_SENSORS];  // off-diagonal corrections
     AP_Int8 mag_orient[HAL_COMPASS_MAX_SENSORS];   // external compass orientation
     AP_Int8 mag_fail[HAL_COMPASS_MAX_SENSORS];   // fail magnetometer, 1 for no data, 2 for freeze
-    AP_Float servo_speed; // servo speed in seconds
+
+    AP_Float servo_speed; // servo speed in seconds per 60 degrees
+    AP_Float servo_delay; // servo delay in seconds
+    AP_Float servo_filter; // servo 2p filter in Hz
 
     AP_Float sonar_glitch;// probablility between 0-1 that any given sonar sample will read as max distance
     AP_Float sonar_noise; // in metres

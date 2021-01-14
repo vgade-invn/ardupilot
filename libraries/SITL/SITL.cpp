@@ -50,7 +50,7 @@ const AP_Param::GroupInfo SITL::var_info[] = {
     AP_GROUPINFO("WIND_SPD",       9, SITL,  wind_speed,  0),
     AP_GROUPINFO("WIND_DIR",      10, SITL,  wind_direction,  180),
     AP_GROUPINFO("WIND_TURB",     11, SITL,  wind_turbulance,  0),
-    AP_GROUPINFO("SERVO_SPEED",   16, SITL,  servo_speed,  0.14),
+    AP_SUBGROUPEXTENSION("",      16, SITL,  var_servo),
     AP_GROUPINFO("BATT_VOLTAGE",  19, SITL,  batt_voltage,  12.6f),
     AP_GROUPINFO("BATT_CAP_AH",   20, SITL,  batt_capacity_ah,  0),
     AP_GROUPINFO("SONAR_GLITCH",  23, SITL,  sonar_glitch, 0),
@@ -354,6 +354,14 @@ const AP_Param::GroupInfo SITL::var_gps[] = {
     AP_GROUPINFO("INIT_LON_OFS",  46, SITL,  gps_init_lon_ofs, 0),
     AP_GROUPINFO("INIT_ALT_OFS",  47, SITL,  gps_init_alt_ofs, 0),
 
+    AP_GROUPEND
+};
+
+// servo SITL parameters
+const AP_Param::GroupInfo SITL::var_servo[] = {
+    AP_GROUPINFO("SERVO_SPEED",   1, SITL,  servo_speed, 0.15),
+    AP_GROUPINFO("SERVO_DELAY",   2, SITL,  servo_delay, 0.01),
+    AP_GROUPINFO("SERVO_FILTER",  3, SITL,  servo_filter, 50),
     AP_GROUPEND
 };
 
