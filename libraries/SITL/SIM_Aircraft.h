@@ -33,6 +33,7 @@
 #include "SIM_Buzzer.h"
 #include "SIM_Battery.h"
 #include <Filter/Filter.h>
+#include "ServoModel.h"
 
 namespace SITL {
 
@@ -322,7 +323,7 @@ private:
         Location location;
     } smoothing;
 
-    LowPassFilterFloat servo_filter[16];
+    ServoModel servo_filter[16];
 
     Buzzer *buzzer;
     Sprayer *sprayer;

@@ -812,9 +812,7 @@ float Aircraft::filtered_idx(float v, uint8_t idx)
     if (sitl->servo_speed <= 0) {
         return v;
     }
-    const float cutoff = 1.0f / (2 * M_PI * sitl->servo_speed);
-    servo_filter[idx].set_cutoff_frequency(cutoff);
-    return servo_filter[idx].apply(v, frame_time_us * 1.0e-6f);
+    return servo_filter[idx].apply(v);
 }
 
 

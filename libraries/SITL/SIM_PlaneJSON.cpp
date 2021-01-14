@@ -139,7 +139,7 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
         static float sim_LD;
         uint32_t now = AP_HAL::millis();
         sim_LD = 0.1 * constrain_float(Flift/MAX(1.0e-6,Fdrag),0,20) + 0.9 * sim_LD;
-        if (now - last_drag_ms > 100 &&
+        if (now - last_drag_ms > 10 &&
             location.alt*0.01 < 30500 &&
             airspeed > 5) {
             last_drag_ms = now;
@@ -155,6 +155,11 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
                                degrees(alpharad),
                                Fx, Fy, Fz,
                                qPa);
+            AP::logger().Write("SCTL", "TimeUS,Ail,Elev,Rudd", "Qfff",
+                               AP_HAL::micros64(),
+                               degrees(aileron_rad),
+                               degrees(elevator_rad),
+                               degrees(rudder_rad));
         }
     }
 
@@ -180,7 +185,8 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
         balloon_position += balloon_velocity * (1.0e-6f * (float)frame_time_us);
         const float height_AMSL = 0.01f * (float)home.alt - position.z;
         // release at burst height or when channel 9 goes high
-        if (balloon < 0.01f || height_AMSL > _sitl->balloon_burst_amsl || balloon_cut > 0.8) {
+        if (hal.scheduler->is_system_initialized() &&
+            (height_AMSL > _sitl->balloon_burst_amsl || balloon_cut > 0.8)) {
             ::printf("dropped at %i m AMSL\n", (int)height_AMSL);
             carriage_state = carriageState::RELEASED;
             use_smoothing = false;
