@@ -808,25 +808,11 @@ void Aircraft::smooth_sensors(void)
 
 /*
   return a filtered servo input as a value from -1 to 1
-  servo is assumed to be 1000 to 2000, trim at 1500
- */
-float Aircraft::filtered_idx(float v, uint8_t idx)
-{
-    if (sitl->servo_speed <= 0) {
-        return v;
-    }
-    return servo_filter[idx].apply(v);
-}
-
-
-/*
-  return a filtered servo input as a value from -1 to 1
   servo is assumed to be 1500-range to 1500+range, trim at 1500
  */
 float Aircraft::filtered_servo_angle(const struct sitl_input &input, uint8_t idx, uint16_t pwm_range)
 {
-    const float v = constrain_float((input.servos[idx] - 1500)/float(pwm_range), -1, 1);
-    return filtered_idx(v, idx);
+    return servo_filter[idx].filter_angle(input.servos[idx]);
 }
 
 /*
@@ -835,8 +821,14 @@ float Aircraft::filtered_servo_angle(const struct sitl_input &input, uint8_t idx
  */
 float Aircraft::filtered_servo_range(const struct sitl_input &input, uint8_t idx)
 {
-    const float v = (input.servos[idx] - 1000)/1000.0f;
-    return filtered_idx(v, idx);
+    return servo_filter[idx].filter_range(input.servos[idx]);
+}
+
+// setup filtering for servo
+void Aircraft::filtered_servo_setup(uint8_t idx, uint16_t pwm_min, uint16_t pwm_max, float deflection_deg)
+{
+    servo_filter[idx].set_pwm_range(pwm_min, pwm_max);
+    servo_filter[idx].set_deflection(deflection_deg);
 }
 
 // extrapolate sensors by a given delta time in seconds

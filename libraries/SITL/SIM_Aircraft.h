@@ -293,10 +293,14 @@ protected:
     void update_wind(const struct sitl_input &input);
 
     // return filtered servo input as -1 to 1 range
-    float filtered_idx(float v, uint8_t idx);
     float filtered_servo_angle(const struct sitl_input &input, uint8_t idx, uint16_t range=500);
+
+    // return filtered servo input as 0 to 1 range
     float filtered_servo_range(const struct sitl_input &input, uint8_t idx);
 
+    // setup filtering for servo
+    void filtered_servo_setup(uint8_t idx, uint16_t pwm_min, uint16_t pwm_max, float deflection_deg);
+    
     // extrapolate sensors by a given delta time in seconds
     void extrapolate_sensors(float delta_time);
 
