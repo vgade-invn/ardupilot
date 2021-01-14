@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, random, os, time, multiprocessing
+import sys, random, os, time, multiprocessing, subprocess
 from pymavlink import mavutil
 from MAVProxy.modules.lib import grapher
 import common
@@ -22,7 +22,8 @@ graphs = [
     ('TECS Speed', 'knots(TECS.sp)/CTUN.E2T<KEAS> knots(TECS.spdem)/CTUN.E2T<KEAS_Target> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Attitude Control', 'ATT.Roll ATT.Pitch ATT.DesRoll ATT.DesPitch feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Speeds', 'knots(TECS.sp)/CTUN.E2T<KEAS> knots(TECS.sp)<KTAS> feet(GPS.Alt):2<AltAMSL(Ft)>'),
-    ('Surfaces', 'AETR.Elev*12.5/4500+1.25<Elevator(deg)> AETR.Ail*15.5/4500<Aileron(deg)> AETR.Rudd*18.5/4500<Rudder(deg)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
+    ('Surfaces Deg', 'AETR.Elev*12.5/4500+1.25<Elevator(deg)> AETR.Ail*15.5/4500<Aileron(deg)> AETR.Rudd*18.5/4500<Rudder(deg)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
+    ('Surfaces PWM', 'RCOU.C3<Elevator(PWM)> RCOU.C4<Rudder(PWM)> RCOU.C2<AileronLeft(PWM)> RCOU.C5<AileronRight(PWM)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Angle of Attack', 'constrain(SLD.AoA,-15,15)<AOA(deg)> constrain(AOA.SSA,-15,15){abs(AOA.AOA)<10}<SSA(deg)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('G-Force', 'sqrt(IMU.AccX**2+IMU.AccY**2+IMU.AccZ**2)<AccelLength(m/s/s)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Distance To Home', 'distance_lat_lon(GPS.Lat,GPS.Lng,34.905429,-117.883702)/1852.0<DistToHome(nm)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
@@ -40,6 +41,7 @@ def graph_one(mlog, title, expression, filename):
         mg.add_field(e)
     mg.set_title(title)
     mg.process([],[],0)
+    mg.set_grid(True)
     mg.show(1, output=filename)
 
 def script_path():
@@ -66,21 +68,18 @@ def process_one(fname):
     bname = os.path.basename(fname)
     bname2 = bname[:8]
     dname = os.path.dirname(fname)
-    f = open(tmp, "wb")
+    f = open(tmp, "w")
     f.write("<html><head><title>Graphs of %s</title><body>\n" % bname)
     f.write("<h1>Graphs of log %s</h1>\n" % bname)
-    if os.path.exists("all/%s.parm" % bname):
-        f.write('Parameters: <a href="../all/%s.parm" target="_blank">%s.parm</a><br>\n' % (bname, bname))
-    if os.path.exists("all/%s.msg" % bname):
-        f.write('Messages: <a href="../all/%s.msg" target="_blank">%s.msg</a><br>\n' % (bname, bname))
-        common.add_version(f, "all/%s" % bname)
     f.write('Logfile: <a href="../all/%s" target="_blank">%s</a><br>\n' % (bname, bname))
-    if os.path.exists("all/%s.err" % bname):
-        f.write("<pre>\n")
-        f.write(open("all/%s.err" % bname).read())
-        f.write("</pre>\n<hr>\n")
+    f.write("<pre>")
+    proc = subprocess.Popen("mavflighttime.py %s | egrep '^Flig|^Total.dist'" % fname, shell=True, stdout=subprocess.PIPE)
+    f.write(str(proc.stdout.read()))
+    f.write("</pre><p>")
+
     map_log = "%s/%s.bin" % (dname, bname2)
     map_img = "%s-map.png" % bname
+
     os.system("mavflightview.py --imagefile=%s/%s %s" % (dname, map_img, map_log))
     f.write('<hr><p><img src="%s"><p>\n' % map_img)
 
