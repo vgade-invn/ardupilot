@@ -134,7 +134,7 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
     float Flift = Fx * sin(alpharad)  - Fz * cos(alpharad);
     float Fdrag = -Fx * cos(alpharad) - Fz * sin(alpharad);
 
-    {
+    if (carriage_state == carriageState::RELEASED) {
         static uint32_t last_drag_ms;
         static float sim_LD;
         uint32_t now = AP_HAL::millis();
@@ -170,6 +170,12 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
 void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel)
 {
     auto *_sitl = AP::sitl();
+
+    filtered_servo_setup(1, 1100, 1900, model.aileronDeflectionLimitDeg);
+    filtered_servo_setup(4, 1100, 1900, model.aileronDeflectionLimitDeg);
+    filtered_servo_setup(2, 1100, 1900, model.elevatorDeflectionLimitDeg);
+    filtered_servo_setup(3, 1100, 1900, model.rudderDeflectionLimitDeg);
+    
     float aileron  = 0.5*(filtered_servo_angle(input, 1, 400) + filtered_servo_angle(input, 4, 400));
     float elevator = filtered_servo_angle(input, 2, 400);
     float rudder   = filtered_servo_angle(input, 3, 400);
