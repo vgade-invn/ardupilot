@@ -80,7 +80,7 @@ def process_one(fname):
     map_log = "%s/%s.bin" % (dname, bname2)
     map_img = "%s-map.png" % bname
 
-    os.system("mavflightview.py --imagefile=%s/%s %s" % (dname, map_img, map_log))
+    os.system("mavflightview.py --imagefile=%s/%s --kml=EAFB_MockFlightTests_Jan2021.kmz %s" % (dname, map_img, map_log))
     f.write('<hr><p><img src="%s"><p>\n' % map_img)
 
     mlog = mavutil.mavlink_connection(fname)
