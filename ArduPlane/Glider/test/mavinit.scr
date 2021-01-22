@@ -1,4 +1,5 @@
 set altreadout 0
 set streamrate 1
 set distreadout 0
-map icon 34.90543001 -117.88370191
+module load kmlread
+kml load EAFB_MockFlightTests_Jan2021.kmz
