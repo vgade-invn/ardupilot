@@ -59,14 +59,14 @@ if sys.version_info[0] >= 3:
 else:
     mavproxy = pexpect.spawn(cmd, logfile=sys.stdout, timeout=300)
 mavproxy.expect("ArduPilot Ready")
-mavproxy.expect("using GPS")
-mavproxy.expect("using GPS")
-mavproxy.expect("using GPS")
-mavproxy.expect("using GPS")
+#mavproxy.expect("using GPS")
+#mavproxy.expect("using GPS")
+#mavproxy.expect("using GPS")
+#mavproxy.expect("using GPS")
 
 mav = mavutil.mavlink_connection('127.0.0.1:14550')
 
-mavproxy.send('wp load %s.txt\n' % args.mission)
+mavproxy.send('wp load missions/%s.txt\n' % args.mission)
 mavproxy.expect('Flight plan received')
 wait_mode(mav, ['MANUAL'])
 mavproxy.send('param ftp\n')
