@@ -452,5 +452,30 @@ void Util::apply_persistent_params(void) const
     }
 }
 
+#if CH_CFG_USE_HEAP == TRUE
+/*
+  return information on heap usage
+ */
+void Util::mem_info(ExpandingString &str)
+{
+    memory_heap_t *heaps;
+    const struct memory_region *regions;
+    uint8_t num_heaps = malloc_get_heaps(&heaps, &regions);
+
+    str.printf("MemInfoV1\n");
+    str.printf("%u heaps %p %p\n", num_heaps, heaps, regions);
+#if 1
+    for (uint8_t i=0; i<num_heaps; i++) {
+        size_t totalp=0, largest=0;
+        // get memory available on main heap
+        chHeapStatus(&heaps[i], &totalp, nullptr);
+        str.printf("start:0x%08x len=%uk free=%u largest=%u\n",
+                   unsigned(regions[i].address), unsigned(regions[i].size/1024),
+                   unsigned(totalp), unsigned(largest));
+    }
+#endif
+}
+#endif
+
 #endif // HAL_ENABLE_SAVE_PERSISTENT_PARAMS
 
