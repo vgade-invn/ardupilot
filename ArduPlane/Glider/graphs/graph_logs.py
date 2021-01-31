@@ -71,7 +71,7 @@ def process_one(fname):
     f = open(tmp, "w")
     f.write("<html><head><title>Graphs of %s</title><body>\n" % bname)
     f.write("<h1>Graphs of log %s</h1>\n" % bname)
-    f.write('Logfile: <a href="../all/%s" target="_blank">%s</a><br>\n' % (bname, bname))
+    f.write('Logfile: <a href="%s" target="_blank">%s</a><br>\n' % (bname, bname))
     f.write("<pre>")
     proc = subprocess.Popen("mavflighttime.py %s | egrep '^Flig|^Total.dist'" % fname, shell=True, stdout=subprocess.PIPE)
     f.write(str(proc.stdout.read()))
