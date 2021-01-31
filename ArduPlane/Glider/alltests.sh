@@ -12,3 +12,4 @@ rm -rf logs
 ./runtest.py mission9 --location KEDW9 --speed-scheduling
 ./graphs/filter.sh test_runs/mission?.bin
 ./graphs/graph_logs.py test_runs/mission?-glide.bin
+./graphs/make_index.sh test_runs/mission*glide*bin > test_runs/index.html
