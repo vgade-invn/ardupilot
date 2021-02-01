@@ -138,6 +138,15 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("NGLIM", 12, AP_PitchController, _ng_limit, 2.0f),
 
+    // @Param: MGTC
+    // @DisplayName: Manoeuvre g time constant
+    // @Description: This sets the time constant used by the g limiter to compensate for the lag from pitch rate to normal acceleration when flying at IAS = SCALING_SPEED.
+    // @Units: s
+    // @Range: 0.0 1.0
+    // @Increment: 0.05
+    // @User: Advanced
+    AP_GROUPINFO("MGTC", 12, AP_PitchController, _manoeuvre_tconst, 0.3f),
+
     AP_GROUPEND
 };
 
@@ -155,7 +164,12 @@ AP_PitchController::AP_PitchController(AP_AHRS &ahrs, const AP_Vehicle::FixedWin
 int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool disable_integrator, float aspeed)
 {
     // apply pitch rate limits that prevent specified normal g loading being exceeded
-    const float VTAS = aspeed * _ahrs.get_EAS2TAS();
+    float VTAS = aspeed * _ahrs.get_EAS2TAS();
+	const float VTAS_dot = _ahrs.get_accel().x + GRAVITY_MSS * _ahrs.get_DCM_rotation_body_to_ned().c.x;
+	if (is_positive(_manoeuvre_tconst)) {
+		const float tconst_adj = _manoeuvre_tconst * sq(scaler);
+		VTAS += VTAS_dot * tconst_adj;
+	}
     const float g_div_vtas = GRAVITY_MSS / MAX(VTAS,0.1);
     const float zero_ng_pitch_rate = - g_div_vtas * _ahrs.get_DCM_rotation_body_to_ned().c.z;
     const float ng_pitch_rate = g_div_vtas * MAX(_ng_limit, 2.0f);
