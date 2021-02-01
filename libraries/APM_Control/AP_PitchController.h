@@ -74,5 +74,6 @@ private:
     AP_Float _slew_rate_max;                // Maximum permitted angular rate control feedback servo slew rate (deg/sec)
     AP_Float _slew_rate_tau;                // Time constant used to recover gain after a slew rate exceedance (sec)
     AP_Float _ng_limit;                     // normal load factor limit in the + and - direction
+    AP_Float _manoeuvre_tconst;             // Time contant from demanded pitch rate to normal acceleration (sec)
 
 };
