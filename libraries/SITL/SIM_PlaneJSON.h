@@ -127,7 +127,7 @@ protected:
         float deltaCnperRadianElev = 0;
 
         // rudder
-        float rudderDeflectionLimitDeg = -18.0;
+        float rudderDeflectionLimitDeg = 18.0;
         float deltaCNperRadianRud = 0;
         float deltaCAperRadianRud = 0.058;
         float deltaCmperRadianRud = 0;
