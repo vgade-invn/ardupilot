@@ -155,6 +155,21 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
                                degrees(alpharad),
                                Fx, Fy, Fz,
                                qPa);
+            AP::logger().Write("SL2", "TimeUS,AltFt,KEAS,KTAS,AD,Fl,Fd,LD,Elev,Ail,Rud,AoA,SSA,q,Az", "Qffffffffffffff",
+                               AP_HAL::micros64(),
+                               (location.alt*0.01)/FEET_TO_METERS,
+                               M_PER_SEC_TO_KNOTS*velocity_air_bf.length()/eas2tas,
+                               M_PER_SEC_TO_KNOTS*velocity_air_bf.length(),
+                               air_density,
+                               Flift, Fdrag, sim_LD,
+                               degrees(elevator_rad),
+                               degrees(aileron_rad),
+                               degrees(rudder_rad),
+                               degrees(alpharad),
+                               degrees(betarad),
+                               qPa,
+                               accel_body.z);
+
             AP::logger().Write("SCTL", "TimeUS,Ail,Elev,Rudd", "Qfff",
                                AP_HAL::micros64(),
                                degrees(aileron_rad),
