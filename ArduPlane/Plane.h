@@ -1144,9 +1144,13 @@ private:
         PUSH_NOSE_DOWN
     };
 
+    static const struct AP_Param::GroupInfo var_pullup[];
+
     struct {
         PullupStage stage;
+        AP_Float elev_offset;
     } pullup;
+
 
 public:
     void failsafe_check(void);
