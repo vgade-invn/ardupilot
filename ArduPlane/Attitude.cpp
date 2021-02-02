@@ -762,6 +762,15 @@ void Plane::update_load_factor(void)
 }
 
 
+// Pullup control parameters
+const AP_Param::GroupInfo Plane::var_pullup[] = {
+
+    // elevator deflection offset from -1 to 1 while waiting for airspeed
+    AP_GROUPINFO("PUP_ELEV_OFS",    1, Plane,  pullup.elev_offset, 0),
+
+    AP_GROUPEND
+};
+
 /*
   stabilize during pullup from balloon drop
  */
@@ -771,7 +780,7 @@ void Plane::stabilize_pullup(float speed_scaler)
     case PullupStage::WAIT_AIRSPEED: {
         steering_control.rudder = 0;
         steering_control.steering = 0;
-        SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 0);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, pullup.elev_offset*4500);
         SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0);
         plane.nav_pitch_cd = 0;
         plane.nav_roll_cd = 0;
