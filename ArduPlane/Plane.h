@@ -1156,7 +1156,9 @@ private:
 
     struct {
         PullupStage stage;
-        AP_Float elev_offset;
+        AP_Float elev_offset; // fraction of full elevator applied during WAIT_AIRSPEED and released during WAIT_PITCH
+        AP_Float ng_limit;
+        AP_Float ng_jerk_limit;
         float ng_demand;
     } pullup;
 

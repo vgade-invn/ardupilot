@@ -765,8 +765,27 @@ void Plane::update_load_factor(void)
 // Pullup control parameters
 const AP_Param::GroupInfo Plane::var_pullup[] = {
 
-    // elevator deflection offset from -1 to 1 while waiting for airspeed
+    // @Param: PUP_ELEV_OFS
+    // @DisplayName: Elevator deflection used before starting pullup
+    // @Description: Elevator deflection offset from -1 to 1 while waiting for airspeed to rise before starting close loop control of the pullup.
+    // @Range: -1.0 1.0
+    // @User: Advanced
     AP_GROUPINFO("PUP_ELEV_OFS",    1, Plane,  pullup.elev_offset, 0),
+
+    // @Param: PUP_NG_LIM
+    // @DisplayName: Maximum normal load factor during pullup
+    // @Description: This is the nominal maximum value of normal load factor used during the closed loop pitch rate control of the pullup.
+    // @Range: 1.0 4.0
+    // @User: Advanced
+    AP_GROUPINFO("PUP_NG_LIM",    2, Plane,  pullup.ng_limit, 2.0f),
+
+    // @Param: PUP_NG_JERK_LIM
+    // @DisplayName: Maximum normal load factor rate of change during pullup
+    // @Description: The normal load factor used for closed loop pitch rate control of the pullup will be ramped up to the value set by PUP_NG_LIM at the rate of change set by this parameter.
+    // @Units: 1/s
+    // @Range: 0.1 1.0
+    // @User: Advanced
+    AP_GROUPINFO("PUP_NG_JERK_LIM",    3, Plane,  pullup.ng_jerk_limit, 0.5f),
 
     AP_GROUPEND
 };
@@ -803,13 +822,15 @@ void Plane::stabilize_pullup(float speed_scaler)
         SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_rate_out(0, speed_scaler));
         float aspeed;
         if (ahrs.airspeed_estimate(aspeed)) {
-            // apply a jerk limit of 0.5 g/s
-            pullup.ng_demand += 0.5f * scheduler.get_loop_period_s();
-            pullup.ng_demand = MIN(pullup.ng_demand, pitchController.get_ng_limit());
+            // apply a rate of change limit to the ng pullup demand
+            const float ng_limit = MAX(pullup.ng_limit, 1.0f);
+            pullup.ng_demand += MAX(pullup.ng_jerk_limit, 0.1f) * scheduler.get_loop_period_s();
+            pullup.ng_demand = MIN(pullup.ng_demand, ng_limit);
             const float VTAS_ref = ahrs.get_EAS2TAS() * aspeed;
             const float pullup_accel = pullup.ng_demand * GRAVITY_MSS;
             const float demanded_rate_dps = degrees(pullup_accel / VTAS_ref);
-            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, pitchController.get_rate_out(demanded_rate_dps, speed_scaler));
+            const uint32_t elev_trim_offset_cd = 4500.0f * pullup.elev_offset * (1.0f - pullup.ng_demand / ng_limit);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, elev_trim_offset_cd + pitchController.get_rate_out(demanded_rate_dps, speed_scaler));
             logger.Write_PID(LOG_PIDP_MSG, pitchController.get_pid_info());
             logger.Write_PID(LOG_PIDR_MSG, rollController.get_pid_info());
         }
@@ -822,6 +843,7 @@ void Plane::stabilize_pullup(float speed_scaler)
         nav_roll_cd = 0;
         stabilize_roll(speed_scaler);
         stabilize_yaw(speed_scaler);
+        pullup.ng_demand = 0.0f;
         break;
     }
     case PullupStage::WAIT_LEVEL:
@@ -832,6 +854,7 @@ void Plane::stabilize_pullup(float speed_scaler)
         nav_roll_cd = 0;
         stabilize_roll(speed_scaler);
         stabilize_yaw(speed_scaler);
+        pullup.ng_demand = 0.0f;
         break;
     }
 }
