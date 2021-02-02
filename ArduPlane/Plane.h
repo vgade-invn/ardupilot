@@ -1149,6 +1149,7 @@ private:
     struct {
         PullupStage stage;
         AP_Float elev_offset;
+        float ng_demand;
     } pullup;
 
 
