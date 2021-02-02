@@ -185,7 +185,8 @@ protected:
         NONE = 0, // no carriage option available
         WAITING_FOR_PICKUP = 1, // in launch cradle waiting to be picked up by launch vehicle
         WAITING_FOR_RELEASE = 2, // being carried by luanch vehicle waitng to be released
-        RELEASED = 3 // had been released by launch vehicle
+        PRE_RELEASE = 3, // had been released by launch vehicle
+        RELEASED = 4 // had been released by launch vehicle
     } carriage_state;
     bool plane_air_release;    // true when plane has separated from the airborne launching platform
 };
