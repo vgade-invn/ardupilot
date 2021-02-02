@@ -208,9 +208,18 @@ void PlaneJSON::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
         // release at burst height or when channel 9 goes high
         if (hal.scheduler->is_system_initialized() &&
             (height_AMSL > _sitl->balloon_burst_amsl || balloon_cut > 0.8)) {
-            ::printf("dropped at %i m AMSL\n", (int)height_AMSL);
+            ::printf("pre-release at %i m AMSL\n", (int)height_AMSL);
+            carriage_state = carriageState::PRE_RELEASE;
+        }
+    } else if (carriage_state == carriageState::PRE_RELEASE) {
+        // slow down for release
+        balloon_velocity *= 0.999;
+        balloon_position += balloon_velocity * (1.0e-6f * (float)frame_time_us);
+        if (balloon_velocity.length() < 0.5) {
             carriage_state = carriageState::RELEASED;
             use_smoothing = false;
+            const float height_AMSL = 0.01f * (float)home.alt - position.z;
+            ::printf("released at %i m AMSL\n", (int)height_AMSL);
         }
     } else if (carriage_state == carriageState::WAITING_FOR_PICKUP) {
         // Don't allow the balloon to drag sideways until the pickup
@@ -318,6 +327,7 @@ bool PlaneJSON::on_ground() const
     // don't do ground interaction if being carried
     return (hagl() <= 0.001f &&
             carriage_state != carriageState::WAITING_FOR_PICKUP &&
+            carriage_state != carriageState::PRE_RELEASE &&
             carriage_state != carriageState::WAITING_FOR_RELEASE);
 }
 
@@ -332,6 +342,7 @@ bool PlaneJSON::update_balloon(float balloon, Vector3f &force, Vector3f &rot_acc
     }
 
     if (carriage_state != carriageState::WAITING_FOR_PICKUP &&
+        carriage_state != carriageState::PRE_RELEASE &&
         carriage_state != carriageState::WAITING_FOR_RELEASE) {
         // balloon not active
         return false;
@@ -369,7 +380,8 @@ bool PlaneJSON::update_balloon(float balloon, Vector3f &force, Vector3f &rot_acc
         carriage_state = carriageState::WAITING_FOR_RELEASE;
     }
 
-    if (carriage_state == carriageState::WAITING_FOR_RELEASE) {
+    if (carriage_state == carriageState::WAITING_FOR_RELEASE ||
+        carriage_state == carriageState::PRE_RELEASE) {
         Vector3f tension_force_vector_ef = tether_unit_vec_ef * tension_force;
         Vector3f tension_force_vector_bf = dcm.transposed() * tension_force_vector_ef;
         force = tension_force_vector_bf;
