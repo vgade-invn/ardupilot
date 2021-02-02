@@ -5,6 +5,6 @@ for f in $*; do
     dname=$(dirname $f)
     newname=$dname/$bname-glide.bin
     echo Creating $newname
-    mavlogdump.py -q -o "$newname" "$f" --condition='in_mission(GPS,BARO,RCOU)' --nottypes 'NK*,XK*' &
+    mavlogdump.py -q -o "$newname" "$f" --condition='in_mission(GPS,BARO,RCOU,MODE)' --nottypes 'NK*,XK*' &
 done
 wait
