@@ -770,7 +770,7 @@ const AP_Param::GroupInfo Plane::var_pullup[] = {
     // @Description: Elevator deflection offset from -1 to 1 while waiting for airspeed to rise before starting close loop control of the pullup.
     // @Range: -1.0 1.0
     // @User: Advanced
-    AP_GROUPINFO("PUP_ELEV_OFS",    1, Plane,  pullup.elev_offset, 0),
+    AP_GROUPINFO("PUP_ELEV_OFS",    1, Plane,  pullup.elev_offset, 0.1f),
 
     // @Param: PUP_NG_LIM
     // @DisplayName: Maximum normal load factor during pullup
