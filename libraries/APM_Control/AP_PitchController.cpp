@@ -145,7 +145,7 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] = {
     // @Range: 0.0 1.0
     // @Increment: 0.05
     // @User: Advanced
-    AP_GROUPINFO("MGTC", 12, AP_PitchController, _manoeuvre_tconst, 0.3f),
+    AP_GROUPINFO("MGTC", 12, AP_PitchController, _manoeuvre_tconst, 0.5f),
 
     AP_GROUPEND
 };
