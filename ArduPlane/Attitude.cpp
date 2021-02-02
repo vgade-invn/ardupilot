@@ -789,6 +789,7 @@ void Plane::stabilize_pullup(float speed_scaler)
         last_stabilize_ms = AP_HAL::millis();
         SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_rate_out(0, speed_scaler));
         logger.Write_PID(LOG_PIDR_MSG, rollController.get_pid_info());
+        pullup.ng_demand = 0.0f;
         break;
     }
     case PullupStage::WAIT_PITCH: {
@@ -802,9 +803,12 @@ void Plane::stabilize_pullup(float speed_scaler)
         SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_rate_out(0, speed_scaler));
         float aspeed;
         if (ahrs.airspeed_estimate(aspeed)) {
-            // we request a high demanded rate and rely on the NG limit in the pitch controller to produce
-            // the desired pitch rate for the G limit
-            const float demanded_rate_dps = 90;
+            // apply a jerk limit of 0.5 g/s
+            pullup.ng_demand += 0.5f * scheduler.get_loop_period_s();
+            pullup.ng_demand = MIN(pullup.ng_demand, pitchController.get_ng_limit());
+            const float VTAS_ref = ahrs.get_EAS2TAS() * aspeed;
+            const float pullup_accel = pullup.ng_demand * GRAVITY_MSS;
+            const float demanded_rate_dps = degrees(pullup_accel / VTAS_ref);
             SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, pitchController.get_rate_out(demanded_rate_dps, speed_scaler));
             logger.Write_PID(LOG_PIDP_MSG, pitchController.get_pid_info());
             logger.Write_PID(LOG_PIDR_MSG, rollController.get_pid_info());
