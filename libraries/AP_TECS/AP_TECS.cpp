@@ -469,11 +469,10 @@ void AP_TECS::_update_speed_demand(void)
     // provision to use a different rate limit if bad descent or underspeed condition exists
     float velRateMin, velRateMax;
     if (_flags.is_gliding) {
-        // The rate of acceleration is a function of the how much the flight path angle
-        // can be lowered or raised. Use half of max available.
-        const float glide_angle_delta = 0.25f * (_PITCHmaxf - _PITCHminf);
-        velRateMax =   GRAVITY_MSS * sinf(glide_angle_delta);
-        velRateMin = - velRateMax;
+        // The rate of acceleration is a function of the how much further the flight path angle
+        // can be lowered or raised.
+        velRateMax = GRAVITY_MSS * sinf((_pitch_dem - radians(_trim_aoa) - _PITCHminf));
+        velRateMin = GRAVITY_MSS * sinf((_pitch_dem - radians(_trim_aoa) - _PITCHmaxf));
     } else {
         // Use 50% of maximum energy rate to allow margin for total energy contgroller
         velRateMax = 0.5f * _STEdot_max / _TAS_state;
