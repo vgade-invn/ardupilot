@@ -19,17 +19,23 @@ nfiles = len(files)
 graphed = set()
 
 graphs = [
-    ('TECS Speed', 'knots(TECS.sp)/CTUN.E2T<KEAS> knots(TECS.spdem)/CTUN.E2T<KEAS_Target> feet(GPS.Alt):2<AltAMSL(Ft)>'),
+    ('TECS Speed', 'SL2.KEAS<KEAS> knots(TECS.spdem)/CTUN.E2T<KEAS_Target> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Attitude Control', 'ATT.Roll ATT.Pitch ATT.DesRoll ATT.DesPitch feet(GPS.Alt):2<AltAMSL(Ft)>'),
-    ('Speeds', 'knots(TECS.sp)/CTUN.E2T<KEAS> knots(TECS.sp)<KTAS> feet(GPS.Alt):2<AltAMSL(Ft)>'),
-    ('Surfaces Deg', 'AETR.Elev*12.5/4500+1.25<Elevator(deg)> AETR.Ail*15.5/4500<Aileron(deg)> AETR.Rudd*18.5/4500<Rudder(deg)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
+    ('Speeds', 'SL2.KEAS<KEAS> SL2.KTAS<KTAS> feet(GPS.Alt):2<AltAMSL(Ft)>'),
+    ('Surfaces Deg', 'SL2.Elev<Elevator(deg)> SL2.Ail<Aileron(deg)> SL2.Rud<Rudder(deg)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Surfaces PWM', 'RCOU.C3<Elevator(PWM)> RCOU.C4<Rudder(PWM)> RCOU.C2<AileronLeft(PWM)> RCOU.C5<AileronRight(PWM)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
-    ('Angle of Attack', 'constrain(SLD.AoA,-15,15)<AOA(deg)> constrain(AOA.SSA,-15,15){abs(AOA.AOA)<10}<SSA(deg)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
-    ('G-Force', 'sqrt(IMU.AccX**2+IMU.AccY**2+IMU.AccZ**2)<AccelLength(m/s/s)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
+    ('Angle of Attack', 'SL2.AoA<AoA(deg)> SL2.SSA<SSA(deg)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
+    ('G-Force', 'IMU.AccZ<AccelZ(m/s/s)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Distance To Home', 'distance_lat_lon(GPS.Lat,GPS.Lng,34.905429,-117.883702)/1852.0<DistToHome(nm)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Air Density', 'SLD.AD<AirDensity(kg/m^3)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Dynamic Pressure', 'SLD.q<DynamicPressure(Pa)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Lift/Drag', 'SLD.LD<Lift/Drag> feet(GPS.Alt):2<AltAMSL(Ft)>'),
+    ('Attitude (pullup)', 'ATT.Roll{CMD.CNum<7}<Roll(deg)> ATT.Pitch{CMD.CNum<7}<Pitch(deg)> feet(GPS.Alt){CMD.CNum<7}:2<AltAMSL(Ft)>'),
+    ('Speeds (pullup)', 'SL2.KEAS{CMD.CNum<7}<KEAS> SL2.KTAS{CMD.CNum<7}<KTAS> feet(GPS.Alt){CMD.CNum<7}:2<AltAMSL(Ft)>'),
+    ('Surfaces Deg (pullup)', 'SL2.Elev{CMD.CNum<7}<Elevator(deg)> SL2.Ail{CMD.CNum<7}<Aileron(deg)> SL2.Rud{CMD.CNum<7}<Rudder(deg)> feet(GPS.Alt){CMD.CNum<7}:2<AltAMSL(Ft)>'),
+    ('Surfaces PWM (pullup)', 'RCOU.C3{CMD.CNum<7}<Elevator(PWM)> RCOU.C4{CMD.CNum<7}<Rudder(PWM)> RCOU.C2{CMD.CNum<7}<AileronLeft(PWM)> RCOU.C5{CMD.CNum<7}<AileronRight(PWM)> feet(GPS.Alt){CMD.CNum<7}:2<AltAMSL(Ft)>'),
+    ('Angle of Attack (pullup)', 'SL2.AoA{CMD.CNum<7}<AOA(deg)> SL2.SSA{CMD.CNum<7}<SSA(deg)> feet(GPS.Alt){CMD.CNum<7}:2<AltAMSL(Ft)>'),
+    ('G-Force (pullup)', 'IMU.AccZ{CMD.CNum<7}<AccelZ(m/s/s)> feet(GPS.Alt){CMD.CNum<7}:2<AltAMSL(Ft)>'),
 ]
 
 def graph_one(mlog, title, expression, filename):
