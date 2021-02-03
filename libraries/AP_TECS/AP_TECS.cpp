@@ -471,8 +471,8 @@ void AP_TECS::_update_speed_demand(void)
     if (_flags.is_gliding) {
         // The rate of acceleration is a function of the how much further the flight path angle
         // can be lowered or raised.
-        velRateMax = GRAVITY_MSS * sinf((_pitch_dem - radians(_trim_aoa) - _PITCHminf));
-        velRateMin = GRAVITY_MSS * sinf((_pitch_dem - radians(_trim_aoa) - _PITCHmaxf));
+        velRateMax = GRAVITY_MSS * sinf((_pitch_dem - _PITCHminf));
+        velRateMin = GRAVITY_MSS * sinf((_pitch_dem - _PITCHmaxf));
     } else {
         // Use 50% of maximum energy rate to allow margin for total energy contgroller
         velRateMax = 0.5f * _STEdot_max / _TAS_state;
