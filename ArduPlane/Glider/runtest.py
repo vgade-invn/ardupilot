@@ -66,6 +66,7 @@ mavproxy.expect("ArduPilot Ready")
 
 mav = mavutil.mavlink_connection('127.0.0.1:14550')
 
+mavproxy.send('speedup 1\n')
 mavproxy.send('wp load missions/%s.txt\n' % args.mission)
 mavproxy.expect('Flight plan received')
 wait_mode(mav, ['MANUAL'])
@@ -78,6 +79,7 @@ else:
     print("DISABLNG speed scheduling")
     mavproxy.send("param set SCR_USER4 0\n")
 
+mavproxy.send('speedup 100\n')
 mavproxy.send('arm throttle\n')
 mavproxy.expect('Throttle armed')
 mavproxy.send('auto\n')
