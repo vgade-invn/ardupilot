@@ -140,8 +140,7 @@ Vector3f PlaneJSON::getForce(float inputAileron, float inputElevator, float inpu
         uint32_t now = AP_HAL::millis();
         sim_LD = 0.1 * constrain_float(Flift/MAX(1.0e-6,Fdrag),0,20) + 0.9 * sim_LD;
         if (now - last_drag_ms > 10 &&
-            location.alt*0.01 < 30500 &&
-            airspeed > 5) {
+            airspeed > 1) {
             last_drag_ms = now;
             AP::logger().Write("SLD", "TimeUS,AltFt,AltM,EAS,TAS,AD,Fl,Fd,LD,Elev,AoA,Fx,Fy,Fz,q", "Qffffffffffffff",
                                AP_HAL::micros64(),
