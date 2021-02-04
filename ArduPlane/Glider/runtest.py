@@ -8,6 +8,7 @@ parser = argparse.ArgumentParser(description='run glider test')
 parser.add_argument('mission', nargs='?', default=None, help='mission file')
 parser.add_argument('--location', default="KEDW", help='location')
 parser.add_argument('--speed-scheduling', action='store_true', default=False)
+parser.add_argument('--param-file', help='additional parameter file')
 args = parser.parse_args()
 
 def kill_all():
@@ -53,7 +54,12 @@ kill_all()
 os.system("rm -rf logs")
 time.sleep(3)
 
-cmd = '../../Tools/autotest/sim_vehicle.py -D -f PlaneJSON -G -L %s --aircraft test' % args.location
+if args.param_file:
+    param_cmd = "--add-param-file %s" % args.param_file
+else:
+    param_cmd = ""
+cmd = '../../Tools/autotest/sim_vehicle.py %s -D -f PlaneJSON -G -L %s --aircraft test' % (param_cmd, args.location)
+print(cmd)
 if sys.version_info[0] >= 3:
     mavproxy = pexpect.spawnu(cmd, logfile=sys.stdout, timeout=300)
 else:
