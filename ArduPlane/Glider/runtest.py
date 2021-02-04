@@ -85,6 +85,8 @@ else:
     print("DISABLNG speed scheduling")
     mavproxy.send("param set SCR_USER4 0\n")
 
+if args.param_file:
+    mavproxy.send("param load %s\n" % args.param_file)
 mavproxy.send('speedup 100\n')
 mavproxy.send('arm throttle\n')
 mavproxy.expect('Throttle armed')
