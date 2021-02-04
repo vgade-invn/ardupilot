@@ -618,6 +618,8 @@ def start_vehicle(binary, opts, stuff, spawns=None):
             print("The parameter file (%s) does not exist" %
                   (opts.add_param_file,))
             sys.exit(1)
+        if path is None:
+            path = ""
         path += "," + str(opts.add_param_file)
         progress("Adding parameters from (%s)" % (str(opts.add_param_file),))
     if opts.OSDMSP:
