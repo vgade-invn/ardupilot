@@ -63,6 +63,5 @@ private:
     float   _get_coordination_rate_offset(float &aspeed, bool &inverted) const;
     AP_Float _ng_limit;                     // normal load factor limit in the + and - direction
     AP_Float _manoeuvre_tconst;             // Time contant from demanded pitch rate to normal acceleration (sec)
-
-    AP_AHRS &_ahrs;
+    AP_Float _stall_speed;                  // IAS at which the vehicle stalls at a load factor of 1 (m/sec)
 };

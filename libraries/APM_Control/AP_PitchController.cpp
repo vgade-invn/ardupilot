@@ -147,6 +147,15 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("MGTC", 12, AP_PitchController, _manoeuvre_tconst, 0.5f),
 
+    // @Param: VSTALL
+    // @DisplayName: Stall speed
+    // @Description: IAS at which the vehicle stalls at 1g load factor. This is used to limit the pitch rate demand as a function of IAS such that the AoA limit is not exceeded. Set to 0 if not known and the AoA will not be limited. Setting to a value above stall causes AoA to be limited to a lower value and vice-versa.
+    // @Units: m/s
+    // @Range: 0.0 100.0
+    // @Increment: 0.5
+    // @User: Advanced
+    AP_GROUPINFO("VSTALL", 13, AP_PitchController, _stall_speed, 0.0f),
+
     AP_GROUPEND
 };
 
@@ -172,7 +181,13 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
 	}
     const float g_div_vtas = GRAVITY_MSS / MAX(VTAS,0.1);
     const float zero_ng_pitch_rate = - g_div_vtas * _ahrs.get_DCM_rotation_body_to_ned().c.z;
-    const float ng_pitch_rate = g_div_vtas * MAX(_ng_limit, 2.0f);
+	float load_factor_limit = MAX(_ng_limit, 1.5);
+	const float maneouvre_speed = _stall_speed * sqrtf(load_factor_limit);
+	if (is_positive(_stall_speed) && aspeed <  maneouvre_speed) {
+		// adjust load factor limit to prevent AoA exceedance
+		load_factor_limit *= sq(aspeed/maneouvre_speed);
+	}
+    const float ng_pitch_rate = g_div_vtas * MAX(_ng_limit, 1.5);
     const float max_pitch_rate_dps = degrees(zero_ng_pitch_rate + ng_pitch_rate);
     const float min_pitch_rate_dps = degrees(zero_ng_pitch_rate - ng_pitch_rate);
     desired_rate = constrain_float(desired_rate, min_pitch_rate_dps, max_pitch_rate_dps);
