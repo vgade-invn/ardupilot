@@ -299,6 +299,14 @@ const AP_Param::GroupInfo AP_TECS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("TRIM_AOA", 34, AP_TECS, _trim_aoa, 3.0f),
 
+    // @Param: ASPD_SLEW
+    // @DisplayName: Airspeed slew rate factor
+    // @Description: Used to speed up or slow down the internally calculated airspeed demand slew rate limit. Bigger values make airspeed change faster.
+    // @Range: 0.1 2.0
+    // @Increment: 0.1
+    // @User: Advanced
+    AP_GROUPINFO("ASPD_SLEW", 35, AP_TECS, _aspd_slew_factor, 1.0f),
+
     AP_GROUPEND
 };
 
@@ -478,8 +486,8 @@ void AP_TECS::_update_speed_demand(void)
         velRateMax = 0.5f * _STEdot_max / _TAS_state;
         velRateMin = 0.5f * _STEdot_min / _TAS_state;
     }
-    velRateMax *= _TAS2EAS;
-    velRateMin *= _TAS2EAS;
+    velRateMax *= _TAS2EAS * _aspd_slew_factor;
+    velRateMin *= _TAS2EAS * _aspd_slew_factor;
 
     // Apply rate limit
     const float EAS_dem_previous = _EAS_dem_rlim;
