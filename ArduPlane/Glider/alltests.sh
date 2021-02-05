@@ -1,7 +1,7 @@
 #!/bin/bash
 
 rm -rf logs
-./runtest.py mission1 --location KEDW1 --param-file glider-pullup.parm
+./runtest.py mission1 --location KEDW1 --param-file glider-pullup-mission1.parm
 ./runtest.py mission2 --location KEDW2 --param-file glider-pullup.parm
 ./runtest.py mission3 --location KEDW3 --param-file glider-pullup.parm
 ./runtest.py mission4 --location KEDW4 --param-file glider-pullup.parm
