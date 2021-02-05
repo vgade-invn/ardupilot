@@ -75,5 +75,5 @@ private:
     AP_Float _slew_rate_tau;                // Time constant used to recover gain after a slew rate exceedance (sec)
     AP_Float _ng_limit;                     // normal load factor limit in the + and - direction
     AP_Float _manoeuvre_tconst;             // Time contant from demanded pitch rate to normal acceleration (sec)
-
+    AP_Float _stall_speed;                  // IAS at which the vehicle stalls at a load factor of 1 (m/sec)
 };
