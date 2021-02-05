@@ -781,11 +781,11 @@ const AP_Param::GroupInfo Plane::var_pullup[] = {
 
     // @Param: PUP_NG_JERK_LIM
     // @DisplayName: Maximum normal load factor rate of change during pullup
-    // @Description: The normal load factor used for closed loop pitch rate control of the pullup will be ramped up to the value set by PUP_NG_LIM at the rate of change set by this parameter.
+    // @Description: The normal load factor used for closed loop pitch rate control of the pullup will be ramped up to the value set by PUP_NG_LIM at the rate of change set by this parameter. The parameter value specified will be scaled internally by 1/EAS2TAS.
     // @Units: 1/s
-    // @Range: 0.1 1.0
+    // @Range: 0.1 10.0
     // @User: Advanced
-    AP_GROUPINFO("PUP_NG_JERK_LIM",    3, Plane,  pullup.ng_jerk_limit, 0.5f),
+    AP_GROUPINFO("PUP_NG_JERK_LIM",    3, Plane,  pullup.ng_jerk_limit, 4.0f),
 
     AP_GROUPEND
 };
@@ -824,7 +824,7 @@ void Plane::stabilize_pullup(float speed_scaler)
         if (ahrs.airspeed_estimate(aspeed)) {
             // apply a rate of change limit to the ng pullup demand
             const float ng_limit = MAX(pullup.ng_limit, 1.0f);
-            pullup.ng_demand += MAX(pullup.ng_jerk_limit, 0.1f) * scheduler.get_loop_period_s();
+            pullup.ng_demand += MAX(pullup.ng_jerk_limit / ahrs.get_EAS2TAS(), 0.1f) * scheduler.get_loop_period_s();
             pullup.ng_demand = MIN(pullup.ng_demand, ng_limit);
             const float VTAS_ref = ahrs.get_EAS2TAS() * aspeed;
             const float pullup_accel = pullup.ng_demand * GRAVITY_MSS;
