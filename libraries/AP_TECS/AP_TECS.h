@@ -192,6 +192,7 @@ private:
     AP_Float _flare_holdoff_hgt;
     AP_Float _hgt_dem_tconst;
     AP_Float _trim_aoa;
+    AP_Float _aspd_slew_factor;
 
     enum {
         OPTION_GLIDER_ONLY=(1<<0),
