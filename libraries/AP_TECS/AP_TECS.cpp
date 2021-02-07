@@ -509,9 +509,10 @@ void AP_TECS::_update_speed_demand(void)
         const float tconst = timeConstant();
         const float filt_coef = _DT / tconst;
         _EAS_dem_lpf_1 = (1.0f - filt_coef) * _EAS_dem_lpf_1 + filt_coef * _EAS_dem_rlim;
-        _TAS_rate_dem = _EAS2TAS * (_EAS_dem_lpf_1 - _EAS_dem_rlim) / tconst;
+        const float EAS_dem_lpf_2_prev = _EAS_dem_lpf_2;
         _EAS_dem_lpf_2 = (1.0f - filt_coef) * _EAS_dem_lpf_2 + filt_coef * _EAS_dem_lpf_1;
-    } else {
+        _TAS_rate_dem = _EAS2TAS * (_EAS_dem_lpf_2 - EAS_dem_lpf_2_prev) / tconst;
+   } else {
         _EAS_dem_lpf_2 = _EAS_dem_lpf_1 = _EAS_dem_rlim;
         _TAS_rate_dem = _EAS2TAS * (_EAS_dem_rlim - EAS_dem_previous) / _DT;
     }
