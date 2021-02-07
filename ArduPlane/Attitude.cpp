@@ -787,13 +787,13 @@ const AP_Param::GroupInfo Plane::var_pullup[] = {
     // @User: Advanced
     AP_GROUPINFO("PUP_NG_JERK_LIM",    3, Plane,  pullup.ng_jerk_limit, 4.0f),
 
-    // @Param: PUP_PITCH
+    // @Param: PUP_PITCH_CD
     // @DisplayName: Target pitch angle during pullup
     // @Description: The vehicle will attempt achieve this pitch angle during the pull-up maneouvre.
     // @Units: cdeg
     // @Range: -500 1500
     // @User: Advanced
-    AP_GROUPINFO("PUP_PITCH", 4, Plane,  pullup.pitch_dem_cd, 300),
+    AP_GROUPINFO("PUP_PITCH_CD", 4, Plane,  pullup.pitch_dem_cd, 300),
 
     AP_GROUPEND
 };
