@@ -1080,6 +1080,13 @@ void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
         _hgt_rate_at_flare_entry  = 0.0f;
         _hgt_afe                  = 0.0f;
         _pitch_min_at_flare_entry = 0.0f;
+
+        // Set integrator to a value that will cause demanded pitch to match measured pitch
+        // and give a smoother initial pitch demand
+        if (_options & OPTION_GLIDER_ONLY) {
+            const float gainInv = (_TAS_state * GRAVITY_MSS);
+            _integSEB_state = gainInv * (_ahrs.pitch - radians(_trim_aoa));
+        }
     }
     else if (_flight_stage == AP_Vehicle::FixedWing::FLIGHT_TAKEOFF || _flight_stage == AP_Vehicle::FixedWing::FLIGHT_ABORT_LAND)
     {
