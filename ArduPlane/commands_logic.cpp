@@ -1138,19 +1138,24 @@ bool Plane::verify_pullup(const AP_Mission::Mission_Command &cmd)
     return false;
     }
     case PullupStage::WAIT_LEVEL: {
-        if (ahrs.pitch_sensor > MIN(0 , aparm.pitch_limit_max_cd - 500)) {
-            if (labs(ahrs.roll_sensor) < aparm.roll_limit_cd) {
+        // When pitch has raised past lower limit used by speed controller, wait for airspeed to approach
+        // target value before handing over control of pitch demand to speed controller
+        bool pitchup_complete = ahrs.pitch_sensor > MIN(0 , aparm.pitch_limit_min_cd);
+        const float pitch_lag_time = 1.0f * sqrtf(ahrs.get_EAS2TAS());
+        float aspeed;
+        const float aspeed_derivative = (ahrs.get_accel().x + GRAVITY_MSS * ahrs.get_DCM_rotation_body_to_ned().c.x) / ahrs.get_EAS2TAS();
+        bool airspeed_low = ahrs.airspeed_estimate(aspeed) ? (aspeed + aspeed_derivative * pitch_lag_time) < 0.01f * (float)target_airspeed_cm : true;
+        bool roll_control_lost = labs(ahrs.roll_sensor) > aparm.roll_limit_cd;
+        if (pitchup_complete && airspeed_low && !roll_control_lost) {
                 gcs().send_text(MAV_SEVERITY_INFO, "Pullup level r=%.1f p=%.1f alt %.1fm AMSL",
-                                ahrs.roll_sensor*0.01,
-                                ahrs.pitch_sensor*0.01, current_loc.alt*0.01);
+                                ahrs.roll_sensor*0.01, ahrs.pitch_sensor*0.01, current_loc.alt*0.01);
                 pullup.stage = PullupStage::NONE;
-            } else {
+        } else if (pitchup_complete && roll_control_lost) {
                 // push nose down and wait to get roll control back
                 gcs().send_text(MAV_SEVERITY_ALERT, "Pullup level roll bad r=%.1f p=%.1f",
                                 ahrs.roll_sensor*0.01,
                                 ahrs.pitch_sensor*0.01);
                 pullup.stage = PullupStage::PUSH_NOSE_DOWN;
-            }
         }
         return false;
     }
