@@ -184,10 +184,12 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
 	float load_factor_limit = MAX(_ng_limit, 1.5);
 	const float maneouvre_speed = _stall_speed * sqrtf(load_factor_limit);
 	if (is_positive(_stall_speed) && aspeed <  maneouvre_speed) {
-		// adjust load factor limit to prevent AoA exceedance
+		// adjust load factor limit to prevent AoA exceedancee with a small margin above
+		// 1.0 to prevent a failed airspeed sensor causing loss of pitch control
 		load_factor_limit *= sq(aspeed/maneouvre_speed);
+		load_factor_limit = MAX(load_factor_limit, 1.1f);
 	}
-    const float ng_pitch_rate = g_div_vtas * MAX(_ng_limit, 1.5);
+    const float ng_pitch_rate = g_div_vtas * load_factor_limit;
     const float max_pitch_rate_dps = degrees(zero_ng_pitch_rate + ng_pitch_rate);
     const float min_pitch_rate_dps = degrees(zero_ng_pitch_rate - ng_pitch_rate);
     desired_rate = constrain_float(desired_rate, min_pitch_rate_dps, max_pitch_rate_dps);
