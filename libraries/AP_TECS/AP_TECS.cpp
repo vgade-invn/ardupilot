@@ -483,19 +483,20 @@ void AP_TECS::_update_speed_demand(void)
 
     // calculate velocity rate limits based on physical performance limits
     // provision to use a different rate limit if bad descent or underspeed condition exists
+    const float slew_rate_factor = MAX(_aspd_slew_factor, 0.1f);
     float velRateMin, velRateMax;
     if (_flags.is_gliding) {
         // The rate of acceleration is a function of the how much further the flight path angle
         // can be lowered or raised.
-        velRateMax = GRAVITY_MSS * sinf((_pitch_dem - _PITCHminf));
-        velRateMin = GRAVITY_MSS * sinf((_pitch_dem - _PITCHmaxf));
+        const float constant = _TAS2EAS * slew_rate_factor * GRAVITY_MSS;
+        velRateMax = constant * sinf(_pitch_dem -_PITCHminf);
+        velRateMin = constant * sinf(_pitch_dem -_PITCHmaxf);
     } else {
         // Use 50% of maximum energy rate to allow margin for total energy contgroller
-        velRateMax = 0.5f * _STEdot_max / _TAS_state;
-        velRateMin = 0.5f * _STEdot_min / _TAS_state;
+        const float constant = (_TAS2EAS * slew_rate_factor * 0.5f) / _TAS_state;
+        velRateMax = constant * _STEdot_max;
+        velRateMin = constant * _STEdot_min;
     }
-    velRateMax *= _TAS2EAS * _aspd_slew_factor;
-    velRateMin *= _TAS2EAS * _aspd_slew_factor;
 
     // Apply rate limit
     const float EAS_dem_previous = _EAS_dem_rlim;
@@ -514,7 +515,7 @@ void AP_TECS::_update_speed_demand(void)
 
     // gliders need a smoother speed demand to prevent unwanted pitch transients
     if (_flags.is_gliding && _options & OPTION_SMOOTH_SPEED) {
-        const float tconst = timeConstant();
+        const float tconst = timeConstant() / slew_rate_factor;
         const float filt_coef = _DT / tconst;
         _EAS_dem_lpf_1 = (1.0f - filt_coef) * _EAS_dem_lpf_1 + filt_coef * _EAS_dem_rlim;
         const float EAS_dem_lpf_2_prev = _EAS_dem_lpf_2;
