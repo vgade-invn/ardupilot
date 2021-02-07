@@ -787,6 +787,14 @@ const AP_Param::GroupInfo Plane::var_pullup[] = {
     // @User: Advanced
     AP_GROUPINFO("PUP_NG_JERK_LIM",    3, Plane,  pullup.ng_jerk_limit, 4.0f),
 
+    // @Param: PUP_PITCH
+    // @DisplayName: Target pitch angle during pullup
+    // @Description: The vehicle will attempt achieve this pitch angle during the pull-up maneouvre.
+    // @Units: cdeg
+    // @Range: -500 1500
+    // @User: Advanced
+    AP_GROUPINFO("PUP_PITCH", 4, Plane,  pullup.pitch_dem_cd, 300),
+
     AP_GROUPEND
 };
 
@@ -848,7 +856,7 @@ void Plane::stabilize_pullup(float speed_scaler)
     }
     case PullupStage::WAIT_LEVEL:
     default:
-        nav_pitch_cd = aparm.pitch_limit_max_cd;
+        nav_pitch_cd = MAX((aparm.pitch_limit_min_cd + 500), pullup.pitch_dem_cd);
         last_stabilize_ms = AP_HAL::millis();
         stabilize_pitch(speed_scaler);
         nav_roll_cd = 0;

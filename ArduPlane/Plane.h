@@ -1159,6 +1159,7 @@ private:
         AP_Float elev_offset; // fraction of full elevator applied during WAIT_AIRSPEED and released during WAIT_PITCH
         AP_Float ng_limit;
         AP_Float ng_jerk_limit;
+        AP_Float pitch_dem_cd;
         float ng_demand;
     } pullup;
 
