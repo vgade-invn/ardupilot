@@ -307,6 +307,14 @@ const AP_Param::GroupInfo AP_TECS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("ASPD_SLEW", 35, AP_TECS, _aspd_slew_factor, 1.0f),
 
+    // @Param: TC_E2T_EXP
+    // @DisplayName: Time constant altitude scaling exponent
+    // @Description: Exponent used to calculate the increase in time constant with TAS to EAS ratio where the control loop tine constant = TECS_TCONST x EAS2TAS ^ TECS_TC_E2T_EXP
+    // @Range: 0.5 1.0
+    // @Increment: 0.05
+    // @User: Advanced
+    AP_GROUPINFO("TC_E2T_EXP", 36, AP_TECS, _tconst_exponent, 0.7f),
+
     AP_GROUPEND
 };
 
@@ -668,16 +676,17 @@ void AP_TECS::_update_energies(void)
  */
 float AP_TECS::timeConstant(void) const
 {
+    const float alt_scale = powf(_EAS2TAS, _tconst_exponent);
     if (_flags.is_doing_auto_land) {
         if (_landTimeConst < 0.1f) {
-            return 0.1f * sqrtf(_EAS2TAS);
+            return 0.1f * alt_scale;
         }
         return _landTimeConst;
     }
     if (_timeConst < 0.1f) {
-        return 0.1f * sqrtf(_EAS2TAS);
+        return 0.1f * alt_scale;
     }
-    return _timeConst * sqrtf(_EAS2TAS);
+    return _timeConst * alt_scale;
 }
 
 /*

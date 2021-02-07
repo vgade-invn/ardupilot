@@ -193,6 +193,7 @@ private:
     AP_Float _hgt_dem_tconst;
     AP_Float _trim_aoa;
     AP_Float _aspd_slew_factor;
+    AP_Float _tconst_exponent;
 
     enum {
         OPTION_GLIDER_ONLY=(1<<0),
