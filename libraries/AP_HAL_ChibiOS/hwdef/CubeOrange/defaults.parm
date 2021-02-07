@@ -14,6 +14,9 @@ SERIAL5_PROTOCOL 1
 BRD_IMUHEAT_I 0.07
 BRD_IMUHEAT_P 50
 
+# don't reset baro alt after boot
+HOME_RESET_ALT -1
+
 # enable CAN
 CAN_P1_DRIVER    1
 CAN_P2_DRIVER    1
