@@ -583,6 +583,7 @@ void AP_GPS::detect_instance(uint8_t instance)
 
         if ((_type[instance] == GPS_TYPE_UBLOX_RTK_BASE ||
              _type[instance] == GPS_TYPE_UBLOX_RTK_ROVER) &&
+            ((_driver_options.get() & AP_GPS_Backend::DriverOptions::UBX_MBUseUart2) == 0) &&
             _baudrates[dstate->current_baud] == 460800 &&
             AP_GPS_UBLOX::_detect(dstate->ublox_detect_state, data)) {
             GPS_Role role;
