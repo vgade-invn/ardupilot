@@ -182,7 +182,27 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
     const float g_div_vtas = GRAVITY_MSS / MAX(VTAS,0.1);
     const float zero_ng_pitch_rate = - g_div_vtas * _ahrs.get_DCM_rotation_body_to_ned().c.z;
 	float load_factor_limit = MAX(_ng_limit, 1.5);
-	const float maneouvre_speed = _stall_speed * sqrtf(load_factor_limit);
+
+	// custom hack to adjust maximum AoA protection for Reynolds number effects
+	const float air_density_ratio = 1.0f / sq(_ahrs.get_EAS2TAS());
+	const float density_ratio_bp[2]     = {0.15220f, 0.02092f}; // must be montonically decreasing
+	const float stall_speed_ratio_bp[2] = {1.00000f, 1.21771f};
+	float max_aoa_speed = _stall_speed;
+	if (air_density_ratio > density_ratio_bp[0]) {
+		max_aoa_speed *= stall_speed_ratio_bp[0];
+	} else if (air_density_ratio > density_ratio_bp[1]) {
+		const float weighting = (air_density_ratio - density_ratio_bp[1]) / (density_ratio_bp[0] - density_ratio_bp[1]);
+		max_aoa_speed *= (stall_speed_ratio_bp[0] * weighting + stall_speed_ratio_bp[1] * (1.0f - weighting));
+	} else {
+		max_aoa_speed *= stall_speed_ratio_bp[1];
+	}
+
+    AP::logger().Write("DBG1","TimeUS,ADR,MAS","Qff",
+                    AP_HAL::micros64(),
+                    (double)air_density_ratio,
+                    (double)max_aoa_speed);
+
+	const float maneouvre_speed = max_aoa_speed * sqrtf(load_factor_limit);
 	if (is_positive(_stall_speed) && aspeed <  maneouvre_speed) {
 		// adjust load factor limit to prevent AoA exceedancee with a small margin above
 		// 1.0 to prevent a failed airspeed sensor causing loss of pitch control
