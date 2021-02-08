@@ -544,8 +544,13 @@ void AP_GPS::detect_instance(uint8_t instance)
         if (_auto_config == GPS_AUTO_CONFIG_ENABLE && new_gps == nullptr) {
             if (_type[instance] == GPS_TYPE_HEMI) {
                 send_blob_start(instance, AP_GPS_NMEA_HEMISPHERE_INIT_STRING, strlen(AP_GPS_NMEA_HEMISPHERE_INIT_STRING));
-            } else if (_type[instance] == GPS_TYPE_UBLOX_RTK_BASE ||
-                       _type[instance] == GPS_TYPE_UBLOX_RTK_ROVER) {
+            } else if ((_type[instance] == GPS_TYPE_UBLOX_RTK_BASE ||
+                        _type[instance] == GPS_TYPE_UBLOX_RTK_ROVER) &&
+                       ((_driver_options.get() & AP_GPS_Backend::DriverOptions::UBX_MBUseUart2) == 0)) {
+                // we use 460800 when doing moving baseline as we need
+                // more bandwidth. We don't do this if using UART2, as
+                // in that case the RTCMv3 data doesn't go over the
+                // link to the flight controller
                 static const char blob[] = UBLOX_SET_BINARY_460800;
                 send_blob_start(instance, blob, sizeof(blob));
             } else {
