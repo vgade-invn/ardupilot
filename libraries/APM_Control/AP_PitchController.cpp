@@ -197,11 +197,6 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
 		max_aoa_speed *= stall_speed_ratio_bp[1];
 	}
 
-    AP::logger().Write("DBG1","TimeUS,ADR,MAS","Qff",
-                    AP_HAL::micros64(),
-                    (double)air_density_ratio,
-                    (double)max_aoa_speed);
-
 	const float maneouvre_speed = max_aoa_speed * sqrtf(load_factor_limit);
 	if (is_positive(_stall_speed) && aspeed <  maneouvre_speed) {
 		// adjust load factor limit to prevent AoA exceedancee with a small margin above
