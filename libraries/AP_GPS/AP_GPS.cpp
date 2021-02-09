@@ -573,6 +573,7 @@ void AP_GPS::detect_instance(uint8_t instance)
           the uBlox into 115200 no matter what rate it is configured
           for.
         */
+
         if ((_type[instance] == GPS_TYPE_AUTO ||
              _type[instance] == GPS_TYPE_UBLOX) &&
             ((!_auto_config && _baudrates[dstate->current_baud] >= 38400) ||
@@ -581,10 +582,10 @@ void AP_GPS::detect_instance(uint8_t instance)
             new_gps = new AP_GPS_UBLOX(*this, state[instance], _port[instance], GPS_ROLE_NORMAL);
         }
 
+        const uint32_t ublox_mb_required_baud = (_driver_options.get() & AP_GPS_Backend::DriverOptions::UBX_MBUseUart2)?115200:460800;
         if ((_type[instance] == GPS_TYPE_UBLOX_RTK_BASE ||
              _type[instance] == GPS_TYPE_UBLOX_RTK_ROVER) &&
-            ((_driver_options.get() & AP_GPS_Backend::DriverOptions::UBX_MBUseUart2) == 0) &&
-            _baudrates[dstate->current_baud] == 460800 &&
+            _baudrates[dstate->current_baud] == ublox_mb_required_baud &&
             AP_GPS_UBLOX::_detect(dstate->ublox_detect_state, data)) {
             GPS_Role role;
             if (_type[instance] == GPS_TYPE_UBLOX_RTK_BASE) {
