@@ -5,12 +5,14 @@ from pymavlink import mavutil
 
 import argparse
 parser = argparse.ArgumentParser(description='run glider test')
-parser.add_argument('mission', nargs='?', default=None, help='mission file')
-parser.add_argument('--location', default="KEDW", help='location')
+parser.add_argument('--mission', type=int, default=0, help='mission number')
 parser.add_argument('--speed-scheduling', action='store_true', default=False)
-parser.add_argument('--param-file', help='additional parameter file')
 parser.add_argument('--no-ui', action='store_true', help='disable UI display')
 args = parser.parse_args()
+
+if args.mission == 0:
+    print("You must specify a mission number")
+    sys.exit(1)
 
 def kill_all():
     os.system("pkill mavproxy 2> /dev/null")
@@ -55,7 +57,9 @@ kill_all()
 os.system("rm -rf logs")
 time.sleep(3)
 
-cmd = '../../Tools/autotest/sim_vehicle.py -D -f PlaneJSON -G -L %s --aircraft test' % args.location
+location = "KEDW%u" % args.mission
+
+cmd = '../../Tools/autotest/sim_vehicle.py -D -f PlaneJSON -G -L %s --aircraft test' % location
 print(cmd)
 if sys.version_info[0] >= 3:
     mavproxy = pexpect.spawnu(cmd, logfile=sys.stdout, timeout=300)
@@ -70,7 +74,7 @@ mavproxy.expect("ArduPilot Ready")
 mav = mavutil.mavlink_connection('127.0.0.1:14550')
 
 mavproxy.send('speedup 1\n')
-mavproxy.send('wp load missions/%s.txt\n' % args.mission)
+mavproxy.send('wp load missions/mission%u.txt\n' % args.mission)
 mavproxy.expect('Flight plan received')
 wait_mode(mav, ['MANUAL'])
 mavproxy.send('param ftp\n')
@@ -82,9 +86,11 @@ else:
     print("DISABLNG speed scheduling")
     mavproxy.send("param set SCR_USER4 0\n")
 
-if args.param_file:
-    for p in args.param_file.split(','):
-        mavproxy.send("param load %s\n" % p)
+mission_parm = "missions/mission%u.parm" % args.mission
+if os.path.exists("all.parm"):
+    mavproxy.send("param load all.parm\n")
+if os.path.exists(mission_parm):
+    mavproxy.send("param load %s\n" % mission_parm)
 mavproxy.send('speedup 100\n')
 mavproxy.send('arm throttle\n')
 mavproxy.expect('Throttle armed')
@@ -98,5 +104,6 @@ if not args.no_ui:
 mavproxy.expect("Released",timeout=600)
 mavproxy.send('disarm force\n')
 kill_all()
-os.system("ln -f logs/00000001.BIN test_runs/%s.bin" % args.mission)
-os.system("ls -l test_runs/%s.bin" % args.mission)
+os.system("ln -f logs/00000001.BIN test_runs/mission%u.bin" % args.mission)
+os.system("ls -l test_runs/mission%u.bin" % args.mission)
+
