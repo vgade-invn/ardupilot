@@ -6,7 +6,6 @@ from pymavlink import mavutil
 import argparse
 parser = argparse.ArgumentParser(description='run glider test')
 parser.add_argument('--mission', type=int, default=0, help='mission number')
-parser.add_argument('--speed-scheduling', action='store_true', default=False)
 parser.add_argument('--no-ui', action='store_true', help='disable UI display')
 args = parser.parse_args()
 
@@ -79,7 +78,7 @@ mavproxy.expect('Flight plan received')
 wait_mode(mav, ['MANUAL'])
 mavproxy.send('param ftp\n')
 mavproxy.expect("Received")
-if args.speed_scheduling:
+if args.mission >= 5:
     print("ENABLING speed scheduling")
     mavproxy.send("param set SCR_USER4 1\n")
 else:
