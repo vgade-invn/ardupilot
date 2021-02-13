@@ -30,6 +30,8 @@ graphs = [
     ('Air Density', 'SLD.AD<AirDensity(kg/m^3)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Dynamic Pressure', 'SLD.q<DynamicPressure(Pa)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Lift/Drag', 'SLD.LD<Lift/Drag> feet(GPS.Alt):2<AltAMSL(Ft)>'),
+    ('RollRates', 'PIDR.Act<RollRate(deg/s)> PIDR.Tar<RollRateTarget(deg/s)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
+    ('PitchRates', 'PIDP.Act<PitchRate(deg/s)> PIDP.Tar<PitchRateTarget(deg/s)> feet(GPS.Alt):2<AltAMSL(Ft)>'),
     ('Attitude (pullup)', 'ATT.Roll{CMD.CNum<7}<Roll(deg)> ATT.Pitch{CMD.CNum<7}<Pitch(deg)> feet(GPS.Alt){CMD.CNum<7}:2<AltAMSL(Ft)>'),
     ('Speeds (pullup)', 'SL2.KEAS{CMD.CNum<7}<KEAS> SL2.KTAS{CMD.CNum<7}<KTAS> feet(GPS.Alt){CMD.CNum<7}:2<AltAMSL(Ft)>'),
     ('Surfaces Deg (pullup)', 'SL2.Elev{CMD.CNum<7}<Elevator(deg)> SL2.Ail{CMD.CNum<7}<Aileron(deg)> SL2.Rud{CMD.CNum<7}<Rudder(deg)> feet(GPS.Alt){CMD.CNum<7}:2<AltAMSL(Ft)>'),

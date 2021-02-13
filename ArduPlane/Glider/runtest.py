@@ -9,6 +9,7 @@ parser.add_argument('mission', nargs='?', default=None, help='mission file')
 parser.add_argument('--location', default="KEDW", help='location')
 parser.add_argument('--speed-scheduling', action='store_true', default=False)
 parser.add_argument('--param-file', help='additional parameter file')
+parser.add_argument('--no-ui', action='store_true', help='disable UI display')
 args = parser.parse_args()
 
 def kill_all():
@@ -54,11 +55,7 @@ kill_all()
 os.system("rm -rf logs")
 time.sleep(3)
 
-if args.param_file:
-    param_cmd = "--add-param-file %s" % args.param_file
-else:
-    param_cmd = ""
-cmd = '../../Tools/autotest/sim_vehicle.py %s -D -f PlaneJSON -G -L %s --aircraft test' % (param_cmd, args.location)
+cmd = '../../Tools/autotest/sim_vehicle.py -D -f PlaneJSON -G -L %s --aircraft test' % args.location
 print(cmd)
 if sys.version_info[0] >= 3:
     mavproxy = pexpect.spawnu(cmd, logfile=sys.stdout, timeout=300)
@@ -86,16 +83,18 @@ else:
     mavproxy.send("param set SCR_USER4 0\n")
 
 if args.param_file:
-    mavproxy.send("param load %s\n" % args.param_file)
+    for p in args.param_file.split(','):
+        mavproxy.send("param load %s\n" % p)
 mavproxy.send('speedup 100\n')
 mavproxy.send('arm throttle\n')
 mavproxy.expect('Throttle armed')
 mavproxy.send('auto\n')
 wait_mode(mav, ['AUTO'])
 mavproxy.send('rc 6 2000\n')
-mavproxy.send('module load map\n')
-mavproxy.send('wp list\n')
-mavproxy.send('gamslft\n')
+if not args.no_ui:
+    mavproxy.send('module load map\n')
+    mavproxy.send('wp list\n')
+    mavproxy.send('gamslft\n')
 mavproxy.expect("Released",timeout=600)
 mavproxy.send('disarm force\n')
 kill_all()
