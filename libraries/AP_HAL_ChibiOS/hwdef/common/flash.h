@@ -30,6 +30,10 @@ bool stm32_flash_ispageerased(uint32_t page);
 #ifndef HAL_BOOTLOADER_BUILD
 bool stm32_flash_recent_erase(void);
 #endif
+#if defined(STM32H7)
+bool stm32_flash_crc_page(uint32_t page, uint32_t *crc);
+void stm32_flash_corrupt(uint32_t page);
+#endif
 #ifdef __cplusplus
 }
 #endif

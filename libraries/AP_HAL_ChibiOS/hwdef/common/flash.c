@@ -703,6 +703,70 @@ void stm32_flash_keep_unlocked(bool set)
     }
 }
 
+#if defined(STM32H7)
+/*
+  find CRC of a page, using H7 hw crc support
+  return false on ECC error in the page
+  this function takes about 500 usec
+*/
+bool stm32_flash_crc_page(uint32_t page, uint32_t *crc)
+{
+    stm32_flash_wait_idle();
+    stm32_flash_unlock();
+    stm32_flash_clear_errors();
+    volatile uint32_t *cr, *crccr, *sr, *data;
+    if (page < 8) {
+        // first bank
+        cr = &FLASH->CR1;
+        crccr = &FLASH->CRCCR1;
+        sr = &FLASH->SR1;
+        data = &FLASH->CRCDATA;
+    } else {
+        // 2nd bank
+        page -= 8;
+        cr = &FLASH->CR2;
+        crccr = &FLASH->CRCCR2;
+        sr = &FLASH->SR2;
+        data = &FLASH->CRCDATA2;
+    }
+
+    *cr = FLASH_CR_CRC_EN;
+    *crccr |= FLASH_CRCCR_CRC_BURST_1;
+    *crccr |= FLASH_CRCCR_CRC_BY_SECT;
+    *crccr |= page;
+    *crccr |= FLASH_CRCCR_ADD_SECT;
+    *crccr |= FLASH_CRCCR_START_CRC;
+    stm32_flash_wait_idle();
+
+    bool ret = (((*sr) & FLASH_SR_DBECCERR) == 0);
+    *crc = *data;
+
+    // disable CRC feature
+    *cr &= ~FLASH_CR_CRC_EN;
+
+    stm32_flash_lock();
+    return ret;
+}
+
+/*
+  deliberately corrupt the ECC on a flash page. Used to test
+  auto-erase on base ECC for H7
+*/
+void stm32_flash_corrupt(uint32_t address)
+{
+    stm32_flash_wait_idle();
+    stm32_flash_unlock();
+    stm32_flash_clear_errors();
+
+    for (uint8_t i=0; i<127; i++) {
+        memset(address+3, i, 37);
+        memset(address+5, ~i, 37);
+    }
+
+    stm32_flash_lock();
+}
+#endif // STM32H7
+
 #ifndef HAL_BOOTLOADER_BUILD
 /*
   return true if we had a recent erase
