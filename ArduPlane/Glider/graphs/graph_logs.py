@@ -95,9 +95,11 @@ def process_one(fname):
 
     map_log = "%s/%s.bin" % (dname, bname2)
     map_img = "%s-map.png" % bname
+    map_img2 = "%s-map2.png" % bname
 
     os.system("mavflightview.py --imagefile=%s/%s --fence %s %s" % (dname, map_img, fence, map_log))
-    f.write('<hr><p><img src="%s"><p>\n' % map_img)
+    os.system("mavflightview.py --imagefile=%s/%s --fence %s --fencebounds %s" % (dname, map_img2, fence, map_log))
+    f.write('<hr><p><table><tr><td><img src="%s"></td><td><img src="%s"></td></tr></table><p>\n' % (map_img, map_img2))
 
     mlog = mavutil.mavlink_connection(fname)
     idx = 0
