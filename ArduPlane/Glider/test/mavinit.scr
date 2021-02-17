@@ -1,5 +1,0 @@
-set altreadout 0
-set streamrate 1
-set distreadout 0
-module load kmlread
-kml load EAFB_MockFlightTests_Jan2021.kmz

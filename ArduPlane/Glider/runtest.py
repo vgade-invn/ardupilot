@@ -58,6 +58,11 @@ time.sleep(3)
 
 location = "KEDW%u" % args.mission
 
+if args.mission >= 6:
+    kmz = "missions/High_alt_25_to_90Kft_geofence.kmz"
+else:
+    kmz = "missions/Low_alt_9Kft_geofence.kmz"
+
 cmd = '../../Tools/autotest/sim_vehicle.py -D -f PlaneJSON -G -L %s --aircraft test' % location
 print(cmd)
 if sys.version_info[0] >= 3:
@@ -85,6 +90,13 @@ else:
     print("DISABLNG speed scheduling")
     mavproxy.send("param set SCR_USER4 0\n")
 
+mavproxy.send('''
+set altreadout 0
+set streamrate 1
+set distreadout 0
+module load kmlread
+''')
+
 mission_parm = "missions/mission%u.parm" % args.mission
 if os.path.exists("all.parm"):
     mavproxy.send("param load all.parm\n")
@@ -100,6 +112,7 @@ if not args.no_ui:
     mavproxy.send('module load map\n')
     mavproxy.send('wp list\n')
     mavproxy.send('gamslft\n')
+mavproxy.send("kml load %s\n" % kmz)
 mavproxy.expect("Released",timeout=600)
 mavproxy.send('disarm force\n')
 kill_all()
