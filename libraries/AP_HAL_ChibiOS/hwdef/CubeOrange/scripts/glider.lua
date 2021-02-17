@@ -134,8 +134,8 @@ local speeds_45k = {
 KEAS schedule for 60k drop
 --]]
 local speeds_60k = {
-  { 55000, 65 },
-  { 45000, 70 },
+  { 40000, 65 },
+  { 35000, 70 },
   { 17000, 55 },
   {  3000, 35 },
 }
@@ -144,8 +144,8 @@ local speeds_60k = {
 KEAS schedule for 90k drop
 --]]
 local speeds_90k = {
-  { 79000, 65 },
-  { 45000, 70 },
+  { 40000, 65 },
+  { 35000, 70 },
   { 17000, 55 },
   {  3000, 35 },
 }
