@@ -59,9 +59,9 @@ time.sleep(3)
 location = "KEDW%u" % args.mission
 
 if args.mission >= 6:
-    kmz = "missions/High_alt_25_to_90Kft_geofence.kmz"
+    fence = "missions/high.fence"
 else:
-    kmz = "missions/Low_alt_9Kft_geofence.kmz"
+    fence = "missions/low.fence"
 
 cmd = '../../Tools/autotest/sim_vehicle.py -D -f PlaneJSON -G -L %s --aircraft test' % location
 print(cmd)
@@ -112,7 +112,7 @@ if not args.no_ui:
     mavproxy.send('module load map\n')
     mavproxy.send('wp list\n')
     mavproxy.send('gamslft\n')
-mavproxy.send("kml load %s\n" % kmz)
+mavproxy.send("fence load %s\n" % fence)
 mavproxy.expect("Released",timeout=600)
 mavproxy.send('disarm force\n')
 kill_all()
