@@ -1116,7 +1116,7 @@ bool Plane::verify_pullup(const AP_Mission::Mission_Command &cmd)
     case PullupStage::WAIT_AIRSPEED: {
         float aspeed;
         if (ahrs.airspeed_estimate(aspeed) && aspeed > cmd.content.user_command.param1) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Pullup airspeed %.1fm alt %.1fm AMSL", aspeed, current_loc.alt*0.01);
+            gcs().send_text(MAV_SEVERITY_INFO, "Pullup airspeed %.1fm/s alt %.1fm AMSL", aspeed, current_loc.alt*0.01);
             pullup.stage = PullupStage::WAIT_PITCH;
         }
         return false;
