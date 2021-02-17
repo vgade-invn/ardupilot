@@ -23,6 +23,7 @@
 #include "hwdef/common/flash.h"
 #include <AP_Filesystem/AP_Filesystem.h>
 #include <stdio.h>
+#include <AP_Math/crc.h>
 
 using namespace ChibiOS;
 
@@ -331,6 +332,9 @@ void Storage::_flash_load(void)
     _flash_page = STORAGE_FLASH_PAGE;
 
     ::printf("Storage: Using flash pages %u and %u\n", _flash_page, _flash_page+1);
+    stm32_flash_init();
+
+    //return;
 
     if (!_flash.init()) {
         AP_HAL::panic("Unable to init flash storage");
@@ -340,11 +344,33 @@ void Storage::_flash_load(void)
 #endif
 }
 
+//#undef STORAGE_FLASH_PAGE
+
 /*
   write one storage line. This also updates _dirty_mask.
 */
 bool Storage::_flash_write(uint16_t line)
 {
+#if 0
+    uint32_t crc;
+    if (!stm32_flash_crc_page(_flash_page, &crc)) {
+        ::printf("ECC error - erasing %u\n", _flash_page);
+        if (AP_HAL::millis() > 10000) {
+            hal.flash->erasepage(_flash_page);
+        }
+    }
+    ::printf("crc 0x%x\n", crc);
+    //::printf("crc32 0x%x\n", crc32_small(0, (const uint8_t *)hal.flash->getpageaddr(_flash_page), 128*1024));
+    if (!stm32_flash_crc_page(_flash_page+1, &crc)) {
+        ::printf("ECC error - erasing %u\n", _flash_page+1);
+        if (AP_HAL::millis() > 10000) {
+            hal.flash->erasepage(_flash_page+1);
+        }
+    }
+    ::printf("crc2 0x%x\n", crc);
+    //::printf("crc32 0x%x\n", crc32_small(0, (const uint8_t *)hal.flash->getpageaddr(_flash_page+1), 128*1024));
+    return true;
+#endif
 #ifdef STORAGE_FLASH_PAGE
     return _flash.write(line*CH_STORAGE_LINE_SIZE, CH_STORAGE_LINE_SIZE);
 #else
@@ -358,9 +384,40 @@ bool Storage::_flash_write(uint16_t line)
 bool Storage::_flash_write_data(uint8_t sector, uint32_t offset, const uint8_t *data, uint16_t length)
 {
 #ifdef STORAGE_FLASH_PAGE
+    uint32_t start = AP_HAL::micros();
+#if defined(STM32H7)
+    {
+        uint32_t crc;
+        bool ok;
+        ok = stm32_flash_crc_page(_flash_page+sector, &crc);
+        ::printf("CRCB %u 0x%08x\n", ok, crc);
+    }
+#endif
+
     size_t base_address = hal.flash->getpageaddr(_flash_page+sector);
     for (uint8_t i=0; i<STORAGE_FLASH_RETRIES; i++) {
+#if 1
+        static uint32_t counter;
+        if (++counter > 17) {
+            ::printf("corrupting 0x%08x\n", base_address+offset);
+            stm32_flash_corrupt(base_address+offset);
+            {
+                uint32_t crc;
+                bool ok;
+                ok = stm32_flash_crc_page(_flash_page+sector, &crc);
+                ::printf("CRCC %u 0x%08x\n", ok, crc);
+            }
+        }
+#endif
         if (hal.flash->write(base_address+offset, data, length)) {
+#if defined(STM32H7)
+            {
+                uint32_t crc;
+                bool ok;
+                ok = stm32_flash_crc_page(_flash_page+sector, &crc);
+                ::printf("CRCA %u 0x%08x %uus\n", ok, crc, AP_HAL::micros() - start);
+            }
+#endif
             return true;
         }
         hal.scheduler->delay(1);
@@ -388,6 +445,7 @@ bool Storage::_flash_write_data(uint8_t sector, uint32_t offset, const uint8_t *
 bool Storage::_flash_read_data(uint8_t sector, uint32_t offset, uint8_t *data, uint16_t length)
 {
 #ifdef STORAGE_FLASH_PAGE
+    //return true;
     size_t base_address = hal.flash->getpageaddr(_flash_page+sector);
     const uint8_t *b = ((const uint8_t *)base_address)+offset;
     memcpy(data, b, length);

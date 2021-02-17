@@ -34,6 +34,7 @@ bool stm32_flash_recent_erase(void);
 bool stm32_flash_crc_page(uint32_t page, uint32_t *crc);
 void stm32_flash_corrupt(uint32_t page);
 #endif
+void stm32_flash_init(void);
 #ifdef __cplusplus
 }
 #endif
