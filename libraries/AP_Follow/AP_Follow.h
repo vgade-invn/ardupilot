@@ -86,6 +86,9 @@ public:
     // get bearing to target (including offset) in degrees (for reporting purposes)
     float get_bearing_to_target() const { return _bearing_to_target; }
 
+    // get offsets in meters in NED frame
+    bool get_offsets_ned(Vector3f &offsets) const;
+
     // parameter list
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -96,9 +99,6 @@ private:
 
     // initialise offsets to provided distance vector to other vehicle (in meters in NED frame) if required
     void init_offsets_if_required(const Vector3f &dist_vec_ned);
-
-    // get offsets in meters in NED frame
-    bool get_offsets_ned(Vector3f &offsets) const;
 
     // rotate 3D vector clockwise by specified angle (in degrees)
     Vector3f rotate_vector(const Vector3f &vec, float angle_deg) const;
