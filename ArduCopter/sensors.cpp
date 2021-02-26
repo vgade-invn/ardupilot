@@ -83,9 +83,18 @@ void Copter::read_rangefinder(void)
         if (rf_state.alt_healthy) {
             if (timed_out) {
                 // reset filter if we haven't used it within the last second
-                rf_state.alt_cm_filt.reset(rf_state.alt_cm);
+                rf_state.alt_cm_filt.reset(rf_state.alt_cm, inertial_nav.get_altitude());
             } else {
-                rf_state.alt_cm_filt.apply(rf_state.alt_cm, 0.05f);
+                rf_state.alt_cm_filt.apply(rf_state.alt_cm, inertial_nav.get_altitude(), AP_HAL::micros());
+
+                // temporary debug log message to look at the
+                // performance of the complementary filter
+                AP::logger().Write("RF2", "TimeUS,LF,HF,Out", "Qfff",
+                                   AP_HAL::micros64(),
+                                   rf_state.alt_cm*0.01,
+                                   inertial_nav.get_altitude()*0.01,
+                                   rf_state.alt_cm_filt.get()*0.01);
+                
             }
             rf_state.last_healthy_ms = now;
         }
