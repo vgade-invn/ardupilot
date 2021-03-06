@@ -1042,12 +1042,6 @@ AP_Logger::log_write_fmt *AP_Logger::msg_fmt_for_name(const char *name, const ch
         }
     }
 
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-    // don't allow for new msg types during replay. We will be able to
-    // support these eventually, but for now they cause corruption
-    return nullptr;
-#endif
-
     f = (struct log_write_fmt *)calloc(1, sizeof(*f));
     if (f == nullptr) {
         // out of memory
@@ -1162,8 +1156,9 @@ bool AP_Logger::msg_type_in_use(const uint8_t msg_type) const
 // find a free message type
 int16_t AP_Logger::find_free_msg_type() const
 {
+    const uint8_t start = APM_BUILD_TYPE(APM_BUILD_Replay)?240:254;
     // avoid using 255 here; perhaps we want to use it to extend things later
-    for (uint16_t msg_type=254; msg_type>0; msg_type--) { // more likely to be free at end
+    for (uint16_t msg_type=start; msg_type>0; msg_type--) { // more likely to be free at end
         if (! msg_type_in_use(msg_type)) {
             return msg_type;
         }

@@ -169,10 +169,9 @@ void AP_Logger_Backend::WriteMoreStartupMessages()
 
 bool AP_Logger_Backend::Write_Emit_FMT(uint8_t msg_type)
 {
-#if APM_BUILD_TYPE(APM_BUILD_Replay)
-    // sure, sure we did....
-    return true;
-#endif
+    if (msg_type > 240 || msg_type < 230) {
+        return true;
+    }
 
     // get log structure from front end:
     char ls_name[LS_NAME_SIZE] = {};
