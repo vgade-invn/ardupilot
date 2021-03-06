@@ -5,6 +5,8 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_DAL/AP_DAL.h>
 
+#include <AP_Logger/AP_Logger.h>
+
 /********************************************************
 *                   RESET FUNCTIONS                     *
 ********************************************************/
@@ -917,6 +919,44 @@ void NavEKF3_core::FuseVelPosNED()
                         KHP[i][j] = Kfusion[i] * P[stateIndex][j];
                     }
                 }
+if (core_index == 0) {
+    if (obsIndex == 0) {
+            AP::logger().Write("KHP0", "TimeUS,P66,P99,KHP66,KHP99", "Qffff",
+                                                AP_HAL::micros64(),
+                                                (double)P[6][6], (double)P[9][9],
+                                                (double)KHP[6][6], (double)KHP[9][9]);
+    }
+    if (obsIndex == 1) {
+            AP::logger().Write("KHP1", "TimeUS,P66,P99,KHP66,KHP99", "Qffff",
+                                                AP_HAL::micros64(),
+                                                (double)P[6][6], (double)P[9][9],
+                                                (double)KHP[6][6], (double)KHP[9][9]);
+    }
+    if (obsIndex == 2) {
+            AP::logger().Write("KHP2", "TimeUS,P66,P99,KHP66,KHP99", "Qffff",
+                                                AP_HAL::micros64(),
+                                                (double)P[6][6], (double)P[9][9],
+                                                (double)KHP[6][6], (double)KHP[9][9]);
+    }
+    if (obsIndex == 3) {
+            AP::logger().Write("KHP3", "TimeUS,P66,P99,KHP66,KHP99", "Qffff",
+                                                AP_HAL::micros64(),
+                                                (double)P[6][6], (double)P[9][9],
+                                                (double)KHP[6][6], (double)KHP[9][9]);
+    }
+    if (obsIndex == 4) {
+            AP::logger().Write("KHP4", "TimeUS,P66,P99,KHP66,KHP99", "Qffff",
+                                                AP_HAL::micros64(),
+                                                (double)P[6][6], (double)P[9][9],
+                                                (double)KHP[6][6], (double)KHP[9][9]);
+    }
+    if (obsIndex == 5) {
+            AP::logger().Write("KHP5", "TimeUS,P66,P99,KHP66,KHP99", "Qffff",
+                                                AP_HAL::micros64(),
+                                                (double)P[6][6], (double)P[9][9],
+                                                (double)KHP[6][6], (double)KHP[9][9]);
+    }
+}
                 // Check that we are not going to drive any variances negative and skip the update if so
                 bool healthyFusion = true;
                 for (uint8_t i= 0; i<=stateIndexLim; i++) {

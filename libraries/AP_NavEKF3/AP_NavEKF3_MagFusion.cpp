@@ -6,6 +6,8 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_DAL/AP_DAL.h>
 
+#include <AP_Logger/AP_Logger.h>
+
 /********************************************************
 *                   RESET FUNCTIONS                     *
 ********************************************************/
@@ -1168,7 +1170,12 @@ bool NavEKF3_core::fuseEulerYaw(yawFusionMethod method)
             KHP[row][column] = tmp;
         }
     }
-
+if (core_index == 0) {
+            AP::logger().Write("KHP6", "TimeUS,P66,P99,KHP66,KHP99", "Qffff",
+                                AP_HAL::micros64(),
+                                (double)P[6][6], (double)P[9][9],
+                                (double)KHP[6][6], (double)KHP[9][9]);
+}
     // Check that we are not going to drive any variances negative and skip the update if so
     bool healthyFusion = true;
     for (uint8_t i= 0; i<=stateIndexLim; i++) {
