@@ -558,7 +558,12 @@ void NavEKF3_core::readGpsData()
         dal.snprintf(prearm_fail_string, sizeof(prearm_fail_string), "Waiting for 3D fix");
         return;
     }
-
+static bool skip = false;
+if (skip) {
+    return;
+} else {
+    skip = true;
+}
             // report GPS fix status
             gpsCheckStatus.bad_fix = false;
 
