@@ -206,6 +206,7 @@ void QuadPlane::tiltrotor_update(void)
         tiltrotor_binary_update();
     } else {
         tiltrotor_continuous_update();
+        AP_MotorsMatrix_Scripting_interp::get_singleton()->set_interpolation_point(tilt.current_tilt);
     }
 
     if (tilt.tilt_type == TILT_TYPE_VECTORED_YAW) {
