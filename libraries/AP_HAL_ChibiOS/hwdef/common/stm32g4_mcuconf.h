@@ -61,6 +61,13 @@
 #define STM32_PLLM_VALUE                    1
 #define STM32_PLLSRC                        STM32_PLLSRC_HSE
 
+#elif STM32_HSECLK == 12000000U
+#define STM32_HSE_ENABLED                   TRUE
+#define STM32_HSI16_ENABLED                 FALSE
+#define STM32_PLLM_VALUE                    2
+#define STM32_PLLN_VALUE                    56
+#define STM32_PLLSRC                        STM32_PLLSRC_HSE
+
 #elif STM32_HSECLK == 16000000U
 #define STM32_HSE_ENABLED                   TRUE
 #define STM32_HSI16_ENABLED                 FALSE
@@ -89,7 +96,9 @@
 #define STM32_LSI_ENABLED                   FALSE
 #define STM32_LSE_ENABLED                   FALSE
 #define STM32_SW                            STM32_SW_PLLRCLK
+#ifndef STM32_PLLN_VALUE
 #define STM32_PLLN_VALUE                    42
+#endif
 #define STM32_PLLPDIV_VALUE                 0
 #define STM32_PLLP_VALUE                    7
 #define STM32_PLLQ_VALUE                    8
