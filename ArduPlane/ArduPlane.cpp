@@ -432,6 +432,9 @@ void Plane::update_control_mode(void)
     if (quadplane.in_vtol_mode() ||
         quadplane.in_assisted_flight()) {
         ahrs.set_fly_forward(false);
+    } else if (auto_state.idle_mode) {
+        // don't fuse airspeed when in balloon lift
+        ahrs.set_fly_forward(false);
     } else if (flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND) {
         ahrs.set_fly_forward(landing.is_flying_forward());
     } else {
