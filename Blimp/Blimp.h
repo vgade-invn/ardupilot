@@ -67,6 +67,7 @@
 // #include <AC_Sprayer/AC_Sprayer.h>
 // #include <AP_ADSB/AP_ADSB.h>
 #include <AP_Scripting/AP_Scripting.h>
+#include <AC_PID/AC_PID_2D.h>
 
 // Configuration
 #include "defines.h"
@@ -271,6 +272,8 @@ private:
     // AC_WPNav *wp_nav;
     // AC_Loiter *loiter_nav;
 
+    // XY accel PID
+    AC_PID_2D accel_xy_pid{1, 1, 0.01, 0.7, 3, 3, 0.02};
 
     // System Timers
     // --------------

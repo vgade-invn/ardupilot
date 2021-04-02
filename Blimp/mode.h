@@ -15,7 +15,7 @@ public:
     enum class Number : uint8_t {
         MANUAL =        0,  // manual control similar to Copter's stabilize mode
         LAND =          1,  // currently just stops moving
-        // STABILIZE =     0,  // manual airframe angle with manual throttle
+        ACCEL =         2,  // accel mode
         // ACRO =          1,  // manual body-frame angular rate with manual throttle
         // ALT_HOLD =      2,  // manual airframe angle with automatic throttle
         // AUTO =          3,  // fully automatic waypoint control using mission commands
@@ -273,6 +273,47 @@ protected:
     const char *name4() const override
     {
         return "MANU";
+    }
+
+private:
+
+};
+
+class ModeAccel : public Mode
+{
+
+public:
+    // inherit constructor
+    using Mode::Mode;
+
+    virtual void run() override;
+
+    bool requires_GPS() const override
+    {
+        return false;
+    }
+    bool has_manual_throttle() const override
+    {
+        return true;
+    }
+    bool allows_arming(bool from_gcs) const override
+    {
+        return true;
+    };
+    bool is_autopilot() const override
+    {
+        return false;
+    }
+
+protected:
+
+    const char *name() const override
+    {
+        return "ACCEL";
+    }
+    const char *name4() const override
+    {
+        return "ACCL";
     }
 
 private:
