@@ -32,10 +32,10 @@ public:
     AP_Int32 _pack_capacity;            /// battery pack capacity less reserve in mAh
     AP_Int32 _serial_number;            /// battery serial number, automatically filled in on SMBus batteries
     AP_Float _low_voltage;              /// voltage level used to trigger a low battery failsafe
-    AP_Float _low_capacity;             /// capacity level used to trigger a low battery failsafe
+    AP_Float _low_percentage;           /// percentage level used to trigger a low battery failsafe
     AP_Float _critical_voltage;         /// voltage level used to trigger a critical battery failsafe
-    AP_Float _critical_capacity;        /// capacity level used to trigger a critical battery failsafe
-    AP_Int32 _arming_minimum_capacity;  /// capacity level required to arm
+    AP_Float _critical_percentage;      /// percentage level used to trigger a critical battery failsafe
+    AP_Int32 _arming_minimum_percentage;/// percentage level required to arm
     AP_Float _arming_minimum_voltage;   /// voltage level required to arm
     AP_Int32 _options;                  /// Options
     AP_Int16 _watt_max;                 /// max battery power allowed. Reduce max throttle to reduce current to satisfy t    his limit
