@@ -303,27 +303,7 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
 
 	_last_out += _pid_info.I;
 
-    /*
-      when we are past the users defined roll limit for the
-      aircraft our priority should be to bring the aircraft back
-      within the roll limit. Using elevator for pitch control at
-      large roll angles is ineffective, and can be counter
-      productive as it induces earth-frame yaw which can reduce
-      the ability to roll. We linearly reduce elevator input when
-      beyond the configured roll limit, reducing to zero at 90
-      degrees
-    */
-    float roll_wrapped = labs(_ahrs.roll_sensor);
-    if (roll_wrapped > 9000) {
-        roll_wrapped = 18000 - roll_wrapped;
-    }
-    if (roll_wrapped > aparm.roll_limit_cd + 500 && aparm.roll_limit_cd < 8500 &&
-        labs(_ahrs.pitch_sensor) < 7000) {
-        float roll_prop = (roll_wrapped - (aparm.roll_limit_cd+500)) / (float)(9000 - aparm.roll_limit_cd);
-        _last_out *= (1 - roll_prop);
-    }
-    
-	// Convert to centi-degrees and constrain
+    // Convert to centi-degrees and constrain
 	return constrain_float(_last_out * 100, -4500, 4500);
 }
 
@@ -431,6 +411,25 @@ int32_t AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool 
 	// Apply the turn correction offset
 	desired_rate = desired_rate + rate_offset;
 
+    /*
+      when we are past the users defined roll limit for the aircraft
+      our priority should be to bring the aircraft back within the
+      roll limit. Using elevator for pitch control at large roll
+      angles is ineffective, and can be counter productive as it
+      induces earth-frame yaw which can reduce the ability to roll. We
+      linearly reduce pitch demanded rate when beyond the configured
+      roll limit, reducing to zero at 90 degrees
+    */
+    float roll_wrapped = labs(_ahrs.roll_sensor);
+    if (roll_wrapped > 9000) {
+        roll_wrapped = 18000 - roll_wrapped;
+    }
+    const float roll_limit_margin = MIN(aparm.roll_limit_cd + 500.0, 8500.0);
+    if (roll_wrapped > roll_limit_margin && labs(_ahrs.pitch_sensor) < 7000) {
+        float roll_prop = (roll_wrapped - roll_limit_margin) / (float)(9000 - roll_limit_margin);
+        desired_rate *= (1 - roll_prop);
+    }
+    
     return _get_rate_out(desired_rate, scaler, disable_integrator, aspeed);
 }
 
