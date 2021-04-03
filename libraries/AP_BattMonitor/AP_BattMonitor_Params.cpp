@@ -143,6 +143,14 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
     // @Bitmask: 0:Ignore DroneCAN SoC, 1:MPPT reports input voltage and current, 2:MPPT Powered off when disarmed, 3:MPPT Powered on when armed, 4:MPPT Powered off at boot, 5:MPPT Powered on at boot, 6:Send resistance compensated voltage to GCS
     // @User: Advanced
     AP_GROUPINFO("OPTIONS", 21, AP_BattMonitor_Params, _options, 0),
+    
+    // @Param: CRT_RAW_VT
+    // @DisplayName: Critical battery voltage, always using raw voltage
+    // @Description: Battery voltage that triggers a critical battery failsafe. Set to 0 to disable. If the battery voltage drops below this voltage continuously for more then the period specified by the @PREFIX@LOW_TIMER parameter then the vehicle will perform the failsafe specified by the @PREFIX@FS_CRT_ACT parameter.
+    // @Units: V
+    // @Increment: 0.1
+    // @User: Standard
+    AP_GROUPINFO("CRT_RAW_VT", 22, AP_BattMonitor_Params, _critical_voltage_raw, 0),
 
     AP_GROUPEND
 

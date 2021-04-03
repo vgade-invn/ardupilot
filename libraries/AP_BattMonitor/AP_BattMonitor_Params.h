@@ -44,4 +44,5 @@ public:
     AP_Int8  _failsafe_voltage_source;  /// voltage type used for detection of low voltage event
     AP_Int8  _failsafe_low_action;      /// action to preform on a low battery failsafe
     AP_Int8  _failsafe_critical_action; /// action to preform on a critical battery failsafe
+    AP_Float _critical_voltage_raw;     /// voltage level used to trigger a critical battery failsafe, always using raw voltage
 };
