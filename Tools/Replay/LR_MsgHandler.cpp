@@ -133,6 +133,11 @@ void LR_MsgHandler_REV3::process_message(uint8_t *msgbytes)
     case AP_DAL::Event::setSourceSet0 ... AP_DAL::Event::setSourceSet2:
         ekf3.setPosVelYawSourceSet(uint8_t(msg.event)-uint8_t(AP_DAL::Event::setSourceSet0));
         break;
+    case AP_DAL::Event::lockPosition:
+        ekf3.lockPosition(true);
+    case AP_DAL::Event::unlockPosition:
+        ekf3.lockPosition(false);
+        break;
     }
 
     if (replay_force_ekf2) {
