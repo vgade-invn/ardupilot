@@ -363,7 +363,9 @@ void NavEKF3_core::readMagData()
         consistentMagData = compass.consistent();
 
         // save magnetometer measurement to buffer to be fused later
-        storedMag.push(magDataNew);
+        if (locked_position.locked == LockedState::UNLOCKED) {
+            storedMag.push(magDataNew);
+        }
 
         // remember time we read compass, to detect compass sensor failure
         lastMagRead_ms = imuSampleTime_ms;
@@ -425,6 +427,11 @@ void NavEKF3_core::readIMUData()
 
     // run movement check using IMU data
     updateMovementCheck();
+
+    if (!onGroundNotMoving && locked_position.locked == LockedState::LOCKED) {
+        locked_position.locked = LockedState::TAKEOFF;
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u lockpos takeoff", (unsigned)imu_index);
+    }
 
     readDeltaVelocity(accel_index_active, imuDataNew.delVel, imuDataNew.delVelDT);
     accelPosOffset = ins.get_imu_pos_offset(accel_index_active).toftype();
@@ -694,14 +701,32 @@ void NavEKF3_core::readGpsData()
         } else {
             gpsDataNew.hgt = 0.01 * (gpsloc.alt - EKF_origin.alt);
         }
-        storedGPS.push(gpsDataNew);
+
+        if (locked_position.locked == LockedState::LOCKED) {
+            // when we have a locked position we fuse that position
+            gpsDataNew.pos = EKF_origin.get_distance_NE(locked_position.loc);
+            gpsDataNew.vel.zero();
+        }
+
+        if (locked_position.locked != LockedState::TAKEOFF) {
+            storedGPS.push(gpsDataNew);
+        }
         // declare GPS available for use
         gpsNotAvailable = false;
     }
 
     // if the GPS has yaw data then input that as well
     float yaw_deg, yaw_accuracy_deg;
-    if (dal.gps().gps_yaw_deg(selected_gps, yaw_deg, yaw_accuracy_deg)) {
+    bool have_gps_yaw = dal.gps().gps_yaw_deg(selected_gps, yaw_deg, yaw_accuracy_deg);
+
+    if (locked_position.locked == LockedState::LOCKED) {
+        // get yaw from locked position
+        have_gps_yaw = true;
+        yaw_deg = degrees(locked_position.yaw);
+        yaw_accuracy_deg = 0;
+    }
+
+    if (have_gps_yaw) {
         // GPS modules are rather too optimistic about their
         // accuracy. Set to min of 5 degrees here to prevent
         // the user constantly receiving warnings about high
@@ -1321,9 +1346,7 @@ ftype NavEKF3_core::MagDeclination(void) const
 */
 void NavEKF3_core::updateMovementCheck(void)
 {
-    const AP_NavEKF_Source::SourceYaw yaw_source = frontend->sources.getYawSource();
-    const bool runCheck = onGround && (yaw_source == AP_NavEKF_Source::SourceYaw::GPS || yaw_source == AP_NavEKF_Source::SourceYaw::GPS_COMPASS_FALLBACK ||
-                                       yaw_source == AP_NavEKF_Source::SourceYaw::EXTNAV || yaw_source == AP_NavEKF_Source::SourceYaw::GSF || !use_compass());
+    const bool runCheck = onGround;
     if (!runCheck)
     {
         onGroundNotMoving = false;

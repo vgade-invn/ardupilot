@@ -400,6 +400,9 @@ public:
 
     void Log_Write(uint64_t time_us);
 
+    // lock position for inertial takeoff
+    bool lockPosition(bool enable);
+
 private:
     EKFGSF_yaw *yawEstimator;
     AP_DAL &dal;
@@ -1497,4 +1500,15 @@ private:
     void Log_Write_State_Variances(uint64_t time_us) const;
     void Log_Write_Timing(uint64_t time_us);
     void Log_Write_GSF(uint64_t time_us);
+
+    enum class LockedState : uint8_t {
+        UNLOCKED = 0,
+        LOCKED = 1,
+        TAKEOFF = 2,
+    };
+    struct {
+        LockedState locked;
+        Location loc;
+        float yaw;
+    } locked_position;
 };

@@ -376,6 +376,9 @@ public:
     // returns true when the yaw angle has been aligned
     bool yawAlignmentComplete(void) const;
 
+    // lock position for inertial takeoff
+    bool lockPosition(bool enable);
+
 private:
     uint8_t num_cores; // number of allocated cores
     uint8_t primary;   // current primary core
