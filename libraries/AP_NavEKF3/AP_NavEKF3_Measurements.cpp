@@ -360,7 +360,9 @@ void NavEKF3_core::readMagData()
         consistentMagData = compass.consistent();
 
         // save magnetometer measurement to buffer to be fused later
-        storedMag.push(magDataNew);
+        if (locked_position.locked == LockedState::UNLOCKED) {
+            storedMag.push(magDataNew);
+        }
 
         // remember time we read compass, to detect compass sensor failure
         lastMagRead_ms = imuSampleTime_ms;
@@ -423,12 +425,22 @@ void NavEKF3_core::readIMUData()
     // run movement check using IMU data
     updateMovementCheck();
 
+    if (!onGroundNotMoving && locked_position.locked == LockedState::LOCKED) {
+        locked_position.locked = LockedState::TAKEOFF;
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u lockpos takeoff", (unsigned)imu_index);
+    }
+
+    imuDataNewPrev = imuDataNew;
+
     readDeltaVelocity(accel_index_active, imuDataNew.delVel, imuDataNew.delVelDT);
     accelPosOffset = ins.get_imu_pos_offset(accel_index_active).toftype();
     imuDataNew.accel_index = accel_index_active;
     
     // Get delta angle data from primary gyro or primary if not available
     readDeltaAngle(gyro_index_active, imuDataNew.delAng, imuDataNew.delAngDT);
+
+    locked_update(imuDataNew.delVel, imuDataNew.delVelDT, imuDataNew.delAng, imuDataNew.delAngDT);
+
     imuDataNew.delAngDT = MAX(imuDataNew.delAngDT, 1.0e-4f);
     imuDataNew.gyro_index = gyro_index_active;
 
@@ -695,9 +707,21 @@ void NavEKF3_core::readGpsData()
         } else {
             gpsDataNew.hgt = 0.01 * (gpsloc.alt - EKF_origin.alt);
         }
+
         storedGPS.push(gpsDataNew);
         // declare GPS in use
         gpsIsInUse = true;
+
+        if (locked_position.locked == LockedState::LOCKED) {
+            // when we have a locked position we fuse that position
+            gpsDataNew.lat = locked_position.loc.lat;
+            gpsDataNew.lng = locked_position.loc.lng;
+            gpsDataNew.vel.zero();
+        }
+
+        if (locked_position.locked != LockedState::TAKEOFF) {
+            storedGPS.push(gpsDataNew);
+        }
     }
 }
 
@@ -709,8 +733,18 @@ void NavEKF3_core::readGpsYawData()
     // if the GPS has yaw data then fuse it as an Euler yaw angle
     float yaw_deg, yaw_accuracy_deg;
     uint32_t yaw_time_ms;
+    bool have_gps_yaw = dal.gps().gps_yaw_deg(selected_gps, yaw_deg, yaw_accuracy_deg, yaw_time_ms);
+
+    if (locked_position.locked == LockedState::LOCKED) {
+        // get yaw from locked position
+        have_gps_yaw = true;
+        yaw_deg = degrees(locked_position.yaw);
+        yaw_accuracy_deg = 0;
+        yaw_time_ms = imuSampleTime_ms;
+    }
+
     if (gps.status(selected_gps) >= AP_DAL_GPS::GPS_OK_FIX_3D &&
-        dal.gps().gps_yaw_deg(selected_gps, yaw_deg, yaw_accuracy_deg, yaw_time_ms) &&
+        have_gps_yaw &&
         yaw_time_ms != yawMeasTime_ms) {
         // GPS modules are rather too optimistic about their
         // accuracy. Set to min of 5 degrees here to prevent
@@ -751,7 +785,11 @@ void NavEKF3_core::readBaroData()
     const auto &baro = dal.baro();
     if (baro.get_last_update(selected_baro) - lastBaroReceived_ms > frontend->sensorIntervalMin_ms) {
 
-        baroDataNew.hgt = baro.get_altitude(selected_baro);
+        if (locked_position.locked == LockedState::LOCKED) {
+            baroDataNew.hgt = locked_position.baro_alt;
+        } else {
+            baroDataNew.hgt = baro.get_altitude(selected_baro);
+        }
 
         // time stamp used to check for new measurement
         lastBaroReceived_ms = baro.get_last_update(selected_baro);
@@ -1329,9 +1367,7 @@ ftype NavEKF3_core::MagDeclination(void) const
 */
 void NavEKF3_core::updateMovementCheck(void)
 {
-    const AP_NavEKF_Source::SourceYaw yaw_source = frontend->sources.getYawSource();
-    const bool runCheck = onGround && (yaw_source == AP_NavEKF_Source::SourceYaw::GPS || yaw_source == AP_NavEKF_Source::SourceYaw::GPS_COMPASS_FALLBACK ||
-                                       yaw_source == AP_NavEKF_Source::SourceYaw::EXTNAV || yaw_source == AP_NavEKF_Source::SourceYaw::GSF || !use_compass());
+    const bool runCheck = onGround;
     if (!runCheck)
     {
         onGroundNotMoving = false;
