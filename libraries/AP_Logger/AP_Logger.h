@@ -538,8 +538,6 @@ private:
         SENDING, // actively sending log_sending packets
     } transfer_activity = TransferActivity::IDLE;
 
-    // last time we handled a log-transfer-over-mavlink message:
-    uint32_t _last_mavlink_log_transfer_message_handled_ms;
     bool _warned_log_disarm; // true if we have sent a message warning to disarm for logging
 
     // next log list entry to send
