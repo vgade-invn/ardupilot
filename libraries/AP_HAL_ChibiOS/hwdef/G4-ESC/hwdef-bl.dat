@@ -16,7 +16,7 @@ APJ_BOARD_ID 1027
 env AP_PERIPH 1
 
 # crystal frequency, no crystal for now
-OSCILLATOR_HZ 12000000
+OSCILLATOR_HZ 24000000
 
 # assume 256k flash part
 FLASH_SIZE_KB 256
