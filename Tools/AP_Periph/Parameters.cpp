@@ -145,6 +145,9 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
 
     // PWM type for ESCs (to allow for DShot and OneShot)
     GSCALAR(esc_pwm_type, "ESC_PWM_TYPE",     0),
+
+    // test type for ESCs
+    GSCALAR(esc_test, "ESC_TEST",     0),
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_MSP
