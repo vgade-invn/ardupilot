@@ -52,6 +52,8 @@ void AP_Periph_FW::rcout_init()
         }
     }
 
+    can_printf("esc_mask=0x%x", esc_mask);
+
     // setup ESCs with the desired PWM type, allowing for DShot
     hal.rcout->set_output_mode(esc_mask, (AP_HAL::RCOutput::output_mode)g.esc_pwm_type.get());
 
@@ -109,6 +111,24 @@ void AP_Periph_FW::rcout_handle_safety_state(uint8_t safety_state)
 
 void AP_Periph_FW::rcout_update()
 {
+    if (g.esc_test == 1) {
+        uint32_t now_us = AP_HAL::micros();
+        if (now_us - esc_last_out_us > 2500) {
+            esc_last_out_us = now_us;
+            if (esc_test_start_us == 0) {
+                esc_test_start_us = now_us;
+                hal.util->set_soft_armed(true);
+                hal.rcout->force_safety_off();
+            }
+            float t = (now_us - esc_test_start_us)*1.0e-6;
+            const float freq = 0.2;
+            int16_t out = UAVCAN_ESC_MAX_VALUE * fabsf(sinf(t * 2 * M_PI * freq));
+            rcout_esc(&out, 1);
+        }
+    } else {
+        esc_test_start_us = 0;
+    }
+
     if (!rcout_has_new_data_to_update) {
         return;
     }
