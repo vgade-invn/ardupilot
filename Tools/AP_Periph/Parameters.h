@@ -38,6 +38,7 @@ public:
         k_param_msp_port,
         k_param_notify,
         k_param_esc_pwm_type,
+        k_param_esc_test,
     };
 
     AP_Int16 format_version;
@@ -85,6 +86,7 @@ public:
 
 #ifdef HAL_PERIPH_ENABLE_RC_OUT
     AP_Int8 esc_pwm_type;
+    AP_Int8 esc_test;
 #endif
 
     AP_Int8 debug;

@@ -151,6 +151,8 @@ public:
 #ifdef HAL_PERIPH_ENABLE_RC_OUT
     SRV_Channels servo_channels;
     bool rcout_has_new_data_to_update;
+    uint32_t esc_test_start_us;
+    uint32_t esc_last_out_us;
 
     void rcout_init();
     void rcout_init_1Hz();
