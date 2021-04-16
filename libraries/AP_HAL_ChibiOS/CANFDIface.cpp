@@ -55,6 +55,8 @@
 #define FDCAN1_IT1_IRQHandler      STM32_FDCAN1_IT1_HANDLER
 #define FDCAN2_IT0_IRQHandler      STM32_FDCAN2_IT0_HANDLER
 #define FDCAN2_IT1_IRQHandler      STM32_FDCAN2_IT1_HANDLER
+#define FDCAN3_IT0_IRQHandler      STM32_FDCAN3_IT0_HANDLER
+#define FDCAN3_IT1_IRQHandler      STM32_FDCAN3_IT1_HANDLER
 
 #if defined(STM32G4)
 // on G4 FIFO elements are spaced at 18 words
@@ -578,7 +580,7 @@ bool CANIface::init(const uint32_t bitrate, const OperatingMode mode)
             nvicEnableVector(FDCAN2_IT0_IRQn, CORTEX_MAX_KERNEL_PRIORITY);
             nvicEnableVector(FDCAN2_IT1_IRQn, CORTEX_MAX_KERNEL_PRIORITY);
             break;
-#ifdef FDCAN3_IT0_IRQn
+#ifdef HAL_CAN_IFACE3_ENABLE
         case 2:
             nvicEnableVector(FDCAN3_IT0_IRQn, CORTEX_MAX_KERNEL_PRIORITY);
             nvicEnableVector(FDCAN3_IT1_IRQn, CORTEX_MAX_KERNEL_PRIORITY);
