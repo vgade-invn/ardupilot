@@ -704,6 +704,7 @@ void NavEKF3_core::UpdateFilter(bool predict)
 
         // Update the filter status
         updateFilterStatus();
+
     }
 
     // Wind output forward from the fusion to output time horizon
@@ -750,6 +751,15 @@ void NavEKF3_core::correctDeltaVelocity(Vector3F &delVel, ftype delVelDT, uint8_
 */
 void NavEKF3_core::UpdateStrapdownEquationsNED()
 {
+    // if doing a free inertial takeoff restore the state from the previous prediction
+    if (locked_position.locked == LockedState::TAKEOFF) {
+        for (uint8_t stateIndex = 0; stateIndex <= stateIndexLim; stateIndex++) {
+            if (!(frontend->_fitmStateMask & (1U<<stateIndex))) {
+                statesArray[stateIndex] = predictedStatesArray[stateIndex];
+            }
+        }
+    }
+
     // update the quaternion states by rotating from the previous attitude through
     // the delta angle rotation quaternion and normalise
     // apply correction for earth's rotation rate
@@ -808,6 +818,9 @@ void NavEKF3_core::UpdateStrapdownEquationsNED()
     if (filterStatus.flags.horiz_vel) {
         receiverPos += (stateStruct.velocity + lastVelocity) * (imuDataDelayed.delVelDT*0.5f);
     }
+
+    // store the predicted states for later reinstatement
+    predictedStateStruct = stateStruct;
 }
 
 /*
