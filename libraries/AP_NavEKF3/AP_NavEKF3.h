@@ -451,6 +451,7 @@ private:
     AP_Float _momentumDragCoef;     // lift rotor momentum drag coefficient
     AP_Int8 _betaMask;              // Bitmask controlling when sideslip angle fusion is used to estimate non wind states
     AP_Float _ognmTestScaleFactor;  // Scale factor applied to the thresholds used by the on ground not moving test
+    AP_Int32 _fitmStateMask;        // Define states allowd to be modified by observations during free inertial takeoff mode
 
 // Possible values for _flowUse
 #define FLOW_USE_NONE    0
