@@ -184,6 +184,8 @@ void AP_InertialSensor_SITL::generate_accel()
         sitl->imu_tcal[gyro_instance].sitl_apply_accel(T, accel);
 #endif
 
+        quantise_vector(accel, 16*GRAVITY_MSS);
+
         _notify_new_accel_sensor_rate_sample(accel_instance, accel);
 
 #if AP_SIM_INS_FILE_ENABLED
@@ -288,6 +290,8 @@ void AP_InertialSensor_SITL::generate_gyro()
         const Vector3f &gyro_bias = sitl->gyro_bias[gyro_instance].get();
         gyro += gyro_bias;
 
+        quantise_vector(gyro, radians(2000));
+
         gyro_accum += gyro;
         _notify_new_gyro_sensor_rate_sample(gyro_instance, gyro);
 
@@ -300,6 +304,15 @@ void AP_InertialSensor_SITL::generate_gyro()
     gyro_accum /= nsamples;
     _rotate_and_correct_gyro(gyro_instance, gyro_accum);
     _notify_new_gyro_raw_sample(gyro_instance, gyro_accum, AP_HAL::micros64());
+}
+
+void AP_InertialSensor_SITL::quantise_vector(Vector3f &vec, float range)
+{
+    const float scale = (INT16_MAX / range);
+    vec *= scale;
+    Vector3i v{int16_t(vec.x), int16_t(vec.y), int16_t(vec.z)};
+    vec = Vector3f(v.x, v.y, v.z);
+    vec /= scale;
 }
 
 void AP_InertialSensor_SITL::timer_update(void)

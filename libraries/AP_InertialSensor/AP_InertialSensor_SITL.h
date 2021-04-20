@@ -60,5 +60,8 @@ private:
 #endif
 
     static uint8_t bus_id;
+
+    // quantise a vector via int16_t
+    void quantise_vector(Vector3f &vec, float range);
 };
 #endif // AP_SIM_INS_ENABLED
