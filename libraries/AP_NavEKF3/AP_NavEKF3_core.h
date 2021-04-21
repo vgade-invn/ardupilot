@@ -1052,6 +1052,7 @@ private:
     uint8_t stateIndexLim;          // Max state index used during matrix and array operations
     imu_elements imuDataDelayed;    // IMU data at the fusion time horizon
     imu_elements imuDataNew;        // IMU data at the current time horizon
+    imu_elements imuDataNewPrev;
     imu_elements imuDataDownSampledNew; // IMU data at the current time horizon that has been downsampled to a 100Hz rate
     Quaternion imuQuatDownSampleNew; // Quaternion obtained by rotating through the IMU delta angles since the start of the current down sampled frame
     baro_elements baroDataNew;      // Baro data at the current time horizon
