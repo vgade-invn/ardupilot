@@ -1,9 +1,9 @@
 #include "Blimp.h"
 /*
- * Init and run calls for stabilize flight mode
+ * Init and run calls for velocity flight mode
  */
 
-// accel_run - runs the main manual controller
+// Runs the main velocity controller
 // should be called at 100hz or more
 void ModeVelocity::run()
 {

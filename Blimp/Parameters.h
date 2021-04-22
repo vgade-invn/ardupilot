@@ -187,11 +187,9 @@ public:
         //
         // 220: PI/D Controllers
         //
-        k_param_fs_ekf_action = 221,
-
+        k_param_fs_ekf_action = 220,
         k_param_xy_accel,
         k_param_xy_accel_pid,
-
         k_param_arming, // 252  - AP_Arming
         k_param_logger = 253, // 253 - Logging Group
 

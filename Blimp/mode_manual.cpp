@@ -1,6 +1,6 @@
 #include "Blimp.h"
 /*
- * Init and run calls for stabilize flight mode
+ * Init and run calls for manual flight mode
  */
 
 // manual_run - runs the main manual controller
