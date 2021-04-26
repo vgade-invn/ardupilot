@@ -307,11 +307,13 @@ private:
 #endif
 
     struct {
-        Vector3f accel_body;
-        Vector3f gyro;
-        Matrix3f rotation_b2e;
-        Vector3f position;
-        Vector3f velocity_ef;
+        Vector3f accel_body; // body frame acceleration measured by accelerometers (m/s/s)
+        Vector3f gyro; // body frame angular rate measured by gyros (rad/sec)
+        Matrix3f rotation_b2e; // rotation from body to earth frame that shsould track the simulator dcm matrix
+        Vector3f position_ef; // NED position that should track the simulator position state (m)
+        Vector3f position_demand_prev; // previous simulator NED position state (m)
+        Vector3f velocity_ef; // NED velocity
+        Vector3f accel_ef; // NED acceleration
         uint64_t last_update_us;
         Location location;
     } smoothing;

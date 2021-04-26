@@ -699,34 +699,59 @@ void Aircraft::update_wind(const struct sitl_input &input)
 void Aircraft::smooth_sensors(void)
 {
     uint64_t now = time_now_us;
-    Vector3f delta_pos = position - smoothing.position;
+    Vector3f delta_pos = position - smoothing.position_ef;
     if (smoothing.last_update_us == 0 || delta_pos.length() > 10) {
-        smoothing.position = position;
+        smoothing.position_ef = position;
+        smoothing.position_demand_prev = position;
         smoothing.rotation_b2e = dcm;
         smoothing.accel_body = accel_body;
         smoothing.velocity_ef = velocity_ef;
         smoothing.gyro = gyro;
         smoothing.last_update_us = now;
         smoothing.location = location;
+        smoothing.accel_ef.zero();
         printf("Smoothing reset at %.3f\n", now * 1.0e-6f);
         return;
     }
     const float delta_time = (now - smoothing.last_update_us) * 1.0e-6f;
-    if (delta_time < 0 || delta_time > 0.1) {
+    if (delta_time <= 0 || delta_time > 0.1) {
         return;
     }
 
     // calculate required accel to get us to desired position and velocity in the time_constant
-    const float time_constant = 0.1f;
-    Vector3f dvel = (velocity_ef - smoothing.velocity_ef) + (delta_pos / time_constant);
-    Vector3f accel_e = dvel / time_constant + (dcm * accel_body + Vector3f(0.0f, 0.0f, GRAVITY_MSS));
-    const float accel_limit = 14 * GRAVITY_MSS;
-    accel_e.x = constrain_float(accel_e.x, -accel_limit, accel_limit);
-    accel_e.y = constrain_float(accel_e.y, -accel_limit, accel_limit);
-    accel_e.z = constrain_float(accel_e.z, -accel_limit, accel_limit);
-    smoothing.accel_body = smoothing.rotation_b2e.transposed() * (accel_e + Vector3f(0.0f, 0.0f, -GRAVITY_MSS));
+    Vector3f velocity_demand = (position - smoothing.position_demand_prev) / delta_time;
+    smoothing.position_demand_prev = position;
 
-    // calculate rotational rate to get us to desired attitude in time constant
+    // parameters used to calculate sitffness and damping gains
+    const float omega = 10.0f;
+    const float zeta = 0.7f;
+
+    const float stiffness = sq(omega);
+    const float damping = 2.0f * zeta * omega;
+
+    // calculate tracking error
+    // wind position forward to current time horizon first using trapezidal integration
+    smoothing.position_ef += smoothing.velocity_ef * delta_time * 0.5f;
+    smoothing.velocity_ef += smoothing.accel_ef * delta_time;
+    smoothing.position_ef += smoothing.velocity_ef * delta_time * 0.5f;
+    Vector3f position_error = position - smoothing.position_ef;
+    Vector3f velocity_error = velocity_demand - smoothing.velocity_ef;
+
+    // calculate acceleration required to follow reference trajectory
+    smoothing.accel_ef = velocity_error * damping + position_error * stiffness;
+
+    // limit to avoid saturation of IMU on touchdown events that could cause large INS errors
+    const float accel_limit = 14 * GRAVITY_MSS;
+    smoothing.accel_ef.x = constrain_float(smoothing.accel_ef.x, -accel_limit, accel_limit);
+    smoothing.accel_ef.y = constrain_float(smoothing.accel_ef.y, -accel_limit, accel_limit);
+    smoothing.accel_ef.z = constrain_float(smoothing.accel_ef.z, -accel_limit, accel_limit);
+
+    // rotate into earth frame using rotation matric from previous frame
+    // this introduces some error
+    // TODO use average of previous and current
+    smoothing.accel_body = smoothing.rotation_b2e.transposed() * (smoothing.accel_ef + Vector3f(0.0f, 0.0f, -GRAVITY_MSS));
+
+    // calculate rotational rate that tracks and converges on reference attitude from simulator dcm matrix
     Quaternion desired_q, current_q, error_q;
     desired_q.from_rotation_matrix(dcm);
     desired_q.normalize();
@@ -734,10 +759,13 @@ void Aircraft::smooth_sensors(void)
     current_q.normalize();
     error_q = desired_q / current_q;
     error_q.normalize();
+    Vector3f angle_error;
+    error_q.to_axis_angle(angle_error);
+    smoothing.gyro = gyro + angle_error * omega;
 
-    Vector3f angle_differential;
-    error_q.to_axis_angle(angle_differential);
-    smoothing.gyro = gyro + angle_differential / time_constant;
+    // integrate to get new attitude
+    smoothing.rotation_b2e.rotate(smoothing.gyro * delta_time);
+    smoothing.rotation_b2e.normalize();
 
     float R, P, Y;
     smoothing.rotation_b2e.to_euler(&R, &P, &Y);
@@ -763,26 +791,18 @@ void Aircraft::smooth_sensors(void)
     AP::logger().Write("SMOO", "TimeUS,AEx,AEy,AEz,DPx,DPy,DPz,R,P,Y,R2,P2,Y2",
                                            "Qffffffffffff",
                                            AP_HAL::micros64(),
-                                           degrees(angle_differential.x),
-                                           degrees(angle_differential.y),
-                                           degrees(angle_differential.z),
-                                           delta_pos.x, delta_pos.y, delta_pos.z,
+                                           degrees(angle_error.x),
+                                           degrees(angle_error.y),
+                                           degrees(angle_error.z),
+                                           position_error.x, position_error.y, position_error.z,
                                            degrees(R), degrees(P), degrees(Y),
                                            degrees(R2), degrees(P2), degrees(Y2));
 #endif
 
 
-    // integrate to get new attitude
-    smoothing.rotation_b2e.rotate(smoothing.gyro * delta_time);
-    smoothing.rotation_b2e.normalize();
-
-    // integrate to get new position
-    smoothing.velocity_ef += accel_e * delta_time;
-    smoothing.position += smoothing.velocity_ef * delta_time;
-
     smoothing.location = home;
-    smoothing.location.offset(smoothing.position.x, smoothing.position.y);
-    smoothing.location.alt  = static_cast<int32_t>(home.alt - smoothing.position.z * 100.0f);
+    smoothing.location.offset(smoothing.position_ef.x, smoothing.position_ef.y);
+    smoothing.location.alt  = static_cast<int32_t>(home.alt - smoothing.position_ef.z * 100.0f);
 
     smoothing.last_update_us = now;
 }
