@@ -37,7 +37,7 @@ MultiCopter::MultiCopter(const char *frame_str) :
     mass = frame->get_mass();
     frame_height = 0.1;
     num_motors = frame->num_motors;
-    ground_behavior = GROUND_BEHAVIOR_NO_MOVEMENT;
+    ground_behavior = GROUND_BEHAVIOR_ROLL_PITCH;
 }
 
 // calculate rotational and linear accelerations
