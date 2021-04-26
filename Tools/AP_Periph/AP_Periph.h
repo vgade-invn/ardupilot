@@ -14,6 +14,7 @@
 #include <AP_MSP/msp.h>
 #include "../AP_Bootloader/app_comms.h"
 #include "hwing_esc.h"
+#include "APD_telem.h"
 
 #if defined(HAL_PERIPH_NEOPIXEL_COUNT_WITHOUT_NOTIFY) || defined(HAL_PERIPH_ENABLE_NCP5623_LED_WITHOUT_NOTIFY) || defined(HAL_PERIPH_ENABLE_NCP5623_BGR_LED_WITHOUT_NOTIFY) || defined(HAL_PERIPH_ENABLE_TOSHIBA_LED_WITHOUT_NOTIFY)
 #define AP_PERIPH_HAVE_LED_WITHOUT_NOTIFY
@@ -148,11 +149,14 @@ public:
     void hwesc_telem_update();
 #endif
 
+#ifdef HAL_PERIPH_ENABLE_APD_TELEM
+    APD_Telem APD_telem;
+    void APD_telem_update();
+#endif
+    
 #ifdef HAL_PERIPH_ENABLE_RC_OUT
     SRV_Channels servo_channels;
     bool rcout_has_new_data_to_update;
-    uint32_t esc_test_start_us;
-    uint32_t esc_last_out_us;
 
     void rcout_init();
     void rcout_init_1Hz();
@@ -183,6 +187,11 @@ public:
 
     // show stack as DEBUG msgs
     void show_stack_free();
+
+    // ESC_OPTIONS bitmask
+    enum class EscOptions {
+        DISABLE_ARMING_CHECK = 0,
+    };
 };
 
 extern AP_Periph_FW periph;
