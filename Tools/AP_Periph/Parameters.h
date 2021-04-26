@@ -38,7 +38,8 @@ public:
         k_param_msp_port,
         k_param_notify,
         k_param_esc_pwm_type,
-        k_param_esc_test,
+        k_param_esc_options,
+        k_param_esc_port,
     };
 
     AP_Int16 format_version;
@@ -72,8 +73,9 @@ public:
     AP_Int8 hardpoint_rate;
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_HWESC
+#if defined(HAL_PERIPH_ENABLE_HWESC) || defined(HAL_PERIPH_ENABLE_APD_TELEM)
     AP_Int8 esc_number;
+    AP_Int8 esc_port;
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_GPS
@@ -86,7 +88,7 @@ public:
 
 #ifdef HAL_PERIPH_ENABLE_RC_OUT
     AP_Int8 esc_pwm_type;
-    AP_Int8 esc_test;
+    AP_Int32 esc_options;
 #endif
 
     AP_Int8 debug;

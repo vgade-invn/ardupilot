@@ -29,6 +29,10 @@ extern const AP_HAL::HAL &hal;
 #define AP_PERIPH_MSP_PORT_DEFAULT 1
 #endif
 
+#ifndef HAL_PERIPH_ESC_PORT_DEFAULT
+#define HAL_PERIPH_ESC_PORT_DEFAULT 3
+#endif
+
 /*
  *  AP_Periph parameter definitions
  *
@@ -221,13 +225,22 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     GSCALAR(hardpoint_rate, "HARDPOINT_RATE", 100),
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_HWESC
+#if defined(HAL_PERIPH_ENABLE_HWESC) || defined(HAL_PERIPH_ENABLE_APD_TELEM)
     // @Param: ESC_NUMBER
     // @DisplayName: ESC number
     // @Description: This is the ESC number to report as in UAVCAN ESC telemetry feedback packets.
     // @Increment: 1
     // @User: Advanced
     GSCALAR(esc_number, "ESC_NUMBER", 0),
+
+    // @Param: ESC_PORT
+    // @DisplayName: ESC telem serial port
+    // @Description: This is the serial port number for ESC telemetry
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
+    // @RebootRequired: True
+    GSCALAR(esc_port, "ESC_PORT", HAL_PERIPH_ESC_PORT_DEFAULT),
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_RC_OUT
@@ -244,8 +257,12 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     // @RebootRequired: True
     GSCALAR(esc_pwm_type, "ESC_PWM_TYPE",     0),
 
-    // test type for ESCs
-    GSCALAR(esc_test, "ESC_TEST",     0),
+    // @Param: ESC_OPTIONS
+    // @DisplayName: ESC behaviour options
+    // @Description: Options to change behaviour of ESC outputs
+    // @Bitmask: 0:DisableArmingChecks
+    // @User: Advanced
+    GSCALAR(esc_options, "ESC_OPTIONS",     0),
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_MSP

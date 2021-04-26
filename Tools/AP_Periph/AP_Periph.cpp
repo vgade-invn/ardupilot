@@ -74,7 +74,6 @@ void AP_Periph_FW::init()
     stm32_watchdog_pat();
 
     hal.serial(0)->begin(AP_SERIALMANAGER_CONSOLE_BAUD, 32, 32);
-    hal.serial(3)->begin(115200, 128, 256);
 
     load_parameters();
 
@@ -164,9 +163,13 @@ void AP_Periph_FW::init()
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_HWESC
-    hwesc_telem.init(hal.serial(3));
+    hwesc_telem.init(hal.serial(g.esc_port));
 #endif
 
+#ifdef HAL_PERIPH_ENABLE_APD_TELEM
+    APD_telem.init(hal.serial(g.esc_port));
+#endif
+    
 #ifdef HAL_PERIPH_ENABLE_MSP
     if (g.msp_port >= 0) {
         msp_init(hal.serial(g.msp_port));
