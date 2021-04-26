@@ -710,6 +710,7 @@ void Aircraft::smooth_sensors(void)
         smoothing.last_update_us = now;
         smoothing.location = location;
         smoothing.accel_ef.zero();
+        smoothing.dcm_prev = dcm;
         printf("Smoothing reset at %.3f\n", now * 1.0e-6f);
         return;
     }
@@ -722,22 +723,38 @@ void Aircraft::smooth_sensors(void)
     Vector3f velocity_demand = (position - smoothing.position_demand_prev) / delta_time;
     smoothing.position_demand_prev = position;
 
+    // wind states forward to current time horizon
+
+    // wind attitude forward to current time using forward euler integration
+    Matrix3f rotation_b2e_prev = smoothing.rotation_b2e;
+    smoothing.rotation_b2e.rotate(smoothing.gyro * delta_time);
+    smoothing.rotation_b2e.normalize();
+
+    // IMU accel measured assuming a constant earth frame acceleration vector and a varying
+    // earth to body rotation matrix so average across the prev and current rotation
+    const Vector3f specific_force_ef = smoothing.accel_ef + Vector3f(0.0f, 0.0f, -GRAVITY_MSS);
+    smoothing.accel_body = (smoothing.rotation_b2e.transposed() * specific_force_ef + rotation_b2e_prev.transposed() * specific_force_ef) * 0.5f;
+
+    // wind position forward to current time horizon first using trapezoidal integration
+    // wind veloxcty forward to current time using forward euler integration
+    smoothing.position_ef += smoothing.velocity_ef * delta_time * 0.5f;
+    smoothing.velocity_ef += smoothing.accel_ef * delta_time;
+    smoothing.position_ef += smoothing.velocity_ef * delta_time * 0.5f;
+
     // parameters used to calculate sitffness and damping gains
-    const float omega = 10.0f;
-    const float zeta = 0.7f;
+    const float omega = 10.0f; // circular frequency of virtual mass/spring/damper system (rad/s)
+    const float zeta = M_SQRT1_2; // viscous damping ratio  of virtual mass/spring/damper system
 
     const float stiffness = sq(omega);
     const float damping = 2.0f * zeta * omega;
 
-    // calculate tracking error
-    // wind position forward to current time horizon first using trapezidal integration
-    smoothing.position_ef += smoothing.velocity_ef * delta_time * 0.5f;
-    smoothing.velocity_ef += smoothing.accel_ef * delta_time;
-    smoothing.position_ef += smoothing.velocity_ef * delta_time * 0.5f;
+    // calculate tracking errors using position and velocity states that have been
+    // predicted forward to the current time horizon assuming a time invariant acceleration
     Vector3f position_error = position - smoothing.position_ef;
     Vector3f velocity_error = velocity_demand - smoothing.velocity_ef;
 
     // calculate acceleration required to follow reference trajectory
+    // we assume this acceleration remains constant from now to the next time step
     smoothing.accel_ef = velocity_error * damping + position_error * stiffness;
 
     // limit to avoid saturation of IMU on touchdown events that could cause large INS errors
@@ -746,33 +763,46 @@ void Aircraft::smooth_sensors(void)
     smoothing.accel_ef.y = constrain_float(smoothing.accel_ef.y, -accel_limit, accel_limit);
     smoothing.accel_ef.z = constrain_float(smoothing.accel_ef.z, -accel_limit, accel_limit);
 
-    // rotate into earth frame using rotation matric from previous frame
-    // this introduces some error
-    // TODO use average of previous and current
-    smoothing.accel_body = smoothing.rotation_b2e.transposed() * (smoothing.accel_ef + Vector3f(0.0f, 0.0f, -GRAVITY_MSS));
-
     // calculate rotational rate that tracks and converges on reference attitude from simulator dcm matrix
-    Quaternion desired_q, current_q, error_q;
+    // we assume this angular rate remains constant until the next time step
+    Quaternion desired_q, desired_q_prev, current_q, error_q, forward_q;
+
     desired_q.from_rotation_matrix(dcm);
     desired_q.normalize();
+
+    desired_q_prev.from_rotation_matrix(smoothing.dcm_prev);
+    smoothing.dcm_prev = dcm;
+    desired_q_prev.normalize();
+
     current_q.from_rotation_matrix(smoothing.rotation_b2e);
     current_q.normalize();
+
     error_q = desired_q / current_q;
     error_q.normalize();
+
+    forward_q = desired_q / desired_q_prev;
+    forward_q.normalize();
+
     Vector3f angle_error;
     error_q.to_axis_angle(angle_error);
-    smoothing.gyro = gyro + angle_error * omega;
 
-    // integrate to get new attitude
-    smoothing.rotation_b2e.rotate(smoothing.gyro * delta_time);
-    smoothing.rotation_b2e.normalize();
+    Vector3f angle_ff;
+    forward_q.to_axis_angle(angle_ff);
 
+    // use feed forward derivative of reference trajectory plus error correction term
+    // limit to avoid saturation of IMU on touchdown events that could cause large INS errors
+    smoothing.gyro = angle_ff / delta_time + angle_error * omega;
+    const float gyro_limit = radians(1000.0f);
+    smoothing.gyro.x = constrain_float(smoothing.gyro.x, -gyro_limit, gyro_limit);
+    smoothing.gyro.y = constrain_float(smoothing.gyro.y, -gyro_limit, gyro_limit);
+    smoothing.gyro.z = constrain_float(smoothing.gyro.z, -gyro_limit, gyro_limit);
+
+#if 1
     float R, P, Y;
     smoothing.rotation_b2e.to_euler(&R, &P, &Y);
     float R2, P2, Y2;
     dcm.to_euler(&R2, &P2, &Y2);
 
-#if 0
 // @LoggerMessage: SMOO
 // @Description: Smoothed sensor data fed to EKF to avoid inconsistencies
 // @Field: TimeUS: Time since system startup

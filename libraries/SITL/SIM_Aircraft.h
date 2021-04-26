@@ -307,6 +307,7 @@ private:
 #endif
 
     struct {
+        Matrix3f dcm_prev; // previous simulatotr dcm matrix
         Vector3f accel_body; // body frame acceleration measured by accelerometers (m/s/s)
         Vector3f gyro; // body frame angular rate measured by gyros (rad/sec)
         Matrix3f rotation_b2e; // rotation from body to earth frame that shsould track the simulator dcm matrix
