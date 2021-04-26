@@ -123,6 +123,25 @@ uint8_t crc8_dvb_s2_update(uint8_t crc, const void *data, uint32_t length)
 }
 
 /*
+  8 bit CRC from APD DShot telem
+ */
+uint8_t crc_crc8_APD(const uint8_t *p, uint8_t len)
+{
+    uint8_t crc = 0;
+    while (len--) {
+        uint8_t crc_seed = crc;
+        uint8_t crc_u = *p++;
+        crc_u ^= crc_seed;
+        for (uint8_t i=0; i<8; i++) {
+            crc_u = (crc_u & 0x80)?0x7 ^ (crc_u<<1) : (crc_u<<1);
+        }
+        crc = crc_u;
+    }
+    return crc;
+}
+
+
+/*
   xmodem CRC thanks to avr-liberty
   https://github.com/dreamiurg/avr-liberty
  */
