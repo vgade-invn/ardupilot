@@ -313,13 +313,14 @@ private:
         Matrix3f dcm_prev; // previous simulatotr dcm matrix
         Vector3f accel_body; // body frame acceleration measured by accelerometers (m/s/s)
         Vector3f gyro; // body frame angular rate measured by gyros (rad/sec)
-        Matrix3f rotation_b2e; // rotation from body to earth frame that shsould track the simulator dcm matrix
+        Quaternion quat; // rotation from body to earth frame that should track the simulator dcm matrix
         Vector3f position_ef; // NED position that should track the simulator position state (m)
         Vector3f position_demand_prev; // previous simulator NED position state (m)
         Vector3f velocity_ef; // NED velocity
         Vector3f accel_ef; // NED acceleration
         uint64_t last_update_us;
         Location location;
+        Vector3f earthRate_bf; // Earth spin rate measured by gyros in body frame (rad/sec)
     } smoothing;
 
     LowPassFilterFloat servo_filter[4];
