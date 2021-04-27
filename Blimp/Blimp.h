@@ -113,6 +113,7 @@ public:
     friend class Mode;
     friend class ModeManual;
     friend class ModeLand;
+    friend class ModeVelocity;
 
     friend class Fins;
 
@@ -267,8 +268,8 @@ private:
     // AC_WPNav *wp_nav;
     // AC_Loiter *loiter_nav;
 
-    // XY accel PID
-    AC_PID_2D accel_xy_pid{1, 1, 0.01, 0.7, 3, 3, 0.02};
+    // XY vel PID
+    AC_PID_2D pid_vel_xy{1, 1, 0.01, 0.7, 0.5, 3, 3, 0.02};
 
     // System Timers
     // --------------

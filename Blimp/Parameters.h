@@ -16,7 +16,7 @@ public:
     // The increment will prevent old parameters from being used incorrectly
     // by newer code.
     //
-    static const uint16_t        k_format_version = 120;
+    static const uint16_t        k_format_version = 1;
 
     // Parameter identities.
     //
@@ -188,8 +188,8 @@ public:
         // 220: PI/D Controllers
         //
         k_param_fs_ekf_action = 220,
-        k_param_xy_accel,
-        k_param_xy_accel_pid,
+        k_param_max_xy_vel,
+        // k_param_xy_vel_pid,
         k_param_arming, // 252  - AP_Arming
         k_param_logger = 253, // 253 - Logging Group
 
@@ -243,6 +243,8 @@ public:
     AP_Int8         fs_crash_check;
     AP_Float        fs_ekf_thresh;
     AP_Int16        gcs_pid_mask;
+
+    AP_Float        max_xy_vel;
 
     AP_Int8         rtl_alt_type;
 

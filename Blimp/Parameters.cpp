@@ -250,6 +250,13 @@ const AP_Param::Info Blimp::var_info[] = {
     // @User: Advanced
     GSCALAR(fs_crash_check, "FS_CRASH_CHECK",    1),
 
+    // @Param: MAX_XY_VEL
+    // @DisplayName: Max XY Velocity
+    // @Description: Sets the maximum XY velocity, in m/s
+    // @Values: 
+    // @User: Standard
+    GSCALAR(max_xy_vel, "MAX_XY_VEL", 0.5),
+
     // @Param: RC_SPEED
     // @DisplayName: ESC Update Speed
     // @Description: This is the speed in Hertz that your ESCs will receive updates

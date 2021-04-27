@@ -256,7 +256,7 @@ private:
 
 };
 
-class ModeAccel : public Mode
+class ModeVelocity : public Mode
 {
 
 public:
@@ -267,11 +267,11 @@ public:
 
     bool requires_GPS() const override
     {
-        return false;
+        return true;
     }
     bool has_manual_throttle() const override
     {
-        return true;
+        return false;
     }
     bool allows_arming(bool from_gcs) const override
     {
@@ -280,17 +280,18 @@ public:
     bool is_autopilot() const override
     {
         return false;
+        //TODO
     }
 
 protected:
 
     const char *name() const override
     {
-        return "ACCEL";
+        return "VELOCITY";
     }
     const char *name4() const override
     {
-        return "ACCL";
+        return "VELY";
     }
 
 private:
