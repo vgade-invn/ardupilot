@@ -784,12 +784,14 @@ void Aircraft::smooth_sensors(void)
     // wind position forward to current time horizon first using trapezoidal integration
     smoothing.position_ef += (smoothing.velocity_ef + velocity_ef_prev) * (delta_time * 0.5f);
 
-    // parameters used to calculate sitffness and damping gains
+    // Compare states to reference trajectory at current time step and calculate earth frame
+    // acceleration required to drive tracking errors to zero using a virtual mass/spring/damper system
+
     const float omega = 10.0f; // circular frequency of virtual mass/spring/damper system (rad/s)
     const float zeta = M_SQRT1_2; // viscous damping ratio  of virtual mass/spring/damper system
 
-    const float stiffness = sq(omega);
-    const float damping = 2.0f * zeta * omega;
+    const float stiffness = sq(omega); // virtual spring
+    const float damping = 2.0f * zeta * omega; // virtual damper
 
     // calculate tracking errors using position and velocity states that have been
     // predicted forward to the current time horizon assuming a time invariant acceleration
@@ -797,7 +799,7 @@ void Aircraft::smooth_sensors(void)
     Vector3f velocity_error = velocity_demand - smoothing.velocity_ef;
 
     // calculate acceleration required to follow reference trajectory
-    // we assume this acceleration remains constant from now to the next time step
+    // we assume this acceleration remains constant from current to the next time step
     smoothing.accel_ef = velocity_error * damping + position_error * stiffness;
 
     // limit to avoid saturation of IMU on touchdown events that could cause large INS errors
@@ -806,7 +808,7 @@ void Aircraft::smooth_sensors(void)
     smoothing.accel_ef.y = constrain_float(smoothing.accel_ef.y, -accel_limit, accel_limit);
     smoothing.accel_ef.z = constrain_float(smoothing.accel_ef.z, -accel_limit, accel_limit);
 
-    // calculate angular rate due to earth rotation
+    // calculate angular rate due to earth rotation at current time step
     const float earthRateECEF = 0.000072921f; // spin rate about North pole (rad/sec)
     float lat_rad = radians(smoothing.location.lat*1.0e-7f);
     Vector3f earthRateNED; // earth spin rate in local NED tangent frame
@@ -815,10 +817,12 @@ void Aircraft::smooth_sensors(void)
     earthRateNED.z  = -earthRateECEF * sinf(lat_rad);
     smoothing.earthRate_bf = rotation_b2e.transposed() * earthRateNED;
 
-    // calculate rotational rate that tracks and converges on reference attitude from simulator dcm matrix
+    // Calculate rotational rate that tracks and converges on reference attitude from simulator dcm matrix
     // we assume this angular rate remains constant until the next time step
-    Quaternion desired_q, desired_q_prev, error_q, forward_q;
 
+    // Use first order difference of rotation from previous to current time step
+    // to calculate the predicted gyro rate
+    Quaternion desired_q, desired_q_prev;
     desired_q.from_rotation_matrix(dcm);
     desired_q.normalize();
 
@@ -826,21 +830,26 @@ void Aircraft::smooth_sensors(void)
     smoothing.dcm_prev = dcm;
     desired_q_prev.normalize();
 
-    error_q = desired_q / smoothing.quat;
-    error_q.normalize();
+    Quaternion predicted_delta_q = desired_q / desired_q_prev;
+    predicted_delta_q.normalize();
 
-    forward_q = desired_q / desired_q_prev;
-    forward_q.normalize();
+    Vector3f predicted_gyro;
+    predicted_delta_q.to_axis_angle(predicted_gyro);
+    predicted_gyro /= delta_time;
+
+    // Calculate a gyro correction drives the tracking error to zero with a time constant
+    // of 1/omega
+    Quaternion error_q = desired_q / smoothing.quat;
+    error_q.normalize();
 
     Vector3f angle_error;
     error_q.to_axis_angle(angle_error);
 
-    Vector3f angle_ff;
-    forward_q.to_axis_angle(angle_ff);
+    const Vector3f gyro_correction = angle_error * omega;
 
-    // use feed forward derivative of reference trajectory plus error correction term
+    smoothing.gyro = predicted_gyro + gyro_correction;
+
     // limit to avoid saturation of IMU on touchdown events that could cause large INS errors
-    smoothing.gyro = angle_ff / delta_time + angle_error * omega;
     const float gyro_limit = radians(1000.0f);
     smoothing.gyro.x = constrain_float(smoothing.gyro.x, -gyro_limit, gyro_limit);
     smoothing.gyro.y = constrain_float(smoothing.gyro.y, -gyro_limit, gyro_limit);
@@ -855,12 +864,12 @@ void Aircraft::smooth_sensors(void)
 // @LoggerMessage: SMOO
 // @Description: Smoothed sensor data fed to EKF to avoid inconsistencies
 // @Field: TimeUS: Time since system startup
-// @Field: AEx: Angular Error (around x-axis)
-// @Field: AEy: Angular Error (around y-axis)
-// @Field: AEz: Angular Error (around z-axis)
-// @Field: PEx: Position Error (along x-axis)
-// @Field: PEy: Position Error (along y-axis)
-// @Field: PEz: Position Error (along z-axis)
+// @Field: AEx: Angular Tracking Error (around x-axis)
+// @Field: AEy: Angular Tracking Error (around y-axis)
+// @Field: AEz: Angular Tracking Error (around z-axis)
+// @Field: PEx: Position Tracking Error (along x-axis)
+// @Field: PEy: Position Tracking Error (along y-axis)
+// @Field: PEz: Position Tracking Error (along z-axis)
 // @Field: R: Roll
 // @Field: P: Pitch
 // @Field: Y: Yaw
