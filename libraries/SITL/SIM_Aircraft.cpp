@@ -375,9 +375,9 @@ void Aircraft::fill_fdm(struct sitl_fdm &fdm)
         fdm.xAccel = smoothing.accel_body.x;
         fdm.yAccel = smoothing.accel_body.y;
         fdm.zAccel = smoothing.accel_body.z;
-        fdm.rollRate  = degrees(smoothing.gyro.x);
-        fdm.pitchRate = degrees(smoothing.gyro.y);
-        fdm.yawRate   = degrees(smoothing.gyro.z);
+        fdm.rollRate  = degrees(smoothing.gyro.x + smoothing.earthRate_bf.x);
+        fdm.pitchRate = degrees(smoothing.gyro.y + smoothing.earthRate_bf.y);
+        fdm.yawRate   = degrees(smoothing.gyro.z + smoothing.earthRate_bf.z);
         fdm.speedN    = smoothing.velocity_ef.x;
         fdm.speedE    = smoothing.velocity_ef.y;
         fdm.speedD    = smoothing.velocity_ef.z;
@@ -735,7 +735,7 @@ void Aircraft::smooth_sensors(void)
     if (smoothing.last_update_us == 0 || delta_pos.length() > 10) {
         smoothing.position_ef = position;
         smoothing.position_demand_prev = position;
-        smoothing.rotation_b2e = dcm;
+        smoothing.quat.from_rotation_matrix(dcm);
         smoothing.accel_body = accel_body;
         smoothing.velocity_ef = velocity_ef;
         smoothing.gyro = gyro;
@@ -755,23 +755,34 @@ void Aircraft::smooth_sensors(void)
     Vector3f velocity_demand = (position - smoothing.position_demand_prev) / delta_time;
     smoothing.position_demand_prev = position;
 
+    // body to earth rotation matrix at previous time step
+    Matrix3f rotation_b2e_prev;
+    smoothing.quat.rotation_matrix(rotation_b2e_prev);
+
     // wind states forward to current time horizon
 
     // wind attitude forward to current time using forward euler integration
-    Matrix3f rotation_b2e_prev = smoothing.rotation_b2e;
-    smoothing.rotation_b2e.rotate(smoothing.gyro * delta_time);
-    smoothing.rotation_b2e.normalize();
+    Quaternion delta_quat;
+    const Vector3f delta_angle = smoothing.gyro * delta_time;
+    delta_quat.from_axis_angle(delta_angle);
+    smoothing.quat *= delta_quat;
+    smoothing.quat.normalize();
+
+    // body to earth rotation matrix at current time step
+    Matrix3f rotation_b2e;
+    smoothing.quat.rotation_matrix(rotation_b2e);
 
     // IMU accel measured assuming a constant earth frame acceleration vector and a varying
     // earth to body rotation matrix so average across the prev and current rotation
     const Vector3f specific_force_ef = smoothing.accel_ef + Vector3f(0.0f, 0.0f, -GRAVITY_MSS);
-    smoothing.accel_body = (smoothing.rotation_b2e.transposed() * specific_force_ef + rotation_b2e_prev.transposed() * specific_force_ef) * 0.5f;
+    smoothing.accel_body = (rotation_b2e.transposed() * specific_force_ef + rotation_b2e_prev.transposed() * specific_force_ef) * 0.5f;
+
+    // wind velocty forward to current time using forward euler integration
+    const Vector3f velocity_ef_prev = smoothing.velocity_ef;
+    smoothing.velocity_ef += smoothing.accel_ef * delta_time;
 
     // wind position forward to current time horizon first using trapezoidal integration
-    // wind veloxcty forward to current time using forward euler integration
-    smoothing.position_ef += smoothing.velocity_ef * delta_time * 0.5f;
-    smoothing.velocity_ef += smoothing.accel_ef * delta_time;
-    smoothing.position_ef += smoothing.velocity_ef * delta_time * 0.5f;
+    smoothing.position_ef += (smoothing.velocity_ef + velocity_ef_prev) * (delta_time * 0.5f);
 
     // parameters used to calculate sitffness and damping gains
     const float omega = 10.0f; // circular frequency of virtual mass/spring/damper system (rad/s)
@@ -795,9 +806,18 @@ void Aircraft::smooth_sensors(void)
     smoothing.accel_ef.y = constrain_float(smoothing.accel_ef.y, -accel_limit, accel_limit);
     smoothing.accel_ef.z = constrain_float(smoothing.accel_ef.z, -accel_limit, accel_limit);
 
+    // calculate angular rate due to earth rotation
+    const float earthRateECEF = 0.000072921f; // spin rate about North pole (rad/sec)
+    float lat_rad = radians(smoothing.location.lat*1.0e-7f);
+    Vector3f earthRateNED; // earth spin rate in local NED tangent frame
+    earthRateNED.x  =  earthRateECEF * cosf(lat_rad);
+    earthRateNED.y  =  0;
+    earthRateNED.z  = -earthRateECEF * sinf(lat_rad);
+    smoothing.earthRate_bf = (rotation_b2e.transposed() * earthRateNED + rotation_b2e_prev.transposed() * earthRateNED) * 0.5f;
+
     // calculate rotational rate that tracks and converges on reference attitude from simulator dcm matrix
     // we assume this angular rate remains constant until the next time step
-    Quaternion desired_q, desired_q_prev, current_q, error_q, forward_q;
+    Quaternion desired_q, desired_q_prev, error_q, forward_q;
 
     desired_q.from_rotation_matrix(dcm);
     desired_q.normalize();
@@ -806,10 +826,7 @@ void Aircraft::smooth_sensors(void)
     smoothing.dcm_prev = dcm;
     desired_q_prev.normalize();
 
-    current_q.from_rotation_matrix(smoothing.rotation_b2e);
-    current_q.normalize();
-
-    error_q = desired_q / current_q;
+    error_q = desired_q / smoothing.quat;
     error_q.normalize();
 
     forward_q = desired_q / desired_q_prev;
@@ -831,7 +848,7 @@ void Aircraft::smooth_sensors(void)
 
 #if 1
     float R, P, Y;
-    smoothing.rotation_b2e.to_euler(&R, &P, &Y);
+    rotation_b2e.to_euler(&R, &P, &Y);
     float R2, P2, Y2;
     dcm.to_euler(&R2, &P2, &Y2);
 
