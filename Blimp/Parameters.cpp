@@ -436,7 +436,7 @@ const AP_Param::Info Blimp::var_info[] = {
     // @Range: 0 6
     // @Increment: 0.01
     // @User: Advanced
-    AP_SUBGROUPINFO(pid_vel_xy, "_VELXY_", 400, Blimp, AC_PID_2D),
+    GOBJECT(pid_vel_xy, "_VELXY_", AC_PID_2D),
 
     // @Group:
     // @Path: ../libraries/AP_Vehicle/AP_Vehicle.cpp

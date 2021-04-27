@@ -90,6 +90,9 @@ public:
         k_param_adsb,                   // 72
         k_param_notify,                 // 73
 
+        // PIDs
+        k_param_pid_vel_xy,
+
         //
         // 90: misc2
         //
