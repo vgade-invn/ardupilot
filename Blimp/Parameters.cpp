@@ -387,6 +387,57 @@ const AP_Param::Info Blimp::var_info[] = {
     // @Path: Fins.cpp
     GOBJECTPTR(motors, "FINS_", Fins),
 
+    // @Param: _VELXY_P
+    // @DisplayName: Velocity (horizontal) P gain
+    // @Description: Velocity (horizontal) P gain.  Converts the difference between desired and actual velocity to a target acceleration
+    // @Range: 0.1 6.0
+    // @Increment: 0.1
+    // @User: Advanced
+
+    // @Param: _VELXY_I
+    // @DisplayName: Velocity (horizontal) I gain
+    // @Description: Velocity (horizontal) I gain.  Corrects long-term difference between desired and actual velocity to a target acceleration
+    // @Range: 0.02 1.00
+    // @Increment: 0.01
+    // @User: Advanced
+
+    // @Param: _VELXY_D
+    // @DisplayName: Velocity (horizontal) D gain
+    // @Description: Velocity (horizontal) D gain.  Corrects short-term changes in velocity
+    // @Range: 0.00 1.00
+    // @Increment: 0.001
+    // @User: Advanced
+
+    // @Param: _VELXY_IMAX
+    // @DisplayName: Velocity (horizontal) integrator maximum
+    // @Description: Velocity (horizontal) integrator maximum.  Constrains the target acceleration that the I gain will output
+    // @Range: 0 4500
+    // @Increment: 10
+    // @Units: cm/s/s
+    // @User: Advanced
+
+    // @Param: _VELXY_FILT
+    // @DisplayName: Velocity (horizontal) input filter
+    // @Description: Velocity (horizontal) input filter.  This filter (in Hz) is applied to the input for P and I terms
+    // @Range: 0 100
+    // @Units: Hz
+    // @User: Advanced
+
+    // @Param: _VELXY_D_FILT
+    // @DisplayName: Velocity (horizontal) input filter
+    // @Description: Velocity (horizontal) input filter.  This filter (in Hz) is applied to the input for D term
+    // @Range: 0 100
+    // @Units: Hz
+    // @User: Advanced
+
+    // @Param: _VELXY_FF
+    // @DisplayName: Velocity (horizontal) feed forward gain
+    // @Description: Velocity (horizontal) feed forward gain.  Converts the difference between desired velocity to a target acceleration
+    // @Range: 0 6
+    // @Increment: 0.01
+    // @User: Advanced
+    AP_SUBGROUPINFO(pid_vel_xy, "_VELXY_", 400, Blimp, AC_PID_2D),
+
     // @Group:
     // @Path: ../libraries/AP_Vehicle/AP_Vehicle.cpp
     { AP_PARAM_GROUP, "", Parameters::k_param_vehicle, (const void *)&blimp, {group_info : AP_Vehicle::var_info} },
