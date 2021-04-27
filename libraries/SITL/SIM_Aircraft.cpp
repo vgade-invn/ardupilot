@@ -849,25 +849,25 @@ void Aircraft::smooth_sensors(void)
 #if 1
     float R, P, Y;
     rotation_b2e.to_euler(&R, &P, &Y);
-    float R2, P2, Y2;
-    dcm.to_euler(&R2, &P2, &Y2);
+    float Rref, Pref, Yref;
+    dcm.to_euler(&Rref, &Pref, &Yref);
 
 // @LoggerMessage: SMOO
 // @Description: Smoothed sensor data fed to EKF to avoid inconsistencies
 // @Field: TimeUS: Time since system startup
-// @Field: AEx: Angular Velocity (around x-axis)
-// @Field: AEy: Angular Velocity (around y-axis)
-// @Field: AEz: Angular Velocity (around z-axis)
-// @Field: DPx: Velocity (along x-axis)
-// @Field: DPy: Velocity (along y-axis)
-// @Field: DPz: Velocity (along z-axis)
+// @Field: AEx: Angular Error (around x-axis)
+// @Field: AEy: Angular Error (around y-axis)
+// @Field: AEz: Angular Error (around z-axis)
+// @Field: PEx: Position Error (along x-axis)
+// @Field: PEy: Position Error (along y-axis)
+// @Field: PEz: Position Error (along z-axis)
 // @Field: R: Roll
 // @Field: P: Pitch
 // @Field: Y: Yaw
-// @Field: R2: DCM Roll
-// @Field: P2: DCM Pitch
-// @Field: Y2: DCM Yaw
-    AP::logger().Write("SMOO", "TimeUS,AEx,AEy,AEz,DPx,DPy,DPz,R,P,Y,R2,P2,Y2",
+// @Field: Rref: Roll reference from DCM
+// @Field: Pref: Pitch reference from DCM
+// @Field: Yref: Yaw reference from DCM
+    AP::logger().Write("SMOO", "TimeUS,AEx,AEy,AEz,PEx,PEy,PEz,R,P,Y,Rref,Pref,Yref",
                                            "Qffffffffffff",
                                            AP_HAL::micros64(),
                                            degrees(angle_error.x),
@@ -875,7 +875,7 @@ void Aircraft::smooth_sensors(void)
                                            degrees(angle_error.z),
                                            position_error.x, position_error.y, position_error.z,
                                            degrees(R), degrees(P), degrees(Y),
-                                           degrees(R2), degrees(P2), degrees(Y2));
+                                           degrees(Rref), degrees(Pref), degrees(Yref));
 #endif
 
 
