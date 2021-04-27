@@ -208,8 +208,8 @@ protected:
 
     uint64_t time_now_us;
 
-    const float gyro_noise = radians(0.1f);
-    const float accel_noise = 0.3f;
+    const float gyro_noise = 0.0f;//radians(0.1f);
+    const float accel_noise = 0.0f;//0.3f;
     float rate_hz = 1200.0f;
     float target_speedup;
     uint64_t frame_time_us;
@@ -224,6 +224,8 @@ protected:
     float last_speedup = -1.0f;
     const char *config_ = "";
 
+    uint64_t gnd_move_start_time_us = 0;
+
     // allow for AHRS_ORIENTATION
     AP_Int8 *ahrs_orientation;
     enum Rotation last_imu_rotation;
@@ -236,7 +238,7 @@ protected:
         GROUND_BEHAVIOR_NO_MOVEMENT,
         GROUND_BEHAVIOR_FWD_ONLY,
         GROUND_BEHAVIOR_TAILSITTER,
-        GROUND_BEHAVIOR_ROLL_PITCH,
+        GROUND_BEHAVIOR_NAV_TEST,
     } ground_behavior;
 
     bool use_smoothing;
@@ -275,7 +277,7 @@ protected:
     uint64_t get_wall_time_us(void) const;
 
     // update attitude and relative position
-    void update_dynamics(const Vector3f &rot_accel);
+    void update_dynamics(const Vector3f &rot_accel, const struct sitl_input &input);
 
     // update wind vector
     void update_wind(const struct sitl_input &input);
