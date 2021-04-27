@@ -813,7 +813,7 @@ void Aircraft::smooth_sensors(void)
     earthRateNED.x  =  earthRateECEF * cosf(lat_rad);
     earthRateNED.y  =  0;
     earthRateNED.z  = -earthRateECEF * sinf(lat_rad);
-    smoothing.earthRate_bf = (rotation_b2e.transposed() * earthRateNED + rotation_b2e_prev.transposed() * earthRateNED) * 0.5f;
+    smoothing.earthRate_bf = rotation_b2e.transposed() * earthRateNED;
 
     // calculate rotational rate that tracks and converges on reference attitude from simulator dcm matrix
     // we assume this angular rate remains constant until the next time step
