@@ -37,7 +37,7 @@ MultiCopter::MultiCopter(const char *frame_str) :
     mass = frame->get_mass();
     frame_height = 0.1;
     num_motors = frame->num_motors;
-    ground_behavior = GROUND_BEHAVIOR_ROLL_PITCH;
+    ground_behavior = GROUND_BEHAVIOR_NAV_TEST;
 }
 
 // calculate rotational and linear accelerations
@@ -66,7 +66,7 @@ void MultiCopter::update(const struct sitl_input &input)
 
     battery.set_current(battery_current);
 
-    update_dynamics(rot_accel);
+    update_dynamics(rot_accel, input);
     update_external_payload(input);
 
     // update lat/lon/altitude

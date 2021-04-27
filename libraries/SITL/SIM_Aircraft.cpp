@@ -518,7 +518,7 @@ void Aircraft::update_model(const struct sitl_input &input)
 /*
   update the simulation attitude and relative position
  */
-void Aircraft::update_dynamics(const Vector3f &rot_accel)
+void Aircraft::update_dynamics(const Vector3f &rot_accel, const struct sitl_input &input)
 {
     const float delta_time = frame_time_us * 1.0e-6f;
 
@@ -566,7 +566,8 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
     airspeed_pitot = constrain_float(velocity_air_bf * Vector3f(1.0f, 0.0f, 0.0f), 0.0f, 120.0f);
 
     // constrain height to the ground
-    if (on_ground()) {
+    // handle use of special ground mode used to test inertial nav
+    if (on_ground() || ground_behavior == GROUND_BEHAVIOR_NAV_TEST) {
         if (!was_on_ground && AP_HAL::millis() - last_ground_contact_ms > 1000) {
             GCS_SEND_TEXT(MAV_SEVERITY_INFO, "SIM Hit ground at %f m/s", velocity_ef.z);
             last_ground_contact_ms = AP_HAL::millis();
@@ -655,28 +656,35 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
             use_smoothing = true;
             break;
         }
-        case GROUND_BEHAVIOR_ROLL_PITCH: {
-            const float movement_time = (float)(1E-6 * ((double)time_now_us - (double)30000000));
-            const float max_amplitude = radians(30.0f);
-            const float frequency_hz = 0.25f;
+        case GROUND_BEHAVIOR_NAV_TEST: {
             float r, p, y;
             dcm.to_euler(&r, &p, &y);
-            if (is_positive(movement_time)) {
+            // Use  RC6 to start rocking motion with a 1 second delay. If RC6_OPTION = 41,
+            // then vehicle will arm, but rocking will be delayed by 1 second to facilitate
+            // testing of inertial nav algorithms.
+            if (input.servos[5] > 1500) {
+                if (gnd_move_start_time_us == 0) {
+                    gnd_move_start_time_us = time_now_us + 1000000;
+                }
+                const float movement_time = fmaxf((float)(1E-6 * ((double)time_now_us - (double)gnd_move_start_time_us)), 0.0f);
+                const float max_amplitude = radians(30.0f);
+                const float frequency_hz = 0.1f;
                 // build up to max amplitude over 2 cycles
                 const float amplitude = fminf((movement_time * frequency_hz * 0.5f) * max_amplitude, max_amplitude);
                 r = amplitude * cosf(movement_time * M_2PI * frequency_hz);
                 p = amplitude * sinf(movement_time * M_2PI * frequency_hz);
+            } else {
+                gnd_move_start_time_us = 0;
+                r = 0.0f;
+                p = 0.0f;
             }
             y = y + yaw_rate * delta_time;
             dcm.from_euler(r, p, y);
             // X, Y movement tracks ground movement
-            velocity_ef.x = gnd_movement.x;
-            velocity_ef.y = gnd_movement.y;
-            if (velocity_ef.z > 0.0f) {
-                velocity_ef.z = 0.0f;
-            }
+            velocity_ef.zero();
+            position.zero();
             gyro.zero();
-            use_smoothing = true;
+            use_smoothing = true; 
             break;
         }
         }
