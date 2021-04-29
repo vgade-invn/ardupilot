@@ -1766,6 +1766,10 @@ void AP_Mission::complete()
     _flags.state = MISSION_COMPLETE;
     _flags.in_landing_sequence = false;
 
+    //#VisionAerial
+    //Send warning when mision finishes
+    gcs().send_text(MAV_SEVERITY_INFO, "#Mission  Complete");
+
     // callback to main program's mission complete function
     _mission_complete_fn();
 }
