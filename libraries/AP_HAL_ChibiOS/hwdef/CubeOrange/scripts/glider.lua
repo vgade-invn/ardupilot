@@ -6,7 +6,8 @@ local METERS_TO_FEET = 1.0/FEET_TO_METERS
 local KNOTS_TO_MPS = 0.51444
 
 -- altitude to force chute open if in AUTO and we've cut balloon free
-local CHUTE_OPEN_ALT = 2700*FEET_TO_METERS
+-- overridden by
+local CHUTE_OPEN_ALT_DEFAULT = 2700*FEET_TO_METERS
 
 local K_PARACHUTE = 27
 
@@ -215,13 +216,17 @@ end
 function check_chute()
    local loc = ahrs:get_position()
    local alt = loc:alt() * 0.01
+   chute_alt = param:get("SCR_USER3")*FEET_TO_METERS
+   if chute_alt == 0 then
+      chute_alt = CHUTE_OPEN_ALT_DEFAULT
+   end
    if not chute_check_armed then
-      if alt > CHUTE_OPEN_ALT + chute_check_margin then
+      if alt > chute_alt + chute_check_margin then
          gcs:send_text(0, string.format("Armed chute check at %.0fft", alt*METERS_TO_FEET))
          chute_check_armed = true
       end
    end
-   if chute_check_armed and alt < CHUTE_OPEN_ALT then
+   if chute_check_armed and alt < chute_alt then
       if not chute_triggered then
          chute_triggered = true
          gcs:send_text(0, string.format("Triggering chute at %.0fft", alt*METERS_TO_FEET))
