@@ -759,9 +759,12 @@ void Plane::stabilize_pullup(float speed_scaler)
         SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0);
         plane.nav_pitch_cd = 0;
         plane.nav_roll_cd = 0;
-        pitchController.reset_I();
-        yawController.reset_I();
-        last_stabilize_ms = AP_HAL::millis();
+        uint32_t now = AP_HAL::millis();
+        if (now - last_stabilize_ms > 1000) {
+            pitchController.reset_I();
+            yawController.reset_I();
+        }
+        last_stabilize_ms = now;
         SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_rate_out(0, speed_scaler));
         logger.Write_PID(LOG_PIDR_MSG, rollController.get_pid_info());
         pullup.ng_demand = 0.0f;
