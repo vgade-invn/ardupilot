@@ -6,6 +6,8 @@
 
 #include <AP_DAL/AP_DAL.h>
 
+#pragma GCC diagnostic ignored "-Wnarrowing"
+
 void NavEKF3_core::Log_Write_XKF1(uint64_t time_us) const
 {
     // Write first EKF packet

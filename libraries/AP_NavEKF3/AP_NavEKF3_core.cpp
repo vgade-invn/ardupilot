@@ -523,13 +523,13 @@ bool NavEKF3_core::InitialiseFilterBootstrap(void)
     InitialiseVariables();
 
     // acceleration vector in XYZ body axes measured by the IMU (m/s^2)
-    Vector3f initAccVec;
+    Vector3F initAccVec;
 
     // TODO we should average accel readings over several cycles
-    initAccVec = dal.ins().get_accel(accel_index_active);
+    initAccVec = dal.ins().get_accel(accel_index_active).toftype();
 
     // normalise the acceleration vector
-    float pitch=0, roll=0;
+    ftype pitch=0, roll=0;
     if (initAccVec.length() > 0.001f) {
         initAccVec.normalize();
 
@@ -594,7 +594,7 @@ void NavEKF3_core::CovarianceInit()
     memset(&P[0][0], 0, sizeof(P));
 
     // define the initial angle uncertainty as variances for a rotation vector
-    Vector3f rot_vec_var;
+    Vector3F rot_vec_var;
     rot_vec_var.x = rot_vec_var.y = rot_vec_var.z = sq(0.1f);
 
     // reset the quaternion state covariances
@@ -731,12 +731,12 @@ void NavEKF3_core::UpdateFilter(bool predict)
     }
 }
 
-void NavEKF3_core::correctDeltaAngle(Vector3f &delAng, float delAngDT, uint8_t gyro_index)
+void NavEKF3_core::correctDeltaAngle(Vector3F &delAng, ftype delAngDT, uint8_t gyro_index)
 {
     delAng -= inactiveBias[gyro_index].gyro_bias * (delAngDT / dtEkfAvg);
 }
 
-void NavEKF3_core::correctDeltaVelocity(Vector3f &delVel, float delVelDT, uint8_t accel_index)
+void NavEKF3_core::correctDeltaVelocity(Vector3F &delVel, ftype delVelDT, uint8_t accel_index)
 {
     delVel -= inactiveBias[accel_index].accel_bias * (delVelDT / dtEkfAvg);
 }
@@ -762,7 +762,7 @@ void NavEKF3_core::UpdateStrapdownEquationsNED()
     // use the nav frame from previous time step as the delta velocities
     // have been rotated into that frame
     // * and + operators have been overloaded
-    Vector3f delVelNav;  // delta velocity vector in earth axes
+    Vector3F delVelNav;  // delta velocity vector in earth axes
     delVelNav  = prevTnb.mul_transpose(delVelCorrected);
     delVelNav.z += GRAVITY_MSS*imuDataDelayed.delVelDT;
 
@@ -783,13 +783,13 @@ void NavEKF3_core::UpdateStrapdownEquationsNED()
     // if we are not aiding, then limit the horizontal magnitude of acceleration
     // to prevent large manoeuvre transients disturbing the attitude
     if ((PV_AidingMode == AID_NONE) && (accNavMagHoriz > 5.0f)) {
-        float gain = 5.0f/accNavMagHoriz;
+        ftype gain = 5.0f/accNavMagHoriz;
         delVelNav.x *= gain;
         delVelNav.y *= gain;
     }
 
     // save velocity for use in trapezoidal integration for position calcuation
-    Vector3f lastVelocity = stateStruct.velocity;
+    Vector3F lastVelocity = stateStruct.velocity;
 
     // sum delta velocities to get velocity
     stateStruct.velocity += delVelNav;
@@ -825,16 +825,16 @@ void NavEKF3_core::UpdateStrapdownEquationsNED()
 void NavEKF3_core::calcOutputStates()
 {
     // apply corrections to the IMU data
-    Vector3f delAngNewCorrected = imuDataNew.delAng;
-    Vector3f delVelNewCorrected = imuDataNew.delVel;
+    Vector3F delAngNewCorrected = imuDataNew.delAng;
+    Vector3F delVelNewCorrected = imuDataNew.delVel;
     correctDeltaAngle(delAngNewCorrected, imuDataNew.delAngDT, imuDataNew.gyro_index);
     correctDeltaVelocity(delVelNewCorrected, imuDataNew.delVelDT, imuDataNew.accel_index);
 
     // apply corrections to track EKF solution
-    Vector3f delAng = delAngNewCorrected + delAngCorrection;
+    Vector3F delAng = delAngNewCorrected + delAngCorrection;
 
     // convert the rotation vector to its equivalent quaternion
-    Quaternion deltaQuat;
+    QuaternionF deltaQuat;
     deltaQuat.from_axis_angle(delAng);
 
     // update the quaternion states by rotating from the previous attitude through
@@ -843,15 +843,15 @@ void NavEKF3_core::calcOutputStates()
     outputDataNew.quat.normalize();
 
     // calculate the body to nav cosine matrix
-    Matrix3f Tbn_temp;
+    Matrix3F Tbn_temp;
     outputDataNew.quat.rotation_matrix(Tbn_temp);
 
     // transform body delta velocities to delta velocities in the nav frame
-    Vector3f delVelNav  = Tbn_temp*delVelNewCorrected;
+    Vector3F delVelNav  = Tbn_temp*delVelNewCorrected;
     delVelNav.z += GRAVITY_MSS*imuDataNew.delVelDT;
 
     // save velocity for use in trapezoidal integration for position calcuation
-    Vector3f lastVelocity = outputDataNew.velocity;
+    Vector3F lastVelocity = outputDataNew.velocity;
 
     // sum delta velocities to get velocity
     outputDataNew.velocity += delVelNav;
@@ -864,14 +864,14 @@ void NavEKF3_core::calcOutputStates()
 
     // Perform filter calculation using backwards Euler integration
     // Coefficients selected to place all three filter poles at omega
-    const float CompFiltOmega = M_2PI * constrain_float(frontend->_hrt_filt_freq, 0.1f, 30.0f);
-    float omega2 = CompFiltOmega * CompFiltOmega;
-    float pos_err = constrain_float(outputDataNew.position.z - vertCompFiltState.pos, -1e5, 1e5);
-    float integ1_input = pos_err * omega2 * CompFiltOmega * imuDataNew.delVelDT;
+    const ftype CompFiltOmega = M_2PI * constrain_float(frontend->_hrt_filt_freq, 0.1f, 30.0f);
+    ftype omega2 = CompFiltOmega * CompFiltOmega;
+    ftype pos_err = constrain_float(outputDataNew.position.z - vertCompFiltState.pos, -1e5, 1e5);
+    ftype integ1_input = pos_err * omega2 * CompFiltOmega * imuDataNew.delVelDT;
     vertCompFiltState.acc += integ1_input;
-    float integ2_input = delVelNav.z + (vertCompFiltState.acc + pos_err * omega2 * 3.0f) * imuDataNew.delVelDT;
+    ftype integ2_input = delVelNav.z + (vertCompFiltState.acc + pos_err * omega2 * 3.0f) * imuDataNew.delVelDT;
     vertCompFiltState.vel += integ2_input;
-    float integ3_input = (vertCompFiltState.vel + pos_err * CompFiltOmega * 3.0f) * imuDataNew.delVelDT;
+    ftype integ3_input = (vertCompFiltState.vel + pos_err * CompFiltOmega * 3.0f) * imuDataNew.delVelDT;
     vertCompFiltState.pos += integ3_input; 
 
     // apply a trapezoidal integration to velocities to calculate position
@@ -884,11 +884,11 @@ void NavEKF3_core::calcOutputStates()
     if (!accelPosOffset.is_zero()) {
         // calculate the average angular rate across the last IMU update
         // note delAngDT is prevented from being zero in readIMUData()
-        Vector3f angRate = imuDataNew.delAng * (1.0f/imuDataNew.delAngDT);
+        Vector3F angRate = imuDataNew.delAng * (1.0f/imuDataNew.delAngDT);
 
         // Calculate the velocity of the body frame origin relative to the IMU in body frame
         // and rotate into earth frame. Note % operator has been overloaded to perform a cross product
-        Vector3f velBodyRelIMU = angRate % (- accelPosOffset);
+        Vector3F velBodyRelIMU = angRate % (- accelPosOffset);
         velOffsetNED = Tbn_temp * velBodyRelIMU;
 
         // calculate the earth frame position of the body frame origin relative to the IMU
@@ -901,7 +901,7 @@ void NavEKF3_core::calcOutputStates()
     // Detect fixed wing launch acceleration using latest data from IMU to enable early startup of filter functions
     // that use launch acceleration to detect start of flight
     if (!inFlight && !expectTakeoff && assume_zero_sideslip()) {
-        const float launchDelVel = imuDataNew.delVel.x + GRAVITY_MSS * imuDataNew.delVelDT * Tbn_temp.c.x;
+        const ftype launchDelVel = imuDataNew.delVel.x + GRAVITY_MSS * imuDataNew.delVelDT * Tbn_temp.c.x;
         if (launchDelVel > GRAVITY_MSS * imuDataNew.delVelDT) {
             setTakeoffExpected(true);
         }
@@ -918,12 +918,12 @@ void NavEKF3_core::calcOutputStates()
         // compare quaternion data with EKF quaternion at the fusion time horizon and calculate correction
 
         // divide the demanded quaternion by the estimated to get the error
-        Quaternion quatErr = stateStruct.quat / outputDataDelayed.quat;
+        QuaternionF quatErr = stateStruct.quat / outputDataDelayed.quat;
 
         // Convert to a delta rotation using a small angle approximation
         quatErr.normalize();
-        Vector3f deltaAngErr;
-        float scaler;
+        Vector3F deltaAngErr;
+        ftype scaler;
         if (quatErr[0] >= 0.0f) {
             scaler = 2.0f;
         } else {
@@ -935,17 +935,17 @@ void NavEKF3_core::calcOutputStates()
 
         // calculate a gain that provides tight tracking of the estimator states and
         // adjust for changes in time delay to maintain consistent damping ratio of ~0.7
-        float timeDelay = 1e-3f * (float)(imuDataNew.time_ms - imuDataDelayed.time_ms);
+        ftype timeDelay = 1e-3f * (float)(imuDataNew.time_ms - imuDataDelayed.time_ms);
         timeDelay = MAX(timeDelay, dtIMUavg);
-        float errorGain = 0.5f / timeDelay;
+        ftype errorGain = 0.5f / timeDelay;
 
         // calculate a correction to the delta angle
         // that will cause the INS to track the EKF quaternions
         delAngCorrection = deltaAngErr * errorGain * dtIMUavg;
 
         // calculate velocity and position tracking errors
-        Vector3f velErr = (stateStruct.velocity - outputDataDelayed.velocity);
-        Vector3f posErr = (stateStruct.position - outputDataDelayed.position);
+        Vector3F velErr = (stateStruct.velocity - outputDataDelayed.velocity);
+        Vector3F posErr = (stateStruct.position - outputDataDelayed.position);
 
         // collect magnitude tracking error for diagnostics
         outputTrackError.x = deltaAngErr.length();
@@ -953,16 +953,16 @@ void NavEKF3_core::calcOutputStates()
         outputTrackError.z = posErr.length();
 
         // convert user specified time constant from centi-seconds to seconds
-        float tauPosVel = constrain_float(0.01f*(float)frontend->_tauVelPosOutput, 0.1f, 0.5f);
+        ftype tauPosVel = constrain_float(0.01f*(float)frontend->_tauVelPosOutput, 0.1f, 0.5f);
 
         // calculate a gain to track the EKF position states with the specified time constant
-        float velPosGain = dtEkfAvg / constrain_float(tauPosVel, dtEkfAvg, 10.0f);
+        ftype velPosGain = dtEkfAvg / constrain_float(tauPosVel, dtEkfAvg, 10.0f);
 
         // use a PI feedback to calculate a correction that will be applied to the output state history
         posErrintegral += posErr;
         velErrintegral += velErr;
-        Vector3f velCorrection = velErr * velPosGain + velErrintegral * sq(velPosGain) * 0.1f;
-        Vector3f posCorrection = posErr * velPosGain + posErrintegral * sq(velPosGain) * 0.1f;
+        Vector3F velCorrection = velErr * velPosGain + velErrintegral * sq(velPosGain) * 0.1f;
+        Vector3F posCorrection = posErr * velPosGain + posErrintegral * sq(velPosGain) * 0.1f;
 
         // loop through the output filter state history and apply the corrections to the velocity and position states
         // this method is too expensive to use for the attitude states due to the quaternion operations required
@@ -995,30 +995,30 @@ void NavEKF3_core::calcOutputStates()
  * Argument rotVarVecPtr is pointer to a vector defining the earth frame uncertainty variance of the quaternion states
  * used to perform a reset of the quaternion state covariances only. Set to null for normal operation.
 */
-void NavEKF3_core::CovariancePrediction(Vector3f *rotVarVecPtr)
+void NavEKF3_core::CovariancePrediction(Vector3F *rotVarVecPtr)
 {
-    float daxVar;       // X axis delta angle noise variance rad^2
-    float dayVar;       // Y axis delta angle noise variance rad^2
-    float dazVar;       // Z axis delta angle noise variance rad^2
-    float dvxVar;       // X axis delta velocity variance noise (m/s)^2
-    float dvyVar;       // Y axis delta velocity variance noise (m/s)^2
-    float dvzVar;       // Z axis delta velocity variance noise (m/s)^2
-    float dvx;          // X axis delta velocity (m/s)
-    float dvy;          // Y axis delta velocity (m/s)
-    float dvz;          // Z axis delta velocity (m/s)
-    float dax;          // X axis delta angle (rad)
-    float day;          // Y axis delta angle (rad)
-    float daz;          // Z axis delta angle (rad)
-    float q0;           // attitude quaternion
-    float q1;           // attitude quaternion
-    float q2;           // attitude quaternion
-    float q3;           // attitude quaternion
-    float dax_b;        // X axis delta angle measurement bias (rad)
-    float day_b;        // Y axis delta angle measurement bias (rad)
-    float daz_b;        // Z axis delta angle measurement bias (rad)
-    float dvx_b;        // X axis delta velocity measurement bias (rad)
-    float dvy_b;        // Y axis delta velocity measurement bias (rad)
-    float dvz_b;        // Z axis delta velocity measurement bias (rad)
+    ftype daxVar;       // X axis delta angle noise variance rad^2
+    ftype dayVar;       // Y axis delta angle noise variance rad^2
+    ftype dazVar;       // Z axis delta angle noise variance rad^2
+    ftype dvxVar;       // X axis delta velocity variance noise (m/s)^2
+    ftype dvyVar;       // Y axis delta velocity variance noise (m/s)^2
+    ftype dvzVar;       // Z axis delta velocity variance noise (m/s)^2
+    ftype dvx;          // X axis delta velocity (m/s)
+    ftype dvy;          // Y axis delta velocity (m/s)
+    ftype dvz;          // Z axis delta velocity (m/s)
+    ftype dax;          // X axis delta angle (rad)
+    ftype day;          // Y axis delta angle (rad)
+    ftype daz;          // Z axis delta angle (rad)
+    ftype q0;           // attitude quaternion
+    ftype q1;           // attitude quaternion
+    ftype q2;           // attitude quaternion
+    ftype q3;           // attitude quaternion
+    ftype dax_b;        // X axis delta angle measurement bias (rad)
+    ftype day_b;        // Y axis delta angle measurement bias (rad)
+    ftype daz_b;        // Z axis delta angle measurement bias (rad)
+    ftype dvx_b;        // X axis delta velocity measurement bias (rad)
+    ftype dvy_b;        // Y axis delta velocity measurement bias (rad)
+    ftype dvz_b;        // Z axis delta velocity measurement bias (rad)
 
     // Calculate the time step used by the covariance prediction as an average of the gyro and accel integration period
     // Constrain to prevent bad timing jitter causing numerical conditioning problems with the covariance prediction
@@ -1026,7 +1026,7 @@ void NavEKF3_core::CovariancePrediction(Vector3f *rotVarVecPtr)
 
     // use filtered height rate to increase wind process noise when climbing or descending
     // this allows for wind gradient effects.Filter height rate using a 10 second time constant filter
-    float alpha = 0.1f * dt;
+    ftype alpha = 0.1f * dt;
     hgtRate = hgtRate * (1.0f - alpha) - stateStruct.velocity.z * alpha;
 
     // calculate covariance prediction process noise added to diagonals of predicted covariance matrix
@@ -1034,13 +1034,13 @@ void NavEKF3_core::CovariancePrediction(Vector3f *rotVarVecPtr)
     Vector14 processNoiseVariance = {};
 
     if (!inhibitDelAngBiasStates) {
-        float dAngBiasVar = sq(sq(dt) * constrain_float(frontend->_gyroBiasProcessNoise, 0.0f, 1.0f));
+        ftype dAngBiasVar = sq(sq(dt) * constrain_float(frontend->_gyroBiasProcessNoise, 0.0, 1.0));
         for (uint8_t i=0; i<=2; i++) processNoiseVariance[i] = dAngBiasVar;
     }
 
     if (!inhibitDelVelBiasStates) {
         // default process noise (m/s)^2
-        float dVelBiasVar = sq(sq(dt) * constrain_float(frontend->_accelBiasProcessNoise, 0.0f, 1.0f));
+        ftype dVelBiasVar = sq(sq(dt) * constrain_float(frontend->_accelBiasProcessNoise, 0.0, 1.0));
         for (uint8_t i=3; i<=5; i++) {
             processNoiseVariance[i] = dVelBiasVar;
         }
@@ -1076,15 +1076,15 @@ void NavEKF3_core::CovariancePrediction(Vector3f *rotVarVecPtr)
     }
 
     if (!inhibitMagStates) {
-        float magEarthVar = sq(dt * constrain_float(frontend->_magEarthProcessNoise, 0.0f, 1.0f));
-        float magBodyVar  = sq(dt * constrain_float(frontend->_magBodyProcessNoise, 0.0f, 1.0f));
+        ftype magEarthVar = sq(dt * constrain_float(frontend->_magEarthProcessNoise, 0.0f, 1.0f));
+        ftype magBodyVar  = sq(dt * constrain_float(frontend->_magBodyProcessNoise, 0.0f, 1.0f));
         for (uint8_t i=6; i<=8; i++) processNoiseVariance[i] = magEarthVar;
         for (uint8_t i=9; i<=11; i++) processNoiseVariance[i] = magBodyVar;
     }
     lastInhibitMagStates = inhibitMagStates;
 
     if (!inhibitWindStates) {
-        float windVelVar  = sq(dt * constrain_float(frontend->_windVelProcessNoise, 0.0f, 1.0f) * (1.0f + constrain_float(frontend->_wndVarHgtRateScale, 0.0f, 1.0f) * fabsf(hgtRate)));
+        ftype windVelVar  = sq(dt * constrain_float(frontend->_windVelProcessNoise, 0.0f, 1.0f) * (1.0f + constrain_float(frontend->_wndVarHgtRateScale, 0.0f, 1.0f) * fabsf(hgtRate)));
         for (uint8_t i=12; i<=13; i++) processNoiseVariance[i] = windVelVar;
     }
 
@@ -1112,14 +1112,14 @@ void NavEKF3_core::CovariancePrediction(Vector3f *rotVarVecPtr)
         // vector defining the variance of the angular alignment uncertainty. Convert he varaince vector
         // to a matrix and rotate into body frame. Use the exisiting gyro error propagation mechanism to
         // propagate the body frame angular uncertainty variances.
-        const Vector3f &rotVarVec = *rotVarVecPtr;
-        Matrix3f R_ef = Matrix3f (
+        const Vector3F &rotVarVec = *rotVarVecPtr;
+        Matrix3F R_ef = Matrix3F (
             rotVarVec.x, 0.0f, 0.0f,
             0.0f, rotVarVec.y, 0.0f,
             0.0f, 0.0f, rotVarVec.z);
-        Matrix3f Tnb;
+        Matrix3F Tnb;
         stateStruct.quat.inverse().rotation_matrix(Tnb);
-        Matrix3f R_bf = Tnb * R_ef * Tnb.transposed();
+        Matrix3F R_bf = Tnb * R_ef * Tnb.transposed();
         daxVar = R_bf.a.x;
         dayVar = R_bf.b.y;
         dazVar = R_bf.c.z;
@@ -1127,10 +1127,10 @@ void NavEKF3_core::CovariancePrediction(Vector3f *rotVarVecPtr)
         zeroRows(P,0,3);
         zeroCols(P,0,3);
     } else {
-        float _gyrNoise = constrain_float(frontend->_gyrNoise, 0.0f, 1.0f);
+        ftype _gyrNoise = constrain_float(frontend->_gyrNoise, 0.0f, 1.0f);
         daxVar = dayVar = dazVar = sq(dt*_gyrNoise);
     }
-    float _accNoise = constrain_float(frontend->_accNoise, 0.0f, 10.0f);
+    ftype _accNoise = constrain_float(frontend->_accNoise, 0.0f, 10.0f);
     dvxVar = dvyVar = dvzVar = sq(dt*_accNoise);
 
     if (!inhibitDelVelBiasStates) {
@@ -1155,193 +1155,193 @@ void NavEKF3_core::CovariancePrediction(Vector3f *rotVarVecPtr)
     // we calculate the lower diagonal and copy to take advantage of symmetry
 
     // intermediate calculations
-    const float PS0 = powf(q1, 2);
-    const float PS1 = 0.25F*daxVar;
-    const float PS2 = powf(q2, 2);
-    const float PS3 = 0.25F*dayVar;
-    const float PS4 = powf(q3, 2);
-    const float PS5 = 0.25F*dazVar;
-    const float PS6 = 0.5F*q1;
-    const float PS7 = 0.5F*q2;
-    const float PS8 = PS7*P[10][11];
-    const float PS9 = 0.5F*q3;
-    const float PS10 = PS9*P[10][12];
-    const float PS11 = 0.5F*dax - 0.5F*dax_b;
-    const float PS12 = 0.5F*day - 0.5F*day_b;
-    const float PS13 = 0.5F*daz - 0.5F*daz_b;
-    const float PS14 = PS10 - PS11*P[1][10] - PS12*P[2][10] - PS13*P[3][10] + PS6*P[10][10] + PS8 + P[0][10];
-    const float PS15 = PS6*P[10][11];
-    const float PS16 = PS9*P[11][12];
-    const float PS17 = -PS11*P[1][11] - PS12*P[2][11] - PS13*P[3][11] + PS15 + PS16 + PS7*P[11][11] + P[0][11];
-    const float PS18 = PS6*P[10][12];
-    const float PS19 = PS7*P[11][12];
-    const float PS20 = -PS11*P[1][12] - PS12*P[2][12] - PS13*P[3][12] + PS18 + PS19 + PS9*P[12][12] + P[0][12];
-    const float PS21 = PS12*P[1][2];
-    const float PS22 = -PS13*P[1][3];
-    const float PS23 = -PS11*P[1][1] - PS21 + PS22 + PS6*P[1][10] + PS7*P[1][11] + PS9*P[1][12] + P[0][1];
-    const float PS24 = -PS11*P[1][2];
-    const float PS25 = PS13*P[2][3];
-    const float PS26 = -PS12*P[2][2] + PS24 - PS25 + PS6*P[2][10] + PS7*P[2][11] + PS9*P[2][12] + P[0][2];
-    const float PS27 = PS11*P[1][3];
-    const float PS28 = -PS12*P[2][3];
-    const float PS29 = -PS13*P[3][3] - PS27 + PS28 + PS6*P[3][10] + PS7*P[3][11] + PS9*P[3][12] + P[0][3];
-    const float PS30 = PS11*P[0][1];
-    const float PS31 = PS12*P[0][2];
-    const float PS32 = PS13*P[0][3];
-    const float PS33 = -PS30 - PS31 - PS32 + PS6*P[0][10] + PS7*P[0][11] + PS9*P[0][12] + P[0][0];
-    const float PS34 = 0.5F*q0;
-    const float PS35 = q2*q3;
-    const float PS36 = q0*q1;
-    const float PS37 = q1*q3;
-    const float PS38 = q0*q2;
-    const float PS39 = q1*q2;
-    const float PS40 = q0*q3;
-    const float PS41 = -PS2;
-    const float PS42 = powf(q0, 2);
-    const float PS43 = -PS4 + PS42;
-    const float PS44 = PS0 + PS41 + PS43;
-    const float PS45 = -PS11*P[1][13] - PS12*P[2][13] - PS13*P[3][13] + PS6*P[10][13] + PS7*P[11][13] + PS9*P[12][13] + P[0][13];
-    const float PS46 = PS37 + PS38;
-    const float PS47 = -PS11*P[1][15] - PS12*P[2][15] - PS13*P[3][15] + PS6*P[10][15] + PS7*P[11][15] + PS9*P[12][15] + P[0][15];
-    const float PS48 = 2*PS47;
-    const float PS49 = dvy - dvy_b;
-    const float PS50 = dvx - dvx_b;
-    const float PS51 = dvz - dvz_b;
-    const float PS52 = PS49*q0 + PS50*q3 - PS51*q1;
-    const float PS53 = 2*PS29;
-    const float PS54 = -PS39 + PS40;
-    const float PS55 = -PS11*P[1][14] - PS12*P[2][14] - PS13*P[3][14] + PS6*P[10][14] + PS7*P[11][14] + PS9*P[12][14] + P[0][14];
-    const float PS56 = 2*PS55;
-    const float PS57 = -PS49*q3 + PS50*q0 + PS51*q2;
-    const float PS58 = 2*PS33;
-    const float PS59 = PS49*q1 - PS50*q2 + PS51*q0;
-    const float PS60 = 2*PS59;
-    const float PS61 = PS49*q2 + PS50*q1 + PS51*q3;
-    const float PS62 = 2*PS61;
-    const float PS63 = -PS11*P[1][4] - PS12*P[2][4] - PS13*P[3][4] + PS6*P[4][10] + PS7*P[4][11] + PS9*P[4][12] + P[0][4];
-    const float PS64 = -PS0;
-    const float PS65 = PS2 + PS43 + PS64;
-    const float PS66 = PS39 + PS40;
-    const float PS67 = 2*PS45;
-    const float PS68 = -PS35 + PS36;
-    const float PS69 = -PS11*P[1][5] - PS12*P[2][5] - PS13*P[3][5] + PS6*P[5][10] + PS7*P[5][11] + PS9*P[5][12] + P[0][5];
-    const float PS70 = PS4 + PS41 + PS42 + PS64;
-    const float PS71 = PS35 + PS36;
-    const float PS72 = 2*PS57;
-    const float PS73 = -PS37 + PS38;
-    const float PS74 = 2*PS52;
-    const float PS75 = -PS11*P[1][6] - PS12*P[2][6] - PS13*P[3][6] + PS6*P[6][10] + PS7*P[6][11] + PS9*P[6][12] + P[0][6];
-    const float PS76 = -PS34*P[10][11];
-    const float PS77 = PS11*P[0][11] - PS12*P[3][11] + PS13*P[2][11] - PS19 + PS76 + PS9*P[11][11] + P[1][11];
-    const float PS78 = PS13*P[0][2];
-    const float PS79 = PS12*P[0][3];
-    const float PS80 = PS11*P[0][0] - PS34*P[0][10] - PS7*P[0][12] + PS78 - PS79 + PS9*P[0][11] + P[0][1];
-    const float PS81 = PS11*P[0][2];
-    const float PS82 = PS13*P[2][2] + PS28 - PS34*P[2][10] - PS7*P[2][12] + PS81 + PS9*P[2][11] + P[1][2];
-    const float PS83 = PS9*P[10][11];
-    const float PS84 = PS7*P[10][12];
-    const float PS85 = PS11*P[0][10] - PS12*P[3][10] + PS13*P[2][10] - PS34*P[10][10] + PS83 - PS84 + P[1][10];
-    const float PS86 = -PS34*P[10][12];
-    const float PS87 = PS11*P[0][12] - PS12*P[3][12] + PS13*P[2][12] + PS16 - PS7*P[12][12] + PS86 + P[1][12];
-    const float PS88 = PS11*P[0][3];
-    const float PS89 = -PS12*P[3][3] + PS25 - PS34*P[3][10] - PS7*P[3][12] + PS88 + PS9*P[3][11] + P[1][3];
-    const float PS90 = PS13*P[1][2];
-    const float PS91 = PS12*P[1][3];
-    const float PS92 = PS30 - PS34*P[1][10] - PS7*P[1][12] + PS9*P[1][11] + PS90 - PS91 + P[1][1];
-    const float PS93 = PS11*P[0][13] - PS12*P[3][13] + PS13*P[2][13] - PS34*P[10][13] - PS7*P[12][13] + PS9*P[11][13] + P[1][13];
-    const float PS94 = PS11*P[0][15] - PS12*P[3][15] + PS13*P[2][15] - PS34*P[10][15] - PS7*P[12][15] + PS9*P[11][15] + P[1][15];
-    const float PS95 = 2*PS94;
-    const float PS96 = PS11*P[0][14] - PS12*P[3][14] + PS13*P[2][14] - PS34*P[10][14] - PS7*P[12][14] + PS9*P[11][14] + P[1][14];
-    const float PS97 = 2*PS96;
-    const float PS98 = PS11*P[0][4] - PS12*P[3][4] + PS13*P[2][4] - PS34*P[4][10] - PS7*P[4][12] + PS9*P[4][11] + P[1][4];
-    const float PS99 = 2*PS93;
-    const float PS100 = PS11*P[0][5] - PS12*P[3][5] + PS13*P[2][5] - PS34*P[5][10] - PS7*P[5][12] + PS9*P[5][11] + P[1][5];
-    const float PS101 = PS11*P[0][6] - PS12*P[3][6] + PS13*P[2][6] - PS34*P[6][10] - PS7*P[6][12] + PS9*P[6][11] + P[1][6];
-    const float PS102 = -PS34*P[11][12];
-    const float PS103 = -PS10 + PS102 + PS11*P[3][12] + PS12*P[0][12] - PS13*P[1][12] + PS6*P[12][12] + P[2][12];
-    const float PS104 = PS11*P[3][3] + PS22 - PS34*P[3][11] + PS6*P[3][12] + PS79 - PS9*P[3][10] + P[2][3];
-    const float PS105 = PS13*P[0][1];
-    const float PS106 = -PS105 + PS12*P[0][0] - PS34*P[0][11] + PS6*P[0][12] + PS88 - PS9*P[0][10] + P[0][2];
-    const float PS107 = PS6*P[11][12];
-    const float PS108 = PS107 + PS11*P[3][11] + PS12*P[0][11] - PS13*P[1][11] - PS34*P[11][11] - PS83 + P[2][11];
-    const float PS109 = PS11*P[3][10] + PS12*P[0][10] - PS13*P[1][10] + PS18 + PS76 - PS9*P[10][10] + P[2][10];
-    const float PS110 = PS12*P[0][1];
-    const float PS111 = PS110 - PS13*P[1][1] + PS27 - PS34*P[1][11] + PS6*P[1][12] - PS9*P[1][10] + P[1][2];
-    const float PS112 = PS11*P[2][3];
-    const float PS113 = PS112 + PS31 - PS34*P[2][11] + PS6*P[2][12] - PS9*P[2][10] - PS90 + P[2][2];
-    const float PS114 = PS11*P[3][13] + PS12*P[0][13] - PS13*P[1][13] - PS34*P[11][13] + PS6*P[12][13] - PS9*P[10][13] + P[2][13];
-    const float PS115 = PS11*P[3][15] + PS12*P[0][15] - PS13*P[1][15] - PS34*P[11][15] + PS6*P[12][15] - PS9*P[10][15] + P[2][15];
-    const float PS116 = 2*PS115;
-    const float PS117 = PS11*P[3][14] + PS12*P[0][14] - PS13*P[1][14] - PS34*P[11][14] + PS6*P[12][14] - PS9*P[10][14] + P[2][14];
-    const float PS118 = 2*PS117;
-    const float PS119 = PS11*P[3][4] + PS12*P[0][4] - PS13*P[1][4] - PS34*P[4][11] + PS6*P[4][12] - PS9*P[4][10] + P[2][4];
-    const float PS120 = 2*PS114;
-    const float PS121 = PS11*P[3][5] + PS12*P[0][5] - PS13*P[1][5] - PS34*P[5][11] + PS6*P[5][12] - PS9*P[5][10] + P[2][5];
-    const float PS122 = PS11*P[3][6] + PS12*P[0][6] - PS13*P[1][6] - PS34*P[6][11] + PS6*P[6][12] - PS9*P[6][10] + P[2][6];
-    const float PS123 = -PS11*P[2][10] + PS12*P[1][10] + PS13*P[0][10] - PS15 + PS7*P[10][10] + PS86 + P[3][10];
-    const float PS124 = PS105 + PS12*P[1][1] + PS24 - PS34*P[1][12] - PS6*P[1][11] + PS7*P[1][10] + P[1][3];
-    const float PS125 = PS110 + PS13*P[0][0] - PS34*P[0][12] - PS6*P[0][11] + PS7*P[0][10] - PS81 + P[0][3];
-    const float PS126 = -PS107 - PS11*P[2][12] + PS12*P[1][12] + PS13*P[0][12] - PS34*P[12][12] + PS84 + P[3][12];
-    const float PS127 = PS102 - PS11*P[2][11] + PS12*P[1][11] + PS13*P[0][11] - PS6*P[11][11] + PS8 + P[3][11];
-    const float PS128 = -PS11*P[2][2] + PS21 - PS34*P[2][12] - PS6*P[2][11] + PS7*P[2][10] + PS78 + P[2][3];
-    const float PS129 = -PS112 + PS32 - PS34*P[3][12] - PS6*P[3][11] + PS7*P[3][10] + PS91 + P[3][3];
-    const float PS130 = -PS11*P[2][13] + PS12*P[1][13] + PS13*P[0][13] - PS34*P[12][13] - PS6*P[11][13] + PS7*P[10][13] + P[3][13];
-    const float PS131 = -PS11*P[2][15] + PS12*P[1][15] + PS13*P[0][15] - PS34*P[12][15] - PS6*P[11][15] + PS7*P[10][15] + P[3][15];
-    const float PS132 = 2*PS131;
-    const float PS133 = -PS11*P[2][14] + PS12*P[1][14] + PS13*P[0][14] - PS34*P[12][14] - PS6*P[11][14] + PS7*P[10][14] + P[3][14];
-    const float PS134 = 2*PS133;
-    const float PS135 = -PS11*P[2][4] + PS12*P[1][4] + PS13*P[0][4] - PS34*P[4][12] - PS6*P[4][11] + PS7*P[4][10] + P[3][4];
-    const float PS136 = 2*PS130;
-    const float PS137 = -PS11*P[2][5] + PS12*P[1][5] + PS13*P[0][5] - PS34*P[5][12] - PS6*P[5][11] + PS7*P[5][10] + P[3][5];
-    const float PS138 = -PS11*P[2][6] + PS12*P[1][6] + PS13*P[0][6] - PS34*P[6][12] - PS6*P[6][11] + PS7*P[6][10] + P[3][6];
-    const float PS139 = 2*PS46;
-    const float PS140 = 2*PS54;
-    const float PS141 = -PS139*P[13][15] + PS140*P[13][14] - PS44*P[13][13] + PS60*P[2][13] + PS62*P[1][13] + PS72*P[0][13] - PS74*P[3][13] + P[4][13];
-    const float PS142 = -PS139*P[15][15] + PS140*P[14][15] - PS44*P[13][15] + PS60*P[2][15] + PS62*P[1][15] + PS72*P[0][15] - PS74*P[3][15] + P[4][15];
-    const float PS143 = PS62*P[1][3];
-    const float PS144 = PS72*P[0][3];
-    const float PS145 = -PS139*P[3][15] + PS140*P[3][14] + PS143 + PS144 - PS44*P[3][13] + PS60*P[2][3] - PS74*P[3][3] + P[3][4];
-    const float PS146 = -PS139*P[14][15] + PS140*P[14][14] - PS44*P[13][14] + PS60*P[2][14] + PS62*P[1][14] + PS72*P[0][14] - PS74*P[3][14] + P[4][14];
-    const float PS147 = PS60*P[0][2];
-    const float PS148 = PS74*P[0][3];
-    const float PS149 = -PS139*P[0][15] + PS140*P[0][14] + PS147 - PS148 - PS44*P[0][13] + PS62*P[0][1] + PS72*P[0][0] + P[0][4];
-    const float PS150 = PS62*P[1][2];
-    const float PS151 = PS72*P[0][2];
-    const float PS152 = -PS139*P[2][15] + PS140*P[2][14] + PS150 + PS151 - PS44*P[2][13] + PS60*P[2][2] - PS74*P[2][3] + P[2][4];
-    const float PS153 = PS60*P[1][2];
-    const float PS154 = PS74*P[1][3];
-    const float PS155 = -PS139*P[1][15] + PS140*P[1][14] + PS153 - PS154 - PS44*P[1][13] + PS62*P[1][1] + PS72*P[0][1] + P[1][4];
-    const float PS156 = 4*dvyVar;
-    const float PS157 = 4*dvzVar;
-    const float PS158 = -PS139*P[4][15] + PS140*P[4][14] - PS44*P[4][13] + PS60*P[2][4] + PS62*P[1][4] + PS72*P[0][4] - PS74*P[3][4] + P[4][4];
-    const float PS159 = 2*PS141;
-    const float PS160 = 2*PS68;
-    const float PS161 = PS65*dvyVar;
-    const float PS162 = 2*PS66;
-    const float PS163 = PS44*dvxVar;
-    const float PS164 = -PS139*P[5][15] + PS140*P[5][14] - PS44*P[5][13] + PS60*P[2][5] + PS62*P[1][5] + PS72*P[0][5] - PS74*P[3][5] + P[4][5];
-    const float PS165 = 2*PS71;
-    const float PS166 = 2*PS73;
-    const float PS167 = PS70*dvzVar;
-    const float PS168 = -PS139*P[6][15] + PS140*P[6][14] - PS44*P[6][13] + PS60*P[2][6] + PS62*P[1][6] + PS72*P[0][6] - PS74*P[3][6] + P[4][6];
-    const float PS169 = PS160*P[14][15] - PS162*P[13][14] - PS60*P[1][14] + PS62*P[2][14] - PS65*P[14][14] + PS72*P[3][14] + PS74*P[0][14] + P[5][14];
-    const float PS170 = PS160*P[13][15] - PS162*P[13][13] - PS60*P[1][13] + PS62*P[2][13] - PS65*P[13][14] + PS72*P[3][13] + PS74*P[0][13] + P[5][13];
-    const float PS171 = PS74*P[0][1];
-    const float PS172 = PS150 + PS160*P[1][15] - PS162*P[1][13] + PS171 - PS60*P[1][1] - PS65*P[1][14] + PS72*P[1][3] + P[1][5];
-    const float PS173 = PS160*P[15][15] - PS162*P[13][15] - PS60*P[1][15] + PS62*P[2][15] - PS65*P[14][15] + PS72*P[3][15] + PS74*P[0][15] + P[5][15];
-    const float PS174 = PS62*P[2][3];
-    const float PS175 = PS148 + PS160*P[3][15] - PS162*P[3][13] + PS174 - PS60*P[1][3] - PS65*P[3][14] + PS72*P[3][3] + P[3][5];
-    const float PS176 = PS60*P[0][1];
-    const float PS177 = PS144 + PS160*P[0][15] - PS162*P[0][13] - PS176 + PS62*P[0][2] - PS65*P[0][14] + PS74*P[0][0] + P[0][5];
-    const float PS178 = PS72*P[2][3];
-    const float PS179 = -PS153 + PS160*P[2][15] - PS162*P[2][13] + PS178 + PS62*P[2][2] - PS65*P[2][14] + PS74*P[0][2] + P[2][5];
-    const float PS180 = 4*dvxVar;
-    const float PS181 = PS160*P[5][15] - PS162*P[5][13] - PS60*P[1][5] + PS62*P[2][5] - PS65*P[5][14] + PS72*P[3][5] + PS74*P[0][5] + P[5][5];
-    const float PS182 = PS160*P[6][15] - PS162*P[6][13] - PS60*P[1][6] + PS62*P[2][6] - PS65*P[6][14] + PS72*P[3][6] + PS74*P[0][6] + P[5][6];
-    const float PS183 = -PS165*P[14][15] + PS166*P[13][15] + PS60*P[0][15] + PS62*P[3][15] - PS70*P[15][15] - PS72*P[2][15] + PS74*P[1][15] + P[6][15];
-    const float PS184 = -PS165*P[14][14] + PS166*P[13][14] + PS60*P[0][14] + PS62*P[3][14] - PS70*P[14][15] - PS72*P[2][14] + PS74*P[1][14] + P[6][14];
-    const float PS185 = -PS165*P[13][14] + PS166*P[13][13] + PS60*P[0][13] + PS62*P[3][13] - PS70*P[13][15] - PS72*P[2][13] + PS74*P[1][13] + P[6][13];
-    const float PS186 = -PS165*P[6][14] + PS166*P[6][13] + PS60*P[0][6] + PS62*P[3][6] - PS70*P[6][15] - PS72*P[2][6] + PS74*P[1][6] + P[6][6];
+    const ftype PS0 = powf(q1, 2);
+    const ftype PS1 = 0.25F*daxVar;
+    const ftype PS2 = powf(q2, 2);
+    const ftype PS3 = 0.25F*dayVar;
+    const ftype PS4 = powf(q3, 2);
+    const ftype PS5 = 0.25F*dazVar;
+    const ftype PS6 = 0.5F*q1;
+    const ftype PS7 = 0.5F*q2;
+    const ftype PS8 = PS7*P[10][11];
+    const ftype PS9 = 0.5F*q3;
+    const ftype PS10 = PS9*P[10][12];
+    const ftype PS11 = 0.5F*dax - 0.5F*dax_b;
+    const ftype PS12 = 0.5F*day - 0.5F*day_b;
+    const ftype PS13 = 0.5F*daz - 0.5F*daz_b;
+    const ftype PS14 = PS10 - PS11*P[1][10] - PS12*P[2][10] - PS13*P[3][10] + PS6*P[10][10] + PS8 + P[0][10];
+    const ftype PS15 = PS6*P[10][11];
+    const ftype PS16 = PS9*P[11][12];
+    const ftype PS17 = -PS11*P[1][11] - PS12*P[2][11] - PS13*P[3][11] + PS15 + PS16 + PS7*P[11][11] + P[0][11];
+    const ftype PS18 = PS6*P[10][12];
+    const ftype PS19 = PS7*P[11][12];
+    const ftype PS20 = -PS11*P[1][12] - PS12*P[2][12] - PS13*P[3][12] + PS18 + PS19 + PS9*P[12][12] + P[0][12];
+    const ftype PS21 = PS12*P[1][2];
+    const ftype PS22 = -PS13*P[1][3];
+    const ftype PS23 = -PS11*P[1][1] - PS21 + PS22 + PS6*P[1][10] + PS7*P[1][11] + PS9*P[1][12] + P[0][1];
+    const ftype PS24 = -PS11*P[1][2];
+    const ftype PS25 = PS13*P[2][3];
+    const ftype PS26 = -PS12*P[2][2] + PS24 - PS25 + PS6*P[2][10] + PS7*P[2][11] + PS9*P[2][12] + P[0][2];
+    const ftype PS27 = PS11*P[1][3];
+    const ftype PS28 = -PS12*P[2][3];
+    const ftype PS29 = -PS13*P[3][3] - PS27 + PS28 + PS6*P[3][10] + PS7*P[3][11] + PS9*P[3][12] + P[0][3];
+    const ftype PS30 = PS11*P[0][1];
+    const ftype PS31 = PS12*P[0][2];
+    const ftype PS32 = PS13*P[0][3];
+    const ftype PS33 = -PS30 - PS31 - PS32 + PS6*P[0][10] + PS7*P[0][11] + PS9*P[0][12] + P[0][0];
+    const ftype PS34 = 0.5F*q0;
+    const ftype PS35 = q2*q3;
+    const ftype PS36 = q0*q1;
+    const ftype PS37 = q1*q3;
+    const ftype PS38 = q0*q2;
+    const ftype PS39 = q1*q2;
+    const ftype PS40 = q0*q3;
+    const ftype PS41 = -PS2;
+    const ftype PS42 = powf(q0, 2);
+    const ftype PS43 = -PS4 + PS42;
+    const ftype PS44 = PS0 + PS41 + PS43;
+    const ftype PS45 = -PS11*P[1][13] - PS12*P[2][13] - PS13*P[3][13] + PS6*P[10][13] + PS7*P[11][13] + PS9*P[12][13] + P[0][13];
+    const ftype PS46 = PS37 + PS38;
+    const ftype PS47 = -PS11*P[1][15] - PS12*P[2][15] - PS13*P[3][15] + PS6*P[10][15] + PS7*P[11][15] + PS9*P[12][15] + P[0][15];
+    const ftype PS48 = 2*PS47;
+    const ftype PS49 = dvy - dvy_b;
+    const ftype PS50 = dvx - dvx_b;
+    const ftype PS51 = dvz - dvz_b;
+    const ftype PS52 = PS49*q0 + PS50*q3 - PS51*q1;
+    const ftype PS53 = 2*PS29;
+    const ftype PS54 = -PS39 + PS40;
+    const ftype PS55 = -PS11*P[1][14] - PS12*P[2][14] - PS13*P[3][14] + PS6*P[10][14] + PS7*P[11][14] + PS9*P[12][14] + P[0][14];
+    const ftype PS56 = 2*PS55;
+    const ftype PS57 = -PS49*q3 + PS50*q0 + PS51*q2;
+    const ftype PS58 = 2*PS33;
+    const ftype PS59 = PS49*q1 - PS50*q2 + PS51*q0;
+    const ftype PS60 = 2*PS59;
+    const ftype PS61 = PS49*q2 + PS50*q1 + PS51*q3;
+    const ftype PS62 = 2*PS61;
+    const ftype PS63 = -PS11*P[1][4] - PS12*P[2][4] - PS13*P[3][4] + PS6*P[4][10] + PS7*P[4][11] + PS9*P[4][12] + P[0][4];
+    const ftype PS64 = -PS0;
+    const ftype PS65 = PS2 + PS43 + PS64;
+    const ftype PS66 = PS39 + PS40;
+    const ftype PS67 = 2*PS45;
+    const ftype PS68 = -PS35 + PS36;
+    const ftype PS69 = -PS11*P[1][5] - PS12*P[2][5] - PS13*P[3][5] + PS6*P[5][10] + PS7*P[5][11] + PS9*P[5][12] + P[0][5];
+    const ftype PS70 = PS4 + PS41 + PS42 + PS64;
+    const ftype PS71 = PS35 + PS36;
+    const ftype PS72 = 2*PS57;
+    const ftype PS73 = -PS37 + PS38;
+    const ftype PS74 = 2*PS52;
+    const ftype PS75 = -PS11*P[1][6] - PS12*P[2][6] - PS13*P[3][6] + PS6*P[6][10] + PS7*P[6][11] + PS9*P[6][12] + P[0][6];
+    const ftype PS76 = -PS34*P[10][11];
+    const ftype PS77 = PS11*P[0][11] - PS12*P[3][11] + PS13*P[2][11] - PS19 + PS76 + PS9*P[11][11] + P[1][11];
+    const ftype PS78 = PS13*P[0][2];
+    const ftype PS79 = PS12*P[0][3];
+    const ftype PS80 = PS11*P[0][0] - PS34*P[0][10] - PS7*P[0][12] + PS78 - PS79 + PS9*P[0][11] + P[0][1];
+    const ftype PS81 = PS11*P[0][2];
+    const ftype PS82 = PS13*P[2][2] + PS28 - PS34*P[2][10] - PS7*P[2][12] + PS81 + PS9*P[2][11] + P[1][2];
+    const ftype PS83 = PS9*P[10][11];
+    const ftype PS84 = PS7*P[10][12];
+    const ftype PS85 = PS11*P[0][10] - PS12*P[3][10] + PS13*P[2][10] - PS34*P[10][10] + PS83 - PS84 + P[1][10];
+    const ftype PS86 = -PS34*P[10][12];
+    const ftype PS87 = PS11*P[0][12] - PS12*P[3][12] + PS13*P[2][12] + PS16 - PS7*P[12][12] + PS86 + P[1][12];
+    const ftype PS88 = PS11*P[0][3];
+    const ftype PS89 = -PS12*P[3][3] + PS25 - PS34*P[3][10] - PS7*P[3][12] + PS88 + PS9*P[3][11] + P[1][3];
+    const ftype PS90 = PS13*P[1][2];
+    const ftype PS91 = PS12*P[1][3];
+    const ftype PS92 = PS30 - PS34*P[1][10] - PS7*P[1][12] + PS9*P[1][11] + PS90 - PS91 + P[1][1];
+    const ftype PS93 = PS11*P[0][13] - PS12*P[3][13] + PS13*P[2][13] - PS34*P[10][13] - PS7*P[12][13] + PS9*P[11][13] + P[1][13];
+    const ftype PS94 = PS11*P[0][15] - PS12*P[3][15] + PS13*P[2][15] - PS34*P[10][15] - PS7*P[12][15] + PS9*P[11][15] + P[1][15];
+    const ftype PS95 = 2*PS94;
+    const ftype PS96 = PS11*P[0][14] - PS12*P[3][14] + PS13*P[2][14] - PS34*P[10][14] - PS7*P[12][14] + PS9*P[11][14] + P[1][14];
+    const ftype PS97 = 2*PS96;
+    const ftype PS98 = PS11*P[0][4] - PS12*P[3][4] + PS13*P[2][4] - PS34*P[4][10] - PS7*P[4][12] + PS9*P[4][11] + P[1][4];
+    const ftype PS99 = 2*PS93;
+    const ftype PS100 = PS11*P[0][5] - PS12*P[3][5] + PS13*P[2][5] - PS34*P[5][10] - PS7*P[5][12] + PS9*P[5][11] + P[1][5];
+    const ftype PS101 = PS11*P[0][6] - PS12*P[3][6] + PS13*P[2][6] - PS34*P[6][10] - PS7*P[6][12] + PS9*P[6][11] + P[1][6];
+    const ftype PS102 = -PS34*P[11][12];
+    const ftype PS103 = -PS10 + PS102 + PS11*P[3][12] + PS12*P[0][12] - PS13*P[1][12] + PS6*P[12][12] + P[2][12];
+    const ftype PS104 = PS11*P[3][3] + PS22 - PS34*P[3][11] + PS6*P[3][12] + PS79 - PS9*P[3][10] + P[2][3];
+    const ftype PS105 = PS13*P[0][1];
+    const ftype PS106 = -PS105 + PS12*P[0][0] - PS34*P[0][11] + PS6*P[0][12] + PS88 - PS9*P[0][10] + P[0][2];
+    const ftype PS107 = PS6*P[11][12];
+    const ftype PS108 = PS107 + PS11*P[3][11] + PS12*P[0][11] - PS13*P[1][11] - PS34*P[11][11] - PS83 + P[2][11];
+    const ftype PS109 = PS11*P[3][10] + PS12*P[0][10] - PS13*P[1][10] + PS18 + PS76 - PS9*P[10][10] + P[2][10];
+    const ftype PS110 = PS12*P[0][1];
+    const ftype PS111 = PS110 - PS13*P[1][1] + PS27 - PS34*P[1][11] + PS6*P[1][12] - PS9*P[1][10] + P[1][2];
+    const ftype PS112 = PS11*P[2][3];
+    const ftype PS113 = PS112 + PS31 - PS34*P[2][11] + PS6*P[2][12] - PS9*P[2][10] - PS90 + P[2][2];
+    const ftype PS114 = PS11*P[3][13] + PS12*P[0][13] - PS13*P[1][13] - PS34*P[11][13] + PS6*P[12][13] - PS9*P[10][13] + P[2][13];
+    const ftype PS115 = PS11*P[3][15] + PS12*P[0][15] - PS13*P[1][15] - PS34*P[11][15] + PS6*P[12][15] - PS9*P[10][15] + P[2][15];
+    const ftype PS116 = 2*PS115;
+    const ftype PS117 = PS11*P[3][14] + PS12*P[0][14] - PS13*P[1][14] - PS34*P[11][14] + PS6*P[12][14] - PS9*P[10][14] + P[2][14];
+    const ftype PS118 = 2*PS117;
+    const ftype PS119 = PS11*P[3][4] + PS12*P[0][4] - PS13*P[1][4] - PS34*P[4][11] + PS6*P[4][12] - PS9*P[4][10] + P[2][4];
+    const ftype PS120 = 2*PS114;
+    const ftype PS121 = PS11*P[3][5] + PS12*P[0][5] - PS13*P[1][5] - PS34*P[5][11] + PS6*P[5][12] - PS9*P[5][10] + P[2][5];
+    const ftype PS122 = PS11*P[3][6] + PS12*P[0][6] - PS13*P[1][6] - PS34*P[6][11] + PS6*P[6][12] - PS9*P[6][10] + P[2][6];
+    const ftype PS123 = -PS11*P[2][10] + PS12*P[1][10] + PS13*P[0][10] - PS15 + PS7*P[10][10] + PS86 + P[3][10];
+    const ftype PS124 = PS105 + PS12*P[1][1] + PS24 - PS34*P[1][12] - PS6*P[1][11] + PS7*P[1][10] + P[1][3];
+    const ftype PS125 = PS110 + PS13*P[0][0] - PS34*P[0][12] - PS6*P[0][11] + PS7*P[0][10] - PS81 + P[0][3];
+    const ftype PS126 = -PS107 - PS11*P[2][12] + PS12*P[1][12] + PS13*P[0][12] - PS34*P[12][12] + PS84 + P[3][12];
+    const ftype PS127 = PS102 - PS11*P[2][11] + PS12*P[1][11] + PS13*P[0][11] - PS6*P[11][11] + PS8 + P[3][11];
+    const ftype PS128 = -PS11*P[2][2] + PS21 - PS34*P[2][12] - PS6*P[2][11] + PS7*P[2][10] + PS78 + P[2][3];
+    const ftype PS129 = -PS112 + PS32 - PS34*P[3][12] - PS6*P[3][11] + PS7*P[3][10] + PS91 + P[3][3];
+    const ftype PS130 = -PS11*P[2][13] + PS12*P[1][13] + PS13*P[0][13] - PS34*P[12][13] - PS6*P[11][13] + PS7*P[10][13] + P[3][13];
+    const ftype PS131 = -PS11*P[2][15] + PS12*P[1][15] + PS13*P[0][15] - PS34*P[12][15] - PS6*P[11][15] + PS7*P[10][15] + P[3][15];
+    const ftype PS132 = 2*PS131;
+    const ftype PS133 = -PS11*P[2][14] + PS12*P[1][14] + PS13*P[0][14] - PS34*P[12][14] - PS6*P[11][14] + PS7*P[10][14] + P[3][14];
+    const ftype PS134 = 2*PS133;
+    const ftype PS135 = -PS11*P[2][4] + PS12*P[1][4] + PS13*P[0][4] - PS34*P[4][12] - PS6*P[4][11] + PS7*P[4][10] + P[3][4];
+    const ftype PS136 = 2*PS130;
+    const ftype PS137 = -PS11*P[2][5] + PS12*P[1][5] + PS13*P[0][5] - PS34*P[5][12] - PS6*P[5][11] + PS7*P[5][10] + P[3][5];
+    const ftype PS138 = -PS11*P[2][6] + PS12*P[1][6] + PS13*P[0][6] - PS34*P[6][12] - PS6*P[6][11] + PS7*P[6][10] + P[3][6];
+    const ftype PS139 = 2*PS46;
+    const ftype PS140 = 2*PS54;
+    const ftype PS141 = -PS139*P[13][15] + PS140*P[13][14] - PS44*P[13][13] + PS60*P[2][13] + PS62*P[1][13] + PS72*P[0][13] - PS74*P[3][13] + P[4][13];
+    const ftype PS142 = -PS139*P[15][15] + PS140*P[14][15] - PS44*P[13][15] + PS60*P[2][15] + PS62*P[1][15] + PS72*P[0][15] - PS74*P[3][15] + P[4][15];
+    const ftype PS143 = PS62*P[1][3];
+    const ftype PS144 = PS72*P[0][3];
+    const ftype PS145 = -PS139*P[3][15] + PS140*P[3][14] + PS143 + PS144 - PS44*P[3][13] + PS60*P[2][3] - PS74*P[3][3] + P[3][4];
+    const ftype PS146 = -PS139*P[14][15] + PS140*P[14][14] - PS44*P[13][14] + PS60*P[2][14] + PS62*P[1][14] + PS72*P[0][14] - PS74*P[3][14] + P[4][14];
+    const ftype PS147 = PS60*P[0][2];
+    const ftype PS148 = PS74*P[0][3];
+    const ftype PS149 = -PS139*P[0][15] + PS140*P[0][14] + PS147 - PS148 - PS44*P[0][13] + PS62*P[0][1] + PS72*P[0][0] + P[0][4];
+    const ftype PS150 = PS62*P[1][2];
+    const ftype PS151 = PS72*P[0][2];
+    const ftype PS152 = -PS139*P[2][15] + PS140*P[2][14] + PS150 + PS151 - PS44*P[2][13] + PS60*P[2][2] - PS74*P[2][3] + P[2][4];
+    const ftype PS153 = PS60*P[1][2];
+    const ftype PS154 = PS74*P[1][3];
+    const ftype PS155 = -PS139*P[1][15] + PS140*P[1][14] + PS153 - PS154 - PS44*P[1][13] + PS62*P[1][1] + PS72*P[0][1] + P[1][4];
+    const ftype PS156 = 4*dvyVar;
+    const ftype PS157 = 4*dvzVar;
+    const ftype PS158 = -PS139*P[4][15] + PS140*P[4][14] - PS44*P[4][13] + PS60*P[2][4] + PS62*P[1][4] + PS72*P[0][4] - PS74*P[3][4] + P[4][4];
+    const ftype PS159 = 2*PS141;
+    const ftype PS160 = 2*PS68;
+    const ftype PS161 = PS65*dvyVar;
+    const ftype PS162 = 2*PS66;
+    const ftype PS163 = PS44*dvxVar;
+    const ftype PS164 = -PS139*P[5][15] + PS140*P[5][14] - PS44*P[5][13] + PS60*P[2][5] + PS62*P[1][5] + PS72*P[0][5] - PS74*P[3][5] + P[4][5];
+    const ftype PS165 = 2*PS71;
+    const ftype PS166 = 2*PS73;
+    const ftype PS167 = PS70*dvzVar;
+    const ftype PS168 = -PS139*P[6][15] + PS140*P[6][14] - PS44*P[6][13] + PS60*P[2][6] + PS62*P[1][6] + PS72*P[0][6] - PS74*P[3][6] + P[4][6];
+    const ftype PS169 = PS160*P[14][15] - PS162*P[13][14] - PS60*P[1][14] + PS62*P[2][14] - PS65*P[14][14] + PS72*P[3][14] + PS74*P[0][14] + P[5][14];
+    const ftype PS170 = PS160*P[13][15] - PS162*P[13][13] - PS60*P[1][13] + PS62*P[2][13] - PS65*P[13][14] + PS72*P[3][13] + PS74*P[0][13] + P[5][13];
+    const ftype PS171 = PS74*P[0][1];
+    const ftype PS172 = PS150 + PS160*P[1][15] - PS162*P[1][13] + PS171 - PS60*P[1][1] - PS65*P[1][14] + PS72*P[1][3] + P[1][5];
+    const ftype PS173 = PS160*P[15][15] - PS162*P[13][15] - PS60*P[1][15] + PS62*P[2][15] - PS65*P[14][15] + PS72*P[3][15] + PS74*P[0][15] + P[5][15];
+    const ftype PS174 = PS62*P[2][3];
+    const ftype PS175 = PS148 + PS160*P[3][15] - PS162*P[3][13] + PS174 - PS60*P[1][3] - PS65*P[3][14] + PS72*P[3][3] + P[3][5];
+    const ftype PS176 = PS60*P[0][1];
+    const ftype PS177 = PS144 + PS160*P[0][15] - PS162*P[0][13] - PS176 + PS62*P[0][2] - PS65*P[0][14] + PS74*P[0][0] + P[0][5];
+    const ftype PS178 = PS72*P[2][3];
+    const ftype PS179 = -PS153 + PS160*P[2][15] - PS162*P[2][13] + PS178 + PS62*P[2][2] - PS65*P[2][14] + PS74*P[0][2] + P[2][5];
+    const ftype PS180 = 4*dvxVar;
+    const ftype PS181 = PS160*P[5][15] - PS162*P[5][13] - PS60*P[1][5] + PS62*P[2][5] - PS65*P[5][14] + PS72*P[3][5] + PS74*P[0][5] + P[5][5];
+    const ftype PS182 = PS160*P[6][15] - PS162*P[6][13] - PS60*P[1][6] + PS62*P[2][6] - PS65*P[6][14] + PS72*P[3][6] + PS74*P[0][6] + P[5][6];
+    const ftype PS183 = -PS165*P[14][15] + PS166*P[13][15] + PS60*P[0][15] + PS62*P[3][15] - PS70*P[15][15] - PS72*P[2][15] + PS74*P[1][15] + P[6][15];
+    const ftype PS184 = -PS165*P[14][14] + PS166*P[13][14] + PS60*P[0][14] + PS62*P[3][14] - PS70*P[14][15] - PS72*P[2][14] + PS74*P[1][14] + P[6][14];
+    const ftype PS185 = -PS165*P[13][14] + PS166*P[13][13] + PS60*P[0][13] + PS62*P[3][13] - PS70*P[13][15] - PS72*P[2][13] + PS74*P[1][13] + P[6][13];
+    const ftype PS186 = -PS165*P[6][14] + PS166*P[6][13] + PS60*P[0][6] + PS62*P[3][6] - PS70*P[6][15] - PS72*P[2][6] + PS74*P[1][6] + P[6][6];
 
     nextP[0][0] = PS0*PS1 - PS11*PS23 - PS12*PS26 - PS13*PS29 + PS14*PS6 + PS17*PS7 + PS2*PS3 + PS20*PS9 + PS33 + PS4*PS5;
     nextP[0][1] = -PS1*PS36 + PS11*PS33 - PS12*PS29 + PS13*PS26 - PS14*PS34 + PS17*PS9 - PS20*PS7 + PS23 + PS3*PS35 - PS35*PS5;
@@ -1775,7 +1775,7 @@ void NavEKF3_core::StoreQuatReset()
 }
 
 // Rotate the stored output quaternion history through a quaternion rotation
-void NavEKF3_core::StoreQuatRotate(const Quaternion &deltaQuat)
+void NavEKF3_core::StoreQuatRotate(const QuaternionF &deltaQuat)
 {
     outputDataNew.quat = outputDataNew.quat*deltaQuat;
     // write current measurement to entire table
@@ -1792,7 +1792,7 @@ void NavEKF3_core::ForceSymmetry()
     {
         for (uint8_t j=0; j<=i-1; j++)
         {
-            float temp = 0.5f*(P[i][j] + P[j][i]);
+            ftype temp = 0.5f*(P[i][j] + P[j][i]);
             P[i][j] = temp;
             P[j][i] = temp;
         }
@@ -1815,12 +1815,12 @@ void NavEKF3_core::ConstrainVariances()
         zeroRows(P,10,12);
     }
 
-    const float minStateVarTarget = 1E-8f;
+    const ftype minStateVarTarget = 1E-8f;
     if (!inhibitDelVelBiasStates) {
 
         // Find the maximum delta velocity bias state variance and request a covariance reset if any variance is below the safe minimum
-        const float minSafeStateVar = 1e-9f;
-        float maxStateVar = minSafeStateVar;
+        const ftype minSafeStateVar = 1e-9f;
+        ftype maxStateVar = minSafeStateVar;
         bool resetRequired = false;
         for (uint8_t stateIndex=13; stateIndex<=15; stateIndex++) {
             if (P[stateIndex][stateIndex] > maxStateVar) {
@@ -1832,14 +1832,14 @@ void NavEKF3_core::ConstrainVariances()
 
         // To ensure stability of the covariance matrix operations, the ratio of a max and min variance must
         // not exceed 100 and the minimum variance must not fall below the target minimum
-        float minAllowedStateVar = fmaxf(0.01f * maxStateVar, minStateVarTarget);
+        ftype minAllowedStateVar = fmaxf(0.01f * maxStateVar, minStateVarTarget);
         for (uint8_t stateIndex=13; stateIndex<=15; stateIndex++) {
             P[stateIndex][stateIndex] = constrain_float(P[stateIndex][stateIndex], minAllowedStateVar, sq(10.0f * dtEkfAvg));
         }
 
         // If any one axis has fallen below the safe minimum, all delta velocity covariance terms must be reset to zero
         if (resetRequired) {
-            float delVelBiasVar[3];
+            ftype delVelBiasVar[3];
             // store all delta velocity bias variances
             for (uint8_t i=0; i<=2; i++) {
                 delVelBiasVar[i] = P[i+13][i+13];
@@ -1881,7 +1881,7 @@ void NavEKF3_core::ConstrainVariances()
 void NavEKF3_core::MagTableConstrain(void)
 {
     // constrain to error from table earth field
-    float limit_ga = frontend->_mag_ef_limit * 0.001f;
+    ftype limit_ga = frontend->_mag_ef_limit * 0.001f;
     stateStruct.earth_magfield.x = constrain_float(stateStruct.earth_magfield.x,
                                                    table_earth_field_ga.x-limit_ga,
                                                    table_earth_field_ga.x+limit_ga);
@@ -1927,9 +1927,9 @@ void NavEKF3_core::ConstrainStates()
 }
 
 // calculate the NED earth spin vector in rad/sec
-void NavEKF3_core::calcEarthRateNED(Vector3f &omega, int32_t latitude) const
+void NavEKF3_core::calcEarthRateNED(Vector3F &omega, int32_t latitude) const
 {
-    float lat_rad = radians(latitude*1.0e-7f);
+    ftype lat_rad = radians(latitude*1.0e-7f);
     omega.x  = earthRate*cosf(lat_rad);
     omega.y  = 0;
     omega.z  = -earthRate*sinf(lat_rad);
@@ -1948,8 +1948,8 @@ void NavEKF3_core::setYawFromMag()
     // use best of either 312 or 321 rotation sequence when calculating yaw
     rotationOrder order;
     bestRotationOrder(order);
-    Vector3f eulerAngles;
-    Matrix3f Tbn_zeroYaw;
+    Vector3F eulerAngles;
+    Matrix3F Tbn_zeroYaw;
     if (order == rotationOrder::TAIT_BRYAN_321) {
         // rolled more than pitched so use 321 rotation order
         stateStruct.quat.to_euler(eulerAngles.x, eulerAngles.y, eulerAngles.z);
@@ -1963,8 +1963,8 @@ void NavEKF3_core::setYawFromMag()
         return;
     }
 
-    Vector3f magMeasNED = Tbn_zeroYaw * magDataDelayed.mag;
-    float yawAngMeasured = wrap_PI(-atan2f(magMeasNED.y, magMeasNED.x) + MagDeclination());
+    Vector3F magMeasNED = Tbn_zeroYaw * magDataDelayed.mag;
+    ftype yawAngMeasured = wrap_PI(-atan2f(magMeasNED.y, magMeasNED.x) + MagDeclination());
 
     // update quaternion states and covariances
     resetQuatStateYawOnly(yawAngMeasured, sq(MAX(frontend->_yawNoise, 1.0e-2f)), order);
@@ -2003,7 +2003,7 @@ void NavEKF3_core::resetMagFieldStates()
 // zero the attitude covariances, but preserve the variances
 void NavEKF3_core::zeroAttCovOnly()
 {
-    float varTemp[4];
+    ftype varTemp[4];
     for (uint8_t index=0; index<=3; index++) {
         varTemp[index] = P[index][index];
     }
@@ -2017,41 +2017,41 @@ void NavEKF3_core::zeroAttCovOnly()
 // calculate the tilt error variance
 void NavEKF3_core::calcTiltErrorVariance()
 {
-    const float &q0 = stateStruct.quat[0];
-    const float &q1 = stateStruct.quat[1];
-    const float &q2 = stateStruct.quat[2];
-    const float &q3 = stateStruct.quat[3];
+    const ftype &q0 = stateStruct.quat[0];
+    const ftype &q1 = stateStruct.quat[1];
+    const ftype &q2 = stateStruct.quat[2];
+    const ftype &q3 = stateStruct.quat[3];
 
     // equations generated by quaternion_error_propagation(): in AP_NavEKF3/derivation/main.py
     // only diagonals have been used
     // dq0 ... dq3  terms have been zeroed
-    const float PS1 = q0*q1 + q2*q3;
-    const float PS2 = q1*PS1;
-    const float PS4 = sq(q0) - sq(q1) - sq(q2) + sq(q3);
-    const float PS5 = q0*PS4;
-    const float PS6 = 2*PS2 + PS5;
-    const float PS8 = PS1*q2;
-    const float PS10 = PS4*q3;
-    const float PS11 = PS10 + 2*PS8;
-    const float PS12 = PS1*q3;
-    const float PS13 = PS4*q2;
-    const float PS14 = -2*PS12 + PS13;
-    const float PS15 = PS1*q0;
-    const float PS16 = q1*PS4;
-    const float PS17 = 2*PS15 - PS16;
-    const float PS18 = q0*q2 - q1*q3;
-    const float PS19 = PS18*q2;
-    const float PS20 = 2*PS19 + PS5;
-    const float PS22 = q1*PS18;
-    const float PS23 = -PS10 + 2*PS22;
-    const float PS25 = PS18*q3;
-    const float PS26 = PS16 + 2*PS25;
-    const float PS28 = PS18*q0;
-    const float PS29 = -PS13 + 2*PS28;
-    const float PS32 = PS12 + PS28;
-    const float PS33 = PS19 + PS2;
-    const float PS34 = PS15 - PS25;
-    const float PS35 = PS22 - PS8;
+    const ftype PS1 = q0*q1 + q2*q3;
+    const ftype PS2 = q1*PS1;
+    const ftype PS4 = sq(q0) - sq(q1) - sq(q2) + sq(q3);
+    const ftype PS5 = q0*PS4;
+    const ftype PS6 = 2*PS2 + PS5;
+    const ftype PS8 = PS1*q2;
+    const ftype PS10 = PS4*q3;
+    const ftype PS11 = PS10 + 2*PS8;
+    const ftype PS12 = PS1*q3;
+    const ftype PS13 = PS4*q2;
+    const ftype PS14 = -2*PS12 + PS13;
+    const ftype PS15 = PS1*q0;
+    const ftype PS16 = q1*PS4;
+    const ftype PS17 = 2*PS15 - PS16;
+    const ftype PS18 = q0*q2 - q1*q3;
+    const ftype PS19 = PS18*q2;
+    const ftype PS20 = 2*PS19 + PS5;
+    const ftype PS22 = q1*PS18;
+    const ftype PS23 = -PS10 + 2*PS22;
+    const ftype PS25 = PS18*q3;
+    const ftype PS26 = PS16 + 2*PS25;
+    const ftype PS28 = PS18*q0;
+    const ftype PS29 = -PS13 + 2*PS28;
+    const ftype PS32 = PS12 + PS28;
+    const ftype PS33 = PS19 + PS2;
+    const ftype PS34 = PS15 - PS25;
+    const ftype PS35 = PS22 - PS8;
 
     tiltErrorVariance  = 4*sq(PS11)*P[2][2] + 4*sq(PS14)*P[3][3] + 4*sq(PS17)*P[0][0] + 4*sq(PS6)*P[1][1];
     tiltErrorVariance += 4*sq(PS20)*P[2][2] + 4*sq(PS23)*P[1][1] + 4*sq(PS26)*P[3][3] + 4*sq(PS29)*P[0][0];
@@ -2081,7 +2081,7 @@ void NavEKF3_core::verifyTiltErrorVariance()
     const float quat_delta = 0.001f;
     float tiltErrorVarianceAlt = 0.0f;
     for (uint8_t index = 0; index<4; index++) {
-        Quaternion quat = stateStruct.quat;
+        QuaternionF quat = stateStruct.quat;
 
         // Add a positive increment to the quaternion element and calculate the tilt error vector
         quat[index] = stateStruct.quat[index] + quat_delta;
@@ -2111,8 +2111,8 @@ void NavEKF3_core::verifyTiltErrorVariance()
             LOG_PACKET_HEADER_INIT(LOG_XKTV_MSG),
             time_us      : dal.micros64(),
             core         : core_index,
-            tvs          : tiltErrorVariance,
-            tvd          : tiltErrorVarianceAlt,
+            tvs          : float(tiltErrorVariance),
+            tvd          : float(tiltErrorVarianceAlt),
         };
         AP::logger().WriteBlock(&msg, sizeof(msg));
     }

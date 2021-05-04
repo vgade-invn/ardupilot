@@ -112,7 +112,7 @@ void NavEKF3_core::getGyroBias(Vector3f &gyroBias) const
         gyroBias.zero();
         return;
     }
-    gyroBias = stateStruct.gyro_bias / dtEkfAvg;
+    gyroBias = (stateStruct.gyro_bias / dtEkfAvg).tofloat();
 }
 
 // return accelerometer bias in m/s/s
@@ -122,7 +122,7 @@ void NavEKF3_core::getAccelBias(Vector3f &accelBias) const
         accelBias.zero();
         return;
     }
-    accelBias = stateStruct.accel_bias / dtEkfAvg;
+    accelBias = (stateStruct.accel_bias / dtEkfAvg).tofloat();
 }
 
 // return the transformation matrix from XYZ (body) to NED axes
@@ -135,7 +135,7 @@ void NavEKF3_core::getRotationBodyToNED(Matrix3f &mat) const
 // return the quaternions defining the rotation from NED to XYZ (body) axes
 void NavEKF3_core::getQuaternion(Quaternion& ret) const
 {
-    ret = outputDataNew.quat;
+    ret = outputDataNew.quat.tofloat();
 }
 
 // return the amount of yaw angle change due to the last yaw angle reset in radians
@@ -150,7 +150,7 @@ uint32_t NavEKF3_core::getLastYawResetAngle(float &yawAng) const
 // returns the time of the last reset or 0 if no reset has ever occurred
 uint32_t NavEKF3_core::getLastPosNorthEastReset(Vector2f &pos) const
 {
-    pos = posResetNE;
+    pos = posResetNE.tofloat();
     return lastPosReset_ms;
 }
 
@@ -166,7 +166,7 @@ uint32_t NavEKF3_core::getLastPosDownReset(float &posD) const
 // returns the time of the last reset or 0 if no reset has ever occurred
 uint32_t NavEKF3_core::getLastVelNorthEastReset(Vector2f &vel) const
 {
-    vel = velResetNE;
+    vel = velResetNE.tofloat();
     return lastVelReset_ms;
 }
 
@@ -185,7 +185,7 @@ bool NavEKF3_core::getWind(Vector3f &wind) const
 void NavEKF3_core::getVelNED(Vector3f &vel) const
 {
     // correct for the IMU position offset (EKF calculations are at the IMU)
-    vel = outputDataNew.velocity + velOffsetNED;
+    vel = (outputDataNew.velocity + velOffsetNED).tofloat();
 }
 
 // return estimate of true airspeed vector in body frame in m/s
@@ -195,7 +195,7 @@ bool NavEKF3_core::getAirSpdVec(Vector3f &vel) const
     if (inhibitWindStates || PV_AidingMode == AID_NONE) {
         return false;
     }
-    vel = outputDataNew.velocity + velOffsetNED;
+    vel = (outputDataNew.velocity + velOffsetNED).tofloat();
     vel.x -= stateStruct.wind_vel.x;
     vel.y -= stateStruct.wind_vel.y;
     Matrix3f Tnb; // rotation from nav to body frame
@@ -383,13 +383,13 @@ bool NavEKF3_core::getOriginLLH(struct Location &loc) const
 // return earth magnetic field estimates in measurement units / 1000
 void NavEKF3_core::getMagNED(Vector3f &magNED) const
 {
-    magNED = stateStruct.earth_magfield * 1000.0f;
+    magNED = (stateStruct.earth_magfield * 1000.0f).tofloat();
 }
 
 // return body magnetic field estimates in measurement units / 1000
 void NavEKF3_core::getMagXYZ(Vector3f &magXYZ) const
 {
-    magXYZ = stateStruct.body_magfield*1000.0f;
+    magXYZ = (stateStruct.body_magfield*1000.0f).tofloat();
 }
 
 // return magnetometer offsets
@@ -408,7 +408,7 @@ bool NavEKF3_core::getMagOffsets(uint8_t mag_idx, Vector3f &magOffsets) const
             !inhibitMagStates &&
             dal.get_compass()->healthy(magSelectIndex) &&
             variancesConverged) {
-        magOffsets = dal.get_compass()->get_offsets(magSelectIndex) - stateStruct.body_magfield*1000.0f;
+        magOffsets = dal.get_compass()->get_offsets(magSelectIndex) - stateStruct.body_magfield.tofloat()*1000.0;
         return true;
     } else {
         magOffsets = dal.get_compass()->get_offsets(magSelectIndex);
@@ -462,7 +462,7 @@ void  NavEKF3_core::getVariances(float &velVar, float &posVar, float &hgtVar, Ve
     magVar.y = sqrtf(MAX(magTestRatio.y,yawTestRatio));
     magVar.z = sqrtf(MAX(magTestRatio.z,yawTestRatio));
     tasVar   = sqrtf(tasTestRatio);
-    offset   = posResetNE;
+    offset   = posResetNE.tofloat();
 }
 
 // get a particular source's velocity innovations
@@ -475,8 +475,8 @@ bool NavEKF3_core::getVelInnovationsAndVariancesForSource(AP_NavEKF_Source::Sour
         if (AP_HAL::millis() - gpsVelInnovTime_ms > 500) {
             return false;
         }
-        innovations = gpsVelInnov;
-        variances = gpsVelVarInnov;
+        innovations = gpsVelInnov.tofloat();
+        variances = gpsVelVarInnov.tofloat();
         return true;
 #if EK3_FEATURE_EXTERNAL_NAV
     case AP_NavEKF_Source::SourceXY::EXTNAV:
@@ -484,8 +484,8 @@ bool NavEKF3_core::getVelInnovationsAndVariancesForSource(AP_NavEKF_Source::Sour
         if (AP_HAL::millis() - extNavVelInnovTime_ms > 500) {
             return false;
         }
-        innovations = extNavVelInnov;
-        variances = extNavVelVarInnov;
+        innovations = extNavVelInnov.tofloat();
+        variances = extNavVelVarInnov.tofloat();
         return true;
 #endif // EK3_FEATURE_EXTERNAL_NAV
     default:
