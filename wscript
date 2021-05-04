@@ -246,6 +246,11 @@ configuration in order to save typing.
         action='store_true',
         default=False,
         help='Configure without EKF3.')
+
+    g.add_option('--ekf-double',
+        action='store_true',
+        default=False,
+        help='Configure EKF as double precision.')
     
     g.add_option('--static',
         action='store_true',
