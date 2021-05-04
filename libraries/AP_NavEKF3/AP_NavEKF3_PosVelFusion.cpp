@@ -147,10 +147,10 @@ void NavEKF3_core::ResetPosition(resetDataSource posResetSource)
 //    posResetNE is updated to hold the change in position
 //    storedOutput, outputDataNew and outputDataDelayed are updated with the change in position
 //    lastPosReset_ms is updated with the time of the reset
-void NavEKF3_core::ResetPositionNE(float posN, float posE)
+void NavEKF3_core::ResetPositionNE(ftype posN, ftype posE)
 {
     // Store the position before the reset so that we can record the reset delta
-    const Vector3f posOrig = stateStruct.position;
+    const Vector3F posOrig = stateStruct.position;
 
     // Set the position states to the new position
     stateStruct.position.x = posN;
@@ -178,10 +178,10 @@ void NavEKF3_core::ResetPositionNE(float posN, float posE)
 //    posResetD is updated to hold the change in position
 //    storedOutput, outputDataNew and outputDataDelayed are updated with the change in position
 //    lastPosResetD_ms is updated with the time of the reset
-void NavEKF3_core::ResetPositionD(float posD)
+void NavEKF3_core::ResetPositionD(ftype posD)
 {
     // Store the position before the reset so that we can record the reset delta
-    const float posDOrig = stateStruct.position.z;
+    const ftype posDOrig = stateStruct.position.z;
 
     // write to the state vector
     stateStruct.position.z = posD;
@@ -287,7 +287,7 @@ bool NavEKF3_core::resetHeightDatum(void)
         return false;
     }
     // record the old height estimate
-    float oldHgt = -stateStruct.position.z;
+    ftype oldHgt = -stateStruct.position.z;
     // reset the barometer so that it reads zero at the current height
     dal.baro().update_calibration();
     // reset the height state
@@ -327,18 +327,18 @@ void NavEKF3_core::CorrectGPSForAntennaOffset(gps_elements &gps_data) const
     }
     gps_data.corrected = true;
 
-    const Vector3f &posOffsetBody = dal.gps().get_antenna_offset(gps_data.sensor_idx) - accelPosOffset;
+    const Vector3F &posOffsetBody = dal.gps().get_antenna_offset(gps_data.sensor_idx).toftype() - accelPosOffset;
     if (posOffsetBody.is_zero()) {
         return;
     }
 
     // TODO use a filtered angular rate with a group delay that matches the GPS delay
-    Vector3f angRate = imuDataDelayed.delAng * (1.0f/imuDataDelayed.delAngDT);
-    Vector3f velOffsetBody = angRate % posOffsetBody;
-    Vector3f velOffsetEarth = prevTnb.mul_transpose(velOffsetBody);
+    Vector3F angRate = imuDataDelayed.delAng * (1.0f/imuDataDelayed.delAngDT);
+    Vector3F velOffsetBody = angRate % posOffsetBody;
+    Vector3F velOffsetEarth = prevTnb.mul_transpose(velOffsetBody);
     gps_data.vel -= velOffsetEarth;
 
-    Vector3f posOffsetEarth = prevTnb.mul_transpose(posOffsetBody);
+    Vector3F posOffsetEarth = prevTnb.mul_transpose(posOffsetBody);
     gps_data.pos.x -= posOffsetEarth.x;
     gps_data.pos.y -= posOffsetEarth.y;
     gps_data.hgt += posOffsetEarth.z;
@@ -358,11 +358,11 @@ void NavEKF3_core::CorrectExtNavForSensorOffset(ext_nav_elements &ext_nav_data)
     if (visual_odom == nullptr) {
         return;
     }
-    const Vector3f &posOffsetBody = visual_odom->get_pos_offset() - accelPosOffset;
+    const Vector3F &posOffsetBody = visual_odom->get_pos_offset().toftype() - accelPosOffset;
     if (posOffsetBody.is_zero()) {
         return;
     }
-    Vector3f posOffsetEarth = prevTnb.mul_transpose(posOffsetBody);
+    Vector3F posOffsetEarth = prevTnb.mul_transpose(posOffsetBody);
     ext_nav_data.pos.x -= posOffsetEarth.x;
     ext_nav_data.pos.y -= posOffsetEarth.y;
     ext_nav_data.pos.z -= posOffsetEarth.z;
@@ -383,23 +383,23 @@ void NavEKF3_core::CorrectExtNavVelForSensorOffset(ext_nav_vel_elements &ext_nav
     if (visual_odom == nullptr) {
         return;
     }
-    const Vector3f &posOffsetBody = visual_odom->get_pos_offset() - accelPosOffset;
+    const Vector3F &posOffsetBody = visual_odom->get_pos_offset().toftype() - accelPosOffset;
     if (posOffsetBody.is_zero()) {
         return;
     }
     // TODO use a filtered angular rate with a group delay that matches the sensor delay
-    const Vector3f angRate = imuDataDelayed.delAng * (1.0f/imuDataDelayed.delAngDT);
+    const Vector3F angRate = imuDataDelayed.delAng * (1.0/imuDataDelayed.delAngDT);
     ext_nav_vel_data.vel += get_vel_correction_for_sensor_offset(posOffsetBody, prevTnb, angRate);
 #endif
 }
 
 // calculate velocity variance helper function
-void NavEKF3_core::CalculateVelInnovationsAndVariances(const Vector3f &velocity, float noise, float accel_scale, Vector3f &innovations, Vector3f &variances) const
+void NavEKF3_core::CalculateVelInnovationsAndVariances(const Vector3F &velocity, ftype noise, ftype accel_scale, Vector3F &innovations, Vector3F &variances) const
 {
     // innovations are latest estimate - latest observation
     innovations = stateStruct.velocity - velocity;
 
-    const float obs_data_chk = sq(constrain_float(noise, 0.05f, 5.0f)) + sq(accel_scale * accNavMag);
+    const ftype obs_data_chk = sq(constrain_float(noise, 0.05, 5.0)) + sq(accel_scale * accNavMag);
 
     // calculate innovation variance.  velocity states start at index 4
     variances.x = P[4][4] + obs_data_chk;
@@ -594,7 +594,7 @@ void NavEKF3_core::FuseVelPosNED()
     bool hgtHealth = false; // boolean true if height measurements have passed innovation consistency check
 
     // declare variables used to check measurement errors
-    Vector3f velInnov;
+    Vector3F velInnov;
 
     // declare variables used to control access to arrays
     bool fuseData[6] = {false,false,false,false,false,false};
@@ -604,7 +604,7 @@ void NavEKF3_core::FuseVelPosNED()
     // declare variables used by state and covariance update calculations
     Vector6 R_OBS; // Measurement variances used for fusion
     Vector6 R_OBS_DATA_CHECKS; // Measurement variances used for data checks only
-    float SK;
+    ftype SK;
 
     // perform sequential fusion of GPS measurements. This assumes that the
     // errors in the different velocity and position components are
@@ -614,7 +614,7 @@ void NavEKF3_core::FuseVelPosNED()
     // associated with sequential fusion
     if (fuseVelData || fusePosData || fuseHgtData) {
         // calculate additional error in GPS position caused by manoeuvring
-        float posErr = frontend->gpsPosVarAccScale * accNavMag;
+        ftype posErr = frontend->gpsPosVarAccScale * accNavMag;
 
         // To-Do: this posErr should come from external nav when fusing external nav position
 
@@ -681,8 +681,8 @@ void NavEKF3_core::FuseVelPosNED()
         // the accelerometers and we should disable the GPS and barometer innovation consistency checks.
         if (gpsDataDelayed.have_vz && fuseVelData && (frontend->sources.getPosZSource() != AP_NavEKF_Source::SourceZ::GPS)) {
             // calculate innovations for height and vertical GPS vel measurements
-            const float hgtErr  = stateStruct.position.z - velPosObs[5];
-            const float velDErr = stateStruct.velocity.z - velPosObs[2];
+            const ftype hgtErr  = stateStruct.position.z - velPosObs[5];
+            const ftype velDErr = stateStruct.velocity.z - velPosObs[2];
             // check if they are the same sign and both more than 3-sigma out of bounds
             if ((hgtErr*velDErr > 0.0f) && (sq(hgtErr) > 9.0f * (P[9][9] + R_OBS_DATA_CHECKS[5])) && (sq(velDErr) > 9.0f * (P[6][6] + R_OBS_DATA_CHECKS[2]))) {
                 badIMUdata = true;
@@ -700,7 +700,7 @@ void NavEKF3_core::FuseVelPosNED()
             varInnovVelPos[3] = P[7][7] + R_OBS_DATA_CHECKS[3];
             varInnovVelPos[4] = P[8][8] + R_OBS_DATA_CHECKS[4];
             // apply an innovation consistency threshold test, but don't fail if bad IMU data
-            float maxPosInnov2 = sq(MAX(0.01f * (float)frontend->_gpsPosInnovGate, 1.0f))*(varInnovVelPos[3] + varInnovVelPos[4]);
+            ftype maxPosInnov2 = sq(MAX(0.01f * (float)frontend->_gpsPosInnovGate, 1.0f))*(varInnovVelPos[3] + varInnovVelPos[4]);
             posTestRatio = (sq(innovVelPos[3]) + sq(innovVelPos[4])) / maxPosInnov2;
             posHealth = ((posTestRatio < 1.0f) || badIMUdata);
             // use position data if healthy or timed out
@@ -743,8 +743,8 @@ void NavEKF3_core::FuseVelPosNED()
                  !gpsDataDelayed.have_vz) && !useExtNavVel) {
                 imax = 1;
             }
-            float innovVelSumSq = 0; // sum of squares of velocity innovations
-            float varVelSum = 0; // sum of velocity innovation variances
+            ftype innovVelSumSq = 0; // sum of squares of velocity innovations
+            ftype varVelSum = 0; // sum of velocity innovation variances
             for (uint8_t i = 0; i<=imax; i++) {
                 // velocity states start at index 4
                 stateIndex   = i + 4;
@@ -789,7 +789,7 @@ void NavEKF3_core::FuseVelPosNED()
             // when on ground we accept a larger test ratio to allow
             // the filter to handle large switch on IMU bias errors
             // without rejecting the height sensor
-            const float maxTestRatio = (PV_AidingMode == AID_NONE && onGround)? 3.0 : 1.0;
+            const ftype maxTestRatio = (PV_AidingMode == AID_NONE && onGround)? 3.0 : 1.0;
 
             // fail if the ratio is > 1, but don't fail if bad IMU data
             hgtHealth = ((hgtTestRatio < maxTestRatio) || badIMUdata);
@@ -799,9 +799,9 @@ void NavEKF3_core::FuseVelPosNED()
                 // Calculate a filtered value to be used by pre-flight health checks
                 // We need to filter because wind gusts can generate significant baro noise and we want to be able to detect bias errors in the inertial solution
                 if (onGround) {
-                    float dtBaro = (imuSampleTime_ms - lastHgtPassTime_ms)*1.0e-3f;
-                    const float hgtInnovFiltTC = 2.0f;
-                    float alpha = constrain_float(dtBaro/(dtBaro+hgtInnovFiltTC),0.0f,1.0f);
+                    ftype dtBaro = (imuSampleTime_ms - lastHgtPassTime_ms)*1.0e-3f;
+                    const ftype hgtInnovFiltTC = 2.0f;
+                    ftype alpha = constrain_float(dtBaro/(dtBaro+hgtInnovFiltTC),0.0f,1.0f);
                     hgtInnovFiltState += (innovVelPos[5]-hgtInnovFiltState)*alpha;
                 } else {
                     hgtInnovFiltState = 0.0f;
@@ -848,8 +848,8 @@ void NavEKF3_core::FuseVelPosNED()
                     R_OBS[obsIndex] *= sq(gpsNoiseScaler);
                 } else if (obsIndex == 5) {
                     innovVelPos[obsIndex] = stateStruct.position[obsIndex-3] - velPosObs[obsIndex];
-                    const float gndMaxBaroErr = 4.0f;
-                    const float gndBaroInnovFloor = -0.5f;
+                    const ftype gndMaxBaroErr = 4.0f;
+                    const ftype gndBaroInnovFloor = -0.5f;
 
                     if (expectGndEffectTouchdown && activeHgtSource == AP_NavEKF_Source::SourceZ::BARO) {
                         // when a touchdown is expected, floor the barometer innovation at gndBaroInnovFloor
@@ -1020,9 +1020,9 @@ void NavEKF3_core::selectHeightForFusion()
     if (_rng && rangeDataToFuse) {
         auto *sensor = _rng->get_backend(rangeDataDelayed.sensor_idx);
         if (sensor != nullptr) {
-            Vector3f posOffsetBody = sensor->get_pos_offset() - accelPosOffset;
+            Vector3F posOffsetBody = sensor->get_pos_offset().toftype() - accelPosOffset;
             if (!posOffsetBody.is_zero()) {
-                Vector3f posOffsetEarth = prevTnb.mul_transpose(posOffsetBody);
+                Vector3F posOffsetEarth = prevTnb.mul_transpose(posOffsetBody);
                 rangeDataDelayed.rng += posOffsetEarth.z / prevTnb.c.z;
             }
         }
@@ -1042,7 +1042,7 @@ void NavEKF3_core::selectHeightForFusion()
         activeHgtSource = AP_NavEKF_Source::SourceZ::RANGEFINDER;
     } else if ((frontend->_useRngSwHgt > 0) && ((frontend->sources.getPosZSource() == AP_NavEKF_Source::SourceZ::BARO) || (frontend->sources.getPosZSource() == AP_NavEKF_Source::SourceZ::GPS)) && _rng && rangeFinderDataIsFresh) {
         // determine if we are above or below the height switch region
-        float rangeMaxUse = 1e-4f * (float)_rng->max_distance_cm_orient(ROTATION_PITCH_270) * (float)frontend->_useRngSwHgt;
+        ftype rangeMaxUse = 1e-4f * (float)_rng->max_distance_cm_orient(ROTATION_PITCH_270) * (float)frontend->_useRngSwHgt;
         bool aboveUpperSwHgt = (terrainState - stateStruct.position.z) > rangeMaxUse;
         bool belowLowerSwHgt = (terrainState - stateStruct.position.z) < 0.7f * rangeMaxUse;
 
@@ -1052,9 +1052,9 @@ void NavEKF3_core::selectHeightForFusion()
         bool dontTrustTerrain, trustTerrain;
         if (filterStatus.flags.horiz_vel) {
             // We can use the velocity estimate
-            float horizSpeed = norm(stateStruct.velocity.x, stateStruct.velocity.y);
+            ftype horizSpeed = norm(stateStruct.velocity.x, stateStruct.velocity.y);
             dontTrustTerrain = (horizSpeed > frontend->_useRngSwSpd) || !terrainHgtStable;
-            float trust_spd_trigger = MAX((frontend->_useRngSwSpd - 1.0f),(frontend->_useRngSwSpd * 0.5f));
+            ftype trust_spd_trigger = MAX((frontend->_useRngSwSpd - 1.0f),(frontend->_useRngSwSpd * 0.5f));
             trustTerrain = (horizSpeed < trust_spd_trigger) && terrainHgtStable;
         } else {
             // We can't use the velocity estimate
@@ -1112,9 +1112,9 @@ void NavEKF3_core::selectHeightForFusion()
         // filtered baro data used to provide a reference for takeoff
         // it is is reset to last height measurement on disarming in performArmingChecks()
         if (!expectGndEffectTakeoff) {
-            const float gndHgtFiltTC = 0.5f;
-            const float dtBaro = frontend->hgtAvg_ms*1.0e-3f;
-            float alpha = constrain_float(dtBaro / (dtBaro+gndHgtFiltTC),0.0f,1.0f);
+            const ftype gndHgtFiltTC = 0.5;
+            const ftype dtBaro = frontend->hgtAvg_ms*1.0e-3;
+            ftype alpha = constrain_float(dtBaro / (dtBaro+gndHgtFiltTC),0.0,1.0);
             meaHgtAtTakeOff += (baroDataDelayed.hgt-meaHgtAtTakeOff)*alpha;
         }
     }
@@ -1215,16 +1215,16 @@ void NavEKF3_core::selectHeightForFusion()
 void NavEKF3_core::FuseBodyVel()
 {
     Vector24 H_VEL;
-    Vector3f bodyVelPred;
+    Vector3F bodyVelPred;
 
     // Copy required states to local variable names
-    float q0  = stateStruct.quat[0];
-    float q1 = stateStruct.quat[1];
-    float q2 = stateStruct.quat[2];
-    float q3 = stateStruct.quat[3];
-    float vn = stateStruct.velocity.x;
-    float ve = stateStruct.velocity.y;
-    float vd = stateStruct.velocity.z;
+    ftype q0  = stateStruct.quat[0];
+    ftype q1 = stateStruct.quat[1];
+    ftype q2 = stateStruct.quat[2];
+    ftype q3 = stateStruct.quat[3];
+    ftype vn = stateStruct.velocity.x;
+    ftype ve = stateStruct.velocity.y;
+    ftype vd = stateStruct.velocity.z;
 
     // Fuse X, Y and Z axis measurements sequentially assuming observation errors are uncorrelated
     for (uint8_t obsIndex=0; obsIndex<=2; obsIndex++) {
@@ -1233,7 +1233,7 @@ void NavEKF3_core::FuseBodyVel()
         bodyVelPred = (prevTnb * stateStruct.velocity);
 
         // correct sensor offset body frame position offset relative to IMU
-        Vector3f posOffsetBody = bodyOdmDataDelayed.body_offset - accelPosOffset;
+        Vector3F posOffsetBody = bodyOdmDataDelayed.body_offset - accelPosOffset;
 
         // correct prediction for relative motion due to rotation
         // note - % operator overloaded for cross product
@@ -1256,99 +1256,99 @@ void NavEKF3_core::FuseBodyVel()
             }
 
             // calculate intermediate expressions for X axis Kalman gains
-            float R_VEL = sq(bodyOdmDataDelayed.velErr);
-            float t2 = q0*q3*2.0f;
-            float t3 = q1*q2*2.0f;
-            float t4 = t2+t3;
-            float t5 = q0*q0;
-            float t6 = q1*q1;
-            float t7 = q2*q2;
-            float t8 = q3*q3;
-            float t9 = t5+t6-t7-t8;
-            float t10 = q0*q2*2.0f;
-            float t25 = q1*q3*2.0f;
-            float t11 = t10-t25;
-            float t12 = q3*ve*2.0f;
-            float t13 = q0*vn*2.0f;
-            float t26 = q2*vd*2.0f;
-            float t14 = t12+t13-t26;
-            float t15 = q3*vd*2.0f;
-            float t16 = q2*ve*2.0f;
-            float t17 = q1*vn*2.0f;
-            float t18 = t15+t16+t17;
-            float t19 = q0*vd*2.0f;
-            float t20 = q2*vn*2.0f;
-            float t27 = q1*ve*2.0f;
-            float t21 = t19+t20-t27;
-            float t22 = q1*vd*2.0f;
-            float t23 = q0*ve*2.0f;
-            float t28 = q3*vn*2.0f;
-            float t24 = t22+t23-t28;
-            float t29 = P[0][0]*t14;
-            float t30 = P[1][1]*t18;
-            float t31 = P[4][5]*t9;
-            float t32 = P[5][5]*t4;
-            float t33 = P[0][5]*t14;
-            float t34 = P[1][5]*t18;
-            float t35 = P[3][5]*t24;
-            float t79 = P[6][5]*t11;
-            float t80 = P[2][5]*t21;
-            float t36 = t31+t32+t33+t34+t35-t79-t80;
-            float t37 = t4*t36;
-            float t38 = P[4][6]*t9;
-            float t39 = P[5][6]*t4;
-            float t40 = P[0][6]*t14;
-            float t41 = P[1][6]*t18;
-            float t42 = P[3][6]*t24;
-            float t81 = P[6][6]*t11;
-            float t82 = P[2][6]*t21;
-            float t43 = t38+t39+t40+t41+t42-t81-t82;
-            float t44 = P[4][0]*t9;
-            float t45 = P[5][0]*t4;
-            float t46 = P[1][0]*t18;
-            float t47 = P[3][0]*t24;
-            float t84 = P[6][0]*t11;
-            float t85 = P[2][0]*t21;
-            float t48 = t29+t44+t45+t46+t47-t84-t85;
-            float t49 = t14*t48;
-            float t50 = P[4][1]*t9;
-            float t51 = P[5][1]*t4;
-            float t52 = P[0][1]*t14;
-            float t53 = P[3][1]*t24;
-            float t86 = P[6][1]*t11;
-            float t87 = P[2][1]*t21;
-            float t54 = t30+t50+t51+t52+t53-t86-t87;
-            float t55 = t18*t54;
-            float t56 = P[4][2]*t9;
-            float t57 = P[5][2]*t4;
-            float t58 = P[0][2]*t14;
-            float t59 = P[1][2]*t18;
-            float t60 = P[3][2]*t24;
-            float t78 = P[2][2]*t21;
-            float t88 = P[6][2]*t11;
-            float t61 = t56+t57+t58+t59+t60-t78-t88;
-            float t62 = P[4][3]*t9;
-            float t63 = P[5][3]*t4;
-            float t64 = P[0][3]*t14;
-            float t65 = P[1][3]*t18;
-            float t66 = P[3][3]*t24;
-            float t90 = P[6][3]*t11;
-            float t91 = P[2][3]*t21;
-            float t67 = t62+t63+t64+t65+t66-t90-t91;
-            float t68 = t24*t67;
-            float t69 = P[4][4]*t9;
-            float t70 = P[5][4]*t4;
-            float t71 = P[0][4]*t14;
-            float t72 = P[1][4]*t18;
-            float t73 = P[3][4]*t24;
-            float t92 = P[6][4]*t11;
-            float t93 = P[2][4]*t21;
-            float t74 = t69+t70+t71+t72+t73-t92-t93;
-            float t75 = t9*t74;
-            float t83 = t11*t43;
-            float t89 = t21*t61;
-            float t76 = R_VEL+t37+t49+t55+t68+t75-t83-t89;
-            float t77;
+            ftype R_VEL = sq(bodyOdmDataDelayed.velErr);
+            ftype t2 = q0*q3*2.0f;
+            ftype t3 = q1*q2*2.0f;
+            ftype t4 = t2+t3;
+            ftype t5 = q0*q0;
+            ftype t6 = q1*q1;
+            ftype t7 = q2*q2;
+            ftype t8 = q3*q3;
+            ftype t9 = t5+t6-t7-t8;
+            ftype t10 = q0*q2*2.0f;
+            ftype t25 = q1*q3*2.0f;
+            ftype t11 = t10-t25;
+            ftype t12 = q3*ve*2.0f;
+            ftype t13 = q0*vn*2.0f;
+            ftype t26 = q2*vd*2.0f;
+            ftype t14 = t12+t13-t26;
+            ftype t15 = q3*vd*2.0f;
+            ftype t16 = q2*ve*2.0f;
+            ftype t17 = q1*vn*2.0f;
+            ftype t18 = t15+t16+t17;
+            ftype t19 = q0*vd*2.0f;
+            ftype t20 = q2*vn*2.0f;
+            ftype t27 = q1*ve*2.0f;
+            ftype t21 = t19+t20-t27;
+            ftype t22 = q1*vd*2.0f;
+            ftype t23 = q0*ve*2.0f;
+            ftype t28 = q3*vn*2.0f;
+            ftype t24 = t22+t23-t28;
+            ftype t29 = P[0][0]*t14;
+            ftype t30 = P[1][1]*t18;
+            ftype t31 = P[4][5]*t9;
+            ftype t32 = P[5][5]*t4;
+            ftype t33 = P[0][5]*t14;
+            ftype t34 = P[1][5]*t18;
+            ftype t35 = P[3][5]*t24;
+            ftype t79 = P[6][5]*t11;
+            ftype t80 = P[2][5]*t21;
+            ftype t36 = t31+t32+t33+t34+t35-t79-t80;
+            ftype t37 = t4*t36;
+            ftype t38 = P[4][6]*t9;
+            ftype t39 = P[5][6]*t4;
+            ftype t40 = P[0][6]*t14;
+            ftype t41 = P[1][6]*t18;
+            ftype t42 = P[3][6]*t24;
+            ftype t81 = P[6][6]*t11;
+            ftype t82 = P[2][6]*t21;
+            ftype t43 = t38+t39+t40+t41+t42-t81-t82;
+            ftype t44 = P[4][0]*t9;
+            ftype t45 = P[5][0]*t4;
+            ftype t46 = P[1][0]*t18;
+            ftype t47 = P[3][0]*t24;
+            ftype t84 = P[6][0]*t11;
+            ftype t85 = P[2][0]*t21;
+            ftype t48 = t29+t44+t45+t46+t47-t84-t85;
+            ftype t49 = t14*t48;
+            ftype t50 = P[4][1]*t9;
+            ftype t51 = P[5][1]*t4;
+            ftype t52 = P[0][1]*t14;
+            ftype t53 = P[3][1]*t24;
+            ftype t86 = P[6][1]*t11;
+            ftype t87 = P[2][1]*t21;
+            ftype t54 = t30+t50+t51+t52+t53-t86-t87;
+            ftype t55 = t18*t54;
+            ftype t56 = P[4][2]*t9;
+            ftype t57 = P[5][2]*t4;
+            ftype t58 = P[0][2]*t14;
+            ftype t59 = P[1][2]*t18;
+            ftype t60 = P[3][2]*t24;
+            ftype t78 = P[2][2]*t21;
+            ftype t88 = P[6][2]*t11;
+            ftype t61 = t56+t57+t58+t59+t60-t78-t88;
+            ftype t62 = P[4][3]*t9;
+            ftype t63 = P[5][3]*t4;
+            ftype t64 = P[0][3]*t14;
+            ftype t65 = P[1][3]*t18;
+            ftype t66 = P[3][3]*t24;
+            ftype t90 = P[6][3]*t11;
+            ftype t91 = P[2][3]*t21;
+            ftype t67 = t62+t63+t64+t65+t66-t90-t91;
+            ftype t68 = t24*t67;
+            ftype t69 = P[4][4]*t9;
+            ftype t70 = P[5][4]*t4;
+            ftype t71 = P[0][4]*t14;
+            ftype t72 = P[1][4]*t18;
+            ftype t73 = P[3][4]*t24;
+            ftype t92 = P[6][4]*t11;
+            ftype t93 = P[2][4]*t21;
+            ftype t74 = t69+t70+t71+t72+t73-t92-t93;
+            ftype t75 = t9*t74;
+            ftype t83 = t11*t43;
+            ftype t89 = t21*t61;
+            ftype t76 = R_VEL+t37+t49+t55+t68+t75-t83-t89;
+            ftype t77;
 
             // calculate innovation variance for X axis observation and protect against a badly conditioned calculation
             if (t76 > R_VEL) {
@@ -1433,99 +1433,99 @@ void NavEKF3_core::FuseBodyVel()
             }
 
             // calculate intermediate expressions for Y axis Kalman gains
-            float R_VEL = sq(bodyOdmDataDelayed.velErr);
-            float t2 = q0*q3*2.0f;
-            float t9 = q1*q2*2.0f;
-            float t3 = t2-t9;
-            float t4 = q0*q0;
-            float t5 = q1*q1;
-            float t6 = q2*q2;
-            float t7 = q3*q3;
-            float t8 = t4-t5+t6-t7;
-            float t10 = q0*q1*2.0f;
-            float t11 = q2*q3*2.0f;
-            float t12 = t10+t11;
-            float t13 = q1*vd*2.0f;
-            float t14 = q0*ve*2.0f;
-            float t26 = q3*vn*2.0f;
-            float t15 = t13+t14-t26;
-            float t16 = q0*vd*2.0f;
-            float t17 = q2*vn*2.0f;
-            float t27 = q1*ve*2.0f;
-            float t18 = t16+t17-t27;
-            float t19 = q3*vd*2.0f;
-            float t20 = q2*ve*2.0f;
-            float t21 = q1*vn*2.0f;
-            float t22 = t19+t20+t21;
-            float t23 = q3*ve*2.0f;
-            float t24 = q0*vn*2.0f;
-            float t28 = q2*vd*2.0f;
-            float t25 = t23+t24-t28;
-            float t29 = P[0][0]*t15;
-            float t30 = P[1][1]*t18;
-            float t31 = P[5][4]*t8;
-            float t32 = P[6][4]*t12;
-            float t33 = P[0][4]*t15;
-            float t34 = P[1][4]*t18;
-            float t35 = P[2][4]*t22;
-            float t78 = P[4][4]*t3;
-            float t79 = P[3][4]*t25;
-            float t36 = t31+t32+t33+t34+t35-t78-t79;
-            float t37 = P[5][6]*t8;
-            float t38 = P[6][6]*t12;
-            float t39 = P[0][6]*t15;
-            float t40 = P[1][6]*t18;
-            float t41 = P[2][6]*t22;
-            float t81 = P[4][6]*t3;
-            float t82 = P[3][6]*t25;
-            float t42 = t37+t38+t39+t40+t41-t81-t82;
-            float t43 = t12*t42;
-            float t44 = P[5][0]*t8;
-            float t45 = P[6][0]*t12;
-            float t46 = P[1][0]*t18;
-            float t47 = P[2][0]*t22;
-            float t83 = P[4][0]*t3;
-            float t84 = P[3][0]*t25;
-            float t48 = t29+t44+t45+t46+t47-t83-t84;
-            float t49 = t15*t48;
-            float t50 = P[5][1]*t8;
-            float t51 = P[6][1]*t12;
-            float t52 = P[0][1]*t15;
-            float t53 = P[2][1]*t22;
-            float t85 = P[4][1]*t3;
-            float t86 = P[3][1]*t25;
-            float t54 = t30+t50+t51+t52+t53-t85-t86;
-            float t55 = t18*t54;
-            float t56 = P[5][2]*t8;
-            float t57 = P[6][2]*t12;
-            float t58 = P[0][2]*t15;
-            float t59 = P[1][2]*t18;
-            float t60 = P[2][2]*t22;
-            float t87 = P[4][2]*t3;
-            float t88 = P[3][2]*t25;
-            float t61 = t56+t57+t58+t59+t60-t87-t88;
-            float t62 = t22*t61;
-            float t63 = P[5][3]*t8;
-            float t64 = P[6][3]*t12;
-            float t65 = P[0][3]*t15;
-            float t66 = P[1][3]*t18;
-            float t67 = P[2][3]*t22;
-            float t89 = P[4][3]*t3;
-            float t90 = P[3][3]*t25;
-            float t68 = t63+t64+t65+t66+t67-t89-t90;
-            float t69 = P[5][5]*t8;
-            float t70 = P[6][5]*t12;
-            float t71 = P[0][5]*t15;
-            float t72 = P[1][5]*t18;
-            float t73 = P[2][5]*t22;
-            float t92 = P[4][5]*t3;
-            float t93 = P[3][5]*t25;
-            float t74 = t69+t70+t71+t72+t73-t92-t93;
-            float t75 = t8*t74;
-            float t80 = t3*t36;
-            float t91 = t25*t68;
-            float t76 = R_VEL+t43+t49+t55+t62+t75-t80-t91;
-            float t77;
+            ftype R_VEL = sq(bodyOdmDataDelayed.velErr);
+            ftype t2 = q0*q3*2.0f;
+            ftype t9 = q1*q2*2.0f;
+            ftype t3 = t2-t9;
+            ftype t4 = q0*q0;
+            ftype t5 = q1*q1;
+            ftype t6 = q2*q2;
+            ftype t7 = q3*q3;
+            ftype t8 = t4-t5+t6-t7;
+            ftype t10 = q0*q1*2.0f;
+            ftype t11 = q2*q3*2.0f;
+            ftype t12 = t10+t11;
+            ftype t13 = q1*vd*2.0f;
+            ftype t14 = q0*ve*2.0f;
+            ftype t26 = q3*vn*2.0f;
+            ftype t15 = t13+t14-t26;
+            ftype t16 = q0*vd*2.0f;
+            ftype t17 = q2*vn*2.0f;
+            ftype t27 = q1*ve*2.0f;
+            ftype t18 = t16+t17-t27;
+            ftype t19 = q3*vd*2.0f;
+            ftype t20 = q2*ve*2.0f;
+            ftype t21 = q1*vn*2.0f;
+            ftype t22 = t19+t20+t21;
+            ftype t23 = q3*ve*2.0f;
+            ftype t24 = q0*vn*2.0f;
+            ftype t28 = q2*vd*2.0f;
+            ftype t25 = t23+t24-t28;
+            ftype t29 = P[0][0]*t15;
+            ftype t30 = P[1][1]*t18;
+            ftype t31 = P[5][4]*t8;
+            ftype t32 = P[6][4]*t12;
+            ftype t33 = P[0][4]*t15;
+            ftype t34 = P[1][4]*t18;
+            ftype t35 = P[2][4]*t22;
+            ftype t78 = P[4][4]*t3;
+            ftype t79 = P[3][4]*t25;
+            ftype t36 = t31+t32+t33+t34+t35-t78-t79;
+            ftype t37 = P[5][6]*t8;
+            ftype t38 = P[6][6]*t12;
+            ftype t39 = P[0][6]*t15;
+            ftype t40 = P[1][6]*t18;
+            ftype t41 = P[2][6]*t22;
+            ftype t81 = P[4][6]*t3;
+            ftype t82 = P[3][6]*t25;
+            ftype t42 = t37+t38+t39+t40+t41-t81-t82;
+            ftype t43 = t12*t42;
+            ftype t44 = P[5][0]*t8;
+            ftype t45 = P[6][0]*t12;
+            ftype t46 = P[1][0]*t18;
+            ftype t47 = P[2][0]*t22;
+            ftype t83 = P[4][0]*t3;
+            ftype t84 = P[3][0]*t25;
+            ftype t48 = t29+t44+t45+t46+t47-t83-t84;
+            ftype t49 = t15*t48;
+            ftype t50 = P[5][1]*t8;
+            ftype t51 = P[6][1]*t12;
+            ftype t52 = P[0][1]*t15;
+            ftype t53 = P[2][1]*t22;
+            ftype t85 = P[4][1]*t3;
+            ftype t86 = P[3][1]*t25;
+            ftype t54 = t30+t50+t51+t52+t53-t85-t86;
+            ftype t55 = t18*t54;
+            ftype t56 = P[5][2]*t8;
+            ftype t57 = P[6][2]*t12;
+            ftype t58 = P[0][2]*t15;
+            ftype t59 = P[1][2]*t18;
+            ftype t60 = P[2][2]*t22;
+            ftype t87 = P[4][2]*t3;
+            ftype t88 = P[3][2]*t25;
+            ftype t61 = t56+t57+t58+t59+t60-t87-t88;
+            ftype t62 = t22*t61;
+            ftype t63 = P[5][3]*t8;
+            ftype t64 = P[6][3]*t12;
+            ftype t65 = P[0][3]*t15;
+            ftype t66 = P[1][3]*t18;
+            ftype t67 = P[2][3]*t22;
+            ftype t89 = P[4][3]*t3;
+            ftype t90 = P[3][3]*t25;
+            ftype t68 = t63+t64+t65+t66+t67-t89-t90;
+            ftype t69 = P[5][5]*t8;
+            ftype t70 = P[6][5]*t12;
+            ftype t71 = P[0][5]*t15;
+            ftype t72 = P[1][5]*t18;
+            ftype t73 = P[2][5]*t22;
+            ftype t92 = P[4][5]*t3;
+            ftype t93 = P[3][5]*t25;
+            ftype t74 = t69+t70+t71+t72+t73-t92-t93;
+            ftype t75 = t8*t74;
+            ftype t80 = t3*t36;
+            ftype t91 = t25*t68;
+            ftype t76 = R_VEL+t43+t49+t55+t62+t75-t80-t91;
+            ftype t77;
 
             // calculate innovation variance for Y axis observation and protect against a badly conditioned calculation
             if (t76 > R_VEL) {
@@ -1610,99 +1610,99 @@ void NavEKF3_core::FuseBodyVel()
             }
 
             // calculate intermediate expressions for Z axis Kalman gains
-            float R_VEL = sq(bodyOdmDataDelayed.velErr);
-            float t2 = q0*q2*2.0f;
-            float t3 = q1*q3*2.0f;
-            float t4 = t2+t3;
-            float t5 = q0*q0;
-            float t6 = q1*q1;
-            float t7 = q2*q2;
-            float t8 = q3*q3;
-            float t9 = t5-t6-t7+t8;
-            float t10 = q0*q1*2.0f;
-            float t25 = q2*q3*2.0f;
-            float t11 = t10-t25;
-            float t12 = q0*vd*2.0f;
-            float t13 = q2*vn*2.0f;
-            float t26 = q1*ve*2.0f;
-            float t14 = t12+t13-t26;
-            float t15 = q1*vd*2.0f;
-            float t16 = q0*ve*2.0f;
-            float t27 = q3*vn*2.0f;
-            float t17 = t15+t16-t27;
-            float t18 = q3*ve*2.0f;
-            float t19 = q0*vn*2.0f;
-            float t28 = q2*vd*2.0f;
-            float t20 = t18+t19-t28;
-            float t21 = q3*vd*2.0f;
-            float t22 = q2*ve*2.0f;
-            float t23 = q1*vn*2.0f;
-            float t24 = t21+t22+t23;
-            float t29 = P[0][0]*t14;
-            float t30 = P[6][4]*t9;
-            float t31 = P[4][4]*t4;
-            float t32 = P[0][4]*t14;
-            float t33 = P[2][4]*t20;
-            float t34 = P[3][4]*t24;
-            float t78 = P[5][4]*t11;
-            float t79 = P[1][4]*t17;
-            float t35 = t30+t31+t32+t33+t34-t78-t79;
-            float t36 = t4*t35;
-            float t37 = P[6][5]*t9;
-            float t38 = P[4][5]*t4;
-            float t39 = P[0][5]*t14;
-            float t40 = P[2][5]*t20;
-            float t41 = P[3][5]*t24;
-            float t80 = P[5][5]*t11;
-            float t81 = P[1][5]*t17;
-            float t42 = t37+t38+t39+t40+t41-t80-t81;
-            float t43 = P[6][0]*t9;
-            float t44 = P[4][0]*t4;
-            float t45 = P[2][0]*t20;
-            float t46 = P[3][0]*t24;
-            float t83 = P[5][0]*t11;
-            float t84 = P[1][0]*t17;
-            float t47 = t29+t43+t44+t45+t46-t83-t84;
-            float t48 = t14*t47;
-            float t49 = P[6][1]*t9;
-            float t50 = P[4][1]*t4;
-            float t51 = P[0][1]*t14;
-            float t52 = P[2][1]*t20;
-            float t53 = P[3][1]*t24;
-            float t85 = P[5][1]*t11;
-            float t86 = P[1][1]*t17;
-            float t54 = t49+t50+t51+t52+t53-t85-t86;
-            float t55 = P[6][2]*t9;
-            float t56 = P[4][2]*t4;
-            float t57 = P[0][2]*t14;
-            float t58 = P[2][2]*t20;
-            float t59 = P[3][2]*t24;
-            float t88 = P[5][2]*t11;
-            float t89 = P[1][2]*t17;
-            float t60 = t55+t56+t57+t58+t59-t88-t89;
-            float t61 = t20*t60;
-            float t62 = P[6][3]*t9;
-            float t63 = P[4][3]*t4;
-            float t64 = P[0][3]*t14;
-            float t65 = P[2][3]*t20;
-            float t66 = P[3][3]*t24;
-            float t90 = P[5][3]*t11;
-            float t91 = P[1][3]*t17;
-            float t67 = t62+t63+t64+t65+t66-t90-t91;
-            float t68 = t24*t67;
-            float t69 = P[6][6]*t9;
-            float t70 = P[4][6]*t4;
-            float t71 = P[0][6]*t14;
-            float t72 = P[2][6]*t20;
-            float t73 = P[3][6]*t24;
-            float t92 = P[5][6]*t11;
-            float t93 = P[1][6]*t17;
-            float t74 = t69+t70+t71+t72+t73-t92-t93;
-            float t75 = t9*t74;
-            float t82 = t11*t42;
-            float t87 = t17*t54;
-            float t76 = R_VEL+t36+t48+t61+t68+t75-t82-t87;
-            float t77;
+            ftype R_VEL = sq(bodyOdmDataDelayed.velErr);
+            ftype t2 = q0*q2*2.0f;
+            ftype t3 = q1*q3*2.0f;
+            ftype t4 = t2+t3;
+            ftype t5 = q0*q0;
+            ftype t6 = q1*q1;
+            ftype t7 = q2*q2;
+            ftype t8 = q3*q3;
+            ftype t9 = t5-t6-t7+t8;
+            ftype t10 = q0*q1*2.0f;
+            ftype t25 = q2*q3*2.0f;
+            ftype t11 = t10-t25;
+            ftype t12 = q0*vd*2.0f;
+            ftype t13 = q2*vn*2.0f;
+            ftype t26 = q1*ve*2.0f;
+            ftype t14 = t12+t13-t26;
+            ftype t15 = q1*vd*2.0f;
+            ftype t16 = q0*ve*2.0f;
+            ftype t27 = q3*vn*2.0f;
+            ftype t17 = t15+t16-t27;
+            ftype t18 = q3*ve*2.0f;
+            ftype t19 = q0*vn*2.0f;
+            ftype t28 = q2*vd*2.0f;
+            ftype t20 = t18+t19-t28;
+            ftype t21 = q3*vd*2.0f;
+            ftype t22 = q2*ve*2.0f;
+            ftype t23 = q1*vn*2.0f;
+            ftype t24 = t21+t22+t23;
+            ftype t29 = P[0][0]*t14;
+            ftype t30 = P[6][4]*t9;
+            ftype t31 = P[4][4]*t4;
+            ftype t32 = P[0][4]*t14;
+            ftype t33 = P[2][4]*t20;
+            ftype t34 = P[3][4]*t24;
+            ftype t78 = P[5][4]*t11;
+            ftype t79 = P[1][4]*t17;
+            ftype t35 = t30+t31+t32+t33+t34-t78-t79;
+            ftype t36 = t4*t35;
+            ftype t37 = P[6][5]*t9;
+            ftype t38 = P[4][5]*t4;
+            ftype t39 = P[0][5]*t14;
+            ftype t40 = P[2][5]*t20;
+            ftype t41 = P[3][5]*t24;
+            ftype t80 = P[5][5]*t11;
+            ftype t81 = P[1][5]*t17;
+            ftype t42 = t37+t38+t39+t40+t41-t80-t81;
+            ftype t43 = P[6][0]*t9;
+            ftype t44 = P[4][0]*t4;
+            ftype t45 = P[2][0]*t20;
+            ftype t46 = P[3][0]*t24;
+            ftype t83 = P[5][0]*t11;
+            ftype t84 = P[1][0]*t17;
+            ftype t47 = t29+t43+t44+t45+t46-t83-t84;
+            ftype t48 = t14*t47;
+            ftype t49 = P[6][1]*t9;
+            ftype t50 = P[4][1]*t4;
+            ftype t51 = P[0][1]*t14;
+            ftype t52 = P[2][1]*t20;
+            ftype t53 = P[3][1]*t24;
+            ftype t85 = P[5][1]*t11;
+            ftype t86 = P[1][1]*t17;
+            ftype t54 = t49+t50+t51+t52+t53-t85-t86;
+            ftype t55 = P[6][2]*t9;
+            ftype t56 = P[4][2]*t4;
+            ftype t57 = P[0][2]*t14;
+            ftype t58 = P[2][2]*t20;
+            ftype t59 = P[3][2]*t24;
+            ftype t88 = P[5][2]*t11;
+            ftype t89 = P[1][2]*t17;
+            ftype t60 = t55+t56+t57+t58+t59-t88-t89;
+            ftype t61 = t20*t60;
+            ftype t62 = P[6][3]*t9;
+            ftype t63 = P[4][3]*t4;
+            ftype t64 = P[0][3]*t14;
+            ftype t65 = P[2][3]*t20;
+            ftype t66 = P[3][3]*t24;
+            ftype t90 = P[5][3]*t11;
+            ftype t91 = P[1][3]*t17;
+            ftype t67 = t62+t63+t64+t65+t66-t90-t91;
+            ftype t68 = t24*t67;
+            ftype t69 = P[6][6]*t9;
+            ftype t70 = P[4][6]*t4;
+            ftype t71 = P[0][6]*t14;
+            ftype t72 = P[2][6]*t20;
+            ftype t73 = P[3][6]*t24;
+            ftype t92 = P[5][6]*t11;
+            ftype t93 = P[1][6]*t17;
+            ftype t74 = t69+t70+t71+t72+t73-t92-t93;
+            ftype t75 = t9*t74;
+            ftype t82 = t11*t42;
+            ftype t87 = t17*t54;
+            ftype t76 = R_VEL+t36+t48+t61+t68+t75-t82-t87;
+            ftype t77;
 
             // calculate innovation variance for Z axis observation and protect against a badly conditioned calculation
             if (t76 > R_VEL) {
@@ -1889,17 +1889,17 @@ void NavEKF3_core::SelectBodyOdomFusion()
         if (wheelOdmDataDelayed.delTime > EKF_TARGET_DT) {
 
             // get the forward velocity
-            float fwdSpd = wheelOdmDataDelayed.delAng * wheelOdmDataDelayed.radius * (1.0f / wheelOdmDataDelayed.delTime);
+            ftype fwdSpd = wheelOdmDataDelayed.delAng * wheelOdmDataDelayed.radius * (1.0f / wheelOdmDataDelayed.delTime);
 
             // get the unit vector from the projection of the X axis onto the horizontal
-            Vector3f unitVec;
+            Vector3F unitVec;
             unitVec.x = prevTnb.a.x;
             unitVec.y = prevTnb.a.y;
             unitVec.z = 0.0f;
             unitVec.normalize();
 
             // multiply by forward speed to get velocity vector measured by wheel encoders
-            Vector3f velNED = unitVec * fwdSpd;
+            Vector3F velNED = unitVec * fwdSpd;
 
             // This is a hack to enable use of the existing body frame velocity fusion method
             // TODO write a dedicated observation model for wheel encoders
