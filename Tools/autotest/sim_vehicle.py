@@ -323,6 +323,9 @@ def do_build(opts, frame_options):
     if opts.disable_ekf3:
         cmd_configure.append("--disable-ekf3")
 
+    if opts.ekf_double:
+        cmd_configure.append("--ekf-double")
+
     pieces = [shlex.split(x) for x in opts.waf_configure_args]
     for piece in pieces:
         cmd_configure.extend(piece)
@@ -1055,6 +1058,9 @@ group_sim.add_option("", "--sysid",
                      type='int',
                      default=None,
                      help="Set SYSID_THISMAV")
+group_sim.add_option("--ekf-double",
+                     action='store_true',
+                     help="use double precision in EKF")
 parser.add_option_group(group_sim)
 
 
