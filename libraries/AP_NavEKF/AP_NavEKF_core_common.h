@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_Math/vectorN.h>
+#include "AP_Nav_Common.h"
 
 /*
   this declares a common parent class for AP_NavEKF2 and
@@ -32,7 +33,6 @@
  */
 class NavEKF_core_common {
 public:
-    typedef float ftype;
 #if MATH_CHECK_INDEXES
     typedef VectorN<ftype,28> Vector28;
     typedef VectorN<VectorN<ftype,24>,24> Matrix24;
