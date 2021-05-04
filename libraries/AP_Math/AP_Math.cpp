@@ -382,6 +382,17 @@ Vector3f get_vel_correction_for_sensor_offset(const Vector3f &sensor_offset_bf, 
     return rot_ef_to_bf.mul_transpose(vel_offset_body) * -1.0f;
 }
 
+Vector3d get_vel_correction_for_sensor_offset(const Vector3d &sensor_offset_bf, const Matrix3d &rot_ef_to_bf, const Vector3d &angular_rate)
+{
+    if (sensor_offset_bf.is_zero()) {
+        return Vector3d();
+    }
+
+    // correct velocity
+    const Vector3d vel_offset_body = angular_rate % sensor_offset_bf;
+    return rot_ef_to_bf.mul_transpose(vel_offset_body) * -1.0f;
+}
+
 /*
   calculate a low pass filter alpha value
  */
@@ -401,6 +412,13 @@ void fill_nanf(float *f, uint16_t count)
     const float n = std::numeric_limits<float>::signaling_NaN();
     while (count--) {
         *f++ = n;
+    }
+}
+
+void fill_nanf(double *f, uint16_t count)
+{
+    while (count--) {
+        *f++ = 0;
     }
 }
 #endif

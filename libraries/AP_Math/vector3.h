@@ -60,6 +60,8 @@
 
 #include "rotations.h"
 
+#include "ftype.h"
+
 template <typename T>
 class Matrix3;
 
@@ -276,6 +278,14 @@ public:
     // INPUT: 4 points corresponding to start and end of two line segments
     // OUTPUT: shortest distance between segments, and closest point on segment 2, from segment 1, gets passed on reference as "intersection" 
     static float segment_to_segment_dist(const Vector3<T>& seg1_start, const Vector3<T>& seg1_end, const Vector3<T>& seg2_start, const Vector3<T>& seg2_end, Vector3<T>& intersection) WARN_IF_UNUSED;
+
+    // double/float conversion
+    Vector3<ftype> toftype(void) const {
+        return Vector3<ftype>(x,y,z);
+    }
+    Vector3<float> tofloat(void) const {
+        return Vector3<float>(x,y,z);
+    }
 };
 
 typedef Vector3<int16_t>                Vector3i;
