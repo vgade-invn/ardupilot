@@ -129,7 +129,7 @@ void NavEKF2_core::Log_Write_NKF4(uint64_t time_us) const
     nav_filter_status solutionStatus {};
     nav_gps_status gpsStatus {};
     getVariances(velVar, posVar, hgtVar, magVar, tasVar, offset);
-    float tempVar = fmaxf(fmaxf(magVar.x,magVar.y),magVar.z);
+    ftype tempVar = fmaxf(fmaxf(magVar.x,magVar.y),magVar.z);
     getFilterFaults(_faultStatus);
     getFilterStatus(solutionStatus);
     getFilterGpsStatus(gpsStatus);
@@ -142,7 +142,7 @@ void NavEKF2_core::Log_Write_NKF4(uint64_t time_us) const
         sqrtvarH : (int16_t)(100*hgtVar),
         sqrtvarM : (int16_t)(100*tempVar),
         sqrtvarVT : (int16_t)(100*tasVar),
-        tiltErr : tiltErrFilt,  // tilt error convergence metric
+        tiltErr : float(tiltErrFilt),  // tilt error convergence metric
         offsetNorth : offset.x,
         offsetEast : offset.y,
         faults : _faultStatus,
@@ -175,9 +175,9 @@ void NavEKF2_core::Log_Write_NKF5(uint64_t time_us) const
         RI : (int16_t)(100*innovRng),  // range finder innovations
         meaRng : (uint16_t)(100*rangeDataDelayed.rng),  // measured range
         errHAGL : (uint16_t)(100*sqrtf(Popt)),  // filter ground offset state error
-        angErr : outputTrackError.x,
-        velErr : outputTrackError.y,
-        posErr : outputTrackError.z
+        angErr : float(outputTrackError.x),
+        velErr : float(outputTrackError.y),
+        posErr : float(outputTrackError.z)
     };
     AP::logger().WriteBlock(&pkt5, sizeof(pkt5));
 }

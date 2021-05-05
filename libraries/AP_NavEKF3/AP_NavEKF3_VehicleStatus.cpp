@@ -22,7 +22,7 @@ void NavEKF3_core::calcGpsGoodToAlign(void)
     }
 
     // User defined multiplier to be applied to check thresholds
-    float checkScaler = 0.01f*(float)frontend->_gpsCheckScaler;
+    ftype checkScaler = 0.01f*(float)frontend->_gpsCheckScaler;
 
     if (gpsGoodToAlign) {
         /*
@@ -51,9 +51,9 @@ void NavEKF3_core::calcGpsGoodToAlign(void)
     const auto &gps = dal.gps();
 
     const struct Location &gpsloc = gps.location(preferred_gps); // Current location
-    const float posFiltTimeConst = 10.0f; // time constant used to decay position drift
+    const ftype posFiltTimeConst = 10.0; // time constant used to decay position drift
     // calculate time lapsed since last update and limit to prevent numerical errors
-    float deltaTime = constrain_float(float(imuDataDelayed.time_ms - lastPreAlignGpsCheckTime_ms)*0.001f,0.01f,posFiltTimeConst);
+    ftype deltaTime = constrain_float(float(imuDataDelayed.time_ms - lastPreAlignGpsCheckTime_ms)*0.001f,0.01f,posFiltTimeConst);
     lastPreAlignGpsCheckTime_ms = imuDataDelayed.time_ms;
     // Sum distance moved
     gpsDriftNE += gpsloc_prev.get_distance(gpsloc);
@@ -240,14 +240,14 @@ void NavEKF3_core::calcGpsGoodForFlight(void)
     // use a simple criteria based on the GPS receivers claimed speed accuracy and the EKF innovation consistency checks
 
     // set up varaibles and constants used by filter that is applied to GPS speed accuracy
-    const float alpha1 = 0.2f; // coefficient for first stage LPF applied to raw speed accuracy data
-    const float tau = 10.0f; // time constant (sec) of peak hold decay
+    const ftype alpha1 = 0.2f; // coefficient for first stage LPF applied to raw speed accuracy data
+    const ftype tau = 10.0f; // time constant (sec) of peak hold decay
     if (lastGpsCheckTime_ms == 0) {
         lastGpsCheckTime_ms =  imuSampleTime_ms;
     }
-    float dtLPF = (imuSampleTime_ms - lastGpsCheckTime_ms) * 1e-3f;
+    ftype dtLPF = (imuSampleTime_ms - lastGpsCheckTime_ms) * 1e-3f;
     lastGpsCheckTime_ms = imuSampleTime_ms;
-    float alpha2 = constrain_float(dtLPF/tau,0.0f,1.0f);
+    ftype alpha2 = constrain_float(dtLPF/tau,0.0f,1.0f);
 
     // get the receivers reported speed accuracy
     float gpsSpdAccRaw;
@@ -305,7 +305,7 @@ void NavEKF3_core::detectFlight()
 
     if (assume_zero_sideslip()) {
         // To be confident we are in the air we use a criteria which combines arm status, ground speed, airspeed and height change
-        float gndSpdSq = sq(gpsDataNew.vel.x) + sq(gpsDataNew.vel.y);
+        ftype gndSpdSq = sq(gpsDataNew.vel.x) + sq(gpsDataNew.vel.y);
         bool highGndSpd = false;
         bool highAirSpd = false;
         bool largeHgtChange = false;

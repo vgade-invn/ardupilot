@@ -120,7 +120,6 @@ class Board:
             '-Werror=return-type',
             '-Werror=unused-result',
             '-Werror=unused-variable',
-            '-Werror=narrowing',
             '-Werror=attributes',
             '-Werror=overflow',
             '-Werror=parentheses',
@@ -129,6 +128,11 @@ class Board:
             '-Werror=undef',
             '-DARDUPILOT_BUILD',
         ]
+
+        if not cfg.options.ekf_double:
+            env.CFLAGS += [
+                '-Werror=narrowing'
+            ]
 
         if cfg.options.scripting_checks:
             env.DEFINES.update(
@@ -202,7 +206,6 @@ class Board:
             '-Werror=array-bounds',
             '-Werror=uninitialized',
             '-Werror=init-self',
-            '-Werror=narrowing',
             '-Werror=return-type',
             '-Werror=switch',
             '-Werror=sign-compare',
@@ -219,6 +222,11 @@ class Board:
             '-DARDUPILOT_BUILD',
         ]
 
+        if not cfg.options.ekf_double:
+            env.CXXFLAGS += [
+                '-Werror=narrowing'
+            ]
+        
         if 'clang++' in cfg.env.COMPILER_CXX:
             env.CXXFLAGS += [
                 '-fcolor-diagnostics',
@@ -324,7 +332,10 @@ class Board:
             for f in os.listdir('libraries/AP_OSD/fonts'):
                 if fnmatch.fnmatch(f, "font*bin"):
                     env.ROMFS_FILES += [(f,'libraries/AP_OSD/fonts/'+f)]
-            
+
+        if cfg.options.ekf_double:
+            env.CXXFLAGS += ['-DHAL_EKF_DOUBLE=1']
+
     def pre_build(self, bld):
         '''pre-build hook that gets called before dynamic sources'''
         if bld.env.ROMFS_FILES:

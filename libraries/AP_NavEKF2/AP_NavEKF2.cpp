@@ -616,6 +616,7 @@ NavEKF2::NavEKF2()
 bool NavEKF2::InitialiseFilter(void)
 {
     AP::dal().start_frame(AP_DAL::FrameType::InitialiseFilterEKF2);
+    core_malloc_failed = true;
 
     // Return immediately if there is insufficient memory
     if (core_malloc_failed) {

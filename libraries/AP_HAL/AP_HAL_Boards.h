@@ -256,3 +256,8 @@
 #ifndef HAL_ENABLE_THREAD_STATISTICS
 #define HAL_ENABLE_THREAD_STATISTICS 0
 #endif
+
+#ifndef HAL_EKF_DOUBLE
+#define HAL_EKF_DOUBLE 0
+#endif
+
