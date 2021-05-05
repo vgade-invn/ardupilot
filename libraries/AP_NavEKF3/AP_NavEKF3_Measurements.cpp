@@ -363,7 +363,7 @@ void NavEKF3_core::readMagData()
         consistentMagData = compass.consistent();
 
         // save magnetometer measurement to buffer to be fused later
-        if (locked_position.locked == LockedState::UNLOCKED) {
+        if (takeoff_ins.locked == LockedState::UNLOCKED) {
             storedMag.push(magDataNew);
         }
 
@@ -428,8 +428,8 @@ void NavEKF3_core::readIMUData()
     // run movement check using IMU data
     updateMovementCheck();
 
-    if (!onGroundNotMoving && locked_position.locked == LockedState::LOCKED) {
-        locked_position.locked = LockedState::TAKEOFF;
+    if (!onGroundNotMoving && takeoff_ins.locked == LockedState::LOCKED) {
+        takeoff_ins.locked = LockedState::TAKEOFF;
         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 IMU%u lockpos takeoff", (unsigned)imu_index);
     }
 
@@ -441,8 +441,6 @@ void NavEKF3_core::readIMUData()
     
     // Get delta angle data from primary gyro or primary if not available
     readDeltaAngle(gyro_index_active, imuDataNew.delAng, imuDataNew.delAngDT);
-
-    //locked_update(imuDataNew.delVel, imuDataNew.delVelDT, imuDataNew.delAng, imuDataNew.delAngDT);
 
     imuDataNew.delAngDT = MAX(imuDataNew.delAngDT, 1.0e-4f);
     imuDataNew.gyro_index = gyro_index_active;
@@ -684,46 +682,44 @@ void NavEKF3_core::readGpsData()
 
     }
 
-            if (gpsGoodToAlign && !have_table_earth_field) {
-                const auto *compass = dal.get_compass();
-                if (compass && compass->have_scale_factor(magSelectIndex) && compass->auto_declination_enabled()) {
-                    table_earth_field_ga = AP_Declination::get_earth_field_ga(gpsloc).toftype();
-                    table_declination = radians(AP_Declination::get_declination(gpsloc.lat*1.0e-7,
-                                                                            gpsloc.lng*1.0e-7));
-                    have_table_earth_field = true;
-                    if (frontend->_mag_ef_limit > 0) {
-                        // initialise earth field from tables
-                        stateStruct.earth_magfield = table_earth_field_ga;
-                    }
-                }
+    if (gpsGoodToAlign && !have_table_earth_field) {
+        const auto *compass = dal.get_compass();
+        if (compass && compass->have_scale_factor(magSelectIndex) && compass->auto_declination_enabled()) {
+            table_earth_field_ga = AP_Declination::get_earth_field_ga(gpsloc).toftype();
+            table_declination = radians(AP_Declination::get_declination(gpsloc.lat*1.0e-7,
+                                                                    gpsloc.lng*1.0e-7));
+            have_table_earth_field = true;
+            if (frontend->_mag_ef_limit > 0) {
+                // initialise earth field from tables
+                stateStruct.earth_magfield = table_earth_field_ga;
             }
         }
     }
 
-            // convert GPS measurements to local NED and save to buffer to be fused later if we have a valid origin
-            if (validOrigin) {
-                gpsDataNew.pos = EKF_origin.get_distance_NE(gpsloc).toftype();
-                if ((frontend->_originHgtMode & (1<<2)) == 0) {
-                    gpsDataNew.hgt = (float)((double)0.01 * (double)gpsloc.alt - ekfGpsRefHgt);
-                } else {
-                    gpsDataNew.hgt = 0.01 * (gpsloc.alt - EKF_origin.alt);
-                }
-                storedGPS.push(gpsDataNew);
-                // declare GPS available for use
-                gpsNotAvailable = false;
-            }
+    // convert GPS measurements to local NED and save to buffer to be fused later if we have a valid origin
+    if (validOrigin) {
+        gpsDataNew.pos = EKF_origin.get_distance_NE(gpsloc).toftype();
+        if ((frontend->_originHgtMode & (1<<2)) == 0) {
+            gpsDataNew.hgt = (float)((double)0.01 * (double)gpsloc.alt - ekfGpsRefHgt);
+        } else {
+            gpsDataNew.hgt = 0.01 * (gpsloc.alt - EKF_origin.alt);
+        }
+        storedGPS.push(gpsDataNew);
+        // declare GPS available for use
+        gpsNotAvailable = false;
+    }
 
-            // if the GPS has yaw data then input that as well
-            float yaw_deg, yaw_accuracy_deg;
-            if (dal.gps().gps_yaw_deg(selected_gps, yaw_deg, yaw_accuracy_deg)) {
-                // GPS modules are rather too optimistic about their
-                // accuracy. Set to min of 5 degrees here to prevent
-                // the user constantly receiving warnings about high
-                // normalised yaw innovations
-                const ftype min_yaw_accuracy_deg = 5.0f;
-                yaw_accuracy_deg = MAX(yaw_accuracy_deg, min_yaw_accuracy_deg);
-                writeEulerYawAngle(radians(yaw_deg), radians(yaw_accuracy_deg), gpsDataNew.time_ms, 2);
-            }
+    // if the GPS has yaw data then input that as well
+    float yaw_deg, yaw_accuracy_deg;
+    if (dal.gps().gps_yaw_deg(selected_gps, yaw_deg, yaw_accuracy_deg)) {
+        // GPS modules are rather too optimistic about their
+        // accuracy. Set to min of 5 degrees here to prevent
+        // the user constantly receiving warnings about high
+        // normalised yaw innovations
+        const ftype min_yaw_accuracy_deg = 5.0f;
+        yaw_accuracy_deg = MAX(yaw_accuracy_deg, min_yaw_accuracy_deg);
+        writeEulerYawAngle(radians(yaw_deg), radians(yaw_accuracy_deg), gpsDataNew.time_ms, 2);
+    }
 }
 
 // read the delta angle and corresponding time interval from the IMU

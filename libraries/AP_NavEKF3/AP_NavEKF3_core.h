@@ -1501,27 +1501,6 @@ private:
     void Log_Write_Timing(uint64_t time_us);
     void Log_Write_GSF(uint64_t time_us);
 
-    enum class LockedState : uint8_t {
-        UNLOCKED = 0,
-        LOCKED = 1,
-        TAKEOFF = 2,
-    };
-    struct {
-        LockedState locked;
-        Location loc;
-        float yaw;
-        Vector3f dVelSum;
-        Vector3f pos;
-        Vector3f vel;
-        Matrix3f rot;
-        uint32_t last_print_ms;
-        Vector3f gyro_bias;
-        LowPassFilterVector3f gyro_bias_filter;
-        bool takeoff_alignment_complete;
-    } locked_position;
-
-    void locked_update(const Vector3f &dv, float dv_dt,
-                       const Vector3f &da, float da_dt);
     union {
         Vector24 predictedStatesArray;
         struct state_elements predictedStateStruct;
@@ -1530,13 +1509,21 @@ private:
         Vector24 takeoffStatesArray;
         struct state_elements takeoffStateStruct;
     };
+
+    enum class LockedState : uint8_t {
+        UNLOCKED = 0,
+        LOCKED = 1,
+        TAKEOFF = 2,
+    };
+
     struct {
-        Matrix3f Tnb;
-        Vector3f dVelSum;
-        float dAngDelTimeSum;
-        Vector3f dAngSum;
+        LockedState locked;
+        Matrix3F Tnb;
+        Vector3F dVelSum;
+        ftype dAngDelTimeSum;
+        Vector3F dAngSum;
         uint32_t imuSampleCount;
-        Vector3f gyroBias;
+        Vector3F gyroBias;
         bool alignment_complete;
     } takeoff_ins;
 

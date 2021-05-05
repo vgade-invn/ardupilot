@@ -206,9 +206,9 @@ void NavEKF3_core::setAidingMode()
     // Check that the gyro bias variance has converged
     checkGyroCalStatus();
 
-    if (locked_position.locked == LockedState::TAKEOFF &&
+    if (takeoff_ins.locked == LockedState::TAKEOFF &&
         imuSampleTime_ms - lastPosPassTime_ms > frontend->posRetryTimeUseVel_ms-250U) {
-        locked_position.locked = LockedState::UNLOCKED;
+        takeoff_ins.locked = LockedState::UNLOCKED;
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF3 IMU%u unlocked",(unsigned)imu_index);
 #if APM_BUILD_TYPE(APM_BUILD_Replay)
         extern bool dal_enable_random;
@@ -565,7 +565,7 @@ bool NavEKF3_core::use_compass(void) const
         // not using compass as a yaw source
         return false;
     }
-    if (locked_position.locked != LockedState::UNLOCKED) {
+    if (takeoff_ins.locked != LockedState::UNLOCKED) {
         // don't use compass while locked
         return false;
     }
@@ -580,7 +580,7 @@ bool NavEKF3_core::use_compass(void) const
 bool NavEKF3_core::using_external_yaw(void) const
 {
     const AP_NavEKF_Source::SourceYaw yaw_source = frontend->sources.getYawSource();
-    if (locked_position.locked != LockedState::UNLOCKED) {
+    if (takeoff_ins.locked != LockedState::UNLOCKED) {
         return true;
     }
 #if EK3_FEATURE_EXTERNAL_NAV
