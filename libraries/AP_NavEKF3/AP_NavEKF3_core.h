@@ -1494,9 +1494,9 @@ private:
     void Log_Write_XKF4(uint64_t time_us) const;
     void Log_Write_XKF5(uint64_t time_us) const;
     void Log_Write_XKFS(uint64_t time_us) const;
+    void Log_Write_XKIT(uint64_t time_us) const;
     void Log_Write_Quaternion(uint64_t time_us) const;
     void Log_Write_Beacon(uint64_t time_us);
-    void Log_Write_BodyOdom(uint64_t time_us);
     void Log_Write_State_Variances(uint64_t time_us) const;
     void Log_Write_Timing(uint64_t time_us);
     void Log_Write_GSF(uint64_t time_us);

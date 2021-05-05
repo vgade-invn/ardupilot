@@ -203,6 +203,27 @@ void NavEKF3_core::Log_Write_XKF5(uint64_t time_us) const
     AP::logger().WriteBlock(&pkt5, sizeof(pkt5));
 }
 
+void NavEKF3_core::Log_Write_XKIT(uint64_t time_us) const
+{
+    float roll_rad, pitch_rad, yaw_rad;
+    takeoffStateStruct.quat.to_euler(roll_rad, pitch_rad, yaw_rad);
+    const struct log_XKIT pkt{
+        LOG_PACKET_HEADER_INIT(LOG_XKIT_MSG),
+        time_us : time_us,
+        core    : DAL_CORE(core_index),
+        Vx      : (float)takeoffStateStruct.velocity.x,
+        Vy      : (float)takeoffStateStruct.velocity.y,
+        Vz      : (float)takeoffStateStruct.velocity.z,
+        Px      : (float)takeoffStateStruct.position.x,
+        Py      : (float)takeoffStateStruct.position.y,
+        Pz      : (float)takeoffStateStruct.position.z,
+        R       : degrees(roll_rad),
+        P       : degrees(pitch_rad),
+        Y       : degrees(yaw_rad),
+    };
+    AP::logger().WriteBlock(&pkt, sizeof(pkt));
+}
+
 void NavEKF3_core::Log_Write_Quaternion(uint64_t time_us) const
 {
     // log quaternion
@@ -265,33 +286,6 @@ void NavEKF3_core::Log_Write_Beacon(uint64_t time_us)
     };
     AP::logger().WriteBlock(&pkt10, sizeof(pkt10));
     rngBcnFuseDataReportIndex++;
-}
-
-void NavEKF3_core::Log_Write_BodyOdom(uint64_t time_us)
-{
-    if (core_index != frontend->primary) {
-        // log only primary instance for now
-        return;
-    }
-
-    Vector3f velBodyInnov,velBodyInnovVar;
-    static uint32_t lastUpdateTime_ms = 0;
-    uint32_t updateTime_ms = getBodyFrameOdomDebug( velBodyInnov, velBodyInnovVar);
-    if (updateTime_ms > lastUpdateTime_ms) {
-        const struct log_XKFD pkt11{
-            LOG_PACKET_HEADER_INIT(LOG_XKFD_MSG),
-            time_us : time_us,
-            core    : DAL_CORE(core_index),
-            velInnovX : velBodyInnov.x,
-            velInnovY : velBodyInnov.y,
-            velInnovZ : velBodyInnov.z,
-            velInnovVarX : velBodyInnovVar.x,
-            velInnovVarY : velBodyInnovVar.y,
-            velInnovVarZ : velBodyInnovVar.z
-         };
-        AP::logger().WriteBlock(&pkt11, sizeof(pkt11));
-        lastUpdateTime_ms = updateTime_ms;
-    }
 }
 
 void NavEKF3_core::Log_Write_State_Variances(uint64_t time_us) const
@@ -380,11 +374,6 @@ void NavEKF3_core::Log_Write(uint64_t time_us)
 
     // write range beacon fusion debug packet if the range value is non-zero
     Log_Write_Beacon(time_us);
-
-#if EK3_FEATURE_BODY_ODOM
-    // write debug data for body frame odometry fusion
-    Log_Write_BodyOdom(time_us);
-#endif
 
     // log state variances every 0.49s
     Log_Write_State_Variances(time_us);

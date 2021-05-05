@@ -9,7 +9,7 @@
     LOG_XKF3_MSG, \
     LOG_XKF4_MSG, \
     LOG_XKF5_MSG, \
-    LOG_XKFD_MSG, \
+    LOG_XKIT_MSG, \
     LOG_XKFM_MSG, \
     LOG_XKFS_MSG, \
     LOG_XKQ_MSG,  \
@@ -243,6 +243,33 @@ struct PACKED log_XKF5 {
     float posErr;
 };
 
+// @LoggerMessage: XKIT
+// @Description: Inertial takeoff calculation
+// @Field: TimeUS: Time since system startup
+// @Field: C: EKF3 core this data is for
+// @Field: Vx: Velocity North (m/s/s)
+// @Field: Vy: Velocity East (m/s/s)
+// @Field: Vz: Velocity Down (m/s/s)
+// @Field: Px: Position North (m/s/s)
+// @Field: Py: Position East (m/s/s)
+// @Field: Pz: Position Down (m/s/s)
+// @Field: R: Roll (deg)
+// @Field: P: Pitch (deg)
+// @Field: Y: Yaw (deg)
+struct PACKED log_XKIT {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t core;
+    float Vx;
+    float Vy;
+    float Vz;
+    float Px;
+    float Py;
+    float Pz;
+    float R;
+    float P;
+    float Y;
+};
 
 // @LoggerMessage: XKFD
 // @Description: EKF3 Body Frame Odometry errors
@@ -431,8 +458,8 @@ struct PACKED log_XKV {
       "XKF4","QBcccccfffHBIHb","TimeUS,C,SV,SP,SH,SM,SVT,errRP,OFN,OFE,FS,TS,SS,GPS,PI", "s#------mm-----", "F-------??-----" }, \
     { LOG_XKF5_MSG, sizeof(log_XKF5), \
       "XKF5","QBBhhhcccCCfff","TimeUS,C,NI,FIX,FIY,AFI,HAGL,offset,RI,rng,Herr,eAng,eVel,ePos", "s#----m???mrnm", "F-----BBBBB000" }, \
-    { LOG_XKFD_MSG, sizeof(log_XKFD), \
-      "XKFD","QBffffff","TimeUS,C,IX,IY,IZ,IVX,IVY,IVZ", "s#------", "F-------" }, \
+    { LOG_XKIT_MSG, sizeof(log_XKIT), \
+      "XKIT","QBfffffffff","TimeUS,C,Vx,Vy,Vz,Px,Py,Pz,R,P,Y", "s#---------", "F----------" }, \
     { LOG_XKFM_MSG, sizeof(log_XKFM),   \
       "XKFM", "QBBffff", "TimeUS,C,OGNM,GLR,ALR,GDR,ADR", "s#-----", "F------"}, \
     { LOG_XKFS_MSG, sizeof(log_XKFS), \
