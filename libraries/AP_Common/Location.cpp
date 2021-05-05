@@ -277,11 +277,17 @@ void Location::offset_bearing_and_pitch(float bearing, float pitch, float distan
 }
 
 
+float Location::longitude_scale_deg(float lat_deg)
+{
+    float scale = cosf(radians(lat_deg));
+    return MAX(scale, 0.01);
+}
+
 float Location::longitude_scale() const
 {
-    float scale = cosf(lat * (1.0e-7f * DEG_TO_RAD));
-    return MAX(scale, 0.01f);
+    return longitude_scale_deg(lat*1.0e-7);
 }
+
 
 /*
  * convert invalid waypoint with useful data. return true if location changed

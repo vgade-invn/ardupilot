@@ -376,6 +376,9 @@ public:
     // returns true when the yaw angle has been aligned
     bool yawAlignmentComplete(void) const;
 
+    // lock position for inertial takeoff
+    bool lockPosition(bool enable);
+
 private:
     uint8_t num_cores; // number of allocated cores
     uint8_t primary;   // current primary core
@@ -448,6 +451,7 @@ private:
     AP_Float _momentumDragCoef;     // lift rotor momentum drag coefficient
     AP_Int8 _betaMask;              // Bitmask controlling when sideslip angle fusion is used to estimate non wind states
     AP_Float _ognmTestScaleFactor;  // Scale factor applied to the thresholds used by the on ground not moving test
+    AP_Int32 _fitmStateMask;        // Define states allowd to be modified by observations during free inertial takeoff mode
 
 // Possible values for _flowUse
 #define FLOW_USE_NONE    0
@@ -461,9 +465,9 @@ private:
     const float extNavVelVarAccScale = 0.05f;      // Scale factor applied to ext nav velocity measurement variance due to manoeuvre acceleration
     const uint16_t magDelay_ms = 60;               // Magnetometer measurement delay (msec)
     const uint16_t tasDelay_ms = 100;              // Airspeed measurement delay (msec)
-    const uint16_t tiltDriftTimeMax_ms = 15000;    // Maximum number of ms allowed without any form of tilt aiding (GPS, flow, TAS, etc)
-    const uint16_t posRetryTimeUseVel_ms = 10000;  // Position aiding retry time with velocity measurements (msec)
-    const uint16_t posRetryTimeNoVel_ms = 7000;    // Position aiding retry time without velocity measurements (msec)
+    const uint16_t tiltDriftTimeMax_ms = 45000;    // Maximum number of ms allowed without any form of tilt aiding (GPS, flow, TAS, etc)
+    const uint16_t posRetryTimeUseVel_ms = 30000;  // Position aiding retry time with velocity measurements (msec)
+    const uint16_t posRetryTimeNoVel_ms = 30000;    // Position aiding retry time without velocity measurements (msec)
     const uint16_t hgtRetryTimeMode0_ms = 10000;   // Height retry time with vertical velocity measurement (msec)
     const uint16_t hgtRetryTimeMode12_ms = 5000;   // Height retry time without vertical velocity measurement (msec)
     const uint16_t tasRetryTime_ms = 5000;         // True airspeed timeout and retry interval (msec)

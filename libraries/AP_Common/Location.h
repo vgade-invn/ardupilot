@@ -81,6 +81,7 @@ public:
     // shrinking longitude as you move north or south from the equator
     // Note: this does not include the scaling to convert
     // longitude/latitude points to meters or centimeters
+    static float longitude_scale_deg(float lat_deg);
     float longitude_scale() const;
 
     bool is_zero(void) const WARN_IF_UNUSED;
@@ -119,12 +120,12 @@ public:
 
     bool initialised() const { return (lat !=0 || lng != 0 || alt != 0); }
 
-private:
-    static AP_Terrain *_terrain;
-
     // scaling factor from 1e-7 degrees to meters at equator
     // == 1.0e-7 * DEG_TO_RAD * RADIUS_OF_EARTH
     static constexpr float LOCATION_SCALING_FACTOR = 0.011131884502145034f;
     // inverse of LOCATION_SCALING_FACTOR
     static constexpr float LOCATION_SCALING_FACTOR_INV = 89.83204953368922f;
+    
+private:
+    static AP_Terrain *_terrain;
 };

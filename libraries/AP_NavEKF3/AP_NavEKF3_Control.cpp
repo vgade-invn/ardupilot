@@ -206,6 +206,20 @@ void NavEKF3_core::setAidingMode()
     // Check that the gyro bias variance has converged
     checkGyroCalStatus();
 
+    if (locked_position.locked == LockedState::TAKEOFF &&
+        imuSampleTime_ms - lastPosPassTime_ms > frontend->posRetryTimeUseVel_ms-250U) {
+        locked_position.locked = LockedState::UNLOCKED;
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF3 IMU%u unlocked",(unsigned)imu_index);
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
+        extern bool dal_enable_random;
+        if (dal_enable_random) {
+            extern int32_t dal_random_seed;
+            FILE *ff = fopen("randlog.txt", "a");
+            fprintf(ff, "%u,%ld,%.12f,%.12f,%.12f,%.12f\n", core_index, long(dal_random_seed), takeoffStateStruct.velocity.x, takeoffStateStruct.velocity.y, takeoffStateStruct.position.x, takeoffStateStruct.position.y);
+        }
+#endif
+    }
+
     // Handle the special case where we are on ground and disarmed without a yaw measurement
     // and navigating. This can occur if not using a magnetometer and yaw was aligned using GPS
     // during the previous flight.
@@ -551,6 +565,10 @@ bool NavEKF3_core::use_compass(void) const
         // not using compass as a yaw source
         return false;
     }
+    if (locked_position.locked != LockedState::UNLOCKED) {
+        // don't use compass while locked
+        return false;
+    }
 
     const auto *compass = dal.get_compass();
     return compass &&
@@ -562,6 +580,9 @@ bool NavEKF3_core::use_compass(void) const
 bool NavEKF3_core::using_external_yaw(void) const
 {
     const AP_NavEKF_Source::SourceYaw yaw_source = frontend->sources.getYawSource();
+    if (locked_position.locked != LockedState::UNLOCKED) {
+        return true;
+    }
 #if EK3_FEATURE_EXTERNAL_NAV
     if (yaw_source == AP_NavEKF_Source::SourceYaw::EXTNAV) {
         return ((imuSampleTime_ms - last_extnav_yaw_fusion_ms < 5000) || (imuSampleTime_ms - lastSynthYawTime_ms < 5000));

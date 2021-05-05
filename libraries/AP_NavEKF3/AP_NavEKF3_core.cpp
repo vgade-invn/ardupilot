@@ -125,7 +125,7 @@ bool NavEKF3_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
         return false;
     }
 #endif // EK3_FEATURE_BODY_ODOM
-    if(frontend->sources.gps_yaw_enabled() && !storedYawAng.init(obs_buffer_length)) {
+    if(!storedYawAng.init(obs_buffer_length)) {
         return false;
     }
     // Note: the use of dual range finders potentially doubles the amount of data to be stored
@@ -704,10 +704,13 @@ void NavEKF3_core::UpdateFilter(bool predict)
 
         // Update the filter status
         updateFilterStatus();
+
     }
 
     // Wind output forward from the fusion to output time horizon
     calcOutputStates();
+
+    RunTakeoffInertialNav();
 
     /*
       this is a check to cope with a vehicle sitting idle on the
@@ -750,6 +753,15 @@ void NavEKF3_core::correctDeltaVelocity(Vector3f &delVel, float delVelDT, uint8_
 */
 void NavEKF3_core::UpdateStrapdownEquationsNED()
 {
+    // if doing a free inertial takeoff restore the state from the previous prediction
+    if (locked_position.locked == LockedState::TAKEOFF) {
+        for (uint8_t stateIndex = 0; stateIndex <= stateIndexLim; stateIndex++) {
+            if (!(frontend->_fitmStateMask & (1U<<stateIndex))) {
+                statesArray[stateIndex] = predictedStatesArray[stateIndex];
+            }
+        }
+    }
+
     // update the quaternion states by rotating from the previous attitude through
     // the delta angle rotation quaternion and normalise
     // apply correction for earth's rotation rate
@@ -808,6 +820,9 @@ void NavEKF3_core::UpdateStrapdownEquationsNED()
     if (filterStatus.flags.horiz_vel) {
         receiverPos += (stateStruct.velocity + lastVelocity) * (imuDataDelayed.delVelDT*0.5f);
     }
+
+    // store the predicted states for later reinstatement
+    predictedStateStruct = stateStruct;
 }
 
 /*
@@ -985,6 +1000,143 @@ void NavEKF3_core::calcOutputStates()
         // update output state to corrected values
         outputDataNew = storedOutput[storedIMU.get_youngest_index()];
 
+    }
+}
+
+void NavEKF3_core::RunTakeoffInertialNav()
+{
+    if (locked_position.locked == LockedState::LOCKED) {
+        if (takeoff_ins.imuSampleCount == 0) {
+            takeoff_ins.dAngSum.zero();
+            takeoff_ins.dVelSum.zero();
+            takeoff_ins.dAngDelTimeSum = 0.0f;
+        }
+        if (onGroundNotMoving) {
+            takeoff_ins.imuSampleCount++;
+            takeoff_ins.dAngSum += (imuDataNew.delAng - prevTnb * earthRateNED*imuDataNew.delAngDT);
+            takeoff_ins.dVelSum += imuDataNew.delVel;
+            takeoff_ins.dAngDelTimeSum += imuDataNew.delAngDT;
+        }
+        return;
+    } else if (locked_position.locked == LockedState::UNLOCKED) {
+        takeoff_ins.imuSampleCount = 0;
+        return;
+    } else if (!takeoff_ins.alignment_complete) {
+        // calculate initial roll and pitch orientation to be consistent with LOCKED state average
+        if (takeoff_ins.dVelSum.length() < 0.001f) {
+            return;
+        }
+        takeoff_ins.dVelSum.normalize();
+
+        float pitch, roll, yaw;
+        stateStruct.quat.to_euler(roll, pitch, yaw);
+        const float roll_old = roll;
+        const float pitch_old = pitch;
+
+        // calculate initial tilt assuming IMU is static and measuring gravity
+        // use previous yaw
+        pitch = asinf(takeoff_ins.dVelSum.x);
+        roll = atan2f(-takeoff_ins.dVelSum.y , -takeoff_ins.dVelSum.z);
+        takeoffStateStruct.quat.from_euler(roll, pitch, yaw);
+        takeoffStateStruct.quat.inverse().rotation_matrix(takeoff_ins.Tnb);
+
+        // start at zero to make drift analysis easier
+        takeoffStateStruct.velocity.zero();
+        takeoffStateStruct.position.zero();
+
+        // gyro bias estimate assumes vehicle does not move and prevTnb was correct during LOCKED state
+        // for correct earth rotation rate compensation
+        takeoff_ins.gyroBias = takeoff_ins.dAngSum / takeoff_ins.dAngDelTimeSum;
+        takeoff_ins.imuSampleCount = 0;
+
+        // transfer alignment data to main filter
+        stateStruct.quat = takeoffStateStruct.quat;
+        stateStruct.gyro_bias = takeoff_ins.gyroBias * dtEkfAvg;
+        stateStruct.velocity.zero();
+
+        takeoff_ins.alignment_complete = true;
+
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "roll old,new=%.2f,%.2f pitch old,new=%.2f,%.2f",
+                        (double)degrees(roll_old), (double)degrees(roll),
+                        (double)degrees(pitch_old), (double)degrees(pitch));
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "gyro bias = %.5f,%.5f,%.5f",
+                        (double)degrees(takeoff_ins.gyroBias.x),
+                        (double)degrees(takeoff_ins.gyroBias.y),
+                        (double)degrees(takeoff_ins.gyroBias.z));
+
+        return;
+    }
+
+    Vector3f deltaAngNow = imuDataNew.delAng - takeoff_ins.gyroBias * imuDataNew.delAngDT;
+    Vector3f deltaAngPrev = imuDataNewPrev.delAng - takeoff_ins.gyroBias * imuDataNew.delAngDT;
+
+    // // Coning corrections to be applied if they are not done inside IMU or driver
+    // Vector3f coning_correction = (deltaAngPrev % deltaAngNow) * (1.0f / 12.0f);
+    // takeoffStateStruct.quat.rotate(imuDataNew.delAng + coning_correction - takeoff_ins.Tnb * earthRateNED*imuDataNew.delAngDT);
+
+    // update the quaternion states by rotating from the previous attitude through
+    // the delta angle rotation quaternion and normalise
+    // apply correction for earth's rotation rate
+    // % * - and + operators have been overloaded
+    takeoffStateStruct.quat.rotate(imuDataNew.delAng - takeoff_ins.Tnb * earthRateNED*imuDataNew.delAngDT);
+    stateStruct.quat.normalize();
+    Matrix3f newTnb;
+    takeoffStateStruct.quat.inverse().rotation_matrix(newTnb);
+
+    // transform body delta velocities to delta velocities in the nav frame
+    // apply sculling corrections
+    // * and + operators have been overloaded
+    Vector3f sculling_correction = (deltaAngPrev % imuDataNew.delVel) + (imuDataNewPrev.delVel % deltaAngNow);
+    sculling_correction *= (1.0f / 12.0f);
+    Vector3f delVelNav;  // delta velocity vector in earth axes
+    delVelNav  = takeoff_ins.Tnb.mul_transpose(imuDataNew.delVel + sculling_correction);
+    delVelNav.z += GRAVITY_MSS*imuDataNew.delVelDT;
+
+    takeoff_ins.Tnb = newTnb;
+
+    // save velocity for use in trapezoidal integration for position calcuation
+    Vector3f lastVelocity = stateStruct.velocity;
+
+    // sum delta velocities to get velocity
+    takeoffStateStruct.velocity += delVelNav;
+
+    // apply a trapezoidal integration to velocities to calculate position
+    takeoffStateStruct.position += (takeoffStateStruct.velocity + lastVelocity) * (imuDataNew.delVelDT*0.5f);
+
+    if (core_index == 0) {
+        float roll_rad, pitch_rad, yaw_rad;
+        takeoffStateStruct.quat.to_euler(roll_rad, pitch_rad, yaw_rad);
+        // @LoggerMessage: XKIT
+        // @Description: Inertial takeoff calculation
+        // @Field: TimeUS: Time since system startup
+        // @Field: Ax: Acceleration North (m/s/s)
+        // @Field: Ay: Acceleration East (m/s/s)
+        // @Field: Az: Acceleration Down (m/s/s)
+        // @Field: Vx: Velocity North (m/s/s)
+        // @Field: Vy: Velocity East (m/s/s)
+        // @Field: Vz: Velocity Down (m/s/s)
+        // @Field: Px: Position North (m/s/s)
+        // @Field: Py: Position East (m/s/s)
+        // @Field: Pz: Position Down (m/s/s)
+        // @Field: R: Roll (deg)
+        // @Field: P: Pitch (deg)
+        // @Field: Y: Yaw (deg)
+        AP::logger().Write("XKIT", "TimeUS,Ax,Ay,Az,Vx,Vy,Vz,Px,Py,Pz,R,P,Y",
+                            "Qffffffffffff",
+                            AP_HAL::micros64(),
+                            delVelNav.x / imuDataNew.delVelDT, delVelNav.y / imuDataNew.delVelDT, delVelNav.z / imuDataNew.delVelDT,
+                            takeoffStateStruct.velocity.x, takeoffStateStruct.velocity.y, takeoffStateStruct.velocity.z,
+                            takeoffStateStruct.position.x, takeoffStateStruct.position.y, takeoffStateStruct.position.z,
+                            degrees(roll_rad), degrees(pitch_rad), degrees(yaw_rad));
+    }
+    const uint32_t now = dal.millis();
+    static uint32_t time_ms=0;
+    if (now - time_ms > 1000) {
+        time_ms = now;
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "TAKEOFF vx,vy=%.2f,%.2f px,py=%.2f,%.2f spx,spy=%.2f,%.2f",
+                          (double)takeoffStateStruct.velocity.x, (double)takeoffStateStruct.velocity.y,
+                          (double)takeoffStateStruct.position.x, (double)takeoffStateStruct.position.y,
+                          (double)stateStruct.position.x, (double)stateStruct.position.y);
     }
 }
 
@@ -2118,3 +2270,104 @@ void NavEKF3_core::verifyTiltErrorVariance()
     }
 }
 #endif
+
+/*
+  lock current position for inertial takeoff
+ */
+bool NavEKF3_core::lockPosition(bool enable)
+{
+    if (!enable) {
+        locked_position.locked = LockedState::UNLOCKED;
+        return true;
+    }
+    if (!onGroundNotMoving) {
+        return false;
+    }
+    if (!getLLH(locked_position.loc)) {
+        return false;
+    }
+    Vector3f euler;
+    getEulerAngles(euler);
+    locked_position.yaw = euler.z;
+    locked_position.locked = LockedState::LOCKED;
+    locked_position.pos.zero();
+    locked_position.vel.zero();
+    stateStruct.quat.rotation_matrix(locked_position.rot);
+    locked_position.gyro_bias_filter.set_cutoff_frequency(dal.ins().get_loop_rate_hz(), 0.1);
+    locked_position.gyro_bias_filter.reset(inactiveBias[gyro_index_active].gyro_bias);
+
+    return true;
+}
+
+void NavEKF3_core::locked_update(const Vector3f &dv, float dv_dt,
+                                 const Vector3f &da, float da_dt)
+{
+    if (locked_position.locked == LockedState::UNLOCKED) {
+        locked_position.dVelSum.zero();
+        locked_position.takeoff_alignment_complete = false;
+    }
+
+    if (locked_position.locked == LockedState::LOCKED) {
+        // update IMU filters, assuming no movement
+        locked_position.gyro_bias = locked_position.gyro_bias_filter.apply(da * (dtEkfAvg / da_dt));
+        locked_position.dVelSum += dv;
+        locked_position.takeoff_alignment_complete = false;
+    }
+
+    if (locked_position.locked != LockedState::TAKEOFF) {
+        return;
+    }
+
+    if (!locked_position.takeoff_alignment_complete) {
+        // calculate initial roll and pitch orientation to be consistent with averaged accel vector
+        float pitch, roll, yaw;
+        stateStruct.quat.to_euler(roll, pitch, yaw);
+        const float roll_old = roll;
+        const float pitch_old = pitch;
+        if (locked_position.dVelSum.length() > 0.001f) {
+            locked_position.dVelSum.normalize();
+
+            // calculate initial pitch angle
+            pitch = asinf(locked_position.dVelSum.x);
+
+            // calculate initial roll angle
+            roll = atan2f(-locked_position.dVelSum.y , -locked_position.dVelSum.z);
+
+            stateStruct.quat.from_euler(roll, pitch, yaw);
+            predictedStateStruct.quat = stateStruct.quat;
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "roll old,new=%.2f,%.2f pitch old,new=%.2f,%.2f",
+                          (double)degrees(roll_old), (double)degrees(roll),
+                          (double)degrees(pitch_old), (double)degrees(pitch));
+        }
+        locked_position.takeoff_alignment_complete = true;
+    }
+
+    Vector3f abias = inactiveBias[accel_index_active].accel_bias / dtEkfAvg;
+    Vector3f dv_corr = dv - inactiveBias[accel_index_active].accel_bias * (dv_dt / dtEkfAvg);
+    Vector3f dv_rot = locked_position.rot * dv_corr;
+    dv_rot.z += GRAVITY_MSS*dv_dt;
+    Vector3f accel = dv_rot / dv_dt;
+    locked_position.vel += dv_rot;
+    locked_position.pos += locked_position.vel * dv_dt;
+    Vector3f da_corr =  da - locked_position.gyro_bias * (da_dt / dtEkfAvg);
+    locked_position.rot.rotate(da_corr);
+    locked_position.rot.normalize();
+    const uint32_t now = dal.millis();
+    if (now - locked_position.last_print_ms > 1000 && accel_index_active == 0) {
+        locked_position.last_print_ms = now;
+        float r, p, y;
+        locked_position.rot.to_euler(&r, &p, &y);
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "a (%.4f,%.4f,%.4f) pos (%.3f,%.3f,%.3f) eul (%.3f,%.3f,%.3f) dv_dt=%.4f ab=(%.6f,%.6f) dv=(%.4f,%.4f)",
+                      accel.x, accel.y, accel.z,
+                      locked_position.pos.x,
+                      locked_position.pos.y,
+                      locked_position.pos.z,
+                      degrees(r),
+                      degrees(p),
+                      degrees(y),
+                      dv_dt,
+                      abias.x, abias.y,
+                      dv.x/dv_dt, dv.y/dv_dt);
+
+    }
+}

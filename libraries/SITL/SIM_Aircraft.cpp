@@ -375,9 +375,9 @@ void Aircraft::fill_fdm(struct sitl_fdm &fdm)
         fdm.xAccel = smoothing.accel_body.x;
         fdm.yAccel = smoothing.accel_body.y;
         fdm.zAccel = smoothing.accel_body.z;
-        fdm.rollRate  = degrees(smoothing.gyro.x);
-        fdm.pitchRate = degrees(smoothing.gyro.y);
-        fdm.yawRate   = degrees(smoothing.gyro.z);
+        fdm.rollRate  = degrees(smoothing.gyro.x + smoothing.earthRate_bf.x);
+        fdm.pitchRate = degrees(smoothing.gyro.y + smoothing.earthRate_bf.y);
+        fdm.yawRate   = degrees(smoothing.gyro.z + smoothing.earthRate_bf.z);
         fdm.speedN    = smoothing.velocity_ef.x;
         fdm.speedE    = smoothing.velocity_ef.y;
         fdm.speedD    = smoothing.velocity_ef.z;
@@ -518,7 +518,7 @@ void Aircraft::update_model(const struct sitl_input &input)
 /*
   update the simulation attitude and relative position
  */
-void Aircraft::update_dynamics(const Vector3f &rot_accel)
+void Aircraft::update_dynamics(const Vector3f &rot_accel, const struct sitl_input &input)
 {
     const float delta_time = frame_time_us * 1.0e-6f;
 
@@ -566,7 +566,8 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
     airspeed_pitot = constrain_float(velocity_air_bf * Vector3f(1.0f, 0.0f, 0.0f), 0.0f, 120.0f);
 
     // constrain height to the ground
-    if (on_ground()) {
+    // handle use of special ground mode used to test inertial nav
+    if (on_ground() || ground_behavior == GROUND_BEHAVIOR_NAV_TEST) {
         if (!was_on_ground && AP_HAL::millis() - last_ground_contact_ms > 1000) {
             GCS_SEND_TEXT(MAV_SEVERITY_INFO, "SIM Hit ground at %f m/s", velocity_ef.z);
             last_ground_contact_ms = AP_HAL::millis();
@@ -655,6 +656,38 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
             use_smoothing = true;
             break;
         }
+        case GROUND_BEHAVIOR_NAV_TEST: {
+            float r, p, y;
+            dcm.to_euler(&r, &p, &y);
+            // Use  RC6 to start rocking motion with a 1 second delay. If RC6_OPTION = 41,
+            // then vehicle will arm, but rocking will be delayed by 1 second to facilitate
+            // testing of inertial nav algorithms.
+            if (input.servos[5] > 1500) {
+                if (gnd_move_start_time_us == 0) {
+                    gnd_move_start_time_us = time_now_us + 1000000;
+                }
+                const double movement_time = fmaxf64((1E-6 * ((double)time_now_us - (double)gnd_move_start_time_us)), 0.0);
+                // const double max_amplitude = (double)radians(30.0);
+                // const double frequency_hz = 0.1;
+                // // build up to max amplitude over 2 cycles
+                // const double amplitude = fminf64((movement_time * frequency_hz * 0.5) * max_amplitude, max_amplitude);
+                // const double phase_angle = wrap_PI(movement_time * M_2PI * frequency_hz);
+                r = fminf(0.5 * movement_time, M_PI);//(float)(amplitude * cosf64(phase_angle));
+                p = 0.0f;//(float)(amplitude * sinf64(phase_angle));
+            } else {
+                gnd_move_start_time_us = 0;
+                r = 0.0f;
+                p = 0.0f;
+            }
+            y = y + yaw_rate * delta_time;
+            dcm.from_euler(r, p, y);
+            // X, Y movement tracks ground movement
+            velocity_ef.zero();
+            position.zero();
+            gyro.zero();
+            use_smoothing = true; 
+            break;
+        }
         }
     }
 
@@ -699,90 +732,206 @@ void Aircraft::update_wind(const struct sitl_input &input)
 void Aircraft::smooth_sensors(void)
 {
     uint64_t now = time_now_us;
-    Vector3f delta_pos = position - smoothing.position;
+    Vector3f delta_pos = position - smoothing.position_ef;
     if (smoothing.last_update_us == 0 || delta_pos.length() > 10) {
-        smoothing.position = position;
-        smoothing.rotation_b2e = dcm;
+        smoothing.position_ef = position;
+        smoothing.position_demand_prev = position;
+        smoothing.quat.from_rotation_matrix(dcm);
         smoothing.accel_body = accel_body;
         smoothing.velocity_ef = velocity_ef;
         smoothing.gyro = gyro;
+        smoothing.gyro_prev = gyro;
         smoothing.last_update_us = now;
         smoothing.location = location;
+        smoothing.accel_ef.zero();
+        smoothing.dcm_prev = dcm;
         printf("Smoothing reset at %.3f\n", now * 1.0e-6f);
         return;
     }
-    const float delta_time = (now - smoothing.last_update_us) * 1.0e-6f;
-    if (delta_time < 0 || delta_time > 0.1) {
+    const double delta_time = (now - smoothing.last_update_us) * 1.0e-6f;
+    if (delta_time <= 0 || delta_time > 0.1) {
         return;
     }
 
     // calculate required accel to get us to desired position and velocity in the time_constant
-    const float time_constant = 0.1f;
-    Vector3f dvel = (velocity_ef - smoothing.velocity_ef) + (delta_pos / time_constant);
-    Vector3f accel_e = dvel / time_constant + (dcm * accel_body + Vector3f(0.0f, 0.0f, GRAVITY_MSS));
-    const float accel_limit = 14 * GRAVITY_MSS;
-    accel_e.x = constrain_float(accel_e.x, -accel_limit, accel_limit);
-    accel_e.y = constrain_float(accel_e.y, -accel_limit, accel_limit);
-    accel_e.z = constrain_float(accel_e.z, -accel_limit, accel_limit);
-    smoothing.accel_body = smoothing.rotation_b2e.transposed() * (accel_e + Vector3f(0.0f, 0.0f, -GRAVITY_MSS));
+    Vector3f velocity_demand = (position - smoothing.position_demand_prev) / delta_time;
+    smoothing.position_demand_prev = position;
 
-    // calculate rotational rate to get us to desired attitude in time constant
-    Quaternion desired_q, current_q, error_q;
+    // body to earth rotation matrix at previous time step
+    Matrix3f rotation_b2e_prev;
+    smoothing.quat.rotation_matrix(rotation_b2e_prev);
+
+    // wind states forward to current time horizon
+
+    // wind attitude forward to current time using trapezoidal integration
+    // using double precision becasue errors at this step accumulate
+    Quaternion delta_quat;
+    Vector3d delta_angle;
+    delta_angle.x = ((double)smoothing.gyro.x + (double)smoothing.gyro_prev.x) * delta_time * 0.5;
+    delta_angle.y = ((double)smoothing.gyro.y + (double)smoothing.gyro_prev.y) * delta_time * 0.5;
+    delta_angle.z = ((double)smoothing.gyro.z + (double)smoothing.gyro_prev.z) * delta_time * 0.5;
+    smoothing.gyro_prev = smoothing.gyro;
+    const double theta = sqrtf64(delta_angle.x*delta_angle.x+delta_angle.y*delta_angle.y+delta_angle.z*delta_angle.z);
+    double w2,x2,y2,z2;
+    if (is_zero(theta)) {
+        w2 = 1.0;
+        x2=y2=z2=0.0;
+    } else {
+        Vector3d axis = delta_angle / theta;
+        const float st2 = sinf64(theta*0.5);
+        w2 = cosf64(theta*0.5);
+        x2 = axis.x * st2;
+        y2 = axis.y * st2;
+        z2 = axis.z * st2;
+    }
+
+    const double w1 = (double)smoothing.quat[0];
+    const double x1 = (double)smoothing.quat[1];
+    const double y1 = (double)smoothing.quat[2];
+    const double z1 = (double)smoothing.quat[3];
+
+    double q1 = w1*w2 - x1*x2 - y1*y2 - z1*z2;
+    double q2 = w1*x2 + x1*w2 + y1*z2 - z1*y2;
+    double q3 = w1*y2 - x1*z2 + y1*w2 + z1*x2;
+    double q4 = w1*z2 + x1*y2 - y1*x2 + z1*w2;
+
+    const double q_norm = sqrtf64(q1*q1+q2*q2+q3*q3+q4*q4);
+    q1/=q_norm;
+    q2/=q_norm;
+    q3/=q_norm;
+    q4/=q_norm;
+
+    smoothing.quat[0] = (float)q1;
+    smoothing.quat[1] = (float)q2;
+    smoothing.quat[2] = (float)q3;
+    smoothing.quat[3] = (float)q4;
+
+    // body to earth rotation matrix at current time step
+    Matrix3f rotation_b2e;
+    smoothing.quat.rotation_matrix(rotation_b2e);
+
+    // IMU accel measured assuming a constant earth frame acceleration vector and a varying
+    // earth to body rotation matrix so average across the prev and current rotation
+    const Vector3f specific_force_ef = smoothing.accel_ef + Vector3f(0.0f, 0.0f, -GRAVITY_MSS);
+    smoothing.accel_body = (rotation_b2e.transposed() * specific_force_ef + rotation_b2e_prev.transposed() * specific_force_ef) * 0.5f;
+
+    // wind velocty forward to current time using forward euler integration
+    const Vector3f velocity_ef_prev = smoothing.velocity_ef;
+    smoothing.velocity_ef += smoothing.accel_ef * delta_time;
+
+    // wind position forward to current time horizon first using trapezoidal integration
+    smoothing.position_ef += (smoothing.velocity_ef + velocity_ef_prev) * (delta_time * 0.5f);
+
+    // Compare states to reference trajectory at current time step and calculate earth frame
+    // acceleration required to drive tracking errors to zero using a virtual mass/spring/damper system
+
+    const float omega = 10.0f; // circular frequency of virtual mass/spring/damper system (rad/s)
+    const float zeta = M_SQRT1_2; // viscous damping ratio  of virtual mass/spring/damper system
+
+    const float stiffness = sq(omega); // virtual spring
+    const float damping = 2.0f * zeta * omega; // virtual damper
+
+    // calculate tracking errors using position and velocity states that have been
+    // predicted forward to the current time horizon assuming a time invariant acceleration
+    Vector3f position_error = position - smoothing.position_ef;
+    Vector3f velocity_error = velocity_demand - smoothing.velocity_ef;
+
+    // calculate acceleration required to follow reference trajectory
+    // we assume this acceleration remains constant from current to the next time step
+    smoothing.accel_ef = velocity_error * damping + position_error * stiffness;
+
+    // limit to avoid saturation of IMU on touchdown events that could cause large INS errors
+    const float accel_limit = 14 * GRAVITY_MSS;
+    smoothing.accel_ef.x = constrain_float(smoothing.accel_ef.x, -accel_limit, accel_limit);
+    smoothing.accel_ef.y = constrain_float(smoothing.accel_ef.y, -accel_limit, accel_limit);
+    smoothing.accel_ef.z = constrain_float(smoothing.accel_ef.z, -accel_limit, accel_limit);
+
+    // calculate angular rate due to earth rotation at current time step
+    const float earthRateECEF = 0.000072921f; // spin rate about North pole (rad/sec)
+    float lat_rad = radians(smoothing.location.lat*1.0e-7f);
+    Vector3f earthRateNED; // earth spin rate in local NED tangent frame
+    earthRateNED.x  =  earthRateECEF * cosf(lat_rad);
+    earthRateNED.y  =  0;
+    earthRateNED.z  = -earthRateECEF * sinf(lat_rad);
+    smoothing.earthRate_bf = rotation_b2e.transposed() * earthRateNED;
+
+    // Calculate rotational rate that tracks and converges on reference attitude from simulator dcm matrix
+    // we assume this angular rate remains constant until the next time step
+
+    // Use first order difference of rotation from previous to current time step
+    // to calculate the predicted gyro rate
+    Quaternion desired_q, desired_q_prev;
     desired_q.from_rotation_matrix(dcm);
     desired_q.normalize();
-    current_q.from_rotation_matrix(smoothing.rotation_b2e);
-    current_q.normalize();
-    error_q = desired_q / current_q;
+
+    desired_q_prev.from_rotation_matrix(smoothing.dcm_prev);
+    smoothing.dcm_prev = dcm;
+    desired_q_prev.normalize();
+
+    Quaternion predicted_delta_q = desired_q / desired_q_prev;
+    predicted_delta_q.normalize();
+
+    Vector3f predicted_gyro;
+    predicted_delta_q.to_axis_angle(predicted_gyro);
+    predicted_gyro /= delta_time;
+
+    // turn off predicted rate to prevent step changes in gyro
+    predicted_gyro.zero();
+
+    // Calculate a gyro correction drives the tracking error to zero with a time constant
+    // of 1/omega
+    Quaternion error_q = desired_q / smoothing.quat;
     error_q.normalize();
 
-    Vector3f angle_differential;
-    error_q.to_axis_angle(angle_differential);
-    smoothing.gyro = gyro + angle_differential / time_constant;
+    Vector3f angle_error;
+    error_q.to_axis_angle(angle_error);
 
+    const Vector3f gyro_correction = angle_error * omega;
+
+    smoothing.gyro = predicted_gyro + gyro_correction;
+
+    // limit to avoid saturation of IMU on touchdown events that could cause large INS errors
+    const float gyro_limit = radians(1000.0f);
+    smoothing.gyro.x = constrain_float(smoothing.gyro.x, -gyro_limit, gyro_limit);
+    smoothing.gyro.y = constrain_float(smoothing.gyro.y, -gyro_limit, gyro_limit);
+    smoothing.gyro.z = constrain_float(smoothing.gyro.z, -gyro_limit, gyro_limit);
+
+#if 1
     float R, P, Y;
-    smoothing.rotation_b2e.to_euler(&R, &P, &Y);
-    float R2, P2, Y2;
-    dcm.to_euler(&R2, &P2, &Y2);
+    rotation_b2e.to_euler(&R, &P, &Y);
+    float Rref, Pref, Yref;
+    dcm.to_euler(&Rref, &Pref, &Yref);
 
-#if 0
 // @LoggerMessage: SMOO
 // @Description: Smoothed sensor data fed to EKF to avoid inconsistencies
 // @Field: TimeUS: Time since system startup
-// @Field: AEx: Angular Velocity (around x-axis)
-// @Field: AEy: Angular Velocity (around y-axis)
-// @Field: AEz: Angular Velocity (around z-axis)
-// @Field: DPx: Velocity (along x-axis)
-// @Field: DPy: Velocity (along y-axis)
-// @Field: DPz: Velocity (along z-axis)
+// @Field: AEx: Angular Tracking Error (around x-axis)
+// @Field: AEy: Angular Tracking Error (around y-axis)
+// @Field: AEz: Angular Tracking Error (around z-axis)
+// @Field: PEx: Position Tracking Error (along x-axis)
+// @Field: PEy: Position Tracking Error (along y-axis)
+// @Field: PEz: Position Tracking Error (along z-axis)
 // @Field: R: Roll
 // @Field: P: Pitch
 // @Field: Y: Yaw
-// @Field: R2: DCM Roll
-// @Field: P2: DCM Pitch
-// @Field: Y2: DCM Yaw
-    AP::logger().Write("SMOO", "TimeUS,AEx,AEy,AEz,DPx,DPy,DPz,R,P,Y,R2,P2,Y2",
+// @Field: Rref: Roll reference from DCM
+// @Field: Pref: Pitch reference from DCM
+// @Field: Yref: Yaw reference from DCM
+    AP::logger().Write("SMOO", "TimeUS,AEx,AEy,AEz,PEx,PEy,PEz,R,P,Y,Rref,Pref,Yref",
                                            "Qffffffffffff",
                                            AP_HAL::micros64(),
-                                           degrees(angle_differential.x),
-                                           degrees(angle_differential.y),
-                                           degrees(angle_differential.z),
-                                           delta_pos.x, delta_pos.y, delta_pos.z,
+                                           degrees(angle_error.x),
+                                           degrees(angle_error.y),
+                                           degrees(angle_error.z),
+                                           position_error.x, position_error.y, position_error.z,
                                            degrees(R), degrees(P), degrees(Y),
-                                           degrees(R2), degrees(P2), degrees(Y2));
+                                           degrees(Rref), degrees(Pref), degrees(Yref));
 #endif
 
 
-    // integrate to get new attitude
-    smoothing.rotation_b2e.rotate(smoothing.gyro * delta_time);
-    smoothing.rotation_b2e.normalize();
-
-    // integrate to get new position
-    smoothing.velocity_ef += accel_e * delta_time;
-    smoothing.position += smoothing.velocity_ef * delta_time;
-
     smoothing.location = home;
-    smoothing.location.offset(smoothing.position.x, smoothing.position.y);
-    smoothing.location.alt  = static_cast<int32_t>(home.alt - smoothing.position.z * 100.0f);
+    smoothing.location.offset(smoothing.position_ef.x, smoothing.position_ef.y);
+    smoothing.location.alt  = static_cast<int32_t>(home.alt - smoothing.position_ef.z * 100.0f);
 
     smoothing.last_update_us = now;
 }

@@ -2873,4 +2873,12 @@ void AP_AHRS_NavEKF::set_alt_measurement_noise(float noise)
 #endif
 }
 
+// lock position for inertial takeoff
+bool AP_AHRS_NavEKF::lock_position(bool enable)
+{
+#if HAL_NAVEKF3_AVAILABLE
+    return EKF3.lockPosition(enable);
+#endif
+}
+
 #endif // AP_AHRS_NAVEKF_AVAILABLE

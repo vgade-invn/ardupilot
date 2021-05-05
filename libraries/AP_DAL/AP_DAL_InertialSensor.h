@@ -54,11 +54,7 @@ public:
     void handle_message(const log_RISH &msg) {
         _RISH = msg;
     }
-    void handle_message(const log_RISI &msg) {
-        _RISI[msg.instance] = msg;
-        pos[msg.instance] = AP::ins().get_imu_pos_offset(msg.instance);
-        update_filtered(msg.instance);
-    }
+    void handle_message(const log_RISI &msg);
 
 private:
     struct log_RISH _RISH;
@@ -73,5 +69,15 @@ private:
 
     uint8_t _primary_gyro;
 
+    struct Sensor_Error_Param_Struct {
+        Matrix3f TransferMatrix; // scale factor and misalignment
+        Matrix3f AccelToRateMatrix; // (rad/sec) / (m/s/s)
+        Vector3f RateNoise; // rad/sec
+    } sensor_error_params;
+
+
     void update_filtered(uint8_t i);
+
+    float rand_ndist();
+
 };
