@@ -594,7 +594,6 @@ class chibios(Board):
         env.CFLAGS += cfg.env.CPU_FLAGS + [
             '-Wno-cast-align',
             '-Wlogical-op',
-            '-Wframe-larger-than=1300',
             '-fsingle-precision-constant',
             '-Wno-attributes',
             '-fno-exceptions',
@@ -648,6 +647,12 @@ class chibios(Board):
         env.CFLAGS += [
             '-std=c11'
         ]
+
+        if not cfg.options.ekf_double:
+            # double precision means larger stack frames in the EKF
+            env.CFLAGS += [ '-Wframe-larger-than=2100' ]
+        else:
+            env.CFLAGS += [ '-Wframe-larger-than=1300' ]
 
         if Utils.unversioned_sys_platform() == 'cygwin':
             env.CXXFLAGS += ['-DCYGWIN_BUILD']
