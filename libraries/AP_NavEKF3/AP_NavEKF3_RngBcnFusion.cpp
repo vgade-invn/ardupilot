@@ -89,7 +89,7 @@ void NavEKF3_core::FuseRngBcn()
         ftype t6 = t3*t3;
         ftype t7 = t4*t4;
         ftype t8 = t5+t6+t7;
-        ftype t9 = 1.0f/sqrtf(t8);
+        ftype t9 = 1.0f/sqrtF(t8);
         H_BCN[7] = -t4*t9;
         H_BCN[8] = -t3*t9;
         // If we are not using the beacons as a height reference, we pretend that the beacons
@@ -396,7 +396,7 @@ void NavEKF3_core::FuseRngBcnStatic()
             // calculation will be badly conditioned
             return;
         }
-        ftype t9 = 1.0f/sqrtf(t8);
+        ftype t9 = 1.0f/sqrtF(t8);
         ftype t10 = rngBcnDataDelayed.beacon_posNED.x*2.0f;
         ftype t15 = receiverPos.x*2.0f;
         ftype t11 = t10-t15;
@@ -546,11 +546,11 @@ void NavEKF3_core::CalcRangeBeaconPosDownOffset(ftype obsVar, Vector3F &vehicleP
     ftype t8 = t5+t6+t7;
     ftype t9;
     if (t8 > 0.1f) {
-        t9 = 1.0f/sqrtf(t8);
+        t9 = 1.0f/sqrtF(t8);
         obsDeriv = t2*t9;
 
         // Calculate innovation
-        innov = sqrtf(t8) - rngBcnDataDelayed.rng;
+        innov = sqrtF(t8) - rngBcnDataDelayed.rng;
 
         // covariance prediction
         bcnPosOffsetMaxVar += stateNoiseVar;
@@ -585,11 +585,11 @@ void NavEKF3_core::CalcRangeBeaconPosDownOffset(ftype obsVar, Vector3F &vehicleP
     t5 = t2*t2;
     t8 = t5+t6+t7;
     if (t8 > 0.1f) {
-        t9 = 1.0f/sqrtf(t8);
+        t9 = 1.0f/sqrtF(t8);
         obsDeriv = t2*t9;
 
         // Calculate innovation
-        innov = sqrtf(t8) - rngBcnDataDelayed.rng;
+        innov = sqrtF(t8) - rngBcnDataDelayed.rng;
 
         // covariance prediction
         bcnPosOffsetMinVar += stateNoiseVar;

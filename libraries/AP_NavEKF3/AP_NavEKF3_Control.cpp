@@ -73,9 +73,9 @@ void NavEKF3_core::setWindMagStateLearningMode()
             // which assumes the vehicle has launched into the wind
             Vector3F tempEuler;
             stateStruct.quat.to_euler(tempEuler.x, tempEuler.y, tempEuler.z);
-            ftype windSpeed =  sqrtf(sq(stateStruct.velocity.x) + sq(stateStruct.velocity.y)) - tasDataDelayed.tas;
-            stateStruct.wind_vel.x = windSpeed * cosf(tempEuler.z);
-            stateStruct.wind_vel.y = windSpeed * sinf(tempEuler.z);
+            ftype windSpeed =  sqrtF(sq(stateStruct.velocity.x) + sq(stateStruct.velocity.y)) - tasDataDelayed.tas;
+            stateStruct.wind_vel.x = windSpeed * cosF(tempEuler.z);
+            stateStruct.wind_vel.y = windSpeed * sinF(tempEuler.z);
 
             // set the wind state variances to the measurement uncertainty
             for (uint8_t index=22; index<=23; index++) {
@@ -723,7 +723,7 @@ void NavEKF3_core::runYawEstimatorCorrection()
     if (EKFGSF_run_filterbank) {
         if (gpsDataToFuse) {
             Vector2F gpsVelNE = Vector2F(gpsDataDelayed.vel.x, gpsDataDelayed.vel.y);
-            ftype gpsVelAcc = fmaxf(gpsSpdAccuracy, frontend->_gpsHorizVelNoise);
+            ftype gpsVelAcc = fmaxF(gpsSpdAccuracy, ftype(frontend->_gpsHorizVelNoise));
             yawEstimator->fuseVelData(gpsVelNE, gpsVelAcc);
 
             // after velocity data has been fused the yaw variance estimate will have been refreshed and

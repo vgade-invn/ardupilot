@@ -1418,8 +1418,8 @@ void NavEKF3_core::alignMagStateDeclination()
     // rotate the NE values so that the declination matches the published value
     Vector3F initMagNED = stateStruct.earth_magfield;
     ftype magLengthNE = norm(initMagNED.x,initMagNED.y);
-    stateStruct.earth_magfield.x = magLengthNE * cosf(magDecAng);
-    stateStruct.earth_magfield.y = magLengthNE * sinf(magDecAng);
+    stateStruct.earth_magfield.x = magLengthNE * cosF(magDecAng);
+    stateStruct.earth_magfield.y = magLengthNE * sinF(magDecAng);
 
     if (!inhibitMagStates) {
         // zero the corresponding state covariances if magnetic field state learning is active
