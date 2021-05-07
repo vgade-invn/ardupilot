@@ -327,7 +327,7 @@ void NavEKF3_core::CorrectGPSForAntennaOffset(gps_elements &gps_data) const
     }
     gps_data.corrected = true;
 
-    const Vector3F &posOffsetBody = dal.gps().get_antenna_offset(gps_data.sensor_idx).toftype() - accelPosOffset;
+    const Vector3F posOffsetBody = dal.gps().get_antenna_offset(gps_data.sensor_idx).toftype() - accelPosOffset;
     if (posOffsetBody.is_zero()) {
         return;
     }
@@ -358,7 +358,7 @@ void NavEKF3_core::CorrectExtNavForSensorOffset(ext_nav_elements &ext_nav_data)
     if (visual_odom == nullptr) {
         return;
     }
-    const Vector3F &posOffsetBody = visual_odom->get_pos_offset().toftype() - accelPosOffset;
+    const Vector3F posOffsetBody = visual_odom->get_pos_offset().toftype() - accelPosOffset;
     if (posOffsetBody.is_zero()) {
         return;
     }
@@ -383,7 +383,7 @@ void NavEKF3_core::CorrectExtNavVelForSensorOffset(ext_nav_vel_elements &ext_nav
     if (visual_odom == nullptr) {
         return;
     }
-    const Vector3F &posOffsetBody = visual_odom->get_pos_offset().toftype() - accelPosOffset;
+    const Vector3F posOffsetBody = visual_odom->get_pos_offset().toftype() - accelPosOffset;
     if (posOffsetBody.is_zero()) {
         return;
     }
