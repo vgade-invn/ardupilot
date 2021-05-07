@@ -47,7 +47,7 @@ void EKFGSF_yaw::update(const Vector3F &delAng,
     // Calculate a low pass filtered acceleration vector that will be used to keep the AHRS tilt aligned
     // The time constant of the filter is a fixed ratio relative to the time constant of the AHRS tilt correction loop
     const ftype filter_coef = fminf(EKFGSF_accelFiltRatio * delVelDT * EKFGSF_tiltGain, 1.0f);
-    const Vector3F accel = delVel / fmaxf(delVelDT, 0.001f);
+    const Vector3F accel = delVel / fmaxF(delVelDT, 0.001f);
     ahrs_accel = ahrs_accel * (1.0f - filter_coef) + accel * filter_coef;
 
     // Iniitialise states and only when acceleration is close to 1g to prevent vehicle movement casuing a large initial tilt error
@@ -106,8 +106,8 @@ void EKFGSF_yaw::update(const Vector3F &delAng,
     // equal to the weighting value before it is summed.
     Vector2F yaw_vector = {};
     for (uint8_t mdl_idx = 0; mdl_idx < N_MODELS_EKFGSF; mdl_idx ++) {
-        yaw_vector[0] += GSF.weights[mdl_idx] * cosf(EKF[mdl_idx].X[2]);
-        yaw_vector[1] += GSF.weights[mdl_idx] * sinf(EKF[mdl_idx].X[2]);
+        yaw_vector[0] += GSF.weights[mdl_idx] * cosF(EKF[mdl_idx].X[2]);
+        yaw_vector[1] += GSF.weights[mdl_idx] * sinF(EKF[mdl_idx].X[2]);
     }
     GSF.yaw = atan2f(yaw_vector[1],yaw_vector[0]);
 
@@ -137,7 +137,7 @@ void EKFGSF_yaw::update(const Vector3F &delAng,
 void EKFGSF_yaw::fuseVelData(const Vector2F &vel, const ftype velAcc)
 {
     // convert reported accuracy to a variance, but limit lower value to protect algorithm stability
-    const ftype velObsVar = sq(fmaxf(velAcc, 0.5f));
+    const ftype velObsVar = sq(fmaxF(velAcc, 0.5f));
 
     // The 3-state EKF models only run when flying to avoid corrupted estimates due to operator handling and GPS interference
     if (run_ekf_gsf) {
@@ -329,8 +329,8 @@ void EKFGSF_yaw::predict(const uint8_t mdl_idx)
 
     // calculate delta velocity in a horizontal front-right frame
     const Vector3F del_vel_NED = AHRS[mdl_idx].R * delta_velocity;
-    const ftype dvx =   del_vel_NED[0] * cosf(EKF[mdl_idx].X[2]) + del_vel_NED[1] * sinf(EKF[mdl_idx].X[2]);
-    const ftype dvy = - del_vel_NED[0] * sinf(EKF[mdl_idx].X[2]) + del_vel_NED[1] * cosf(EKF[mdl_idx].X[2]);
+    const ftype dvx =   del_vel_NED[0] * cosF(EKF[mdl_idx].X[2]) + del_vel_NED[1] * sinF(EKF[mdl_idx].X[2]);
+    const ftype dvy = - del_vel_NED[0] * sinF(EKF[mdl_idx].X[2]) + del_vel_NED[1] * cosF(EKF[mdl_idx].X[2]);
 
     // sum delta velocities in earth frame:
     EKF[mdl_idx].X[0] += del_vel_NED[0];
@@ -355,8 +355,8 @@ void EKFGSF_yaw::predict(const uint8_t mdl_idx)
     const ftype dvyVar = dvxVar; // variance of right delta velocity - (m/s)^2
     const ftype dazVar = sq(EKFGSF_gyroNoise * angle_dt); // variance of yaw delta angle - rad^2
 
-    const ftype t2 = sinf(EKF[mdl_idx].X[2]);
-    const ftype t3 = cosf(EKF[mdl_idx].X[2]);
+    const ftype t2 = sinF(EKF[mdl_idx].X[2]);
+    const ftype t3 = cosF(EKF[mdl_idx].X[2]);
     const ftype t4 = dvy*t3;
     const ftype t5 = dvx*t2;
     const ftype t6 = t4+t5;
@@ -372,15 +372,15 @@ void EKFGSF_yaw::predict(const uint8_t mdl_idx)
     const ftype t16 = P12+t15;
 
     const ftype min_var = 1e-6f;
-    EKF[mdl_idx].P[0][0] = fmaxf(P00-P20*t6+dvxVar*t14+dvyVar*t13-t6*t7, min_var);
+    EKF[mdl_idx].P[0][0] = fmaxF(P00-P20*t6+dvxVar*t14+dvyVar*t13-t6*t7, min_var);
     EKF[mdl_idx].P[0][1] = P01+t12-P21*t6+t7*t10-dvyVar*t2*t3;
     EKF[mdl_idx].P[0][2] = t7;
     EKF[mdl_idx].P[1][0] = P10+t12+P20*t10-t6*t16-dvyVar*t2*t3;
-    EKF[mdl_idx].P[1][1] = fmaxf(P11+P21*t10+dvxVar*t13+dvyVar*t14+t10*t16, min_var);
+    EKF[mdl_idx].P[1][1] = fmaxF(P11+P21*t10+dvxVar*t13+dvyVar*t14+t10*t16, min_var);
     EKF[mdl_idx].P[1][2] = t16;
     EKF[mdl_idx].P[2][0] = P20-t8;
     EKF[mdl_idx].P[2][1] = P21+t15;
-    EKF[mdl_idx].P[2][2] = fmaxf(P22+dazVar, min_var);
+    EKF[mdl_idx].P[2][2] = fmaxF(P22+dazVar, min_var);
 
     // force symmetry
     forceSymmetry(mdl_idx);
@@ -427,7 +427,7 @@ bool EKFGSF_yaw::correct(const uint8_t mdl_idx, const Vector2F &vel, const ftype
         // If the test ratio is greater than 25 (5 Sigma) then reduce the length of the innovation vector to clip it at 5-Sigma
         // This protects from large measurement spikes
         if (test_ratio > 25.0f) {
-            innov_comp_scale_factor = sqrtf(25.0f / test_ratio);
+            innov_comp_scale_factor = sqrtF(25.0f / test_ratio);
         }
     } else {
         // skip this fusion step because calculation is badly conditioned
@@ -498,15 +498,15 @@ bool EKFGSF_yaw::correct(const uint8_t mdl_idx, const Vector2F &vel, const ftype
     const ftype t45 = t43+t44;
 
     const ftype min_var = 1e-6f;
-    EKF[mdl_idx].P[0][0] = fmaxf(P00-t12*t19-t14*t22, min_var);
+    EKF[mdl_idx].P[0][0] = fmaxF(P00-t12*t19-t14*t22, min_var);
     EKF[mdl_idx].P[0][1] = P01-t19*t23-t22*t25;
     EKF[mdl_idx].P[0][2] = P02-t19*t35-t22*t37;
     EKF[mdl_idx].P[1][0] = P10-t12*t30-t14*t33;
-    EKF[mdl_idx].P[1][1] = fmaxf(P11-t23*t30-t25*t33, min_var);
+    EKF[mdl_idx].P[1][1] = fmaxF(P11-t23*t30-t25*t33, min_var);
     EKF[mdl_idx].P[1][2] = P12-t30*t35-t33*t37;
     EKF[mdl_idx].P[2][0] = P20-t12*t42-t14*t45;
     EKF[mdl_idx].P[2][1] = P21-t23*t42-t25*t45;
-    EKF[mdl_idx].P[2][2] = fmaxf(P22-t35*t42-t37*t45, min_var);
+    EKF[mdl_idx].P[2][2] = fmaxF(P22-t35*t42-t37*t45, min_var);
 
     // force symmetry
     forceSymmetry(mdl_idx);
@@ -522,8 +522,8 @@ bool EKFGSF_yaw::correct(const uint8_t mdl_idx, const Vector2F &vel, const ftype
     const ftype yaw_delta = EKF[mdl_idx].X[2] - yaw_prev;
 
     // apply the change in yaw angle to the AHRS taking advantage of sparseness in the yaw rotation matrix
-    const ftype cos_yaw = cosf(yaw_delta);
-    const ftype sin_yaw = sinf(yaw_delta);
+    const ftype cos_yaw = cosF(yaw_delta);
+    const ftype sin_yaw = sinF(yaw_delta);
     ftype  R_prev[2][3];
     memcpy(&R_prev, &AHRS[mdl_idx].R, sizeof(R_prev)); // copy first two rows from 3x3
     AHRS[mdl_idx].R[0][0] = R_prev[0][0] * cos_yaw - R_prev[1][0] * sin_yaw;
@@ -582,7 +582,7 @@ ftype EKFGSF_yaw::gaussianDensity(const uint8_t mdl_idx) const
 
     // convert from a normalised variance to a probability assuming a Gaussian distribution
     normDist = expf(-0.5f * normDist);
-    normDist *= sqrtf(t4)/ M_2PI;
+    normDist *= sqrtF(t4)/ M_2PI;
     return normDist;
 }
 
@@ -642,7 +642,7 @@ bool EKFGSF_yaw::getVelInnovLength(ftype &velInnovLength) const
     }
     velInnovLength = 0.0f;
     for (uint8_t mdl_idx = 0; mdl_idx < N_MODELS_EKFGSF; mdl_idx ++) {
-        velInnovLength += GSF.weights[mdl_idx] * sqrtf((sq(EKF[mdl_idx].innov[0]) + sq(EKF[mdl_idx].innov[1])));
+        velInnovLength += GSF.weights[mdl_idx] * sqrtF((sq(EKF[mdl_idx].innov[0]) + sq(EKF[mdl_idx].innov[1])));
     }
     return true;
 }
