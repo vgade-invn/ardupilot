@@ -140,7 +140,7 @@ struct Vector2
     T length(void) const;
 
     // limit vector to a given length. returns true if vector was limited
-    bool limit_length(float max_length);
+    bool limit_length(T max_length);
 
     // normalizes this vector
     void normalize();
@@ -161,7 +161,7 @@ struct Vector2
     void offset_bearing(T bearing, T distance);
 
     // rotate vector by angle in radians
-    void rotate(float angle_rad);
+    void rotate(T angle_rad);
 
     // given a position p1 and a velocity v1 produce a vector
     // perpendicular to v1 maximising distance from p1
@@ -228,16 +228,16 @@ struct Vector2
     static bool point_on_segment(const Vector2<T>& point,
                                  const Vector2<T>& seg_start,
                                  const Vector2<T>& seg_end) WARN_IF_UNUSED {
-        const float expected_run = seg_end.x-seg_start.x;
-        const float intersection_run = point.x-seg_start.x;
+        const T expected_run = seg_end.x-seg_start.x;
+        const T intersection_run = point.x-seg_start.x;
         // check slopes are identical:
         if (fabsf(expected_run) < FLT_EPSILON) {
             if (fabsf(intersection_run) > FLT_EPSILON) {
                 return false;
             }
         } else {
-            const float expected_slope = (seg_end.y-seg_start.y)/expected_run;
-            const float intersection_slope = (point.y-seg_start.y)/intersection_run;
+            const T expected_slope = (seg_end.y-seg_start.y)/expected_run;
+            const T intersection_slope = (point.y-seg_start.y)/intersection_run;
             if (fabsf(expected_slope - intersection_slope) > FLT_EPSILON) {
                 return false;
             }

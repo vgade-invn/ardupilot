@@ -34,9 +34,9 @@ T Vector2<T>::length(void) const
 
 // limit vector to a given length. returns true if vector was limited
 template <typename T>
-bool Vector2<T>::limit_length(float max_length)
+bool Vector2<T>::limit_length(T max_length)
 {
-    const float len = length();
+    const T len = length();
     if ((len > max_length) && is_positive(len)) {
         x *= (max_length / len);
         y *= (max_length / len);
@@ -144,18 +144,18 @@ bool Vector2<T>::operator !=(const Vector2<T> &v) const
 template <typename T>
 T Vector2<T>::angle(const Vector2<T> &v2) const
 {
-    const float len = this->length() * v2.length();
+    const T len = this->length() * v2.length();
     if (len <= 0) {
         return 0.0f;
     }
-    const float cosv = ((*this)*v2) / len;
+    const T cosv = ((*this)*v2) / len;
     if (cosv >= 1) {
         return 0.0f;
     }
     if (cosv <= -1) {
         return M_PI;
     }
-    return acosf(cosv);
+    return acosF(cosv);
 }
 
 template <typename T>
@@ -174,16 +174,16 @@ bool Vector2<T>::segment_intersection(const Vector2<T>& seg1_start, const Vector
     const Vector2<T> r1 = seg1_end - seg1_start;
     const Vector2<T> r2 = seg2_end - seg2_start;
     const Vector2<T> ss2_ss1 = seg2_start - seg1_start;
-    const float r1xr2 = r1 % r2;
-    const float q_pxr = ss2_ss1 % r1;
+    const T r1xr2 = r1 % r2;
+    const T q_pxr = ss2_ss1 % r1;
     if (fabsf(r1xr2) < FLT_EPSILON) {
         // either collinear or parallel and non-intersecting
         return false;
     } else {
         // t = (q - p) * s / (r * s)
         // u = (q - p) * r / (r * s)
-        const float t = (ss2_ss1 % r2) / r1xr2;
-        const float u = q_pxr / r1xr2;
+        const T t = (ss2_ss1 % r2) / r1xr2;
+        const T u = q_pxr / r1xr2;
         if ((u >= 0) && (u <= 1) && (t >= 0) && (t <= 1)) {
             // lines intersect
             // t can be any non-negative value because (p, p + r) is a ray
@@ -229,7 +229,7 @@ bool Vector2<T>::circle_segment_intersection(const Vector2<T>& seg_start, const 
         return false;
     }
 
-    const T delta_sqrt = sqrtf(delta);
+    const T delta_sqrt = sqrtF(delta);
     const T t1 = (-b + delta_sqrt) / (2.0f * a);
     const T t2 = (-b - delta_sqrt) / (2.0f * a);
 
@@ -304,8 +304,8 @@ Vector2<T> Vector2<T>::projected(const Vector2<T> &v)
 template <typename T>
 void Vector2<T>::offset_bearing(T bearing, T distance)
 {
-    x += cosf(radians(bearing)) * distance;
-    y += sinf(radians(bearing)) * distance;
+    x += cosF(radians(bearing)) * distance;
+    y += sinF(radians(bearing)) * distance;
 }
 
 // given a position pos_delta and a velocity v1 produce a vector
@@ -333,7 +333,7 @@ template <typename T>
 Vector2<T> Vector2<T>::closest_point(const Vector2<T> &p, const Vector2<T> &v, const Vector2<T> &w)
 {
     // length squared of line segment
-    const float l2 = (v - w).length_squared();
+    const T l2 = (v - w).length_squared();
     if (l2 < FLT_EPSILON) {
         // v == w case
         return v;
@@ -342,7 +342,7 @@ Vector2<T> Vector2<T>::closest_point(const Vector2<T> &p, const Vector2<T> &v, c
     // We find projection of point p onto the line.
     // It falls where t = [(p-v) . (w-v)] / |w-v|^2
     // We clamp t from [0,1] to handle points outside the segment vw.
-    const float t = ((p - v) * (w - v)) / l2;
+    const T t = ((p - v) * (w - v)) / l2;
     if (t <= 0) {
         return v;
     } else if (t >= 1) {
@@ -361,12 +361,12 @@ template <typename T>
 Vector2<T> Vector2<T>::closest_point(const Vector2<T> &p, const Vector2<T> &w)
 {
     // length squared of line segment
-    const float l2 = w.length_squared();
+    const T l2 = w.length_squared();
     if (l2 < FLT_EPSILON) {
         // v == w case
         return w;
     }
-    const float t = (p * w) / l2;
+    const T t = (p * w) / l2;
     if (t <= 0) {
         return Vector2<T>(0,0);
     } else if (t >= 1) {
@@ -394,7 +394,7 @@ T Vector2<T>::closest_distance_between_line_and_point(const Vector2<T> &w1,
                                                       const Vector2<T> &w2,
                                                       const Vector2<T> &p)
 {
-    return sqrtf(closest_distance_between_line_and_point_squared(w1, w2, p));
+    return sqrtF(closest_distance_between_line_and_point_squared(w1, w2, p));
 }
 
 // a1->a2 and b2->v2 define two line segments
@@ -433,17 +433,17 @@ template <typename T>
 T Vector2<T>::closest_distance_between_radial_and_point(const Vector2<T> &w,
                                                             const Vector2<T> &p)
 {
-    return sqrtf(closest_distance_between_radial_and_point_squared(w,p));
+    return sqrtF(closest_distance_between_radial_and_point_squared(w,p));
 }
 
 // rotate vector by angle in radians
 template <typename T>
-void Vector2<T>::rotate(float angle_rad)
+void Vector2<T>::rotate(T angle_rad)
 {
-    const float cs = cosf(angle_rad);
-    const float sn = sinf(angle_rad);
-    float rx = x * cs - y * sn;
-    float ry = x * sn + y * cs;
+    const T cs = cosF(angle_rad);
+    const T sn = sinF(angle_rad);
+    T rx = x * cs - y * sn;
+    T ry = x * sn + y * cs;
     x = rx;
     y = ry;
 }

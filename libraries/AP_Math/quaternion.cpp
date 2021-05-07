@@ -121,25 +121,25 @@ void QuaternionT<T>::from_rotation_matrix(const Matrix3<T> &m)
     const T tr = m00 + m11 + m22;
 
     if (tr > 0) {
-        const T S = sqrtf(tr+1) * 2;
+        const T S = sqrtF(tr+1) * 2;
         qw = 0.25f * S;
         qx = (m21 - m12) / S;
         qy = (m02 - m20) / S;
         qz = (m10 - m01) / S;
     } else if ((m00 > m11) && (m00 > m22)) {
-        const T S = sqrtf(1.0f + m00 - m11 - m22) * 2.0f;
+        const T S = sqrtF(1.0f + m00 - m11 - m22) * 2.0f;
         qw = (m21 - m12) / S;
         qx = 0.25f * S;
         qy = (m01 + m10) / S;
         qz = (m02 + m20) / S;
     } else if (m11 > m22) {
-        const T S = sqrtf(1.0f + m11 - m00 - m22) * 2.0f;
+        const T S = sqrtF(1.0f + m11 - m00 - m22) * 2.0f;
         qw = (m02 - m20) / S;
         qx = (m01 + m10) / S;
         qy = 0.25f * S;
         qz = (m12 + m21) / S;
     } else {
-        const T S = sqrtf(1.0f + m22 - m00 - m11) * 2.0f;
+        const T S = sqrtF(1.0f + m22 - m00 - m11) * 2.0f;
         qw = (m10 - m01) / S;
         qx = (m02 + m20) / S;
         qy = (m12 + m21) / S;
@@ -432,12 +432,12 @@ void QuaternionT<T>::earth_to_body(Vector3<T> &v) const
 template <typename T>
 void QuaternionT<T>::from_euler(T roll, T pitch, T yaw)
 {
-    const T cr2 = cosf(roll*0.5f);
-    const T cp2 = cosf(pitch*0.5f);
-    const T cy2 = cosf(yaw*0.5f);
-    const T sr2 = sinf(roll*0.5f);
-    const T sp2 = sinf(pitch*0.5f);
-    const T sy2 = sinf(yaw*0.5f);
+    const T cr2 = cosF(roll*0.5);
+    const T cp2 = cosF(pitch*0.5);
+    const T cy2 = cosF(yaw*0.5);
+    const T sr2 = sinF(roll*0.5);
+    const T sp2 = sinF(pitch*0.5);
+    const T sy2 = sinF(yaw*0.5);
 
     q1 = cr2*cp2*cy2 + sr2*sp2*sy2;
     q2 = sr2*cp2*cy2 - cr2*sp2*sy2;
@@ -481,9 +481,9 @@ void QuaternionT<T>::from_axis_angle(const Vector3<T> &axis, T theta)
         q2=q3=q4=0.0f;
         return;
     }
-    const T st2 = sinf(theta/2.0f);
+    const T st2 = sinF(theta/2.0f);
 
-    q1 = cosf(theta/2.0f);
+    q1 = cosF(theta/2.0f);
     q2 = axis.x * st2;
     q3 = axis.y * st2;
     q4 = axis.z * st2;
@@ -503,7 +503,7 @@ void QuaternionT<T>::rotate(const Vector3<T> &v)
 template <typename T>
 void QuaternionT<T>::to_axis_angle(Vector3<T> &v) const
 {
-    const T l = sqrtf(sq(q2)+sq(q3)+sq(q4));
+    const T l = sqrtF(sq(q2)+sq(q3)+sq(q4));
     v = Vector3<T>(q2,q3,q4);
     if (!is_zero(l)) {
         v /= l;
@@ -624,7 +624,7 @@ Vector3<T> QuaternionT<T>::to_vector312(void) const
 template <typename T>
 T QuaternionT<T>::length(void) const
 {
-    return sqrtf(sq(q1) + sq(q2) + sq(q3) + sq(q4));
+    return sqrtF(sq(q1) + sq(q2) + sq(q3) + sq(q4));
 }
 
 // return the reverse rotation of this quaternion
