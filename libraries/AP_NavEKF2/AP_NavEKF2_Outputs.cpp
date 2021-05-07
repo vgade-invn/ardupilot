@@ -419,14 +419,14 @@ void  NavEKF2_core::getInnovations(Vector3f &velInnov, Vector3f &posInnov, Vecto
 // also return the delta in position due to the last position reset
 void  NavEKF2_core::getVariances(float &velVar, float &posVar, float &hgtVar, Vector3f &magVar, float &tasVar, Vector2f &offset) const
 {
-    velVar   = sqrtf(velTestRatio);
-    posVar   = sqrtf(posTestRatio);
-    hgtVar   = sqrtf(hgtTestRatio);
+    velVar   = sqrtF(velTestRatio);
+    posVar   = sqrtF(posTestRatio);
+    hgtVar   = sqrtF(hgtTestRatio);
     // If we are using simple compass yaw fusion, populate all three components with the yaw test ratio to provide an equivalent output
-    magVar.x = sqrtf(MAX(magTestRatio.x,yawTestRatio));
-    magVar.y = sqrtf(MAX(magTestRatio.y,yawTestRatio));
-    magVar.z = sqrtf(MAX(magTestRatio.z,yawTestRatio));
-    tasVar   = sqrtf(tasTestRatio);
+    magVar.x = sqrtF(MAX(magTestRatio.x,yawTestRatio));
+    magVar.y = sqrtF(MAX(magTestRatio.y,yawTestRatio));
+    magVar.z = sqrtF(MAX(magTestRatio.z,yawTestRatio));
+    tasVar   = sqrtF(tasTestRatio);
     offset   = posResetNE.tofloat();
 }
 
@@ -537,14 +537,14 @@ void NavEKF2_core::send_status_report(mavlink_channel_t chan) const
     Vector2f offset;
     getVariances(velVar, posVar, hgtVar, magVar, tasVar, offset);
 
-    const float mag_max = fmaxf(fmaxf(magVar.x,magVar.y),magVar.z);
+    const float mag_max = fmaxF(fmaxF(magVar.x,magVar.y),magVar.z);
 
     // Only report range finder normalised innovation levels if the EKF needs the data for primary
     // height estimation or optical flow operation. This prevents false alarms at the GCS if a
     // range finder is fitted for other applications
     float temp;
     if (((frontend->_useRngSwHgt > 0) && activeHgtSource == HGT_SOURCE_RNG) || (PV_AidingMode == AID_RELATIVE && flowDataValid)) {
-        temp = sqrtf(auxRngTestRatio);
+        temp = sqrtF(auxRngTestRatio);
     } else {
         temp = 0.0f;
     }

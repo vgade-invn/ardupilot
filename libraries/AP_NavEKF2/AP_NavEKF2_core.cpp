@@ -415,7 +415,7 @@ bool NavEKF2_core::InitialiseFilterBootstrap(void)
         initAccVec.normalize();
 
         // calculate initial pitch angle
-        pitch = asinf(initAccVec.x);
+        pitch = asinF(initAccVec.x);
 
         // calculate initial roll angle
         roll = atan2f(-initAccVec.y , -initAccVec.z);
@@ -823,7 +823,7 @@ void NavEKF2_core::calcOutputStates()
         // calculate a gain that provides tight tracking of the estimator states and
         // adjust for changes in time delay to maintain consistent damping ratio of ~0.7
         ftype timeDelay = 1e-3f * (float)(imuDataNew.time_ms - imuDataDelayed.time_ms);
-        timeDelay = fmaxf(timeDelay, dtIMUavg);
+        timeDelay = fmaxF(timeDelay, dtIMUavg);
         ftype errorGain = 0.5f / timeDelay;
 
         // calculate a corrrection to the delta angle
@@ -1570,9 +1570,9 @@ void NavEKF2_core::ConstrainStates()
 void NavEKF2_core::calcEarthRateNED(Vector3F &omega, int32_t latitude) const
 {
     ftype lat_rad = radians(latitude*1.0e-7f);
-    omega.x  = earthRate*cosf(lat_rad);
+    omega.x  = earthRate*cosF(lat_rad);
     omega.y  = 0;
-    omega.z  = -earthRate*sinf(lat_rad);
+    omega.z  = -earthRate*sinF(lat_rad);
 }
 
 // initialise the earth magnetic field states using declination, suppled roll/pitch

@@ -129,7 +129,7 @@ void NavEKF2_core::Log_Write_NKF4(uint64_t time_us) const
     nav_filter_status solutionStatus {};
     nav_gps_status gpsStatus {};
     getVariances(velVar, posVar, hgtVar, magVar, tasVar, offset);
-    ftype tempVar = fmaxf(fmaxf(magVar.x,magVar.y),magVar.z);
+    ftype tempVar = fmaxF(fmaxF(magVar.x,magVar.y),magVar.z);
     getFilterFaults(_faultStatus);
     getFilterStatus(solutionStatus);
     getFilterGpsStatus(gpsStatus);
@@ -174,7 +174,7 @@ void NavEKF2_core::Log_Write_NKF5(uint64_t time_us) const
         offset : (int16_t)(100*terrainState),  // // estimated vertical position of the terrain relative to the nav filter zero datum
         RI : (int16_t)(100*innovRng),  // range finder innovations
         meaRng : (uint16_t)(100*rangeDataDelayed.rng),  // measured range
-        errHAGL : (uint16_t)(100*sqrtf(Popt)),  // filter ground offset state error
+        errHAGL : (uint16_t)(100*sqrtF(Popt)),  // filter ground offset state error
         angErr : float(outputTrackError.x),
         velErr : float(outputTrackError.y),
         posErr : float(outputTrackError.z)
