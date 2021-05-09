@@ -460,15 +460,19 @@ void NavEKF3_core::readIMUData()
 
     // Rotate quaternon atitude from previous to new and normalise.
     // Accumulation using quaternions prevents introduction of coning errors due to downsampling
+    // and assumes that AP_InertialSensor_Backend has already applied coning corrections to the
+    // high rate data
+    const Quaternion imuQuatPrev = imuQuatDownSampleNew;
     imuQuatDownSampleNew.rotate(imuDataNew.delAng);
     imuQuatDownSampleNew.normalize();
 
     // Rotate the latest delta velocity into body frame at the start of accumulation
-    Matrix3F deltaRotMat;
-    imuQuatDownSampleNew.rotation_matrix(deltaRotMat);
-
-    // Apply the delta velocity to the delta velocity accumulator
-    imuDataDownSampledNew.delVel += deltaRotMat*imuDataNew.delVel;
+    // assuming a constant rotation rate across the sample interval
+    Matrix3F deltaRotMatNew;
+    imuQuatDownSampleNew.rotation_matrix(deltaRotMatNew);
+    Matrix3F deltaRotMatPrev;
+    imuQuatPrev.rotation_matrix(deltaRotMatPrev);
+    imuDataDownSampledNew.delVel += (deltaRotMatNew*imuDataNew.delVel + deltaRotMatPrev*imuDataNew.delVel) * 0.5f;
 
     // Keep track of the number of IMU frames since the last state prediction
     framesSincePredict++;
