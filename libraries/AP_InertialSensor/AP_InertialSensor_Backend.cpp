@@ -67,7 +67,7 @@ void AP_InertialSensor_Backend::_update_sensor_rate(uint16_t &count, uint32_t &s
 #if 0
             printf("IMU RATE: %.1f should be %.1f\n", observed_rate_hz, rate_hz);
 #endif
-            float filter_constant = 0.9f;
+            float filter_constant = 0.98f;
             float upper_limit = 1.05f;
             float lower_limit = 0.95f;
             if (sensors_converging()) {
@@ -131,7 +131,7 @@ void AP_InertialSensor_Backend::_rotate_and_correct_accel(uint8_t instance, Vect
     }
 }
 
-void AP_InertialSensor_Backend::_rotate_and_correct_gyro(uint8_t instance, Vector3f &gyro) 
+void AP_InertialSensor_Backend::_rotate_and_correct_gyro(uint8_t instance, Vector3f &gyro)
 {
     // rotate for sensor orientation
     gyro.rotate(_imu._gyro_orientation[instance]);
@@ -319,6 +319,7 @@ void AP_InertialSensor_Backend::_notify_new_delta_angle(uint8_t instance, const 
     _update_sensor_rate(_imu._sample_gyro_count[instance], _imu._sample_gyro_start_us[instance],
                         _imu._gyro_raw_sample_rates[instance]);
 
+#if 0
     if (instance == 0) {
         static uint16_t xxx;
         if (++xxx == 1000) {
@@ -326,6 +327,7 @@ void AP_InertialSensor_Backend::_notify_new_delta_angle(uint8_t instance, const 
             hal.console->printf("rate %f\n", _imu._gyro_raw_sample_rates[instance]);
         }
     }
+#endif
 
     uint64_t last_sample_us = _imu._gyro_last_sample_us[instance];
 
@@ -352,8 +354,8 @@ void AP_InertialSensor_Backend::_notify_new_delta_angle(uint8_t instance, const 
         hal.opticalflow->push_gyro(gyro.x, gyro.y, dt);
     }
     
-    // compute delta angle
-    Vector3f delta_angle = (gyro + _imu._last_raw_gyro[instance]) * 0.5f * dt;
+    // compute delta angle, including corrections
+    Vector3f delta_angle = gyro * dt;
 
     // compute coning correction
     // see page 26 of:
@@ -602,7 +604,7 @@ void AP_InertialSensor_Backend::_notify_new_delta_velocity(uint8_t instance, con
             dt = 0;
         }
         
-        // delta velocity
+        // delta velocity including corrections
         _imu._delta_velocity_acc[instance] += accel * dt;
         _imu._delta_velocity_acc_dt[instance] += dt;
 
