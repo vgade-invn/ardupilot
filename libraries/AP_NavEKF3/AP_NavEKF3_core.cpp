@@ -1067,8 +1067,8 @@ void NavEKF3_core::RunTakeoffInertialNav()
         return;
     }
 
-    Vector3f deltaAngNow = imuDataNew.delAng - takeoff_ins.gyroBias * imuDataNew.delAngDT;
-    Vector3f deltaAngPrev = imuDataNewPrev.delAng - takeoff_ins.gyroBias * imuDataNew.delAngDT;
+    Vector3F deltaAngNow = imuDataNew.delAng - takeoff_ins.gyroBias * imuDataNew.delAngDT;
+    Vector3F deltaAngPrev = imuDataNewPrev.delAng - takeoff_ins.gyroBias * imuDataNew.delAngDT;
 
     // // Coning corrections to be applied if they are not done inside IMU or driver
     // Vector3f coning_correction = (deltaAngPrev % deltaAngNow) * (1.0f / 12.0f);
@@ -1080,22 +1080,22 @@ void NavEKF3_core::RunTakeoffInertialNav()
     // % * - and + operators have been overloaded
     takeoffStateStruct.quat.rotate(imuDataNew.delAng - takeoff_ins.Tnb * earthRateNED*imuDataNew.delAngDT);
     stateStruct.quat.normalize();
-    Matrix3f newTnb;
+    Matrix3F newTnb;
     takeoffStateStruct.quat.inverse().rotation_matrix(newTnb);
 
     // transform body delta velocities to delta velocities in the nav frame
     // apply sculling corrections
     // * and + operators have been overloaded
-    Vector3f sculling_correction = (deltaAngPrev % imuDataNew.delVel) + (imuDataNewPrev.delVel % deltaAngNow);
+    Vector3F sculling_correction = (deltaAngPrev % imuDataNew.delVel) + (imuDataNewPrev.delVel % deltaAngNow);
     sculling_correction *= (1.0f / 12.0f);
-    Vector3f delVelNav;  // delta velocity vector in earth axes
+    Vector3F delVelNav;  // delta velocity vector in earth axes
     delVelNav  = takeoff_ins.Tnb.mul_transpose(imuDataNew.delVel + sculling_correction);
     delVelNav.z += GRAVITY_MSS*imuDataNew.delVelDT;
 
     takeoff_ins.Tnb = newTnb;
 
     // save velocity for use in trapezoidal integration for position calcuation
-    Vector3f lastVelocity = stateStruct.velocity;
+    Vector3F lastVelocity = stateStruct.velocity;
 
     // sum delta velocities to get velocity
     takeoffStateStruct.velocity += delVelNav;
@@ -2294,7 +2294,7 @@ bool NavEKF3_core::lockPosition(bool enable)
     locked_position.vel.zero();
     stateStruct.quat.rotation_matrix(locked_position.rot);
     locked_position.gyro_bias_filter.set_cutoff_frequency(dal.ins().get_loop_rate_hz(), 0.1);
-    locked_position.gyro_bias_filter.reset(inactiveBias[gyro_index_active].gyro_bias);
+    locked_position.gyro_bias_filter.reset(inactiveBias[gyro_index_active].gyro_bias.tofloat());
 
     return true;
 }
@@ -2309,8 +2309,8 @@ void NavEKF3_core::locked_update(const Vector3f &dv, float dv_dt,
 
     if (locked_position.locked == LockedState::LOCKED) {
         // update IMU filters, assuming no movement
-        locked_position.gyro_bias = locked_position.gyro_bias_filter.apply(da * (dtEkfAvg / da_dt));
-        locked_position.dVelSum += dv;
+        locked_position.gyro_bias = locked_position.gyro_bias_filter.apply(da * (dtEkfAvg / da_dt)).toftype();
+        locked_position.dVelSum += dv.toftype();
         locked_position.takeoff_alignment_complete = false;
     }
 
@@ -2342,20 +2342,20 @@ void NavEKF3_core::locked_update(const Vector3f &dv, float dv_dt,
         locked_position.takeoff_alignment_complete = true;
     }
 
-    Vector3f abias = inactiveBias[accel_index_active].accel_bias / dtEkfAvg;
-    Vector3f dv_corr = dv - inactiveBias[accel_index_active].accel_bias * (dv_dt / dtEkfAvg);
-    Vector3f dv_rot = locked_position.rot * dv_corr;
+    Vector3F abias = inactiveBias[accel_index_active].accel_bias / dtEkfAvg;
+    Vector3F dv_corr = dv.toftype() - inactiveBias[accel_index_active].accel_bias * (dv_dt / dtEkfAvg);
+    Vector3F dv_rot = locked_position.rot * dv_corr;
     dv_rot.z += GRAVITY_MSS*dv_dt;
-    Vector3f accel = dv_rot / dv_dt;
+    Vector3F accel = dv_rot / dv_dt;
     locked_position.vel += dv_rot;
     locked_position.pos += locked_position.vel * dv_dt;
-    Vector3f da_corr =  da - locked_position.gyro_bias * (da_dt / dtEkfAvg);
+    Vector3F da_corr =  da.toftype() - locked_position.gyro_bias * (da_dt / dtEkfAvg);
     locked_position.rot.rotate(da_corr);
     locked_position.rot.normalize();
     const uint32_t now = dal.millis();
     if (now - locked_position.last_print_ms > 1000 && accel_index_active == 0) {
         locked_position.last_print_ms = now;
-        float r, p, y;
+        ftype r, p, y;
         locked_position.rot.to_euler(&r, &p, &y);
         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "a (%.4f,%.4f,%.4f) pos (%.3f,%.3f,%.3f) eul (%.3f,%.3f,%.3f) dv_dt=%.4f ab=(%.6f,%.6f) dv=(%.4f,%.4f)",
                       accel.x, accel.y, accel.z,

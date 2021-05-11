@@ -700,7 +700,7 @@ void NavEKF3_core::readGpsData()
 
     // convert GPS measurements to local NED and save to buffer to be fused later if we have a valid origin
     if (validOrigin) {
-        gpsDataNew.pos = EKF_origin.get_distance_NE(gpsloc);
+        gpsDataNew.pos = EKF_origin.get_distance_NE(gpsloc).toftype();
         if ((frontend->_originHgtMode & (1<<2)) == 0) {
             gpsDataNew.hgt = (float)((double)0.01 * (double)gpsloc.alt - ekfGpsRefHgt);
         } else {
@@ -709,7 +709,7 @@ void NavEKF3_core::readGpsData()
 
         if (locked_position.locked == LockedState::LOCKED) {
             // when we have a locked position we fuse that position
-            gpsDataNew.pos = EKF_origin.get_distance_NE(locked_position.loc);
+            gpsDataNew.pos = EKF_origin.get_distance_NE(locked_position.loc).toftype();
             gpsDataNew.vel.zero();
         }
 

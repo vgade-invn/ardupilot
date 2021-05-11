@@ -1510,13 +1510,13 @@ private:
     struct {
         LockedState locked;
         Location loc;
-        float yaw;
-        Vector3f dVelSum;
-        Vector3f pos;
-        Vector3f vel;
-        Matrix3f rot;
+        ftype yaw;
+        Vector3F dVelSum;
+        Vector3F pos;
+        Vector3F vel;
+        Matrix3F rot;
         uint32_t last_print_ms;
-        Vector3f gyro_bias;
+        Vector3F gyro_bias;
         LowPassFilterVector3f gyro_bias_filter;
         bool takeoff_alignment_complete;
     } locked_position;
@@ -1532,12 +1532,12 @@ private:
         struct state_elements takeoffStateStruct;
     };
     struct {
-        Matrix3f Tnb;
-        Vector3f dVelSum;
-        float dAngDelTimeSum;
-        Vector3f dAngSum;
+        Matrix3F Tnb;
+        Vector3F dVelSum;
+        ftype dAngDelTimeSum;
+        Vector3F dAngSum;
         uint32_t imuSampleCount;
-        Vector3f gyroBias;
+        Vector3F gyroBias;
         bool alignment_complete;
     } takeoff_ins;
 
