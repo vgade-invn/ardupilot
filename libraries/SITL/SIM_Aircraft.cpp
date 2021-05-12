@@ -936,7 +936,7 @@ void Aircraft::smooth_sensors(void)
     float Rref, Pref, Yref;
     dcm.to_euler(&Rref, &Pref, &Yref);
 
-// @LoggerMessage: SMOO
+// @LoggerMessage: SM00
 // @Description: Smoothed sensor data fed to EKF to avoid inconsistencies
 // @Field: TimeUS: Time since system startup
 // @Field: AEx: Angular Tracking Error (around x-axis)
@@ -951,7 +951,7 @@ void Aircraft::smooth_sensors(void)
 // @Field: Rref: Roll reference from DCM
 // @Field: Pref: Pitch reference from DCM
 // @Field: Yref: Yaw reference from DCM
-    AP::logger().Write("SMOO", "TimeUS,AEx,AEy,AEz,PEx,PEy,PEz,R,P,Y,Rref,Pref,Yref",
+    AP::logger().Write("SM00", "TimeUS,AEx,AEy,AEz,PEx,PEy,PEz,R,P,Y,Rref,Pref,Yref",
                                            "Qffffffffffff",
                                            AP_HAL::micros64(),
                                            degrees(angle_error.x),
@@ -960,6 +960,16 @@ void Aircraft::smooth_sensors(void)
                                            position_error.x, position_error.y, position_error.z,
                                            degrees(R), degrees(P), degrees(Y),
                                            degrees(Rref), degrees(Pref), degrees(Yref));
+
+    AP::logger().Write("SM01", "TimeUS,gx,gy,gz,ax,ay,az",
+                                           "Qffffff",
+                                           AP_HAL::micros64(),
+                                           degrees(smoothing.gyro.x + smoothing.earthRate_bf.x),
+                                           degrees(smoothing.gyro.x + smoothing.earthRate_bf.x),
+                                           degrees(smoothing.gyro.x + smoothing.earthRate_bf.x),
+                                           smoothing.accel_body.x,
+                                           smoothing.accel_body.y,
+                                           smoothing.accel_body.z);
 #endif
 
 
