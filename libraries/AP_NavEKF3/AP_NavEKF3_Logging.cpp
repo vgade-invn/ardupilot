@@ -379,6 +379,8 @@ void NavEKF3_core::Log_Write(uint64_t time_us)
     Log_Write_State_Variances(time_us);
 
     Log_Write_Timing(time_us);
+
+    Log_Write_XKIT(time_us);
 }
 
 void NavEKF3_core::Log_Write_Timing(uint64_t time_us)
