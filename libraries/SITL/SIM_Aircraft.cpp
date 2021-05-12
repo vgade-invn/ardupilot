@@ -386,6 +386,11 @@ void Aircraft::fill_fdm(struct sitl_fdm &fdm)
         fdm.altitude  = smoothing.location.alt * 1.0e-2;
     }
 
+    AP::logger().Write("SM02", "TimeUS,gx",
+                       "Qf",
+                       AP_HAL::micros64(),
+                       fdm.rollRate);
+    
     if (ahrs_orientation != nullptr) {
         enum Rotation imu_rotation = (enum Rotation)ahrs_orientation->get();
         if (imu_rotation != last_imu_rotation) {
