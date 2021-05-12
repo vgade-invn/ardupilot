@@ -225,6 +225,7 @@ protected:
     const char *config_ = "";
 
     uint64_t gnd_move_start_time_us = 0;
+    float gnd_move_initial_yaw;
 
     // allow for AHRS_ORIENTATION
     AP_Int8 *ahrs_orientation;

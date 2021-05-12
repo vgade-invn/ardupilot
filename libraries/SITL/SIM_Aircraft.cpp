@@ -665,6 +665,7 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel, const struct sitl_inpu
             if (input.servos[5] > 1500) {
                 if (gnd_move_start_time_us == 0) {
                     gnd_move_start_time_us = time_now_us + 1000000;
+                    gnd_move_initial_yaw = y;
                 }
                 const double movement_time = fmaxf64((1E-6 * ((double)time_now_us - (double)gnd_move_start_time_us)), 0.0);
                 // const double max_amplitude = (double)radians(30.0);
@@ -672,14 +673,47 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel, const struct sitl_inpu
                 // // build up to max amplitude over 2 cycles
                 // const double amplitude = fminf64((movement_time * frequency_hz * 0.5) * max_amplitude, max_amplitude);
                 // const double phase_angle = wrap_PI(movement_time * M_2PI * frequency_hz);
-                r = fminf(0.5 * movement_time, M_PI);//(float)(amplitude * cosf64(phase_angle));
-                p = 0.0f;//(float)(amplitude * sinf64(phase_angle));
+                // r = (float)(amplitude * cosf64(phase_angle));
+                // p = (float)(amplitude * sinf64(phase_angle));
+                if (movement_time < 15.0) {
+                    // roll through 360 deg over 10 seconds and hold
+                    r = fminf((M_PI/5.0) * movement_time, M_2PI);
+                    p = 0.0;
+                    y = gnd_move_initial_yaw;
+                } else if (movement_time < 17.5) {
+                    // pitch up to 90 deg over 2.5 seconds
+                    const double pitch_time = movement_time - 15.0;
+                    p = fminf((M_PI/5.0) * pitch_time, M_PI_2);
+                    r = 0.0;
+                    y = gnd_move_initial_yaw;
+                } else if (movement_time < 22.5) {
+                    // pitch down to -90 over 5 seconds
+                    const double pitch_time = movement_time - 17.5;
+                    p = M_PI_2 - fminf((M_PI/5.0) * pitch_time, M_PI);
+                    r = M_PI;
+                    y = wrap_PI(gnd_move_initial_yaw + M_PI);
+                } else if (movement_time < 30.0) {
+                    // pitch up to0 over 2.5 seconds and hold
+                    const double pitch_time = movement_time - 22.5;
+                    p = - M_PI_2 + fminf((M_PI/5.0) * pitch_time, M_PI_2);
+                    r = 0.0;
+                    y = gnd_move_initial_yaw;
+                } else if (movement_time < 45.0) {
+                    // yaw through 360 deg over 10 seconds and hold
+                    const double yaw_time = movement_time - 30.0;
+                    y = wrap_PI(gnd_move_initial_yaw + fminf((M_PI/5.0) * yaw_time, M_2PI));
+                    r = 0.0;
+                    p = 0.0;
+                } else {
+                    r = 0.0;
+                    p = 0.0;
+                    y = gnd_move_initial_yaw;
+                }
             } else {
                 gnd_move_start_time_us = 0;
                 r = 0.0f;
                 p = 0.0f;
             }
-            y = y + yaw_rate * delta_time;
             dcm.from_euler(r, p, y);
             // X, Y movement tracks ground movement
             velocity_ef.zero();
