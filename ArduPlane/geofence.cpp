@@ -423,6 +423,12 @@ void Plane::geofence_check(bool altitude_check_only)
     case FENCE_ACTION_REPORT:
         break;
 
+    case FENCE_ACTION_PARACHUTE:
+        if (parachute.alt_min() <= 0 || relative_ground_altitude(false) >= parachute.alt_min()) {
+            parachute_release();
+        }
+        break;
+        
     case FENCE_ACTION_GUIDED:
     case FENCE_ACTION_GUIDED_THR_PASS:
     case FENCE_ACTION_RTL:
