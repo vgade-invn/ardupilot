@@ -102,6 +102,7 @@ if os.path.exists("all.parm"):
     mavproxy.send("param load all.parm\n")
 if os.path.exists(mission_parm):
     mavproxy.send("param load %s\n" % mission_parm)
+mavproxy.send("fence load %s\n" % fence)
 mavproxy.send('speedup 100\n')
 mavproxy.send('arm throttle\n')
 mavproxy.expect('Throttle armed')
@@ -112,7 +113,6 @@ if not args.no_ui:
     mavproxy.send('module load map\n')
     mavproxy.send('wp list\n')
     mavproxy.send('gamslft\n')
-mavproxy.send("fence load %s\n" % fence)
 mavproxy.expect("Released",timeout=600)
 mavproxy.send('disarm force\n')
 kill_all()
