@@ -107,7 +107,7 @@ mavproxy.send('arm throttle\n')
 mavproxy.expect('Throttle armed')
 mavproxy.send('auto\n')
 wait_mode(mav, ['AUTO'])
-mavproxy.send('rc 6 2000\n')
+mavproxy.send('rc 6 1300\n')
 if not args.no_ui:
     mavproxy.send('module load map\n')
     mavproxy.send('wp list\n')
