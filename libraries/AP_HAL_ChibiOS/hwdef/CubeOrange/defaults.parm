@@ -32,7 +32,7 @@ GPS_TYPE         9
 GPS_TYPE2        9
 
 # pullup control
-PUP_ELEV_OFS     0.1000
+PUP_ELEV_OFS     0.1700
 PUP_NG_JERK_LIM  4.0000
 PUP_NG_LIM       2.5000
 PUP_PITCH_CD     1000.0000
