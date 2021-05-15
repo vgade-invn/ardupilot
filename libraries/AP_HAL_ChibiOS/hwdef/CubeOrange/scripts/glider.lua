@@ -31,17 +31,6 @@ function constrain(v, vmin, vmax)
    return v
 end
 
---[[
-table of fence limits from home by alt AMSL
-altitudes in feet, limits in meters
---]]
-local fence_limits = {
-  { 9000, 60000 }, -- 30km at 9k ft
-  { 6000, 20000 }, -- 20km at 6k ft
-  { 3000, 14000 }, -- 14km at 3k ft
-}
-
-local fence_triggered = false
 local chute_triggered = false
 
 function get_dist_home()
@@ -54,16 +43,6 @@ function get_dist_home()
    return loc:get_distance(home)
 end
 
-function trigger_fence()
-   if not fence_triggered then
-      fence_triggered = true
-      local loc = ahrs:get_position()
-      local alt_amsl_ft = loc:alt() * 0.01 * METERS_TO_FEET
-      parachute:release()
-      gcs:send_text(0, string.format("Triggering fence limit at %.0fm alt %.0fft", get_dist_home(), alt_amsl_ft))
-   end
-end
-
 function balloon_has_released()
    if SRV_Channels:get_output_pwm_chan(BALLOON_RELEASE_CHAN-1) >= 1750 then
       return true
@@ -71,35 +50,6 @@ function balloon_has_released()
    return false
 end
 
-
-function check_fence()
-   local loc = ahrs:get_position()
-   if not loc then
-      -- no position yet, can't do fence
-      return
-   end
-   if not balloon_has_released() then
-      -- balloon not released yet
-      return
-   end
-   local dist_home = get_dist_home()
-   local alt_amsl_ft = loc:alt() * 0.01 * METERS_TO_FEET
-   local num_rows = #fence_limits
-
-   for row = 1, num_rows do
-      if alt_amsl_ft >= fence_limits[row][1] then
-         if dist_home > fence_limits[row][2] then
-            trigger_fence()
-         end
-         return
-      end
-   end
-
-   -- we are below lowest level
-   if dist_home > fence_limits[num_rows][2] then
-      trigger_fence()
-   end
-end
 
 --[[
 KEAS schedule for 9k drop
@@ -246,7 +196,6 @@ end
 function update()
    update_lights()
    if arming:is_armed() and vehicle:get_mode() == MODE_AUTO then
-      check_fence()
       check_chute()
       adjust_target_speed()
    end
