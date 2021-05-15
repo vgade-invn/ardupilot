@@ -491,7 +491,7 @@ void Plane::update_alt()
 
     update_flight_stage();
 
-    if (control_mode->does_auto_throttle() && !throttle_suppressed &&
+    if (control_mode->does_auto_throttle() &&
         !auto_state.idle_mode && !in_pullup()) {
         float distance_beyond_land_wp = 0;
         if (flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND && current_loc.past_interval_finish_line(prev_WP_loc, next_WP_loc)) {
