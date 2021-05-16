@@ -973,6 +973,9 @@ void AP_TECS::_update_pitch(void)
     const float SEBdot_dem_ff2 = (_flags.is_gliding) ? - _SKEdot_dem * _SKE_weighting : 0.0f;
     float SEBdot_dem_total = SEBdot_dem_ff2 + SEBdot_dem + SEBdot_error * pitch_damp;
 
+    // limit the airspeed to a minimum of 3 m/s
+    _TAS_state = MAX(_TAS_state, 3.0f);
+    
     // inverse of gain from SEB to pitch angle
     float gainInv = (_TAS_state * GRAVITY_MSS);
 
