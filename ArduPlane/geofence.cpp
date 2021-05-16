@@ -380,6 +380,13 @@ void Plane::geofence_check(bool altitude_check_only)
         }
     }
 
+    if (afs.should_crash_vehicle() && g.fence_action == FENCE_ACTION_PARACHUTE) {
+        // handle dual-loss or manual termination
+        if (parachute.alt_min() <= 0 || relative_ground_altitude(false) >= parachute.alt_min()) {
+            parachute_release();
+        }
+    }
+
     if (!outside) {
         if (geofence_state->fence_triggered && !altitude_check_only) {
             // we have moved back inside the fence
