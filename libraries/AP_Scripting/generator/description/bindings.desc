@@ -310,3 +310,6 @@ include AP_Parachute/AP_Parachute.h
 singleton AP_Parachute alias parachute
 singleton AP_Parachute method release void
 singleton AP_Parachute method released boolean
+
+singleton AP_AdvancedFailsafe alias AFS
+singleton AP_AdvancedFailsafe method should_crash_vehicle boolean
