@@ -193,8 +193,16 @@ function update_lights()
    end
 end
 
+function check_AFS()
+   if AFS:should_crash_vehicle() and not balloon_has_released() then
+      gcs:send_text(0, "AFS balloon release")
+      SRV_Channels:set_output_pwm_chan(BALLOON_RELEASE_CHAN-1, 2000)
+   end
+end
+
 function update()
    update_lights()
+   check_AFS()
    if arming:is_armed() and vehicle:get_mode() == MODE_AUTO then
       check_chute()
       adjust_target_speed()
