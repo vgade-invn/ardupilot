@@ -150,6 +150,12 @@ public:
     }
 
     /*
+      enable the fence
+     */
+    virtual bool enable_fence(void) { return false; }
+    virtual bool fence_enabled(void) { return false; }
+
+    /*
       get the likely flying status. Returns true if the vehicle code
       thinks we are flying at the moment. Not guaranteed to be
       accurate
