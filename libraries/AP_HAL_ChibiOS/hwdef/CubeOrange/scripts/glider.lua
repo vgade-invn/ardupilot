@@ -194,6 +194,13 @@ function update_lights()
 end
 
 function check_AFS()
+   if arming:is_armed() and not vehicle:fence_enabled() and balloon_has_released() then
+      if vehicle:enable_fence() then
+         gcs:send_text(0, "Enabled fence")
+      else
+         gcs:send_text(0, "fence enable FAILED")
+      end
+   end
    if AFS:should_crash_vehicle() and not balloon_has_released() then
       gcs:send_text(0, "AFS balloon release")
       SRV_Channels:set_output_pwm_chan(BALLOON_RELEASE_CHAN-1, 2000)
