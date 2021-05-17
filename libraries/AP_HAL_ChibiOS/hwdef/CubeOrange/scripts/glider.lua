@@ -9,6 +9,9 @@ local KNOTS_TO_MPS = 0.51444
 -- overridden by
 local CHUTE_OPEN_ALT_DEFAULT = 2700*FEET_TO_METERS
 
+-- margin inside fence when armed to enable fence
+local FENCE_MARGIN_DEFAULT = 50
+
 local K_PARACHUTE = 27
 
 local NAVLIGHTS_CHAN = 8
@@ -194,11 +197,18 @@ function update_lights()
 end
 
 function check_AFS()
-   if arming:is_armed() and not vehicle:fence_enabled() and balloon_has_released() then
-      if vehicle:enable_fence() then
-         gcs:send_text(0, "Enabled fence")
-      else
-         gcs:send_text(0, "fence enable FAILED")
+   if arming:is_armed() and not vehicle:fence_enabled() then
+      fence_margin = param:get("SCR_USER2")
+      if fence_margin <= 0 then
+         fence_margin = FENCE_MARGIN_DEFAULT
+      end
+      local margin = vehicle:fence_distance_inside()
+      if balloon_has_released() or margin >= fence_margin then
+         if vehicle:enable_fence() then
+            gcs:send_text(0, "Enabled fence")
+         else
+            gcs:send_text(0, "fence enable FAILED")
+         end
       end
    end
    if AFS:should_crash_vehicle() and not balloon_has_released() then
