@@ -543,6 +543,18 @@ void Plane::disable_fence_for_landing(void)
     }
 }
 
+bool Plane::enable_fence(void)
+{
+    if (!geofence_enabled()) {
+        return plane.geofence_set_enabled(true);
+    }
+    return true;
+}
+
+bool Plane::fence_enabled(void)
+{
+    return geofence_enabled();
+}
 
 #else // GEOFENCE_ENABLED
 
