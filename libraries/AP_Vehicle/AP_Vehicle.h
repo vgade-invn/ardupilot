@@ -154,6 +154,7 @@ public:
      */
     virtual bool enable_fence(void) { return false; }
     virtual bool fence_enabled(void) { return false; }
+    virtual float fence_distance_inside(void) { return -1; }
 
     /*
       get the likely flying status. Returns true if the vehicle code
