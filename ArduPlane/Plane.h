@@ -857,6 +857,7 @@ private:
      */
     bool enable_fence(void) override;
     bool fence_enabled(void) override;
+    float fence_distance_inside(void) override;
 
     // commands_logic.cpp
     void set_next_WP(const struct Location &loc);

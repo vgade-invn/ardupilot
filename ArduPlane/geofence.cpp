@@ -325,6 +325,43 @@ bool Plane::geofence_prearm_check(void)
 
 
 /*
+  find distance to closest point on the fence. Return negative number if outside
+ */
+float Plane::fence_distance_inside(void)
+{
+    if (geofence_state == nullptr || !geofence_state->boundary_uptodate) {
+        geofence_load();
+    }
+    if (geofence_state == nullptr || geofence_state->num_points < MIN_GEOFENCE_POINTS) {
+        return 0;
+    }
+    Vector2l loc{current_loc.lat, current_loc.lng};
+    bool outside = Polygon_outside(loc, &geofence_state->boundary[1], geofence_state->num_points-1);
+    float min_dist_sq = -1;
+    for (uint16_t i=1; i<geofence_state->num_points-1; i++) {
+        const Vector2l &b1 = geofence_state->boundary[i];
+        const Vector2l &b2 = geofence_state->boundary[i+1];
+        Location loc1{b1.x, b1.y, 0, Location::AltFrame::ABSOLUTE};
+        Location loc2{b2.x, b2.y, 0, Location::AltFrame::ABSOLUTE};
+        Vector2f p1 = current_loc.get_distance_NE(loc1);
+        Vector2f p2 = current_loc.get_distance_NE(loc2);
+        Vector2f zero;
+        float dist_sq = Vector2f::closest_distance_between_line_and_point_squared(p1, p2, zero);
+        if (min_dist_sq < 0) {
+            min_dist_sq = dist_sq;
+        } else {
+            min_dist_sq = MIN(min_dist_sq, dist_sq);
+        }
+    }
+    float min_dist = sqrtf(min_dist_sq);
+    if (outside) {
+        min_dist = -min_dist;
+    }
+    return min_dist;
+}
+
+
+/*
  *  check if we have breached the geo-fence
  */
 void Plane::geofence_check(bool altitude_check_only)
