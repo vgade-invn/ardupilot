@@ -212,6 +212,7 @@ singleton AP_Vehicle method get_wp_crosstrack_error_m boolean float'Null
 singleton AP_Vehicle method get_pan_tilt_norm boolean float'Null float'Null
 singleton AP_Vehicle method enable_fence boolean
 singleton AP_Vehicle method fence_enabled boolean
+singleton AP_Vehicle method fence_distance_inside float
 
 include AP_SerialLED/AP_SerialLED.h
 singleton AP_SerialLED alias serialLED
