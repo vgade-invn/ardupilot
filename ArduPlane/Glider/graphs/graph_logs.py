@@ -18,10 +18,10 @@ files = list(dict.fromkeys(args.files))
 nfiles = len(files)
 
 if args.mission >= 6:
-    kmz = "missions/High_alt_25_to_90Kft_geofence.kmz"
+    kmz = "missions/high.kmz"
     fence = "missions/high.fence"
 else:
-    kmz = "missions/Low_alt_9Kft_geofence.kmz"
+    kmz = "missions/low.kmz"
     fence = "missions/low.fence"
 
 graphed = set()
