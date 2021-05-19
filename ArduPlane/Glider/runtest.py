@@ -60,8 +60,10 @@ location = "KEDW%u" % args.mission
 
 if args.mission >= 6:
     fence = "missions/high.fence"
+    kmz = "missions/high.kmz"
 else:
     fence = "missions/low.fence"
+    kmz = "missions/low.kmz"
 
 cmd = '../../Tools/autotest/sim_vehicle.py -D -f PlaneJSON -G -L %s --aircraft test' % location
 print(cmd)
@@ -108,11 +110,12 @@ mavproxy.send('arm throttle\n')
 mavproxy.expect('Throttle armed')
 mavproxy.send('auto\n')
 wait_mode(mav, ['AUTO'])
-mavproxy.send('rc 6 1300\n')
+mavproxy.send('rc 6 1556\n')
 if not args.no_ui:
     mavproxy.send('module load map\n')
     mavproxy.send('wp list\n')
     mavproxy.send('gamslft\n')
+    mavproxy.send("kml load %s\n" % kmz)
 mavproxy.expect("Released",timeout=600)
 mavproxy.send('disarm force\n')
 kill_all()
