@@ -232,7 +232,7 @@ const AP_Param::GroupInfo SITL::var_info3[] = {
     AP_GROUPINFO("SET_SPEED", 39, SITL, setspeed, 0),
 
     AP_GROUPINFO("BLN_BURST", 40, SITL, balloon_burst_amsl, 30000),
-    AP_GROUPINFO("BLN_RATE",  41, SITL, balloon_rate, 10),
+    AP_GROUPINFO("BLN_RATE",  41, SITL, balloon_rate, 5.5),
 
     // user settable parameters for the 1st airspeed sensor
     AP_GROUPINFO("ARSPD_RND",     50, SITL,  arspd_noise[0], 2.0),
