@@ -105,6 +105,7 @@ if os.path.exists("all.parm"):
 if os.path.exists(mission_parm):
     mavproxy.send("param load %s\n" % mission_parm)
 mavproxy.send("fence load %s\n" % fence)
+mavproxy.send('set heartbeat 40\n')
 mavproxy.send('speedup 100\n')
 mavproxy.send('arm throttle\n')
 mavproxy.expect('Throttle armed')
