@@ -245,8 +245,9 @@ function get_landing_point()
    return nil
 end
 
-function report_antenna()
+local compass_dec = nil
 
+function report_antenna()
    local hb_ms = vehicle:last_heartbeat_ms()
    local now = millis()
    local diff = (now - hb_ms):tofloat() * 0.001
@@ -257,7 +258,16 @@ function report_antenna()
    end
    local elevation = (loc:alt() - home:alt())*0.01
    local distance = home:get_distance(loc)
-   local declination = math.deg(param:get("COMPASS_DEC"))
+   local declination = nil
+   if arming:is_armed() then
+      declination = compass_dec
+   else
+      declination = math.deg(param:get("COMPASS_DEC"))
+      compass_dec = declination
+   end
+   if compass_dec == nil then
+      return
+   end
    local mag_bearing = math.deg(home:get_bearing(loc)) - declination
    if mag_bearing > 360.0 then
       mag_bearing = mag_bearing - 360.0
