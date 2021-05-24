@@ -874,6 +874,8 @@ private:
     void load_parameters(void) override;
     void convert_mixers(void);
 
+    uint32_t last_heartbeat_ms(void) const override { return failsafe.last_heartbeat_ms; }
+
     // commands_logic.cpp
     void set_next_WP(const struct Location &loc);
     void do_RTL(int32_t alt);
