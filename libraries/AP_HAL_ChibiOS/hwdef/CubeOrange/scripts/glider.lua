@@ -204,10 +204,12 @@ function check_AFS()
       end
       local margin = vehicle:fence_distance_inside()
       if balloon_has_released() or margin >= fence_margin then
-         if vehicle:enable_fence() then
-            gcs:send_text(0, "Enabled fence")
-         else
-            gcs:send_text(0, "fence enable FAILED")
+         if not vehicle:fence_enabled() then
+            if vehicle:enable_fence() then
+               gcs:send_text(0, "Enabled fence")
+            else
+               gcs:send_text(0, "fence enable FAILED")
+            end
          end
       end
    end
