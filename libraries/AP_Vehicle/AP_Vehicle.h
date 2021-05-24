@@ -161,6 +161,7 @@ public:
     virtual bool enable_fence(void) { return false; }
     virtual bool fence_enabled(void) { return false; }
     virtual float fence_distance_inside(void) { return -1; }
+    virtual uint32_t last_heartbeat_ms(void) const { return 0; }
 
     /*
       get the likely flying status. Returns true if the vehicle code
