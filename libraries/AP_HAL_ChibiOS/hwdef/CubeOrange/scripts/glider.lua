@@ -219,9 +219,61 @@ function check_AFS()
    end
 end
 
+function get_location(m)
+   local loc = Location()
+   loc:lat(m:x())
+   loc:lng(m:y())
+   loc:relative_alt(false)
+   loc:terrain_alt(false)
+   loc:origin_alt(false)
+   loc:alt(math.floor(m:z()*100))
+   return loc
+end
+
+local landing_point = nil
+
+NAV_LOITER_TO_ALT = 31
+
+function get_landing_point()
+   local N = mission:num_commands()
+   for i = N-1, 1, -1 do
+      local m = mission:get_item(i)
+      if m:command() == NAV_LOITER_TO_ALT then
+         return get_location(m)
+      end
+   end
+   return nil
+end
+
+function report_antenna()
+
+   local hb_ms = vehicle:last_heartbeat_ms()
+   local now = millis()
+   local diff = (now - hb_ms):tofloat() * 0.001
+   local home = get_landing_point()
+   local loc = ahrs:get_position()
+   if home == nil or loc == nil then
+      return
+   end
+   local elevation = (loc:alt() - home:alt())*0.01
+   local distance = home:get_distance(loc)
+   local declination = math.deg(param:get("COMPASS_DEC"))
+   local mag_bearing = math.deg(home:get_bearing(loc)) - declination
+   if mag_bearing > 360.0 then
+      mag_bearing = mag_bearing - 360.0
+   end
+   if mag_bearing < 0.0 then
+      mag_bearing = mag_bearing + 360.0
+   end
+   local inclination = math.deg(math.atan(elevation / distance))
+
+   gcs:send_text(0, string.format("TRACK: %.0f deg, %.0f tiltdeg hb=%.0fs", mag_bearing, inclination, diff))
+end
+
 function update()
    update_lights()
    check_AFS()
+   report_antenna()
    if arming:is_armed() and vehicle:get_mode() == MODE_AUTO then
       check_chute()
       adjust_target_speed()
