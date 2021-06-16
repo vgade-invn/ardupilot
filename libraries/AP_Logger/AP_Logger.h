@@ -297,6 +297,8 @@ public:
                      LogErrorCode error_code);
     void Write_RCIN(void);
     void Write_RCOUT(void);
+    void Write_FINI(float right, float front, float down, float yaw);
+    void Write_FINO(float *amp, float *off, float *freq);
     void Write_RSSI();
     void Write_Rally();
     void Write_Power(void);
