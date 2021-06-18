@@ -474,7 +474,7 @@ void AC_PosControl::input_pos_vel_accel_xy(Vector3d& pos, Vector3f& vel, const V
 
     update_pos_vel_accel_xy(_pos_target, _vel_desired, _accel_desired, _dt, _limit_vector);
 
-    shape_pos_vel_accel_xy(pos.tofloat(), vel, accel, _pos_target, _vel_desired, _accel_desired,
+    shape_pos_vel_accel_xy(pos, vel, accel, _pos_target, _vel_desired, _accel_desired,
         _vel_max_xy_cms, _vel_max_xy_cms, _accel_max_xy_cmss, _tc_xy_s, _dt);
 
     update_pos_vel_accel_xy(pos, vel, accel, _dt, Vector3f());
