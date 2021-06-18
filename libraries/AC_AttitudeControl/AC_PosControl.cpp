@@ -328,57 +328,6 @@ AC_PosControl::AC_PosControl(AP_AHRS_View& ahrs, const AP_InertialNav& inav,
 /// 3D position shaper
 ///
 
-/// input_pos_vel_accel_xyz - calculate a jerk limited path from the current position, velocity and acceleration to an input position velocity and acceleration.
-///     The function takes the current position, velocity, and acceleration and calculates the required jerk limited adjustment to the acceleration for the next time dt.
-///     The kinematic path is constrained by the maximum acceleration and time constant set using the function set_max_speed_accel_xy and time constant.
-///     The time constant defines the acceleration error decay in the kinematic path as the system approaches constant acceleration.
-///     The time constant also defines the time taken to achieve the maximum acceleration.
-///     The function alters the input velocity to be the velocity that the system could reach zero acceleration in the minimum time.
-void AC_PosControl::input_pos_vel_accel_xyz(const Vector3f& pos)
-{
-    // check for ekf xy position reset
-    handle_ekf_xy_reset();
-    handle_ekf_z_reset();
-    Vector3f dest_vector = pos - _pos_target.tofloat();
-
-    // calculated increased maximum acceleration if over speed
-    float accel_z_cmss = _accel_max_z_cmss;
-    if (_vel_desired.z < _vel_max_down_cms && !is_zero(_vel_max_down_cms)) {
-        accel_z_cmss *= POSCONTROL_OVERSPEED_GAIN_Z * _vel_desired.z / _vel_max_down_cms;
-    }
-    if (_vel_desired.z > _vel_max_up_cms && !is_zero(_vel_max_up_cms)) {
-        accel_z_cmss *= POSCONTROL_OVERSPEED_GAIN_Z * _vel_desired.z / _vel_max_up_cms;
-    }
-
-    update_pos_vel_accel_xy(_pos_target, _vel_desired, _accel_desired, _dt, _limit_vector);
-
-    // adjust desired alt if motors have not hit their limits
-    update_pos_vel_accel_z(_pos_target, _vel_desired, _accel_desired, _dt, _limit_vector);
-
-    float vel_max_xy_cms = _vel_max_xy_cms;
-    float vel_max_z_cms = 0.0f;
-    if (is_positive(dest_vector.length_squared()) ) {
-        dest_vector.normalize();
-        float dest_vector_xy_length = Vector2f{dest_vector.x, dest_vector.y}.length();
-
-        float vel_max_cms = kinematic_limit(dest_vector, _vel_max_xy_cms, _vel_max_up_cms, _vel_max_down_cms);
-        vel_max_xy_cms = vel_max_cms * dest_vector_xy_length;
-        vel_max_z_cms = vel_max_cms * dest_vector.z;
-    }
-
-
-    Vector3f vel;
-    Vector3f accel;
-    shape_pos_vel_accel_xy(pos, vel, accel, _pos_target, _vel_desired, _accel_desired,
-        vel_max_xy_cms, _vel_max_xy_cms, _accel_max_xy_cmss, _tc_xy_s, _dt);
-    shape_pos_vel_accel_z(pos, vel, accel,
-        _pos_target, _vel_desired, _accel_desired,
-        vel_max_z_cms, _vel_max_down_cms, _vel_max_up_cms,
-        -constrain_float(accel_z_cmss, 0.0f, 750.0f), accel_z_cmss,
-        _tc_z_s, _dt);
-}
-
-
 ///
 /// Lateral position controller
 ///
