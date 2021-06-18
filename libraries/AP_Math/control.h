@@ -12,15 +12,17 @@ void update_vel_accel_z(Vector3f& vel, const Vector3f& accel, float dt, Vector3f
 // update_vel_accel projects the velocity, vel, forward in time based on a time step of dt and acceleration of accel.
 // update_vel_accel - single axis projection.
 void update_pos_vel_accel(float& pos, float& vel, float accel, float dt, float limit);
+void update_pos_vel_accel(double& pos, float& vel, float accel, float dt, float limit);
 void update_pos_vel_accel_z(Vector3f& pos, Vector3f& vel, const Vector3f& accel, float dt, Vector3f limit);
+void update_pos_vel_accel_z(Vector3d& pos, Vector3f& vel, const Vector3f& accel, float dt, Vector3f limit);
 
 // update_pos_vel_accel_xy - dual axis projection operating on the x, y axis of Vector2f or Vector3f inputs.
 void update_vel_accel(Vector2f& vel, const Vector2f& accel, float dt, Vector2f limit);
 void update_vel_accel_xy(Vector3f& vel, const Vector3f& accel, float dt, Vector3f limit);
 
 // update_pos_vel_accel_xy - dual axis projection operating on the x, y axis of Vector2f or Vector3f inputs.
-void update_pos_vel_accel(Vector2f& pos, Vector2f& vel, const Vector2f& accel, float dt, Vector2f limit);
-void update_pos_vel_accel_xy(Vector3f& pos, Vector3f& vel, const Vector3f& accel, float dt, Vector3f limit);
+void update_pos_vel_accel(Vector2d& pos, Vector2f& vel, const Vector2f& accel, float dt, Vector2f limit);
+void update_pos_vel_accel_xy(Vector3d& pos, Vector3f& vel, const Vector3f& accel, float dt, Vector3f limit);
 
 /* shape_accel calculates a jerk limited path from the current acceleration to an input acceleration.
  The function takes the current acceleration and calculates the required jerk limited adjustment to the acceleration for the next time dt.
@@ -98,7 +100,7 @@ void shape_pos_vel_accel(float pos_input, float vel_input, float accel_input,
     float accel_min, float accel_max, float tc, float dt);
 
 void shape_pos_vel_accel_z(const Vector3f& pos_input, const Vector3f& vel_input, const Vector3f& accel_input,
-    const Vector3f& pos, const Vector3f& vel, Vector3f& accel,
+    const Vector3d& pos, const Vector3f& vel, Vector3f& accel,
     float vel_correction_max, float vel_min, float vel_max,
     float accel_min, float accel_max, float tc, float dt);
 
@@ -116,11 +118,11 @@ void shape_pos_vel_accel_z(const Vector3f& pos_input, const Vector3f& vel_input,
  The vel_max, vel_correction_max, and accel_max limits can be removed by setting the desired limit to zero.
 */
 void shape_pos_vel_accel_xy(const Vector2f& pos_input, const Vector2f& vel_input, const Vector2f& accel_input,
-    const Vector2f& pos, const Vector2f& vel, Vector2f& accel,
+    const Vector2d& pos, const Vector2f& vel, Vector2f& accel,
     float vel_correction_max, float vel_max, float accel_max, float tc, float dt);
 
 void shape_pos_vel_accel_xy(const Vector3f& pos_input, const Vector3f& vel_input, const Vector3f& accel_input,
-    const Vector3f& pos, const Vector3f& vel, Vector3f& accel,
+    const Vector3d& pos, const Vector3f& vel, Vector3f& accel,
     float vel_max, float vel_correction_max, float accel_max, float tc, float dt);
 
 // proportional controller with piecewise sqrt sections to constrain second derivative
