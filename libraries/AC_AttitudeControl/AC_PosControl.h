@@ -213,8 +213,8 @@ public:
     float get_pos_target_z_cm() const { return _pos_target.z; }
 
     /// get_stopping_point_xy_cm - calculates stopping point in NEU cm based on current position, velocity, vehicle acceleration
-    void get_stopping_point_xy_cm(Vector3f &stopping_point) const;
     void get_stopping_point_xy_cm(Vector3d &stopping_point) const;
+    void get_stopping_point_xy_cm(Vector3f &stopping_point) const;
 
     /// get_stopping_point_z_cm - calculates stopping point in NEU cm based on current position, velocity, vehicle acceleration
     void get_stopping_point_z_cm(Vector3f& stopping_point) const;

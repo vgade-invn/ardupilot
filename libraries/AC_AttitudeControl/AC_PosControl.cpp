@@ -905,7 +905,7 @@ void AC_PosControl::get_stopping_point_z_cm(Vector3d& stopping_point) const
 {
     Vector3f stop_f;
     get_stopping_point_z_cm(stop_f);
-    stopping_point = stop_f.todouble();
+    stopping_point.z = stop_f.z;
 }
 
 /// get_lean_angle_max_cd - returns the maximum lean angle the autopilot may request
@@ -964,7 +964,7 @@ Vector3f AC_PosControl::get_thrust_vector() const
 
 /// get_stopping_point_xy_cm - calculates stopping point in NEU cm based on current position, velocity, vehicle acceleration
 ///    function does not change the z axis
-void AC_PosControl::get_stopping_point_xy_cm(Vector3f &stopping_point) const
+void AC_PosControl::get_stopping_point_xy_cm(Vector3d &stopping_point) const
 {
     const Vector3f curr_pos = _inav.get_position();
     stopping_point.x = curr_pos.x;
@@ -999,11 +999,12 @@ void AC_PosControl::get_stopping_point_xy_cm(Vector3f &stopping_point) const
 
 /// get_stopping_point_xy_cm - calculates stopping point in NEU cm based on current position, velocity, vehicle acceleration
 ///    function does not change the z axis
-void AC_PosControl::get_stopping_point_xy_cm(Vector3d &stopping_point) const
+void AC_PosControl::get_stopping_point_xy_cm(Vector3f &stopping_point) const
 {
-    Vector3f stop_point;
-    get_stopping_point_xy_cm(stop_point);
-    stopping_point = stop_point.todouble();
+    Vector3d sp;
+    get_stopping_point_xy_cm(sp);
+    stopping_point.x = sp.x;
+    stopping_point.y = sp.y;
 }
 
 /// get_bearing_to_target_cd - get bearing to target position in centi-degrees
