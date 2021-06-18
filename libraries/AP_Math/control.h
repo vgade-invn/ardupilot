@@ -117,12 +117,11 @@ void shape_pos_vel_accel_z(const Vector3f& pos_input, const Vector3f& vel_input,
  This function operates only on the x and y axis of the Vector2f or Vector3f inputs.
  The vel_max, vel_correction_max, and accel_max limits can be removed by setting the desired limit to zero.
 */
-void shape_pos_vel_accel_xy(const Vector2f& pos_input, const Vector2f& vel_input, const Vector2f& accel_input,
-    const Vector2d& pos, const Vector2f& vel, Vector2f& accel,
-    float vel_correction_max, float vel_max, float accel_max, float tc, float dt);
-
-void shape_pos_vel_accel_xy(const Vector3f& pos_input, const Vector3f& vel_input, const Vector3f& accel_input,
+void shape_pos_vel_accel_xy(const Vector3d& pos_input, const Vector3f& vel_input, const Vector3f& accel_input,
     const Vector3d& pos, const Vector3f& vel, Vector3f& accel,
+    float vel_max, float vel_correction_max, float accel_max, float tc, float dt);
+void shape_pos_vel_accel_xy(const Vector2d& pos_input, const Vector2f& vel_input, const Vector2f& accel_input,
+    const Vector2d& pos, const Vector2f& vel, Vector2f& accel,
     float vel_max, float vel_correction_max, float accel_max, float tc, float dt);
 
 // proportional controller with piecewise sqrt sections to constrain second derivative

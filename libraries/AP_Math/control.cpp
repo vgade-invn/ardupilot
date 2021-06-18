@@ -404,8 +404,8 @@ void shape_pos_vel_accel_z(const Vector3f& pos_input, const Vector3f& vel_input,
  This function operates on the x and y axis of both Vector2f or Vector3f inputs.
  The vel_max, vel_correction_max, and accel_max limits can be removed by setting the desired limit to zero.
 */
-void shape_pos_vel_accel_xy(const Vector2f& pos_input, const Vector2f& vel_input, const Vector2f& accel_input,
-    const Vector2f& pos, const Vector2f& vel, Vector2f& accel,
+void shape_pos_vel_accel_xy(const Vector2d& pos_input, const Vector2f& vel_input, const Vector2f& accel_input,
+    const Vector2d& pos, const Vector2f& vel, Vector2f& accel,
     float vel_correction_max, float vel_max, float accel_max, float tc, float dt)
 {
     if (!is_positive(tc)) {
@@ -417,7 +417,7 @@ void shape_pos_vel_accel_xy(const Vector2f& pos_input, const Vector2f& vel_input
     const float accel_tc_max = accel_max*(1.0f - 1.0f/CONTROL_TIME_CONSTANT_RATIO);
 
     // position error to be corrected
-    Vector2f pos_error = pos_input - pos;
+    Vector2f pos_error = (pos_input.todouble() - pos).tofloat();
 
     // velocity to correct position
     Vector2f vel_target = sqrt_controller(pos_error, KPv, accel_tc_max, dt);
@@ -446,14 +446,14 @@ void shape_pos_vel_accel_xy(const Vector2f& pos_input, const Vector2f& vel_input
  This function operates only on the x and y axis of the Vector2f or Vector3f inputs.
  The vel_max, vel_correction_max, and accel_max limits can be removed by setting the desired limit to zero.
 */
-void shape_pos_vel_accel_xy(const Vector3f& pos_input, const Vector3f& vel_input, const Vector3f& accel_input,
+void shape_pos_vel_accel_xy(const Vector3d& pos_input, const Vector3f& vel_input, const Vector3f& accel_input,
     const Vector3d& pos, const Vector3f& vel, Vector3f& accel,
     float vel_max, float vel_correction_max, float accel_max, float tc, float dt)
 {
-    const Vector2f pos_input_2f {pos_input.x, pos_input.y};
+    const Vector2d pos_input_2f {pos_input.x, pos_input.y};
     const Vector2f vel_input_2f {vel_input.x, vel_input.y};
     const Vector2f accel_input_2f {accel_input.x, accel_input.y};
-    const Vector2f pos_2f {float(pos.x), float(pos.y)};
+    const Vector2d pos_2f {pos.x, pos.y};
     const Vector2f vel_2f {vel.x, vel.y};
     Vector2f accel_2f {accel.x, accel.y};
 
