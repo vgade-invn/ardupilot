@@ -477,7 +477,7 @@ bool AC_WPNav::advance_wp_target_along_track(float dt)
     target_accel.z += _accel_terrain_offset;
 
     // pass new target to the position controller
-    _pos_control.set_pos_vel_accel(target_pos, target_vel, target_accel);
+    _pos_control.set_pos_vel_accel(target_pos.todouble(), target_vel, target_accel);
 
     // check if we've reached the waypoint
     if (!_flags.reached_destination) {

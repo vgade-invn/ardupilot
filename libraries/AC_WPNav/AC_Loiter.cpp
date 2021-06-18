@@ -287,11 +287,11 @@ void AC_Loiter::calc_desired_velocity(float nav_dt, bool avoidance_on)
     }
 
     // get loiters desired velocity from the position controller where it is being stored.
-    const Vector3f &target_pos_3d = _pos_control.get_pos_target_cm();
-    Vector2f target_pos{target_pos_3d.x, target_pos_3d.y};
+    const Vector3d &target_pos_3d = _pos_control.get_pos_target_cm();
+    Vector2d target_pos{target_pos_3d.x, target_pos_3d.y};
 
     // update the target position using our predicted velocity
-    target_pos += desired_vel * nav_dt;
+    target_pos += (desired_vel * nav_dt).todouble();
 
     // send adjusted feed forward acceleration and velocity back to the Position Controller
     _pos_control.set_pos_vel_accel_xy(target_pos, desired_vel, _desired_accel);
