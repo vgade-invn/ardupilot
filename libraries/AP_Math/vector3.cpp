@@ -624,6 +624,18 @@ Vector2<T> Vector3<T>::xy()
     return Vector2<T>{x,y};
 }
 
+template <typename T>
+Vector3<double> Vector3<T>::todouble(void) const
+{
+    return Vector3d{x,y,z};
+}
+
+template <typename T>
+Vector3<float> Vector3<T>::tofloat(void) const
+{
+    return Vector3f{float(x),float(y),float(z)};
+}
+
 // define for float and double
 template class Vector3<float>;
 template class Vector3<double>;
