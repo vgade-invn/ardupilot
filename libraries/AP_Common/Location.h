@@ -87,6 +87,7 @@ public:
     // Note: this does not include the scaling to convert
     // longitude/latitude points to meters or centimeters
     static float longitude_scale(int32_t lat);
+    static double longitude_scale_double(int32_t lat);
 
     bool is_zero(void) const WARN_IF_UNUSED;
 

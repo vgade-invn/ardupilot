@@ -265,20 +265,20 @@ Vector3f Location::get_distance_NED(const Location &loc2) const
 Vector3d Location::get_distance_NED_double(const Location &loc2) const
 {
     return Vector3d((loc2.lat - lat) * double(LOCATION_SCALING_FACTOR),
-                    diff_longitude(loc2.lng,lng) * LOCATION_SCALING_FACTOR * longitude_scale((lat+loc2.lat)/2),
+                    diff_longitude(loc2.lng,lng) * LOCATION_SCALING_FACTOR * longitude_scale_double((lat+loc2.lat)/2),
                     (alt - loc2.alt) * 0.01);
 }
 
 Vector2d Location::get_distance_NE_double(const Location &loc2) const
 {
     return Vector2d((loc2.lat - lat) * double(LOCATION_SCALING_FACTOR),
-                    diff_longitude(loc2.lng,lng) * double(LOCATION_SCALING_FACTOR) * longitude_scale((lat+loc2.lat)/2));
+                    diff_longitude(loc2.lng,lng) * double(LOCATION_SCALING_FACTOR) * longitude_scale_double((lat+loc2.lat)/2));
 }
 
 Vector2F Location::get_distance_NE_ftype(const Location &loc2) const
 {
     return Vector2F((loc2.lat - lat) * ftype(LOCATION_SCALING_FACTOR),
-                    diff_longitude(loc2.lng,lng) * ftype(LOCATION_SCALING_FACTOR) * longitude_scale((lat+loc2.lat)/2));
+                    diff_longitude(loc2.lng,lng) * ftype(LOCATION_SCALING_FACTOR) * longitude_scale_double((lat+loc2.lat)/2));
 }
 
 // extrapolate latitude/longitude given distances (in meters) north and east
@@ -294,7 +294,7 @@ void Location::offset(float ofs_north, float ofs_east)
 void Location::offset_double(double ofs_north, double ofs_east)
 {
     const int64_t dlat = ofs_north * double(LOCATION_SCALING_FACTOR_INV);
-    const int64_t dlng = (ofs_east * double(LOCATION_SCALING_FACTOR_INV)) / longitude_scale(lat+dlat/2);
+    const int64_t dlng = (ofs_east * double(LOCATION_SCALING_FACTOR_INV)) / longitude_scale_double(lat+dlat/2);
     lat = limit_lattitude(int64_t(lat)+dlat);
     lng = wrap_longitude(int64_t(lng)+dlng);
 }
@@ -327,7 +327,13 @@ void Location::offset_bearing_and_pitch(float bearing_deg, float pitch_deg, floa
 float Location::longitude_scale(int32_t lat)
 {
     float scale = cosf(lat * (1.0e-7f * DEG_TO_RAD));
-    return MAX(scale, 0.01f);
+    return MAX(scale, 0.01);
+}
+
+double Location::longitude_scale_double(int32_t lat)
+{
+    double scale = cos(lat * (1.0e-7 * DEG_TO_RAD));
+    return MAX(scale, 0.01);
 }
 
 /*
