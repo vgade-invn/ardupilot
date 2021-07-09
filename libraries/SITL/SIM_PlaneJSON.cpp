@@ -354,11 +354,11 @@ bool PlaneJSON::update_balloon(float balloon, Vector3f &force, Vector3f &rot_acc
     float tether_stiffness = model.mass * sq(omega); // N/m
     float tether_damping = 2.0f * zeta * omega / model.mass; // N/(m/s)
     // NED relative position vector from tether attachment on plane to balloon attachment
-    Vector3f relative_position = balloon_position - (position + dcm * tether_pos_bf);
+    Vector3d relative_position = balloon_position.todouble() - (position + (dcm * tether_pos_bf).todouble());
     const float separation_distance = relative_position.length();
 
     // NED unit vector pointing from tether attachment on plane to attachment on balloon
-    Vector3f tether_unit_vec_ef = relative_position.normalized();
+    Vector3f tether_unit_vec_ef = relative_position.normalized().tofloat();
 
     // NED velocity of attahment point on plane
     Vector3f attachment_velocity_ef = velocity_ef + dcm * (gyro % tether_pos_bf);
