@@ -161,7 +161,6 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] = {
 
 AP_PitchController::AP_PitchController(AP_AHRS &ahrs, const AP_Vehicle::FixedWing &parms)
     : aparm(parms)
-    , _ahrs(ahrs)
 {
     AP_Param::setup_object_defaults(this, var_info);
     rate_pid.set_slew_limit_scale(45);
@@ -173,18 +172,19 @@ AP_PitchController::AP_PitchController(AP_AHRS &ahrs, const AP_Vehicle::FixedWin
 int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool disable_integrator, float aspeed)
 {
     // apply pitch rate limits that prevent specified normal g loading being exceeded
-    float VTAS = aspeed * _ahrs.get_EAS2TAS();
-	const float VTAS_dot = _ahrs.get_accel().x + GRAVITY_MSS * _ahrs.get_DCM_rotation_body_to_ned().c.x;
+    const auto &ahrs = AP::ahrs();
+    float VTAS = aspeed * ahrs.get_EAS2TAS();
+    const float VTAS_dot = ahrs.get_accel().x + GRAVITY_MSS * ahrs.get_DCM_rotation_body_to_ned().c.x;
 	if (is_positive(_manoeuvre_tconst)) {
 		const float tconst_adj = _manoeuvre_tconst * sq(scaler);
 		VTAS += VTAS_dot * tconst_adj;
 	}
     const float g_div_vtas = GRAVITY_MSS / MAX(VTAS,0.1);
-    const float zero_ng_pitch_rate = - g_div_vtas * _ahrs.get_DCM_rotation_body_to_ned().c.z;
+    const float zero_ng_pitch_rate = - g_div_vtas * ahrs.get_DCM_rotation_body_to_ned().c.z;
     float load_factor_limit = MAX(_ng_limit, 1.5);
 
 	// custom hack to adjust maximum AoA protection for Reynolds number effects
-	const float air_density_ratio = 1.0f / sq(_ahrs.get_EAS2TAS());
+    const float air_density_ratio = 1.0f / sq(ahrs.get_EAS2TAS());
 	const float density_ratio_bp[2]     = {0.15220f, 0.02092f}; // must be montonically decreasing
 	const float stall_speed_ratio_bp[2] = {1.00000f, 1.21771f};
 	float max_aoa_speed = _stall_speed;
@@ -210,9 +210,9 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
     desired_rate = constrain_float(desired_rate, min_pitch_rate_dps, max_pitch_rate_dps);
 
     const float dt = AP::scheduler().get_loop_period_s();
-    const float eas2tas = _ahrs.get_EAS2TAS();
+    const float eas2tas = ahrs.get_EAS2TAS();
     bool limit_I = fabsf(_last_out) >= 45;
-    float rate_y = _ahrs.get_gyro().y;
+    float rate_y = ahrs.get_gyro().y;
     float old_I = rate_pid.get_i();
 
     rate_pid.set_dt(dt);
@@ -285,7 +285,7 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
 int32_t AP_PitchController::get_rate_out(float desired_rate, float scaler)
 {
     float aspeed;
-	if (!_ahrs.airspeed_estimate(aspeed)) {
+    if (!AP::ahrs().airspeed_estimate(aspeed)) {
 	    // If no airspeed available use average of min and max
         aspeed = 0.5f*(float(aparm.airspeed_min) + float(aparm.airspeed_max));
 	}
@@ -301,8 +301,9 @@ int32_t AP_PitchController::get_rate_out(float desired_rate, float scaler)
  */
 float AP_PitchController::_get_coordination_rate_offset(float &aspeed, bool &inverted) const
 {
+    const auto &ahrs = AP::ahrs();
 	float rate_offset;
-	float bank_angle = _ahrs.roll;
+    float bank_angle = ahrs.roll;
 
 	// limit bank angle between +- 80 deg if right way up
 	if (fabsf(bank_angle) < radians(90))	{
@@ -316,15 +317,15 @@ float AP_PitchController::_get_coordination_rate_offset(float &aspeed, bool &inv
 			bank_angle = constrain_float(bank_angle,-radians(180),-radians(100));
 		}
 	}
-	if (!_ahrs.airspeed_estimate(aspeed)) {
+    if (!ahrs.airspeed_estimate(aspeed)) {
 	    // If no airspeed available use average of min and max
         aspeed = 0.5f*(float(aparm.airspeed_min) + float(aparm.airspeed_max));
 	}
-    if (abs(_ahrs.pitch_sensor) > 7000) {
+    if (abs(ahrs.pitch_sensor) > 7000) {
         // don't do turn coordination handling when at very high pitch angles
         rate_offset = 0;
     } else {
-        rate_offset = cosf(_ahrs.pitch)*fabsf(ToDeg((GRAVITY_MSS / MAX((aspeed * _ahrs.get_EAS2TAS()) , MAX(aparm.airspeed_min, 1))) * tanf(bank_angle) * sinf(bank_angle))) * _roll_ff;
+        rate_offset = cosf(ahrs.pitch)*fabsf(ToDeg((GRAVITY_MSS / MAX((aspeed * ahrs.get_EAS2TAS()) , MAX(aparm.airspeed_min, 1))) * tanf(bank_angle) * sinf(bank_angle))) * _roll_ff;
     }
 	if (inverted) {
 		rate_offset = -rate_offset;
@@ -385,12 +386,13 @@ int32_t AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool 
       linearly reduce pitch demanded rate when beyond the configured
       roll limit, reducing to zero at 90 degrees
     */
-    float roll_wrapped = labs(_ahrs.roll_sensor);
+    const auto &ahrs = AP::ahrs();
+    float roll_wrapped = labs(ahrs.roll_sensor);
     if (roll_wrapped > 9000) {
         roll_wrapped = 18000 - roll_wrapped;
     }
     const float roll_limit_margin = MIN(aparm.roll_limit_cd + 500.0, 8500.0);
-    if (roll_wrapped > roll_limit_margin && labs(_ahrs.pitch_sensor) < 7000) {
+    if (roll_wrapped > roll_limit_margin && labs(ahrs.pitch_sensor) < 7000) {
         float roll_prop = (roll_wrapped - roll_limit_margin) / (float)(9000 - roll_limit_margin);
         desired_rate *= (1 - roll_prop);
     }
