@@ -1,1 +1,22 @@
 include ../Durandal/hwdef.dat
+
+# different order of PWM channels
+undef PE14
+undef PA10
+undef PE11
+undef PE9
+undef PD13
+undef PD14
+undef PH6
+undef PH9
+
+# remap channels to suit new distribution layout
+PD13 TIM4_CH2 TIM4 PWM(1) GPIO(50) # WS2812 LED
+PE14 TIM1_CH4 TIM1 PWM(2) GPIO(51)
+PA10 TIM1_CH3 TIM1 PWM(3) GPIO(52)
+PE11 TIM1_CH2 TIM1 PWM(4) GPIO(53)
+PE9  TIM1_CH1 TIM1 PWM(5) GPIO(54)
+PH6  TIM12_CH1 TIM12 PWM(6) GPIO(55) NODMA
+PH9  TIM12_CH2 TIM12 PWM(7) GPIO(56) NODMA
+PD14 TIM4_CH3 TIM4 PWM(8) GPIO(57) # LED lua script
+
