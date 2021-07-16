@@ -243,6 +243,8 @@ public:
     void setup() override;
     void loop() override;
 
+    uint8_t get_mode() const override { return (uint8_t)control_mode; }
+
 private:
     static const AP_FWVersion fwver;
 
