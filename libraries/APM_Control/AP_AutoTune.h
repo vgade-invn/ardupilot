@@ -12,7 +12,8 @@ public:
         AP_Float tau;
         AP_Int16 rmax_pos;
         AP_Int16 rmax_neg;
-        float FF, P, I, D, IMAX, flt_T;
+        float FF, P, I, D, IMAX;
+        float flt_T, flt_E, flt_D;
     };
 
     enum ATType {

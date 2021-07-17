@@ -396,8 +396,10 @@ void AP_AutoTune::update(AP_Logger::PID_Info &pinfo, float scaler, float angle_e
     rpid.kD().set(D);
     rpid.kI().set(MAX(P*AUTOTUNE_I_RATIO, (FF / TRIM_TCONST)));
 
-    // setup target filter to be suitable for time constant
+    // setup filters to be suitable for time constant and gyro filter
     rpid.filt_T_hz().set(10.0/(current.tau * 2 * M_PI));
+    rpid.filt_E_hz().set(0);
+    rpid.filt_D_hz().set(AP::ins().get_gyro_filter_hz()*0.5);
 
     current.FF = FF;
     current.P = P;
@@ -508,6 +510,8 @@ void AP_AutoTune::save_gains(const ATGains &v)
     save_float_if_changed(rpid.kD(), v.D);
     save_float_if_changed(rpid.kIMAX(), v.IMAX);
     save_float_if_changed(rpid.filt_T_hz(), v.flt_T);
+    save_float_if_changed(rpid.filt_E_hz(), v.flt_E);
+    save_float_if_changed(rpid.filt_D_hz(), v.flt_D);
     last_save = get_gains(current);
     current = tmp;
 }
@@ -524,6 +528,8 @@ AP_AutoTune::ATGains AP_AutoTune::get_gains(const ATGains &v)
     ret.D = rpid.kD();
     ret.IMAX = rpid.kIMAX();
     ret.flt_T = rpid.filt_T_hz();
+    ret.flt_E = rpid.filt_E_hz();
+    ret.flt_D = rpid.filt_D_hz();
     return ret;
 }
 
@@ -539,6 +545,8 @@ void AP_AutoTune::set_gains(const ATGains &v)
     rpid.kD().set(v.D);
     rpid.kIMAX().set(v.IMAX);
     rpid.filt_T_hz().set(v.flt_T);
+    rpid.filt_E_hz().set(v.flt_E);
+    rpid.filt_D_hz().set(v.flt_D);
 }
 
 /*
