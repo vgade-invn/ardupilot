@@ -560,6 +560,10 @@ void AP_AutoTune::update_rmax(void)
     } else {
         target_rmax = tuning_table[level-1].rmax;
         target_tau = tuning_table[level-1].tau;
+        if (type == AUTOTUNE_PITCH) {
+            // 50% longer time constant on pitch
+            target_tau *= 1.5;
+        }
     }
 
     if (level > 0 && is_positive(current.FF)) {
