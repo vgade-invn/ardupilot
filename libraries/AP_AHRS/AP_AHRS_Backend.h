@@ -653,4 +653,7 @@ private:
 
     uint32_t takeoff_expected_start_ms;
     uint32_t touchdown_expected_start_ms;
+
+    // EAS to TAS calculated on each loop
+    float _EAS2TAS{1};
 };
