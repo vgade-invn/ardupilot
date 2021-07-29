@@ -1702,6 +1702,12 @@ void ModeAuto::do_yaw(const AP_Mission::Mission_Command& cmd)
 
 void ModeAuto::do_change_speed(const AP_Mission::Mission_Command& cmd)
 {
+
+    if (cmd.content.speed.speed_type == 4)  { // new adition for copter, reset speed to WPNAV_SPEED
+        copter.wp_nav->set_speed_xy(copter.wp_nav->get_default_speed_xy());
+        return;
+    }
+
     if (cmd.content.speed.target_ms > 0) {
         if (cmd.content.speed.speed_type == 2)  {
             copter.wp_nav->set_speed_up(cmd.content.speed.target_ms * 100.0f);
