@@ -28,6 +28,7 @@
 #include <AP_HAL_ChibiOS/RCInput.h>
 #include <AP_HAL_ChibiOS/CANIface.h>
 #include <AP_InternalError/AP_InternalError.h>
+#include <GCS_MAVLink/GCS.h>
 
 #if CH_CFG_USE_DYNAMIC == TRUE
 
@@ -392,7 +393,7 @@ void Scheduler::_monitor_thread(void *arg)
 #endif
 
     while (true) {
-        sched->delay(100);
+        sched->delay(5);
         if (using_watchdog) {
             stm32_watchdog_save((uint32_t *)&hal.util->persistent_data, (sizeof(hal.util->persistent_data)+3)/4);
         }
@@ -402,11 +403,12 @@ void Scheduler::_monitor_thread(void *arg)
 
         uint32_t now = AP_HAL::millis();
         uint32_t loop_delay = now - sched->last_watchdog_pat_ms;
-        if (loop_delay >= 200) {
+        if (loop_delay >= 10) {
             // the main loop has been stuck for at least
             // 200ms. Starting logging the main loop state
 #if HAL_LOGGING_ENABLED
             const AP_HAL::Util::PersistentData &pd = hal.util->persistent_data;
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "MON: %u %d %d", unsigned(loop_delay), int(pd.scheduler_task), int(pd.semaphore_line));
             if (AP_Logger::get_singleton()) {
                 AP::logger().Write("MON", "TimeUS,LDelay,Task,IErr,IErrCnt,IErrLn,MavMsg,MavCmd,SemLine,SPICnt,I2CCnt", "QIbIHHHHHII",
                                    AP_HAL::micros64(),
@@ -423,7 +425,7 @@ void Scheduler::_monitor_thread(void *arg)
                 }
 #endif
         }
-        if (loop_delay >= 500 && !sched->in_expected_delay()) {
+        if (loop_delay >= 20 && !sched->in_expected_delay() && hal.util->get_soft_armed()) {
             // at 500ms we declare an internal error
             INTERNAL_ERROR(AP_InternalError::error_t::main_loop_stuck);
         }
