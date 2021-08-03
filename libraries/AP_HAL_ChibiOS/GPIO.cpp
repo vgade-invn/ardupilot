@@ -438,7 +438,7 @@ void GPIO::timer_tick()
 {
     // allow 100k interrupts/second max for GPIO interrupt sources, which is
     // 10k per 100ms call to timer_tick()
-    const uint16_t quota = 10000U;
+    const uint16_t quota = 100U;
     for (uint8_t i=0; i<ARRAY_SIZE(_gpio_tab); i++) {
         if (_gpio_tab[i].isr_quota == 1) {
             // we ran out of ISR quota for this pin since the last
