@@ -3091,7 +3091,7 @@ const EKFGSF_yaw *AP_AHRS::get_yaw_estimator(void) const
 }
 
 // lock position for inertial takeoff
-bool AP_AHRS_NavEKF::lock_position(bool enable)
+bool AP_AHRS::lock_position(bool enable)
 {
 #if HAL_NAVEKF3_AVAILABLE
     return EKF3.lockPosition(enable);
