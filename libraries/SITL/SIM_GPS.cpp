@@ -1151,8 +1151,8 @@ void GPS::update()
         if (_sitl->gps_drift_pos[idx] > 0) {
             // slow pos drift
             Vector3f drift;
-            d.latitude += _sitl->gps_drift_pos[idx]*sinf(AP_HAL::millis()*0.001f*0.05f) * 1.0e-7 * Location::LOCATION_SCALING_FACTOR_INV;
-            d.longitude += _sitl->gps_drift_pos[idx]*sinf(AP_HAL::millis()*0.001f*0.073f) * 1.0e-7 * Location::LOCATION_SCALING_FACTOR_INV * Location::longitude_scale_deg(d.latitude);
+            d.latitude += _sitl->gps_drift_pos[idx]*sinf(AP_HAL::millis()*0.001f*0.05f) * 1.0e-7 * LATLON_TO_M_INV;
+            d.longitude += _sitl->gps_drift_pos[idx]*sinf(AP_HAL::millis()*0.001f*0.073f) * 1.0e-7 * LATLON_TO_M_INV * Location::longitude_scale(d.latitude*1.0e7);
         }
         
         // correct the latitude, longitude, hiehgt and NED velocity for the offset between
