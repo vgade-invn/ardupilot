@@ -1,7 +1,5 @@
 #pragma once
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-
 #include <SITL/SITL.h>
 
 #include "AP_InertialSensor.h"
@@ -38,4 +36,3 @@ private:
     uint64_t next_gyro_sample[INS_SITL_INSTANCES];
     uint64_t next_accel_sample[INS_SITL_INSTANCES];
 };
-#endif // HAL_BOARD_SITL
