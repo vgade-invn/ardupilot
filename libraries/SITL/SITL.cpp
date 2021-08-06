@@ -44,12 +44,12 @@ const AP_Param::GroupInfo SITL::var_info[] = {
     AP_GROUPINFO("WIND_SPD",   9, SITL,  wind_speed,  0),
     AP_GROUPINFO("WIND_DIR",  10, SITL,  wind_direction,  180),
     AP_GROUPINFO("WIND_TURB", 11, SITL,  wind_turbulance,  0),
-    AP_GROUPINFO("GPS_TYPE",  12, SITL,  gps_type,  SITL::GPS_TYPE_UBLOX),
+    AP_GROUPINFO("GPS_TYPE",  12, SITL,  gps_type[0],  SITL::GPS_TYPE_UBLOX),
     AP_GROUPINFO("GPS_BYTELOSS",  13, SITL,  gps_byteloss,  0),
     AP_GROUPINFO("GPS_NUMSATS",   14, SITL,  gps_numsats,   10),
     AP_GROUPINFO("MAG_ERROR",     15, SITL,  mag_error,  0),
     AP_GROUPINFO("SERVO_SPEED",   16, SITL,  servo_speed,  0.14),
-    AP_GROUPINFO("GPS_GLITCH",    17, SITL,  gps_glitch,  0),
+    AP_GROUPINFO("GPS_GLITCH",    17, SITL,  gps_glitch[0],  0),
     AP_GROUPINFO("GPS_HZ",        18, SITL,  gps_hertz,  5),
     AP_GROUPINFO("BATT_VOLTAGE",  19, SITL,  batt_voltage,  12.6f),
     AP_GROUPINFO("ARSPD_RND",     20, SITL,  arspd_noise,  0.5f),
@@ -86,14 +86,12 @@ const AP_Param::GroupInfo SITL::var_info[] = {
     AP_GROUPINFO("ADSB_TX",       51, SITL,  adsb_tx, 0),
     AP_GROUPINFO("SPEEDUP",       52, SITL,  speedup, -1),
     AP_GROUPINFO("IMU_POS",       53, SITL,  imu_pos_offset, 0),
-    AP_GROUPINFO("GPS_POS",       54, SITL,  gps_pos_offset, 0),
+    AP_GROUPINFO("GPS_POS",       54, SITL,  gps_pos_offset[0], 0),
     AP_GROUPINFO("SONAR_POS",     55, SITL,  rngfnd_pos_offset, 0),
     AP_GROUPINFO("FLOW_POS",      56, SITL,  optflow_pos_offset, 0),
     AP_GROUPINFO("ACC2_BIAS",     57, SITL,  accel2_bias, 0),
     AP_GROUPINFO("GPS_NOISE",     58, SITL,  gps_noise, 0),
-    AP_GROUPINFO("GP2_GLITCH",    59, SITL,  gps2_glitch,  0),
     AP_GROUPINFO("ENGINE_FAIL",   60, SITL,  engine_fail,  0),
-    AP_GROUPINFO("GPS2_TYPE",     61, SITL,  gps2_type,  SITL::GPS_TYPE_UBLOX),
     AP_SUBGROUPEXTENSION("",      62, SITL,  var_info3),
     AP_SUBGROUPEXTENSION("",      63, SITL,  var_info2),
     AP_GROUPEND
@@ -169,7 +167,7 @@ const AP_Param::GroupInfo SITL::var_info2[] = {
     AP_GROUPINFO("GND_BEHAV",   41, SITL,  gnd_behav, -1),
     AP_GROUPINFO("BARO_COUNT",  42, SITL,  baro_count,  1),
 
-    AP_GROUPINFO("GPS_HDG",     43, SITL,  gps_hdg_enabled, 0),
+    AP_GROUPINFO("GPS_HDG",     43, SITL,  gps_hdg_enabled[0], 0),
 
     // sailboat wave and tide simulation parameters
     AP_GROUPINFO("WAVE_ENABLE", 44, SITL,  wave.enable, 0.0f),
@@ -212,6 +210,11 @@ const AP_Param::GroupInfo SITL::var_info3[] = {
     AP_GROUPINFO("MAG6_DEVID",    8, SITL,  mag_devid[5], 98051),
     AP_GROUPINFO("MAG7_DEVID",    9, SITL,  mag_devid[6], 0),
     AP_GROUPINFO("MAG8_DEVID",    10, SITL, mag_devid[7], 0),
+
+    AP_GROUPINFO("GPS2_HDG",     11, SITL,  gps_hdg_enabled[1], 0),
+    AP_GROUPINFO("GPS2_POS",     12, SITL,  gps_pos_offset[1], 0),
+    AP_GROUPINFO("GPS2_GLITCH",  13, SITL,  gps_glitch[1],  0),
+    AP_GROUPINFO("GPS2_TYPE",    14, SITL,  gps_type[1],  SITL::GPS_TYPE_UBLOX),
     AP_GROUPEND
 
 };

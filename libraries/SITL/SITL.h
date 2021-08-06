@@ -161,12 +161,10 @@ public:
     AP_Int8  gps_disable; // disable simulated GPS
     AP_Int8  gps2_enable; // enable 2nd simulated GPS
     AP_Int8  gps_delay;   // delay in samples
-    AP_Int8  gps_type;    // see enum GPSType
-    AP_Int8  gps2_type;   // see enum GPSType
+    AP_Int8  gps_type[2];    // see enum GPSType
     AP_Float gps_byteloss;// byte loss as a percent
     AP_Int8  gps_numsats; // number of visible satellites
-    AP_Vector3f gps_glitch;  // glitch offsets in lat, lon and altitude
-    AP_Vector3f gps2_glitch; // glitch offsets in lat, lon and altitude for 2nd GPS
+    AP_Vector3f gps_glitch[2];  // glitch offsets in lat, lon and altitude
     AP_Int8  gps_hertz;   // GPS update rate in Hz
     AP_Float batt_voltage; // battery voltage base
     AP_Float accel_fail;  // accelerometer failure value
@@ -184,7 +182,7 @@ public:
     AP_Int8  telem_baudlimit_enable; // enable baudrate limiting on links
     AP_Float flow_noise; // optical flow measurement noise (rad/sec)
     AP_Int8  baro_count; // number of simulated baros to create
-    AP_Int8 gps_hdg_enabled; // enable the output of a NMEA heading HDT sentence
+    AP_Int8 gps_hdg_enabled[2]; // enable the output of a NMEA heading HDT sentence
     AP_Int32 loop_delay; // extra delay to add to every loop
     AP_Float mag_scaling; // scaling factor on first compasses
     AP_Int32 mag_devid[MAX_CONNECTED_MAGS]; // Mag devid
@@ -224,7 +222,7 @@ public:
 
     // Body frame sensor position offsets
     AP_Vector3f imu_pos_offset;     // XYZ position of the IMU accelerometer relative to the body frame origin (m)
-    AP_Vector3f gps_pos_offset;     // XYZ position of the GPS antenna phase centre relative to the body frame origin (m)
+    AP_Vector3f gps_pos_offset[2];     // XYZ position of the GPS antenna phase centre relative to the body frame origin (m)
     AP_Vector3f rngfnd_pos_offset;  // XYZ position of the range finder zero range datum relative to the body frame origin (m)
     AP_Vector3f optflow_pos_offset; // XYZ position of the optical flow sensor focal point relative to the body frame origin (m)
 
