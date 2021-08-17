@@ -33,6 +33,7 @@ Blimp::Blimp(const char *frame_str) :
 
     //ground_behavior = GROUND_BEHAVIOR_NO_MOVEMENT; //Blimp does "land" when it gets to the ground.
     lock_step_scheduled = true;
+    ground_behavior = GROUND_BEHAVIOR_NONE;
 
     ::printf("Starting Blimp model\n");
 }
@@ -97,7 +98,7 @@ void Blimp::calculate_forces(const struct sitl_input &input, Vector3f &body_acc,
 
   body_acc.x = F_BF.x/mass; //mass in kg, thus accel in m/s/s
   body_acc.y = F_BF.y/mass;
-  body_acc.z = F_BF.z/mass - GRAVITY_MSS; //temporarily adding it in BF instead of EF
+  body_acc.z = -F_BF.z/mass;
 
   Vector3f rot_T{0,0,0};
   // rot_T.x = 0; 
@@ -115,8 +116,6 @@ void Blimp::calculate_forces(const struct sitl_input &input, Vector3f &body_acc,
  */
 void Blimp::update(const struct sitl_input &input)
 {
-  float delta_time = frame_time_us * 1.0e-6f;
-
   Vector3f rot_accel = Vector3f(0,0,0);
   //TODO Add "dcm.transposed() *  Vector3f(0, 0, calculate_buoyancy_acceleration());" for slight negative buoyancy.
   calculate_forces(input, accel_body, rot_accel);
@@ -124,36 +123,25 @@ void Blimp::update(const struct sitl_input &input)
   Vector3f drag_gyr = gyro * drag_gyr_constant;
   rot_accel -= drag_gyr;
 
-  // update rotational rates in body frame
-  gyro += rot_accel * delta_time;
-
-  gyro.x = constrain_float(gyro.x, -radians(2000.0f), radians(2000.0f));
-  gyro.y = constrain_float(gyro.y, -radians(2000.0f), radians(2000.0f));
-  gyro.z = constrain_float(gyro.z, -radians(2000.0f), radians(2000.0f));
-
-  // update attitude
-  dcm.rotate(gyro * delta_time);
-  dcm.normalize();
-
-  Vector3f accel_earth = dcm * accel_body;
-
-  accel_earth += Vector3f(0.0f, 0.0f, GRAVITY_MSS);
-
   // if (on_ground() && accel_earth.z > 0) {
   //   accel_earth.z = 0;
   //   if (disp_now()) ::printf("Holding.\n");
   // }
 
-  accel_body = dcm.transposed() * (accel_earth + Vector3f(0, 0, -GRAVITY_MSS));
+  if (hal.scheduler->is_system_initialized()) {
+      float speed_sq = velocity_ef.length_squared();
+      if (is_positive(speed_sq)) {
+          Vector3f force = (velocity_ef.normalized() * drag_constant * speed_sq);
+          Vector3f ef_drag_accel = -force / mass;
+          Vector3f bf_drag_accel = dcm.transposed() * ef_drag_accel;
+          accel_body += bf_drag_accel;
+      }
 
-  Vector3f drag = velocity_ef * drag_constant;
-  accel_earth -= drag;
+      // add lifting force exactly equal to gravity, for neutral buoyancy
+      accel_body += dcm.transposed() * Vector3f(0,0,-GRAVITY_MSS);
+  }
 
-  velocity_ef += accel_earth * delta_time;
-  position += (velocity_ef * delta_time).todouble(); //update position vector
-
-  // update_external_payload(input);
-
+  update_dynamics(rot_accel);
   update_position(); //updates the position from the Vector3f position
   time_advance();
   update_mag_field_bf();
