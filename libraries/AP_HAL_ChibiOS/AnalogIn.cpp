@@ -280,7 +280,7 @@ void AnalogIn::init()
 
 
 
-#define ADC3_GRP1_NUM_CHANNELS 2
+#define ADC3_GRP1_NUM_CHANNELS 3
 
 // internal ADC channels
 #define ADC3_VSENSE_CHAN 18
@@ -319,6 +319,7 @@ void AnalogIn::setup_adc3(void)
 
     adcSTM32EnableVREF(&ADCD3);
     adcSTM32EnableTS(&ADCD3);
+    adcSTM32EnableVBAT(&ADCD3);
 
     memset(&adc3grpcfg, 0, sizeof(adc3grpcfg));
     adc3grpcfg.circular = true;
@@ -336,7 +337,7 @@ void AnalogIn::setup_adc3(void)
     adc3grpcfg.cr2 = ADC_CR2_SWSTART;
 #endif
 
-    const uint8_t channels[ADC3_GRP1_NUM_CHANNELS] = { ADC3_VSENSE_CHAN, ADC3_VREFINT_CHAN };
+    const uint8_t channels[ADC3_GRP1_NUM_CHANNELS] = { ADC3_VBAT4_CHAN, ADC3_VSENSE_CHAN, ADC3_VREFINT_CHAN };
 
     for (uint8_t i=0; i<ADC3_GRP1_NUM_CHANNELS; i++) {
         uint8_t chan = channels[i];
@@ -455,14 +456,15 @@ void AnalogIn::_timer_tick(void)
         const float TS_CAL2 = *(const volatile uint16_t *)0x1FF1E840;
         const float VREFINT_CAL = *(const volatile uint16_t *)0x1FF1E860;
 
-        const float mcu_temp = ((110 - 30) / (TS_CAL2 - TS_CAL1)) * (float(buf_adc3[0]) - TS_CAL1) + 30;
-        const float vref = 3.3 * VREFINT_CAL / float(buf_adc3[1]+0.001);
+        const float mcu_temp = ((110 - 30) / (TS_CAL2 - TS_CAL1)) * (float(buf_adc3[1]) - TS_CAL1) + 30;
+        const float vref = 3.3 * VREFINT_CAL / float(buf_adc3[2]+0.001);
 
         mavlink_msg_ap_adc_send(MAVLINK_COMM_0, uint16_t(mcu_temp*100), uint16_t(vref*1000), 0, 0, 0, 0);
         AP::logger().WriteStreaming("ADC3", "TimeUS,MCUTemp,VRef", "Qff",
                                     AP_HAL::micros64(),
                                     mcu_temp,
                                     vref);
+        //::printf("TS_CAL1=%f TS_CAL2=%f buf[0]=%u T=%f\n", TS_CAL1, TS_CAL2, unsigned(buf_adc3[1]), mcu_temp);
     }
 }
 
