@@ -273,6 +273,85 @@ void AnalogIn::init()
 #endif
     }
     adcStartConversion(&ADCD1, &adcgrpcfg, samples, ADC_DMA_BUF_DEPTH);
+
+    setup_adc3();
+}
+
+
+
+#define ADC3_GRP1_NUM_CHANNELS 3
+
+// internal ADC channels
+#define ADC3_VSENSE_CHAN 18
+#define ADC3_VREFINT_CHAN 19
+#define ADC3_VBAT4_CHAN 17
+
+// samples filled in by ADC DMA engine
+adcsample_t *AnalogIn::samples_adc3;
+uint32_t AnalogIn::sample_adc3_sum[ADC3_GRP1_NUM_CHANNELS];
+uint32_t AnalogIn::sample_adc3_count;
+
+/*
+  callback from ADC3 driver when sample buffer is filled
+ */
+void AnalogIn::adc3callback(ADCDriver *adcp)
+{
+    const adcsample_t *buffer = samples_adc3;
+
+    stm32_cacheBufferInvalidate(buffer, sizeof(adcsample_t)*ADC_DMA_BUF_DEPTH*ADC3_GRP1_NUM_CHANNELS);
+    for (uint8_t i = 0; i < ADC_DMA_BUF_DEPTH; i++) {
+        for (uint8_t j = 0; j < ADC3_GRP1_NUM_CHANNELS; j++) {
+            sample_adc3_sum[j] += *buffer++;
+        }
+    }
+    sample_adc3_count += ADC_DMA_BUF_DEPTH;
+}
+
+/*
+  setup ADC3 for internal temperature and voltage monitoring
+ */
+void AnalogIn::setup_adc3(void)
+{
+    samples_adc3 = (adcsample_t *)hal.util->malloc_type(sizeof(adcsample_t)*ADC_DMA_BUF_DEPTH*ADC3_GRP1_NUM_CHANNELS, AP_HAL::Util::MEM_DMA_SAFE);
+
+    adcStart(&ADCD3, NULL);
+
+    adcSTM32EnableVREF(&ADCD3);
+    adcSTM32EnableTS(&ADCD3);
+    adcSTM32EnableVBAT(&ADCD3);
+
+    memset(&adc3grpcfg, 0, sizeof(adc3grpcfg));
+    adc3grpcfg.circular = true;
+    adc3grpcfg.num_channels = ADC3_GRP1_NUM_CHANNELS;
+    adc3grpcfg.end_cb = adc3callback;
+#if defined(ADC_CFGR_RES_16BITS)
+    // use 16 bit resolution
+    adc3grpcfg.cfgr = ADC_CFGR_CONT | ADC_CFGR_RES_16BITS;
+#elif defined(ADC_CFGR_RES_12BITS)
+    // use 12 bit resolution
+    adc3grpcfg.cfgr = ADC_CFGR_CONT | ADC_CFGR_RES_12BITS;
+#else
+    // use 12 bit resolution with ADCv1 or ADCv2
+    adc3grpcfg.sqr1 = ADC_SQR1_NUM_CH(ADC3_GRP1_NUM_CHANNELS);
+    adc3grpcfg.cr2 = ADC_CR2_SWSTART;
+#endif
+
+    const uint8_t channels[ADC3_GRP1_NUM_CHANNELS] = { ADC3_VBAT4_CHAN, ADC3_VSENSE_CHAN, ADC3_VREFINT_CHAN };
+
+    for (uint8_t i=0; i<ADC3_GRP1_NUM_CHANNELS; i++) {
+        uint8_t chan = channels[i];
+        // setup cycles per sample for the channel
+        adc3grpcfg.pcsel |= (1<<chan);
+        adc3grpcfg.smpr[chan/10] |= ADC_SMPR_SMP_384P5 << (3*(chan%10));
+        if (i < 4) {
+            adc3grpcfg.sqr[0] |= chan << (6*(i+1));
+        } else if (i < 9) {
+            adc3grpcfg.sqr[1] |= chan << (6*(i-4));
+        } else {
+            adc3grpcfg.sqr[2] |= chan << (6*(i-9));
+        }
+    }
+    adcStartConversion(&ADCD3, &adc3grpcfg, samples_adc3, ADC_DMA_BUF_DEPTH);
 }
 
 /*
@@ -286,6 +365,20 @@ void AnalogIn::read_adc(uint32_t *val)
     }
     memset(sample_sum, 0, sizeof(sample_sum));
     sample_count = 0;
+    chSysUnlock();
+}
+
+/*
+  calculate average sample since last read for all channels
+ */
+void AnalogIn::read_adc3(uint32_t *val)
+{
+    chSysLock();
+    for (uint8_t i = 0; i < ADC3_GRP1_NUM_CHANNELS; i++) {
+        val[i] = sample_adc3_sum[i] / sample_adc3_count;
+    }
+    memset(sample_adc3_sum, 0, sizeof(sample_adc3_sum));
+    sample_adc3_count = 0;
     chSysUnlock();
 }
 
@@ -349,21 +442,30 @@ void AnalogIn::_timer_tick(void)
         }
     }
 
-#if CHIBIOS_ADC_MAVLINK_DEBUG
+    uint32_t buf_adc3[ADC3_GRP1_NUM_CHANNELS];
+
+    /* read all channels available */
+    read_adc3(buf_adc3);
+
+    const float TS_CAL1 = *(const volatile uint16_t *)0x1FF1E820;
+    const float TS_CAL2 = *(const volatile uint16_t *)0x1FF1E840;
+
+    const float mcu_temp = ((110 - 30) / (TS_CAL2 - TS_CAL1)) * (float(buf_adc3[1]) - TS_CAL1) + 30;
+    
     static uint8_t count;
     if (AP_HAL::millis() > 5000 && count++ == 10) {
         count = 0;
         uint16_t adc[6] {};
-        uint8_t n = ADC_GRP1_NUM_CHANNELS;
+        uint8_t n = ADC3_GRP1_NUM_CHANNELS;
         if (n > 6) {
             n = 6;
         }
         for (uint8_t i=0; i < n; i++) {
-            adc[i] = buf_adc[i] * ADC_BOARD_SCALING;
+            adc[i] = buf_adc3[i];
         }
+        adc[5] = mcu_temp * 100;
         mavlink_msg_ap_adc_send(MAVLINK_COMM_0, adc[0], adc[1], adc[2], adc[3], adc[4], adc[5]);
     }
-#endif
 }
 
 AP_HAL::AnalogSource* AnalogIn::channel(int16_t pin)

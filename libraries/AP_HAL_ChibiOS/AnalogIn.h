@@ -62,11 +62,14 @@ public:
     float servorail_voltage(void) override { return _servorail_voltage; }
     uint16_t power_status_flags(void) override { return _power_flags; }
     uint16_t accumulated_power_status_flags(void) const override { return _accumulated_power_flags; }
-    static void adccallback(ADCDriver *adcp);
 
 private:
     void read_adc(uint32_t *val);
+    void read_adc3(uint32_t *val);
     void update_power_flags(void);
+    void setup_adc3();
+    static void adccallback(ADCDriver *adcp);
+    static void adc3callback(ADCDriver *adcp);
 
     ChibiOS::AnalogSource* _channels[ANALOG_MAX_CHANNELS];
 
@@ -78,6 +81,7 @@ private:
     uint16_t _accumulated_power_flags;  // bitmask of all _power_flags ever set
 
     ADCConversionGroup adcgrpcfg;
+    ADCConversionGroup adc3grpcfg;
 
     struct pin_info {
         uint8_t channel;
@@ -88,6 +92,10 @@ private:
     static adcsample_t *samples;
     static uint32_t sample_sum[];
     static uint32_t sample_count;
+
+    static adcsample_t *samples_adc3;
+    static uint32_t sample_adc3_sum[];
+    static uint32_t sample_adc3_count;
     HAL_Semaphore _semaphore;
 };
 
