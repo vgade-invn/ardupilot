@@ -38,6 +38,7 @@
 #include "hwdef/common/flash.h"
 #include "hwdef/common/watchdog.h"
 #include <AP_Filesystem/AP_Filesystem.h>
+#include <GCS_MAVLink/GCS.h>
 #include "shared_dma.h"
 
 #if HAL_WITH_IO_MCU
@@ -139,10 +140,29 @@ void Scheduler::delay_microseconds(uint16_t usec)
     uint32_t ticks;
     ticks = chTimeUS2I(usec);
     if (ticks == 0) {
-        // calling with ticks == 0 causes a hard fault on ChibiOS
+        // calling with ticks == 0 causes a fault on ChibiOS
         ticks = 1;
     }
-    chThdSleep(ticks); //Suspends Thread for desired microseconds
+    if (!is_system_initialized()) {
+        // in early startup don't play games with the sleep time
+        chThdSleep(ticks);
+        return;
+    }
+
+    /*
+      sleep in small increments to try to trigger the 65ms delay issue
+     */
+    uint32_t t0 = AP_HAL::micros();
+    do {
+        chThdSleep(40);
+    } while (AP_HAL::micros() - t0 < uint32_t(usec));
+    uint32_t t1 = AP_HAL::micros();
+    if (t1 - t0 > uint32_t(usec) + 20000 && hal.util->get_soft_armed()) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "LONG SLEEP: %u %u %u %u %s",
+                      unsigned(usec), unsigned(t1), unsigned(t0), unsigned((t1 - t0) - usec),
+                      chThdGetSelfX()->name);
+        INTERNAL_ERROR(AP_InternalError::error_t::main_loop_stuck);
+    }
 }
 
 /*
