@@ -447,24 +447,7 @@ void Copter::set_mode_brake_or_land_with_pause(ModeReason reason)
 }
 
 bool Copter::should_disarm_on_failsafe() {
-    if (ap.in_arming_delay) {
-        return true;
-    }
-
-    switch (flightmode->mode_number()) {
-        case Mode::Number::STABILIZE:
-        case Mode::Number::ACRO:
-            // if throttle is zero OR vehicle is landed disarm motors
-            return ap.throttle_zero || ap.land_complete;
-        case Mode::Number::AUTO:
-        case Mode::Number::AUTO_RTL:
-            // if mission has not started AND vehicle is landed, disarm motors
-            return !ap.auto_armed && ap.land_complete;
-        default:
-            // used for AltHold, Guided, Loiter, RTL, Circle, Drift, Sport, Flip, Autotune, PosHold
-            // if landed disarm
-            return ap.land_complete;
-    }
+    return false;
 }
 
 
