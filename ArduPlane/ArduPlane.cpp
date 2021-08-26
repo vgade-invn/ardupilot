@@ -159,6 +159,27 @@ void Plane::ahrs_update()
 
     // update inertial_nav for quadplane
     quadplane.inertial_nav.update();
+
+    // send WATER_DEPTH as test message at 25Hz
+    static uint32_t last_send_ms;
+    uint32_t now = AP_HAL::millis();
+    if (now - last_send_ms >= 40) {
+        last_send_ms = now;
+        mavlink_msg_water_depth_send(
+            MAVLINK_COMM_1,
+            now,
+            0,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8);
+    }
+    
 }
 
 /*
