@@ -155,7 +155,7 @@ singleton SRV_Channels alias SRV_Channels
 singleton SRV_Channels method find_channel boolean SRV_Channel::Aux_servo_function_t'enum SRV_Channel::k_none SRV_Channel::k_nr_aux_servo_functions-1 uint8_t'Null
 singleton SRV_Channels method set_output_pwm void SRV_Channel::Aux_servo_function_t'enum SRV_Channel::k_none SRV_Channel::k_nr_aux_servo_functions-1 uint16_t 0 UINT16_MAX
 singleton SRV_Channels method set_output_pwm_chan void uint8_t 0 NUM_SERVO_CHANNELS-1 uint16_t 0 UINT16_MAX
-singleton SRV_Channels method set_output_pwm_chan_timeout void uint8_t 0 NUM_SERVO_CHANNELS-1 uint16_t 0 UINT16_MAX uint16_t 0 UINT16_MAX
+-- singleton SRV_Channels method set_output_pwm_chan_timeout void uint8_t 0 NUM_SERVO_CHANNELS-1 uint16_t 0 UINT16_MAX uint16_t 0 UINT16_MAX
 
 include AP_Button/AP_Button.h
 singleton AP_Button alias button
@@ -163,5 +163,5 @@ singleton AP_Button method get_button_state boolean uint8_t 1 AP_BUTTON_NUM_PINS
 
 include RC_Channel/RC_Channel.h
 singleton RC_Channels alias rc
-singleton RC_Channels scheduler-semaphore
+-- singleton RC_Channels scheduler-semaphore
 singleton RC_Channels method get_pwm boolean uint8_t 1 NUM_RC_CHANNELS uint16_t'Null

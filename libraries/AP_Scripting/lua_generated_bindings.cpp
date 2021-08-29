@@ -1,6 +1,8 @@
 // auto generated bindings, don't manually edit
 #include "lua_generated_bindings.h"
 #include "lua_boxed_numerics.h"
+#include <RC_Channel/RC_Channel.h>
+#include <AP_Button/AP_Button.h>
 #include <SRV_Channel/SRV_Channel.h>
 #include <AP_SerialLED/AP_SerialLED.h>
 #include <AP_Vehicle/AP_Vehicle.h>
@@ -487,6 +489,86 @@ const luaL_Reg Location_meta[] = {
     {NULL, NULL}
 };
 
+static int RC_Channels_get_pwm(lua_State *L) {
+    RC_Channels * ud = RC_Channels::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "rc not supported on this firmware");
+    }
+
+    binding_argcheck(L, 2);
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= MAX(1, 0)) && (raw_data_2 <= MIN(NUM_RC_CHANNELS, UINT8_MAX))), 2, "argument out of range");
+    const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+    uint16_t data_5003 = {};
+    const bool data = ud->get_pwm(
+            data_2,
+            data_5003);
+
+    if (data) {
+        lua_pushinteger(L, data_5003);
+    } else {
+        lua_pushnil(L);
+    }
+    return 1;
+}
+
+static int AP_Button_get_button_state(lua_State *L) {
+    AP_Button * ud = AP_Button::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "button not supported on this firmware");
+    }
+
+    binding_argcheck(L, 2);
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= MAX(1, 0)) && (raw_data_2 <= MIN(AP_BUTTON_NUM_PINS, UINT8_MAX))), 2, "argument out of range");
+    const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+    const bool data = ud->get_button_state(
+            data_2);
+
+    lua_pushboolean(L, data);
+    return 1;
+}
+
+static int SRV_Channels_set_output_pwm_chan(lua_State *L) {
+    SRV_Channels * ud = SRV_Channels::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "SRV_Channels not supported on this firmware");
+    }
+
+    binding_argcheck(L, 3);
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= MAX(0, 0)) && (raw_data_2 <= MIN(NUM_SERVO_CHANNELS-1, UINT8_MAX))), 2, "argument out of range");
+    const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+    const lua_Integer raw_data_3 = luaL_checkinteger(L, 3);
+    luaL_argcheck(L, ((raw_data_3 >= MAX(0, 0)) && (raw_data_3 <= MIN(UINT16_MAX, UINT16_MAX))), 3, "argument out of range");
+    const uint16_t data_3 = static_cast<uint16_t>(raw_data_3);
+    ud->set_output_pwm_chan(
+            data_2,
+            data_3);
+
+    return 0;
+}
+
+static int SRV_Channels_set_output_pwm(lua_State *L) {
+    SRV_Channels * ud = SRV_Channels::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "SRV_Channels not supported on this firmware");
+    }
+
+    binding_argcheck(L, 3);
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= static_cast<int32_t>(SRV_Channel::k_none)) && (raw_data_2 <= static_cast<int32_t>(SRV_Channel::k_nr_aux_servo_functions-1))), 2, "argument out of range");
+    const SRV_Channel::Aux_servo_function_t data_2 = static_cast<SRV_Channel::Aux_servo_function_t>(raw_data_2);
+    const lua_Integer raw_data_3 = luaL_checkinteger(L, 3);
+    luaL_argcheck(L, ((raw_data_3 >= MAX(0, 0)) && (raw_data_3 <= MIN(UINT16_MAX, UINT16_MAX))), 3, "argument out of range");
+    const uint16_t data_3 = static_cast<uint16_t>(raw_data_3);
+    ud->set_output_pwm(
+            data_2,
+            data_3);
+
+    return 0;
+}
+
 static int SRV_Channels_find_channel(lua_State *L) {
     SRV_Channels * ud = SRV_Channels::get_singleton();
     if (ud == nullptr) {
@@ -597,6 +679,19 @@ static int AP_SerialLED_set_num_neopixel(lua_State *L) {
             data_3);
 
     lua_pushboolean(L, data);
+    return 1;
+}
+
+static int AP_Vehicle_get_mode(lua_State *L) {
+    AP_Vehicle * ud = AP_Vehicle::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "vehicle not supported on this firmware");
+    }
+
+    binding_argcheck(L, 1);
+    const uint8_t data = ud->get_mode();
+
+    lua_pushinteger(L, data);
     return 1;
 }
 
@@ -1711,7 +1806,19 @@ static int AP_AHRS_get_roll(lua_State *L) {
     return 1;
 }
 
+const luaL_Reg RC_Channels_meta[] = {
+    {"get_pwm", RC_Channels_get_pwm},
+    {NULL, NULL}
+};
+
+const luaL_Reg AP_Button_meta[] = {
+    {"get_button_state", AP_Button_get_button_state},
+    {NULL, NULL}
+};
+
 const luaL_Reg SRV_Channels_meta[] = {
+    {"set_output_pwm_chan", SRV_Channels_set_output_pwm_chan},
+    {"set_output_pwm", SRV_Channels_set_output_pwm},
     {"find_channel", SRV_Channels_find_channel},
     {NULL, NULL}
 };
@@ -1725,6 +1832,7 @@ const luaL_Reg AP_SerialLED_meta[] = {
 };
 
 const luaL_Reg AP_Vehicle_meta[] = {
+    {"get_mode", AP_Vehicle_get_mode},
     {"set_mode", AP_Vehicle_set_mode},
     {NULL, NULL}
 };
@@ -1861,6 +1969,8 @@ const struct userdata_meta userdata_fun[] = {
 };
 
 const struct userdata_meta singleton_fun[] = {
+    {"rc", RC_Channels_meta, NULL},
+    {"button", AP_Button_meta, NULL},
     {"SRV_Channels", SRV_Channels_meta, NULL},
     {"serialLED", AP_SerialLED_meta, NULL},
     {"vehicle", AP_Vehicle_meta, NULL},
@@ -1914,6 +2024,8 @@ void load_generated_bindings(lua_State *L) {
 }
 
 const char *singletons[] = {
+    "rc",
+    "button",
     "SRV_Channels",
     "serialLED",
     "vehicle",
