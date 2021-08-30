@@ -1686,6 +1686,11 @@ void QuadPlane::update_transition(void)
             // will stop stabilizing
             throttle_scaled = 0.01;
         }
+        if ((tilt.tilt_mask > 0) && (tilt.tilt_type != TILT_TYPE_BINARY)) {
+            // Continuous tilt - tilt rotor
+            // Use a combination of verical and forward throttle based on curent tilt angle
+            throttle_scaled = throttle_scaled * (1.0-tilt.current_tilt) + MAX(SRV_Channels::get_output_scaled(SRV_Channel::k_throttle),0) * 0.01 * tilt.current_tilt;
+        }
         assisted_flight = true;
         hold_stabilize(throttle_scaled);
 
