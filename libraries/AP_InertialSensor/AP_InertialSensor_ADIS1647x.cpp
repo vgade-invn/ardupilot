@@ -212,6 +212,12 @@ bool AP_InertialSensor_ADIS1647x::init()
     uint16_t prod_id = 0;
     do {
         // perform software reset
+#ifdef ADIS_POWER_PIN
+        hal.gpio->write(ADIS_POWER_PIN, 0);
+        hal.scheduler->delay(50);
+        hal.gpio->write(ADIS_POWER_PIN, 1);
+        hal.scheduler->delay(50);
+#endif
         write_reg16(REG_GLOB_CMD, GLOB_CMD_SW_RESET);
         hal.scheduler->delay(100);
     } while (!check_product_id(prod_id) && --tries);
@@ -598,7 +604,7 @@ void AP_InertialSensor_ADIS1647x::loop(void)
         uint32_t tstart = AP_HAL::micros();
         // we deliberately set the period a bit fast to ensure we
         // don't lose a sample
-        const uint32_t period_us = 1980;
+        const uint32_t period_us = 2480;
         bool wait_ok = false;
         if (drdy_pin != 0) {
             // when we have a DRDY pin then wait for it to go high
