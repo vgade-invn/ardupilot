@@ -208,16 +208,17 @@ bool AP_InertialSensor_ADIS1647x::init()
     WITH_SEMAPHORE(dev->get_semaphore());
 
 
+#if 0
+    hal.gpio->write(ADIS_POWER_PIN, !ADIS_POWER_ON);
+    hal.scheduler->delay(400);
+    hal.gpio->write(ADIS_POWER_PIN, ADIS_POWER_ON);
+    hal.scheduler->delay(400);
+#endif
+
     uint8_t tries = 10;
     uint16_t prod_id = 0;
     do {
         // perform software reset
-#ifdef ADIS_POWER_PIN
-        hal.gpio->write(ADIS_POWER_PIN, !ADIS_POWER_ON);
-        hal.scheduler->delay(50);
-        hal.gpio->write(ADIS_POWER_PIN, ADIS_POWER_ON);
-        hal.scheduler->delay(50);
-#endif
         write_reg16(REG_GLOB_CMD, GLOB_CMD_SW_RESET);
         hal.scheduler->delay(100);
     } while (!check_product_id(prod_id) && --tries);
