@@ -213,9 +213,9 @@ bool AP_InertialSensor_ADIS1647x::init()
     do {
         // perform software reset
 #ifdef ADIS_POWER_PIN
-        hal.gpio->write(ADIS_POWER_PIN, 0);
+        hal.gpio->write(ADIS_POWER_PIN, !ADIS_POWER_ON);
         hal.scheduler->delay(50);
-        hal.gpio->write(ADIS_POWER_PIN, 1);
+        hal.gpio->write(ADIS_POWER_PIN, ADIS_POWER_ON);
         hal.scheduler->delay(50);
 #endif
         write_reg16(REG_GLOB_CMD, GLOB_CMD_SW_RESET);
