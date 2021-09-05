@@ -1559,13 +1559,15 @@ void QuadPlane::update_transition(void)
         assisted_flight = true;
         if (!tailsitter.enabled()) {
             // update transition state for vehicles using airspeed wait
-            if (transition_state != TRANSITION_AIRSPEED_WAIT) {
-                gcs().send_text(MAV_SEVERITY_INFO, "Transition started airspeed %.1f", (double)aspeed);
+            if (now - last_vtol_mode_ms > 500) {
+                if (transition_state != TRANSITION_AIRSPEED_WAIT) {
+                    gcs().send_text(MAV_SEVERITY_INFO, "Transition started airspeed %.1f", (double)aspeed);
+                }
+                if (transition_start_ms == 0) {
+                    transition_start_ms = now;
+                }
             }
             transition_state = TRANSITION_AIRSPEED_WAIT;
-            if (transition_start_ms == 0) {
-                transition_start_ms = now;
-            }
         }
     } else {
         assisted_flight = false;
@@ -1617,6 +1619,16 @@ void QuadPlane::update_transition(void)
         if (transition_start_ms == 0) {
             gcs().send_text(MAV_SEVERITY_INFO, "Transition airspeed wait");
             transition_start_ms = now;
+
+            // only trigger climbing transision on first entery to FW flight
+            transition_climb_rate_cms = 0.0;
+            if (now - last_vtol_mode_ms < 1000) {
+                Vector3f vel;
+                if (ahrs.get_velocity_NED(vel)) {
+                    // only allow climb
+                    transition_climb_rate_cms = MAX(0, -vel.z * 100.0);
+                }
+            }
         }
 
         transition_low_airspeed_ms = now;
@@ -1631,11 +1643,12 @@ void QuadPlane::update_transition(void)
         // transition. We don't limit the climb rate on tilt rotors as
         // otherwise the plane can end up in high-alpha flight with
         // low VTOL thrust and may not complete a transition
-        float climb_rate_cms = assist_climb_rate_cms();
+        float climb_rate_cms = assist_climb_rate_cms() + transition_climb_rate_cms;
         if ((options & OPTION_LEVEL_TRANSITION) && tilt.tilt_mask == 0) {
             climb_rate_cms = MIN(climb_rate_cms, 0.0f);
         }
         hold_hover(climb_rate_cms);
+        plane.set_target_altitude_current();
 
         if (!tilt.is_vectored) {
             // set desired yaw to current yaw in both desired angle
@@ -1670,6 +1683,7 @@ void QuadPlane::update_transition(void)
             transition_state = TRANSITION_DONE;
             transition_start_ms = 0;
             transition_low_airspeed_ms = 0;
+            transition_climb_rate_cms = 0;
             gcs().send_text(MAV_SEVERITY_INFO, "Transition done");
         }
         float trans_time_ms = (float)transition_time_ms.get();

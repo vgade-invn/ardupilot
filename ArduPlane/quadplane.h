@@ -366,6 +366,7 @@ private:
     // timer start for transition
     uint32_t transition_start_ms;
     float transition_initial_pitch;
+    float transition_climb_rate_cms;
     uint32_t transition_low_airspeed_ms;
 
     Location last_auto_target;
