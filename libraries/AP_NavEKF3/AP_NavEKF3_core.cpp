@@ -1113,7 +1113,7 @@ void NavEKF3_core::RunTakeoffInertialNav()
     // apply a trapezoidal integration to velocities to calculate position
     takeoffStateStruct.position += (takeoffStateStruct.velocity + lastVelocity) * (imuDataNew.delVelDT*0.5f);
 
-    Log_Write_XKIT(AP_HAL::micros64());
+    Log_Write_XKIT(dal.micros64());
 
     const uint32_t now = dal.millis();
     static uint32_t time_ms[3];
@@ -2444,7 +2444,7 @@ void NavEKF3_core::locked_update(const Vector3F &dv, double dv_dt,
     locked_position.rot.rotate(da_corr);
     locked_position.rot.normalize();
     AP::logger().WriteStreaming("LPOS", "TimeUS,C,PN,PE,PD", "s#---", "F----", "QBfff",
-                                AP_HAL::micros64(),
+                                dal.micros64(),
                                 core_index,
                                 locked_position.pos.x,
                                 locked_position.pos.y,
