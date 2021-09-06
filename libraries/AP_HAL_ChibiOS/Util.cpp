@@ -35,6 +35,7 @@
 #if HAL_ENABLE_SAVE_PERSISTENT_PARAMS
 #include <AP_InertialSensor/AP_InertialSensor.h>
 #endif
+#include <AP_Logger/AP_Logger.h>
 
 #if HAL_WITH_IO_MCU
 #include <AP_BoardConfig/AP_BoardConfig.h>
@@ -598,4 +599,51 @@ void Util::uart_info(ExpandingString &str)
     uart_io.uart_info(str);
 #endif
 #endif // HAL_NO_UARTDRIVER
+}
+
+/*
+  log info on stack usage. Called at 1Hz by logging thread, logs next
+  thread on each call
+*/
+void Util::log_stack_info(void)
+{
+#if HAL_LOGGING_ENABLED
+    static thread_t *last_tp;
+    static uint8_t thread_id;
+    thread_t *tp = last_tp;
+    if (tp == nullptr) {
+        tp = chRegFirstThread();
+        thread_id = 0;
+    } else {
+        tp = chRegNextThread(last_tp);
+        thread_id++;
+    }
+    struct log_STAK pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_STAK_MSG),
+        time_us         : AP_HAL::micros64(),
+    };
+    if (tp == nullptr) {
+        pkt.thread_id = 255;
+        pkt.priority = 255;
+        const uint32_t isr_stack_size = uint32_t((const uint8_t *)&__main_stack_end__ - (const uint8_t *)&__main_stack_base__);
+        pkt.stack_total = isr_stack_size;
+        pkt.stack_free = stack_free(&__main_stack_base__);
+        strncpy_noterm(pkt.name, "ISR", sizeof(pkt.name));
+    } else {
+        if (tp->wabase == (void*)&__main_thread_stack_base__) {
+            // main thread has its stack separated from the thread context
+            pkt.stack_total = uint32_t((const uint8_t *)&__main_thread_stack_end__ - (const uint8_t *)&__main_thread_stack_base__);
+        } else {
+            // all other threads have their thread context pointer
+            // above the stack top
+            pkt.stack_total = uint32_t(tp) - uint32_t(tp->wabase);
+        }
+        pkt.thread_id = thread_id;
+        pkt.priority = tp->realprio,
+        pkt.stack_free = stack_free(tp->wabase);
+        strncpy_noterm(pkt.name, tp->name, sizeof(pkt.name));
+    }
+    AP::logger().WriteBlock(&pkt, sizeof(pkt));
+    last_tp = tp;
+#endif
 }
