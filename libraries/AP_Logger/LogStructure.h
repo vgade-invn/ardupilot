@@ -719,6 +719,17 @@ struct PACKED log_PSCZ {
     float throttle_out;
 };
 
+// thread stack usage
+struct PACKED log_STAK {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t thread_id;
+    uint8_t priority;
+    uint16_t stack_total;
+    uint16_t stack_free;
+    char name[16];
+};
+
 // FMT messages define all message formats other than FMT
 // UNIT messages define units which can be referenced by FMTU messages
 // FMTU messages associate types (e.g. centimeters/second/second) to FMT message fields
@@ -1219,6 +1230,15 @@ struct PACKED log_PSCZ {
 // @Field: AZ: Acceleration Z-axis
 // @Field: ThO: Throttle output
 
+// @LoggerMessage: STAK
+// @Description: Stack information
+// @Field: TimeUS: Time since system startup
+// @Field: Id: thread ID
+// @Field: Pri: thread priority
+// @Field: Total: total stack
+// @Field: Free: free stack
+// @Field: Name: thread name
+
 // messages for all boards
 #define LOG_BASE_STRUCTURES \
     { LOG_FORMAT_MSG, sizeof(log_Format), \
@@ -1330,6 +1350,8 @@ LOG_STRUCTURE_FROM_VISUALODOM \
       "PSC", "Qffffffffffff", "TimeUS,TPX,TPY,PX,PY,TVX,TVY,VX,VY,TAX,TAY,AX,AY", "smmmmnnnnoooo", "F000000000000", true }, \
     { LOG_PSCZ_MSG, sizeof(log_PSCZ), \
       "PSCZ", "Qfffffffff", "TimeUS,TPZ,PZ,DVZ,TVZ,VZ,DAZ,TAZ,AZ,ThO", "smmnnnooo%", "F000000002", true }, \
+    { LOG_STAK_MSG, sizeof(log_STAK), \
+      "STAK", "QBBHHN", "TimeUS,Id,Pri,Total,Free,Name", "s#----", "F-----", true }, \
 LOG_STRUCTURE_FROM_AIS \
 
 // @LoggerMessage: SBPH
@@ -1445,7 +1467,7 @@ enum LogMessages : uint8_t {
     LOG_RAW_PROXIMITY_MSG,
     LOG_IDS_FROM_PRECLAND,
     LOG_IDS_FROM_AIS,
-
+    LOG_STAK_MSG,
 
     _LOG_LAST_MSG_
 };
