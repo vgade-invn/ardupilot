@@ -185,6 +185,9 @@ public:
     // generate Random values
     virtual bool get_random_vals(uint8_t* data, size_t size) { return false; }
 
+    // log info on stack usage
+    virtual void log_stack_info(void) {}
+    
 protected:
     // we start soft_armed false, so that actuators don't send any
     // values until the vehicle code has fully started
