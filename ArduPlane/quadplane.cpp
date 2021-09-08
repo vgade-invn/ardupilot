@@ -1660,6 +1660,11 @@ void QuadPlane::update_transition(void)
             attitude_control->reset_yaw_target_and_rate();
             attitude_control->rate_bf_yaw_target(ahrs.get_gyro().z);
         }
+        if ((tilt.tilt_mask > 0) && (tilt.tilt_type != TILT_TYPE_BINARY)) {
+            // tilt rotors do not have a forward throttle output in this stage
+            // prevent throttle I wind up
+            plane.TECS_controller.reset_throttle_I();
+        }
 
         last_throttle = motors->get_throttle();
 
