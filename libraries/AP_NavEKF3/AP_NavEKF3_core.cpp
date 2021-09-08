@@ -2151,7 +2151,7 @@ void NavEKF3_core::LogCovariances()
                         (double)P[6][16],
                         (double)P[6][17],
                         (double)P[6][18]);
-    AP::logger().Write("CVAJ",
+    AP::logger().Write("CVAK",
                        "TimeUS,01,02,03,04,05,06,07,08,09,10,11,12,13,14,15",
                        "Qfffffffffffffff",
                         AP_HAL::micros64(),
@@ -2170,7 +2170,7 @@ void NavEKF3_core::LogCovariances()
                         (double)P[7][15],
                         (double)P[7][16],
                         (double)P[7][17]);
-    AP::logger().Write("CVAK",
+    AP::logger().Write("CVAL",
                        "TimeUS,01,02,03,04,05,06,07,08,09,10,11,12,13,14,15",
                        "Qfffffffffffffff",
                         AP_HAL::micros64(),
@@ -2189,7 +2189,7 @@ void NavEKF3_core::LogCovariances()
                         (double)P[8][15],
                         (double)P[8][16],
                         (double)P[8][17]);
-    AP::logger().Write("CVAL",
+    AP::logger().Write("CVAM",
                        "TimeUS,01,02,03,04,05,06,07,08,09,10,11,12,13,14,15",
                        "Qfffffffffffffff",
                         AP_HAL::micros64(),
@@ -2208,7 +2208,7 @@ void NavEKF3_core::LogCovariances()
                         (double)P[9][16],
                         (double)P[9][17],
                         (double)P[9][18]);
-    AP::logger().Write("CVAM",
+    AP::logger().Write("CVAN",
                        "TimeUS,01,02,03,04,05,06,07,08,09,10,11,12,13,14,15",
                        "Qfffffffffffffff",
                         AP_HAL::micros64(),
@@ -2227,7 +2227,7 @@ void NavEKF3_core::LogCovariances()
                         (double)P[10][18],
                         (double)P[10][19],
                         (double)P[10][20]);
-    AP::logger().Write("CVAM",
+    AP::logger().Write("CVAO",
                        "TimeUS,01,02,03,04,05,06,07,08,09,10,11,12,13,14,15",
                        "Qfffffffffffffff",
                         AP_HAL::micros64(),
@@ -2246,7 +2246,7 @@ void NavEKF3_core::LogCovariances()
                         (double)P[11][21],
                         (double)P[11][22],
                         (double)P[11][23]);
-    AP::logger().Write("CVAN",
+    AP::logger().Write("CVAP",
                        "TimeUS,01,02,03,04,05,06,07,08,09,10,11,12,13,14,15",
                        "Qfffffffffffffff",
                         AP_HAL::micros64(),
@@ -2265,7 +2265,7 @@ void NavEKF3_core::LogCovariances()
                         (double)P[13][15],
                         (double)P[13][16],
                         (double)P[13][17]);
-    AP::logger().Write("CVAO",
+    AP::logger().Write("CVAQ",
                        "TimeUS,01,02,03,04,05,06,07,08,09,10,11,12,13,14,15",
                        "Qfffffffffffffff",
                         AP_HAL::micros64(),
@@ -2284,7 +2284,7 @@ void NavEKF3_core::LogCovariances()
                         (double)P[14][21],
                         (double)P[14][22],
                         (double)P[14][23]);
-    AP::logger().Write("CVAP",
+    AP::logger().Write("CVAR",
                        "TimeUS,01,02,03,04,05,06,07,08,09,10,11,12,13,14,15",
                        "Qfffffffffffffff",
                         AP_HAL::micros64(),
@@ -2303,7 +2303,7 @@ void NavEKF3_core::LogCovariances()
                         (double)P[16][21],
                         (double)P[16][22],
                         (double)P[16][23]);
-    AP::logger().Write("CVAQ",
+    AP::logger().Write("CVAS",
                        "TimeUS,01,02,03,04,05,06,07,08,09,10,11,12,13,14,15",
                        "Qfffffffffffffff",
                         AP_HAL::micros64(),
@@ -2322,7 +2322,7 @@ void NavEKF3_core::LogCovariances()
                         (double)P[19][21],
                         (double)P[19][22],
                         (double)P[19][23]);
-    AP::logger().Write("CVAR",
+    AP::logger().Write("CVAT",
                        "TimeUS,01,02,03,04,05,06",
                        "Qffffff",
                         AP_HAL::micros64(),
