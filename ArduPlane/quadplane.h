@@ -485,6 +485,7 @@ private:
         float transition_yaw_cd;
         uint32_t transition_yaw_set_ms;
         bool is_vectored;
+        float airspeed_reached_tilt;
     } tilt;
 
 

@@ -1634,6 +1634,7 @@ void QuadPlane::update_transition(void)
         transition_low_airspeed_ms = now;
         if (have_airspeed && aspeed > plane.aparm.airspeed_min && !assisted_flight) {
             transition_state = TRANSITION_TIMER;
+            tilt.airspeed_reached_tilt = tilt.current_tilt;
             gcs().send_text(MAV_SEVERITY_INFO, "Transition airspeed reached %.1f", (double)aspeed);
         }
         assisted_flight = true;
@@ -1708,7 +1709,10 @@ void QuadPlane::update_transition(void)
         if ((tilt.tilt_mask > 0) && (tilt.tilt_type != TILT_TYPE_BINARY)) {
             // Continuous tilt - tilt rotor
             // Use a combination of verical and forward throttle based on curent tilt angle
-            throttle_scaled = throttle_scaled * (1.0-tilt.current_tilt) + MAX(SRV_Channels::get_output_scaled(SRV_Channel::k_throttle),0) * 0.01 * tilt.current_tilt;
+            // scale from all VTOL throttle at airspeed_reached_tilt to all forward tilt of 1
+            const float ratio = MAX(tilt.current_tilt - tilt.airspeed_reached_tilt, 0.0) / (1.0 - tilt.airspeed_reached_tilt);
+            const float equivelent_throttle = MAX(SRV_Channels::get_output_scaled(SRV_Channel::k_throttle),0) * 0.01;
+            throttle_scaled = constrain_float(throttle_scaled * (1.0-ratio) + equivelent_throttle * ratio, 0.0, 1.0);
         }
         assisted_flight = true;
         hold_stabilize(throttle_scaled);
