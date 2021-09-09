@@ -479,6 +479,7 @@ private:
         AP_Float tilt_yaw_angle;
         AP_Float fixed_angle;
         AP_Float fixed_gain;
+        AP_Float flap_angle_deg;
         float current_tilt;
         float current_throttle;
         bool motors_active:1;
@@ -520,6 +521,8 @@ private:
     }
     bool tiltrotor_fully_fwd(void) const;
     float tilt_max_change(bool up) const;
+    float get_fully_forward_tilt() const;
+    float get_forward_flight_tilt() const;
 
     void afs_terminate(void);
     bool guided_mode_enabled(void);

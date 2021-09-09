@@ -478,6 +478,15 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @Path: tailsitter.cpp
     AP_SUBGROUPINFO(tailsitter, "TAILSIT_", 26, QuadPlane, Tailsitter),
 
+    // @Param: TILT_WING_FLAP
+    // @DisplayName: Tiltrotor tilt angle that will be used as flap
+    // @Description: For use on tilt wings, the wing will tilt up this angle for flap, transision will be complet when the wing reaches this angle from the forward fight position, 0 disables
+    // @Units: deg
+    // @Increment: 1
+    // @Range: 0 10
+    // @User: Standard
+    AP_GROUPINFO("TILT_WING_FLAP", 27, QuadPlane, tilt.flap_angle_deg, 0),
+
     AP_GROUPEND
 };
 

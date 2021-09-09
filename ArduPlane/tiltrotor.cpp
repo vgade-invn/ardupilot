@@ -22,7 +22,7 @@ float QuadPlane::tilt_max_change(bool up) const
         if (plane.control_mode == &plane.mode_manual) {
             fast_tilt = true;
         }
-        if (hal.util->get_soft_armed() && !in_vtol_mode() && !assisted_flight) {
+        if (hal.util->get_soft_armed() && !in_vtol_mode() && !assisted_flight && is_zero(tilt.flap_angle_deg)) {
             fast_tilt = true;
         }
         if (fast_tilt) {
@@ -46,6 +46,20 @@ void QuadPlane::tiltrotor_slew(float newtilt)
     SRV_Channels::set_output_scaled(SRV_Channel::k_motor_tilt, 1000 * tilt.current_tilt);
 }
 
+// return the current tilt value that represens forward flight
+// tilt wings can sustain forward flight with some amount of wing tilt
+float QuadPlane::get_fully_forward_tilt() const
+{
+    return 1.0 - (tilt.flap_angle_deg / 90.0);
+}
+
+// return the target tilt value for forward flight
+float QuadPlane::get_forward_flight_tilt() const
+{
+    return 1.0 - ((tilt.flap_angle_deg / 90.0) * SRV_Channels::get_output_scaled(SRV_Channel::k_flap_auto) * 0.01);
+}
+
+
 /*
   update motor tilt for continuous tilt servos
  */
@@ -60,12 +74,12 @@ void QuadPlane::tiltrotor_continuous_update(void)
     if (!in_vtol_mode() && (!hal.util->get_soft_armed() || !assisted_flight)) {
         // we are in pure fixed wing mode. Move the tiltable motors all the way forward and run them as
         // a forward motor
-        tiltrotor_slew(1);
+        tiltrotor_slew(get_forward_flight_tilt());
 
         max_change = tilt_max_change(false);
         
         float new_throttle = constrain_float(SRV_Channels::get_output_scaled(SRV_Channel::k_throttle)*0.01, 0, 1);
-        if (tilt.current_tilt < 1) {
+        if (tilt.current_tilt < get_fully_forward_tilt()) {
             tilt.current_throttle = constrain_float(new_throttle,
                                                     tilt.current_throttle-max_change,
                                                     tilt.current_throttle+max_change);
@@ -138,14 +152,14 @@ void QuadPlane::tiltrotor_continuous_update(void)
         transition_state >= TRANSITION_TIMER) {
         // we are transitioning to fixed wing - tilt the motors all
         // the way forward
-        tiltrotor_slew(1);
+        tiltrotor_slew(get_forward_flight_tilt());
     } else {
         // until we have completed the transition we limit the tilt to
         // Q_TILT_MAX. Anything above 50% throttle gets
         // Q_TILT_MAX. Below 50% throttle we decrease linearly. This
         // relies heavily on Q_VFWD_GAIN being set appropriately.
        float settilt = constrain_float((SRV_Channels::get_output_scaled(SRV_Channel::k_throttle)-MAX(plane.aparm.throttle_min.get(),0)) / 50.0f, 0, 1);
-       tiltrotor_slew(settilt * tilt.max_angle_deg / 90.0f);
+       tiltrotor_slew(MIN(settilt * tilt.max_angle_deg / 90.0f, get_forward_flight_tilt()));
     }
 }
 
@@ -315,7 +329,7 @@ bool QuadPlane::tiltrotor_fully_fwd(void) const
     if (tilt.tilt_mask <= 0) {
         return false;
     }
-    return (tilt.current_tilt >= 1);
+    return (tilt.current_tilt >= get_fully_forward_tilt());
 }
 
 /*
