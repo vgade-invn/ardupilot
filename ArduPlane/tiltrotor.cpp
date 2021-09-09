@@ -42,6 +42,11 @@ void QuadPlane::tiltrotor_slew(float newtilt)
     float max_change = tilt_max_change(newtilt<tilt.current_tilt);
     tilt.current_tilt = constrain_float(newtilt, tilt.current_tilt-max_change, tilt.current_tilt+max_change);
 
+    if (is_equal(tilt.current_tilt, newtilt)) {
+        // mark tilt angle as reached, this is used to stop changing position control state too early
+        tilt.angle_achieved = true;
+    }
+
     // translate to 0..1000 range and output
     SRV_Channels::set_output_scaled(SRV_Channel::k_motor_tilt, 1000 * tilt.current_tilt);
 }

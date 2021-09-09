@@ -2334,6 +2334,7 @@ void QuadPlane::PosControlState::set_state(enum position_control_state s)
         // handle resets needed for when the state changes
         if (s == QPOS_POSITION1) {
             reached_wp_speed = false;
+            qp.tilt.angle_achieved = false;
             qp.attitude_control->reset_yaw_target_and_rate();
         } else if (s == QPOS_POSITION2) {
             // POSITION2 changes target speed, so we need to change it
@@ -2614,7 +2615,7 @@ void QuadPlane::vtol_position_controller(void)
         attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd,
                                                                       plane.nav_pitch_cd,
                                                                       desired_auto_yaw_rate_cds() + get_weathervane_yaw_rate_cds());
-        if (plane.auto_state.wp_distance < position2_dist_threshold) {
+        if ((plane.auto_state.wp_distance < position2_dist_threshold) && (tilt.angle_achieved || (tilt.tilt_mask == 0))) {
             poscontrol.set_state(QPOS_POSITION2);
             poscontrol.pilot_correction_done = false;
             gcs().send_text(MAV_SEVERITY_INFO,"VTOL position2 started v=%.1f d=%.1f",
