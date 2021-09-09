@@ -2429,7 +2429,7 @@ void QuadPlane::vtol_position_controller(void)
 
         const float stop_distance = stopping_distance();
 
-        if (poscontrol.get_state() == QPOS_AIRBRAKE) {
+        if ((poscontrol.get_state() == QPOS_AIRBRAKE) && (tilt.tilt_mask == 0)) {
             hold_hover(0);
         }
 
