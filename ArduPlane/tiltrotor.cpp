@@ -154,7 +154,8 @@ void QuadPlane::tiltrotor_continuous_update(void)
     }
 
     if ((assisted_flight &&
-        transition_state >= TRANSITION_TIMER) || (wp_nav->is_active() && (poscontrol.get_state() < QuadPlane::QPOS_POSITION1))) {
+        transition_state >= TRANSITION_TIMER) ||
+        (wp_nav->is_active() && ((poscontrol.get_state() == QuadPlane::QPOS_APPROACH) || (poscontrol.get_state() == QuadPlane::QPOS_AIRBRAKE)))) {
         // we are transitioning to fixed wing - tilt the motors all
         // the way forward
         tiltrotor_slew(get_forward_flight_tilt());
