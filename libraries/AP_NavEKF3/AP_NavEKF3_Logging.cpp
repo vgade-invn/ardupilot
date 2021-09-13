@@ -386,9 +386,6 @@ void NavEKF3_core::Log_Write(uint64_t time_us)
     Log_Write_BodyOdom(time_us);
 #endif
 
-    // log state variances every 0.49s
-    Log_Write_State_Variances(time_us);
-
     Log_Write_Timing(time_us);
 }
 
