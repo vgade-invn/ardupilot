@@ -856,12 +856,19 @@ void NavEKF3_core::FuseVelPosNED()
                                     AP_HAL::micros64(),
                                     (double)varInnovVelPos[0],
                                     (double)varInnovVelPos[1]);
+                AP::logger().Write("INAA", "TimeUS,VN,VE", "Qff",
+                                    AP_HAL::micros64(),
+                                    (double)innovVelPos[0],
+                                    (double)innovVelPos[1]);
             }
             if (useGpsVertVel || useExtNavVel) {
             if (core_index == 0) {
                 AP::logger().Write("IVAB", "TimeUS,VD", "Qf",
                                     AP_HAL::micros64(),
                                     (double)varInnovVelPos[2]);
+                AP::logger().Write("INAB", "TimeUS,VD", "Qf",
+                                    AP_HAL::micros64(),
+                                    (double)innovVelPos[2]);
             }
                 fuseData[2] = true;
             }
@@ -874,6 +881,10 @@ void NavEKF3_core::FuseVelPosNED()
                                     AP_HAL::micros64(),
                                     (double)varInnovVelPos[3],
                                     (double)varInnovVelPos[4]);
+                AP::logger().Write("INAC", "TimeUS,PN,PE", "Qff",
+                                    AP_HAL::micros64(),
+                                    (double)innovVelPos[3],
+                                    (double)innovVelPos[4]);
             }
         }
         if (fuseHgtData) {
@@ -882,6 +893,9 @@ void NavEKF3_core::FuseVelPosNED()
                 AP::logger().Write("IVAD", "TimeUS,PD", "Qf",
                                     AP_HAL::micros64(),
                                     (double)varInnovVelPos[2]);
+                AP::logger().Write("INAD", "TimeUS,PD", "Qf",
+                                    AP_HAL::micros64(),
+                                    (double)innovVelPos[2]);
             }
         }
 

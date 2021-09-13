@@ -561,6 +561,11 @@ void NavEKF3_core::FuseMagnetometer()
                             (double)varInnovMag[0],
                             (double)varInnovMag[1],
                             (double)varInnovMag[2]);
+        AP::logger().Write("INAE", "TimeUS,MX,MY,MZ", "Qfff",
+                            AP_HAL::micros64(),
+                            (double)varInnovMag[0],
+                            (double)varInnovMag[1],
+                            (double)varInnovMag[2]);
     }
 
     // calculate the innovation test ratios
