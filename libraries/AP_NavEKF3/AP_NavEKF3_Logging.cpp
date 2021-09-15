@@ -301,46 +301,42 @@ void NavEKF3_core::Log_Write_State_Variances(uint64_t time_us) const
         return;
     }
 
-    static uint32_t lastEkfStateVarLogTime_ms = 0;
-    if (AP::dal().millis() - lastEkfStateVarLogTime_ms > 490) {
-        lastEkfStateVarLogTime_ms = AP::dal().millis();
-        const struct log_XKV pktv1{
-            LOG_PACKET_HEADER_INIT(LOG_XKV1_MSG),
-            time_us : time_us,
-            core    : DAL_CORE(core_index),
-            v00 : P[0][0],
-            v01 : P[1][1],
-            v02 : P[2][2],
-            v03 : P[3][3],
-            v04 : P[4][4],
-            v05 : P[5][5],
-            v06 : P[6][6],
-            v07 : P[7][7],
-            v08 : P[8][8],
-            v09 : P[9][9],
-            v10 : P[10][10],
-            v11 : P[11][11]
-        };
-        AP::logger().WriteBlock(&pktv1, sizeof(pktv1));
-        const struct log_XKV pktv2{
-            LOG_PACKET_HEADER_INIT(LOG_XKV2_MSG),
-            time_us : time_us,
-            core    : DAL_CORE(core_index),
-            v00 : P[12][12],
-            v01 : P[13][13],
-            v02 : P[14][14],
-            v03 : P[15][15],
-            v04 : P[16][16],
-            v05 : P[17][17],
-            v06 : P[18][18],
-            v07 : P[19][19],
-            v08 : P[20][20],
-            v09 : P[21][21],
-            v10 : P[22][22],
-            v11 : P[23][23]
-        };
-        AP::logger().WriteBlock(&pktv2, sizeof(pktv2));
-    }
+    const struct log_XKV pktv1{
+        LOG_PACKET_HEADER_INIT(LOG_XKV1_MSG),
+        time_us : time_us,
+        core    : DAL_CORE(core_index),
+        v00 : P[0][0],
+        v01 : P[1][1],
+        v02 : P[2][2],
+        v03 : P[3][3],
+        v04 : P[4][4],
+        v05 : P[5][5],
+        v06 : P[6][6],
+        v07 : P[7][7],
+        v08 : P[8][8],
+        v09 : P[9][9],
+        v10 : P[10][10],
+        v11 : P[11][11]
+    };
+    AP::logger().WriteBlock(&pktv1, sizeof(pktv1));
+    const struct log_XKV pktv2{
+        LOG_PACKET_HEADER_INIT(LOG_XKV2_MSG),
+        time_us : time_us,
+        core    : DAL_CORE(core_index),
+        v00 : P[12][12],
+        v01 : P[13][13],
+        v02 : P[14][14],
+        v03 : P[15][15],
+        v04 : P[16][16],
+        v05 : P[17][17],
+        v06 : P[18][18],
+        v07 : P[19][19],
+        v08 : P[20][20],
+        v09 : P[21][21],
+        v10 : P[22][22],
+        v11 : P[23][23]
+    };
+    AP::logger().WriteBlock(&pktv2, sizeof(pktv2));
 }
 
 void NavEKF3::Log_Write()
