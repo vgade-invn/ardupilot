@@ -1719,7 +1719,7 @@ void QuadPlane::update_transition(void)
             // Continuous tilt - tilt rotor
             // Use a combination of verical and forward throttle based on curent tilt angle
             // scale from all VTOL throttle at airspeed_reached_tilt to all forward tilt of 1
-            const float ratio = MAX(tilt.current_tilt - tilt.airspeed_reached_tilt, 0.0) / (1.0 - tilt.airspeed_reached_tilt);
+            const float ratio = (constrain_float(tilt.current_tilt, tilt.airspeed_reached_tilt, get_fully_forward_tilt()) - tilt.airspeed_reached_tilt) / (get_fully_forward_tilt() - tilt.airspeed_reached_tilt);
             const float equivelent_throttle = MAX(SRV_Channels::get_output_scaled(SRV_Channel::k_throttle),0) * 0.01;
             throttle_scaled = constrain_float(throttle_scaled * (1.0-ratio) + equivelent_throttle * ratio, 0.0, 1.0);
         }
