@@ -1965,6 +1965,8 @@ void NavEKF3_core::LogCovariances()
     const uint64_t time_us = AP_HAL::micros64();
 
     // log state vector
+    Vector2F pos{statesArray[7], statesArray[8]};
+    pos += public_origin.get_distance_NE_ftype(EKF_origin);
     AP::logger().Write("SVAA",
                        "TimeUS,00,01,02,03,04,05,06,07,08,09,10,11,12,13,14",
                        "Qfffffffffffffff",
@@ -1976,8 +1978,8 @@ void NavEKF3_core::LogCovariances()
                         (double)statesArray[4],
                         (double)statesArray[5],
                         (double)statesArray[6],
-                        (double)statesArray[7],
-                        (double)statesArray[8],
+                       (double)pos.x,
+                       (double)pos.y,
                         (double)statesArray[9],
                         (double)statesArray[10],
                         (double)statesArray[11],
