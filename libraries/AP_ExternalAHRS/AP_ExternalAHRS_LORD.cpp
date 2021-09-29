@@ -55,7 +55,6 @@ void AP_ExternalAHRS_LORD::update_thread(void) {
     if (!portOpened) {
         portOpened = true;
         uart -> begin(baudrate);
-        // send_config();
     }
 
     while (true) {
@@ -147,7 +146,6 @@ void AP_ExternalAHRS_LORD::handle_packet(LORD_Packet& packet) {
             break;
         case DescriptorSet::GNSSData:
             handle_gnss(packet);
-            // post_gnss();
             break;
         case DescriptorSet::EstimationData:
             handle_filter(packet);
@@ -525,7 +523,7 @@ float AP_ExternalAHRS_LORD::extract_float(uint8_t *data, uint8_t offset) const {
     uint32_t tmp = be32toh_ptr(&data[offset]);
 
     return *reinterpret_cast<float*>(&tmp);
-}    void send_config();
+}
 
 double AP_ExternalAHRS_LORD::extract_double(uint8_t *data, uint8_t offset) const {
     uint64_t tmp = be64toh_ptr(&data[offset]);
