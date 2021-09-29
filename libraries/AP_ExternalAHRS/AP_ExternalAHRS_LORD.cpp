@@ -346,8 +346,6 @@ void AP_ExternalAHRS_LORD::handle_filter(LORD_Packet &packet) {
                     filter_data.lat = extract_double(packet.payload, i+2) * 1.0e7; // Decimal degrees to degrees
                     filter_data.lon = extract_double(packet.payload, i+10) * 1.0e7;
                     filter_data.msl_altitude = extract_double(packet.payload, i+26) * 1.0e2; // Meters to cm
-                    filter_data.horizontal_position_accuracy = extract_float(packet.payload, i+34);
-                    filter_data.vertical_position_accuracy = extract_float(packet.payload, i+38);
                     break;
                 }
                 // NED Velocity
@@ -355,7 +353,6 @@ void AP_ExternalAHRS_LORD::handle_filter(LORD_Packet &packet) {
                     filter_data.ned_velocity_north = extract_float(packet.payload, i+2);
                     filter_data.ned_velocity_east = extract_float(packet.payload, i+6);
                     filter_data.ned_velocity_down = extract_float(packet.payload, i+10);
-                    filter_data.speed_accuracy = extract_float(packet.payload, i+26);
                     break;
                 }
                 // Filter Status
