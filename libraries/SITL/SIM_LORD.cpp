@@ -106,9 +106,9 @@ void LORD::send_imu_packet(void) {
     // Add scaled acceletometer field
     packet.payload[packet.payload_size++] = 0x0E;
     packet.payload[packet.payload_size++] = 0x04;
-    put_float(packet, fdm.xAccel);
-    put_float(packet, fdm.yAccel);
-    put_float(packet, fdm.zAccel);
+    put_float(packet, fdm.xAccel / 9.8);
+    put_float(packet, fdm.yAccel / 9.8);
+    put_float(packet, fdm.zAccel / 9.8);
 
     // Add scaled gyro field
     const float gyro_noise = 0.05;
