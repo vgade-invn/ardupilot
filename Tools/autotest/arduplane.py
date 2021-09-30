@@ -2295,7 +2295,7 @@ class AutoTestPlane(AutoTest):
         self.set_parameter("WP_LOITER_RAD", default_rad)
         self.fly_home_land_and_disarm(240)
 
-    def fly_external_AHRS(self, sim, eahrs_type):
+    def fly_external_AHRS(self, sim: str, eahrs_type: int, mission: str):
         """Fly with external AHRS (VectorNav)"""
         self.customise_SITL_commandline([f"--uartE=sim:{sim}"])
 
@@ -2313,13 +2313,13 @@ class AutoTestPlane(AutoTest):
 
         self.wait_ready_to_arm()
         self.arm_vehicle()
-        self.fly_mission("ap1.txt")
+        self.fly_mission(mission)
     
     def test_vectornav(self):
-        self.fly_external_AHRS("VectorNav", 1)
+        self.fly_external_AHRS("VectorNav", 1, "ap1.txt")
 
     def test_lord(self):
-        self.fly_external_AHRS("LORD", 2)
+        self.fly_external_AHRS("LORD", 2, "ap1.txt")
 
     def get_accelvec(self, m):
         return Vector3(m.xacc, m.yacc, m.zacc) * 0.001 * 9.81
