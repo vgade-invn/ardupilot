@@ -69,6 +69,5 @@ private:
     uint8_t high_latency_tgt_airspeed() const override;
     uint8_t high_latency_wind_speed() const override;
     uint8_t high_latency_wind_direction() const override;
-    int8_t high_latency_air_temperature() const override;
 #endif // HAL_HIGH_LATENCY2_ENABLED
 };
