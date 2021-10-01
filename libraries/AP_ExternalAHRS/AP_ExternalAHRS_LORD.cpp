@@ -176,7 +176,7 @@ void AP_ExternalAHRS_LORD::handle_imu(LORD_Packet& packet) {
             }
             // Scaled Accelerometer Vector
             case 0x04: {
-                imu_data.accel = populate_vector(packet.payload, i + 2) * 9.8; // Convert g's to m/s^2
+                imu_data.accel = populate_vector(packet.payload, i+2) * GRAVITY_MSS; // Convert g's to m/s^2
                 break;
             }
             // Scaled Gyro Vector
@@ -199,6 +199,7 @@ void AP_ExternalAHRS_LORD::post_imu() const {
         WITH_SEMAPHORE(state.sem);
         state.accel = imu_data.accel;
         state.gyro = imu_data.gyro;
+
         state.quat = imu_data.quat;
         state.have_quaternion = true;
     }
@@ -296,6 +297,15 @@ void AP_ExternalAHRS_LORD::handle_gnss(LORD_Packet &packet) {
 void AP_ExternalAHRS_LORD::post_gnss() const {
     AP_ExternalAHRS::gps_data_message_t gps;
 
+    {
+        WITH_SEMAPHORE(state.sem);
+        state.velocity = Vector3f{gnss_data.ned_velocity_north, gnss_data.ned_velocity_east, gnss_data.ned_velocity_down};
+        state.have_velocity = true;
+
+        state.location = Location{gnss_data.lat, gnss_data.lon, gnss_data.msl_altitude, Location::AltFrame::ABSOLUTE};
+        state.have_location = true;
+    }
+
     gps.gps_week = gnss_data.week;
     gps.ms_tow = gnss_data.tow_ms;
     gps.fix_type = gnss_data.fix_type;
@@ -365,6 +375,15 @@ void AP_ExternalAHRS_LORD::handle_filter(LORD_Packet &packet) {
 }
 
 void AP_ExternalAHRS_LORD::post_filter() const {
+    {
+        WITH_SEMAPHORE(state.sem);
+        state.velocity = Vector3f{filter_data.ned_velocity_north, filter_data.ned_velocity_east, filter_data.ned_velocity_down};
+        state.have_velocity = true;
+
+        state.location = Location{filter_data.lat, filter_data.lon, filter_data.msl_altitude, Location::AltFrame::ABSOLUTE};
+        state.have_location = true;
+    }
+
     AP_ExternalAHRS::gps_data_message_t gps;
 
     gps.gps_week = filter_data.week;
@@ -421,6 +440,10 @@ bool AP_ExternalAHRS_LORD::pre_arm_check(char *failure_msg, uint8_t failure_msg_
     }
     if (gnss_data.fix_type < 3) {
         hal.util->snprintf(failure_msg, failure_msg_len, "LORD no GPS lock");
+        return false;
+    }
+    if (filter_status.state != 0x02) {
+        hal.util->snprintf(failure_msg, failure_msg_len, "LORD filter not running");
         return false;
     }
 
@@ -488,9 +511,9 @@ void AP_ExternalAHRS_LORD::send_status_report(mavlink_channel_t chan) const {
     }
 
     // send message
-    const float vel_gate = 5; // represents hz value data is posted at
-    const float pos_gate = 5; // represents hz value data is posted at
-    const float hgt_gate = 5; // represents hz value data is posted at
+    const float vel_gate = 4; // represents hz value data is posted at
+    const float pos_gate = 4; // represents hz value data is posted at
+    const float hgt_gate = 4; // represents hz value data is posted at
     const float mag_var = 0; //we may need to change this to be like the other gates, set to 0 because mag is ignored by the ins filter in vectornav
     mavlink_msg_ekf_status_report_send(chan, flags,
                                        gnss_data.speed_accuracy/vel_gate, gnss_data.horizontal_position_accuracy/pos_gate, gnss_data.vertical_position_accuracy/hgt_gate,
