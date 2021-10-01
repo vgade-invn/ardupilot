@@ -106,9 +106,9 @@ void LORD::send_imu_packet(void) {
     // Add scaled acceletometer field
     packet.payload[packet.payload_size++] = 0x0E;
     packet.payload[packet.payload_size++] = 0x04;
-    put_float(packet, fdm.xAccel / 9.8);
-    put_float(packet, fdm.yAccel / 9.8);
-    put_float(packet, fdm.zAccel / 9.8);
+    put_float(packet, fdm.xAccel / GRAVITY_MSS);
+    put_float(packet, fdm.yAccel / GRAVITY_MSS);
+    put_float(packet, fdm.zAccel / GRAVITY_MSS);
 
     // Add scaled gyro field
     const float gyro_noise = 0.05;
@@ -214,7 +214,7 @@ void LORD::send_filter_packet(void) {
     // Add ambient Filter Time
     packet.payload[packet.payload_size++] = 0x0E;
     packet.payload[packet.payload_size++] = 0x11;
-    put_double(packet, (double) tv.tv_sec);
+    put_double(packet, (double) tv.tv_usec / 1e6);
     put_int(packet, tv.tv_usec / (AP_MSEC_PER_WEEK * 1000000ULL));
     put_int(packet, 0x0001);
 
@@ -250,8 +250,7 @@ void LORD::send_filter_packet(void) {
 /*
   send LORD data
  */
-void LORD::update(void)
-{
+void LORD::update(void) {
     if (!init_sitl_pointer()) {
         return;
     }
@@ -279,14 +278,14 @@ void LORD::update(void)
 
 void LORD::put_float(LORD_Packet &packet, float f) {
     uint32_t fbits = 0;
-    memcpy(&fbits, &f, sizeof fbits);
+    memcpy(&fbits, &f, sizeof(fbits));
     put_be32_ptr(&packet.payload[packet.payload_size], fbits);
     packet.payload_size += sizeof(float);
 }
 
 void LORD::put_double(LORD_Packet &packet, double d) {
     uint64_t dbits = 0;
-    memcpy(&dbits, &d, sizeof dbits);
+    memcpy(&dbits, &d, sizeof(dbits));
     put_be64_ptr(&packet.payload[packet.payload_size], dbits);
     packet.payload_size += sizeof(double);
 }
