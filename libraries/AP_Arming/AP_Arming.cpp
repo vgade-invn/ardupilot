@@ -355,10 +355,12 @@ bool AP_Arming::ins_checks(bool report)
             check_failed(ARMING_CHECK_INS, report, "Accels not healthy");
             return false;
         }
+#if 0
         if (!ins.accel_calibrated_ok_all()) {
             check_failed(ARMING_CHECK_INS, report, "3D Accel calibration needed");
             return false;
         }
+#endif
         
         //check if accelerometers have calibrated and require reboot
         if (ins.accel_cal_requires_reboot()) {
