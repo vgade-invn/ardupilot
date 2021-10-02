@@ -31,9 +31,9 @@ void NavEKF3_core::Log_Write_XKF1(uint64_t time_us) const
         LOG_PACKET_HEADER_INIT(LOG_XKF1_MSG),
         time_us : time_us,
         core    : DAL_CORE(core_index),
-        roll    : (int16_t)(100*degrees(euler.x)), // roll angle (centi-deg, displayed as deg due to format string)
-        pitch   : (int16_t)(100*degrees(euler.y)), // pitch angle (centi-deg, displayed as deg due to format string)
-        yaw     : (uint16_t)wrap_360_cd(100*degrees(euler.z)), // yaw angle (centi-deg, displayed as deg due to format string)
+        roll    : degrees(euler.x), // roll angle (deg, displayed as deg due to format string)
+        pitch   : degrees(euler.y), // pitch angle (deg, displayed as deg due to format string)
+        yaw     : degrees(euler.z), // yaw angle (deg, displayed as deg due to format string)
         velN    : (float)(velNED.x), // velocity North (m/s)
         velE    : (float)(velNED.y), // velocity East (m/s)
         velD    : (float)(velNED.z), // velocity Down (m/s)
@@ -41,9 +41,9 @@ void NavEKF3_core::Log_Write_XKF1(uint64_t time_us) const
         posN    : (float)(posNE.x), // metres North
         posE    : (float)(posNE.y), // metres East
         posD    : (float)(posD), // metres Down
-        gyrX    : (int16_t)(100*degrees(gyroBias.x)), // cd/sec, displayed as deg/sec due to format string
-        gyrY    : (int16_t)(100*degrees(gyroBias.y)), // cd/sec, displayed as deg/sec due to format string
-        gyrZ    : (int16_t)(100*degrees(gyroBias.z)), // cd/sec, displayed as deg/sec due to format string
+        gyrX    : degrees(gyroBias.x), // d/sec, displayed as deg/sec due to format string
+        gyrY    : degrees(gyroBias.y), // d/sec, displayed as deg/sec due to format string
+        gyrZ    : degrees(gyroBias.z), // d/sec, displayed as deg/sec due to format string
         originHgt : originLLH.alt // WGS-84 altitude of EKF origin in cm
     };
     AP::logger().WriteBlock(&pkt, sizeof(pkt));
@@ -67,9 +67,9 @@ void NavEKF3_core::Log_Write_XKF2(uint64_t time_us) const
         LOG_PACKET_HEADER_INIT(LOG_XKF2_MSG),
         time_us : time_us,
         core    : DAL_CORE(core_index),
-        accBiasX  : (int16_t)(100*accelBias.x),
-        accBiasY  : (int16_t)(100*accelBias.y),
-        accBiasZ  : (int16_t)(100*accelBias.z),
+        accBiasX  : accelBias.x,
+        accBiasY  : accelBias.y,
+        accBiasZ  : accelBias.z,
         windN   : (int16_t)(100*wind.x),
         windE   : (int16_t)(100*wind.y),
         magN    : (int16_t)(magNED.x),

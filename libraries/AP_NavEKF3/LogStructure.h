@@ -79,9 +79,9 @@ struct PACKED log_XKF1 {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     uint8_t core;
-    int16_t roll;
-    int16_t pitch;
-    uint16_t yaw;
+    float roll;
+    float pitch;
+    float yaw;
     float velN;
     float velE;
     float velD;
@@ -89,9 +89,9 @@ struct PACKED log_XKF1 {
     float posN;
     float posE;
     float posD;
-    int16_t gyrX;
-    int16_t gyrY;
-    int16_t gyrZ;
+    float gyrX;
+    float gyrY;
+    float gyrZ;
     int32_t originHgt;
 };
 
@@ -118,9 +118,9 @@ struct PACKED log_XKF2 {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     uint8_t core;
-    int16_t accBiasX;
-    int16_t accBiasY;
-    int16_t accBiasZ;
+    float accBiasX;
+    float accBiasY;
+    float accBiasZ;
     int16_t windN;
     int16_t windE;
     int16_t magN;
@@ -424,9 +424,9 @@ struct PACKED log_XKV {
     { LOG_XKF0_MSG, sizeof(log_XKF0), \
       "XKF0","QBBccCCcccccccc","TimeUS,C,ID,rng,innov,SIV,TR,BPN,BPE,BPD,OFH,OFL,OFN,OFE,OFD", "s#-m---mmmmmmmm", "F--B---BBBBBBBB" , true }, \
     { LOG_XKF1_MSG, sizeof(log_XKF1), \
-      "XKF1","QBccCfffffffccce","TimeUS,C,Roll,Pitch,Yaw,VN,VE,VD,dPD,PN,PE,PD,GX,GY,GZ,OH", "s#ddhnnnnmmmkkkm", "F-BBB0000000BBBB" , true }, \
+      "XKF1","QBfffffffffffffe","TimeUS,C,Roll,Pitch,Yaw,VN,VE,VD,dPD,PN,PE,PD,GX,GY,GZ,OH", "s#---nnnnmmm---m", "F----0000000---B" , true }, \
     { LOG_XKF2_MSG, sizeof(log_XKF2), \
-      "XKF2","QBccccchhhhhhfff","TimeUS,C,AX,AY,AZ,VWN,VWE,MN,ME,MD,MX,MY,MZ,IDX,IDY,IS", "s#---nnGGGGGGoor", "F----BBCCCCCC000" , true }, \
+      "XKF2","QBfffcchhhhhhfff","TimeUS,C,AX,AY,AZ,VWN,VWE,MN,ME,MD,MX,MY,MZ,IDX,IDY,IS", "s#---nnGGGGGGoor", "F----BBCCCCCC000" , true }, \
     { LOG_XKF3_MSG, sizeof(log_XKF3), \
       "XKF3","QBcccccchhhccff","TimeUS,C,IVN,IVE,IVD,IPN,IPE,IPD,IMX,IMY,IMZ,IYAW,IVT,RErr,ErSc", "s#nnnmmmGGGd?--", "F-BBBBBBCCCBB00" , true }, \
     { LOG_XKF4_MSG, sizeof(log_XKF4), \
