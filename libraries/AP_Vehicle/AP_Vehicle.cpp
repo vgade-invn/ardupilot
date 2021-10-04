@@ -67,6 +67,12 @@ const AP_Param::GroupInfo AP_Vehicle::var_info[] = {
     AP_SUBGROUPINFO(efi, "EFI", 9, AP_Vehicle, AP_EFI),
 #endif
 
+#if AP_AIRSPEED_ENABLED
+    // @Group: ARSPD
+    // @Path: ../AP_Airspeed/AP_Airspeed.cpp
+    AP_SUBGROUPINFO(airspeed, "ARSPD", 10, AP_Vehicle, AP_Airspeed),
+#endif
+
     AP_GROUPEND
 };
 
@@ -132,6 +138,12 @@ void AP_Vehicle::setup()
     // Register scheduler_delay_cb, which will run anytime you have
     // more than 5ms remaining in your call to hal.scheduler->delay
     hal.scheduler->register_delay_callback(scheduler_delay_callback, 5);
+
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
+    // initialize airspeed sensor
+    airspeed.init();
+#endif
+
 
 #if HAL_MSP_ENABLED
     // call MSP init before init_ardupilot to allow for MSP sensors

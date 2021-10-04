@@ -47,6 +47,7 @@
 #include <AP_Frsky_Telem/AP_Frsky_Parameters.h>
 #include <AP_ExternalAHRS/AP_ExternalAHRS.h>
 #include <AP_VideoTX/AP_SmartAudio.h>
+#include <AP_Airspeed/AP_Airspeed.h>
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 #include <SITL/SITL.h>
 #endif
@@ -358,6 +359,11 @@ protected:
 #if HAL_EFI_ENABLED
     // EFI Engine Monitor
     AP_EFI efi;
+#endif
+
+#if AP_AIRSPEED_ENABLED
+    AP_Airspeed airspeed;
+    virtual void read_airspeed() {};
 #endif
 
     static const struct AP_Param::GroupInfo var_info[];
