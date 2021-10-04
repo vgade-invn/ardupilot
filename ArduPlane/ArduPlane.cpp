@@ -45,7 +45,9 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
     SCHED_TASK(update_GPS_10Hz,        10,    400),
     SCHED_TASK(navigate,               10,    150),
     SCHED_TASK(update_compass,         10,    200),
+#if AP_AIRSPEED_ENABLED
     SCHED_TASK(read_airspeed,          10,    100),
+#endif
     SCHED_TASK(update_alt,             10,    200),
     SCHED_TASK(adjust_altitude_target, 10,    200),
 #if ADVANCED_FAILSAFE == ENABLED
@@ -72,7 +74,9 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
     SCHED_TASK(check_long_failsafe,     3,    400),
     SCHED_TASK(rpm_update,             10,    100),
 #if AP_AIRSPEED_AUTOCAL_ENABLE
+#if AP_AIRSPEED_ENABLED
     SCHED_TASK(airspeed_ratio_update,   1,    100),
+#endif
 #endif // AP_AIRSPEED_AUTOCAL_ENABLE
 #if HAL_MOUNT_ENABLED
     SCHED_TASK_CLASS(AP_Mount, &plane.camera_mount, update, 50, 100),
@@ -335,6 +339,7 @@ void Plane::compass_save()
 }
 
 #if AP_AIRSPEED_AUTOCAL_ENABLE
+#if AP_AIRSPEED_ENABLED
 /*
   once a second update the airspeed calibration ratio
  */
@@ -363,6 +368,7 @@ void Plane::airspeed_ratio_update(void)
     const Vector3f &vg = gps.velocity();
     airspeed.update_calibration(vg, aparm.airspeed_max);
 }
+#endif
 #endif // AP_AIRSPEED_AUTOCAL_ENABLE
 
 /*

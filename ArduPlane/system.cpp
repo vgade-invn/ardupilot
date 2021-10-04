@@ -405,6 +405,7 @@ void Plane::startup_INS_ground(void)
     barometer.set_log_baro_bit(MASK_LOG_IMU);
     barometer.calibrate();
 
+#if AP_AIRSPEED_ENABLED
     if (airspeed.enabled()) {
         // initialize airspeed sensor
         // --------------------------
@@ -412,6 +413,7 @@ void Plane::startup_INS_ground(void)
     } else {
         gcs().send_text(MAV_SEVERITY_WARNING,"No airspeed sensor present");
     }
+#endif
 }
 
 // sets notify object flight mode information

@@ -173,7 +173,9 @@ void RC_Channel_Plane::init_aux_function(const RC_Channel::aux_func_t ch_option,
     case AUX_FUNC::AIRMODE:
 #endif
 #if AP_AIRSPEED_AUTOCAL_ENABLE
+#if AP_AIRSPEED_ENABLED
     case AUX_FUNC::ARSPD_CALIBRATE:
+#endif
 #endif
     case AUX_FUNC::TER_DISABLE:
     case AUX_FUNC::CROW_SELECT:
@@ -309,6 +311,7 @@ bool RC_Channel_Plane::do_aux_function(const aux_func_t ch_option, const AuxSwit
 
 case AUX_FUNC::ARSPD_CALIBRATE:
 #if AP_AIRSPEED_AUTOCAL_ENABLE
+#if AP_AIRSPEED_ENABLED
        switch (ch_flag) {
         case AuxSwitchPos::HIGH:
             plane.airspeed.set_calibration_enabled(true);
@@ -319,6 +322,7 @@ case AUX_FUNC::ARSPD_CALIBRATE:
             plane.airspeed.set_calibration_enabled(false);
             break;
         }
+#endif
 #endif
         break;
 

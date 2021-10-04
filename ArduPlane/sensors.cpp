@@ -34,6 +34,7 @@ void Plane::read_rangefinder(void)
     rangefinder_height_update();
 }
 
+#if AP_AIRSPEED_ENABLED
 /*
   ask airspeed sensor for a new value
  */
@@ -52,6 +53,7 @@ void Plane::read_airspeed(void)
         smoothed_airspeed = smoothed_airspeed * 0.8f + aspeed * 0.2f;
     }
 }
+#endif
 
 /*
   update RPM sensors

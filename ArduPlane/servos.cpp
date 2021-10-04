@@ -132,6 +132,7 @@ bool Plane::suppress_throttle(void)
     }
 
     if (gps_movement) {
+#if AP_AIRSPEED_ENABLED
         // if we have an airspeed sensor, then check it too, and
         // require 5m/s. This prevents throttle up due to spiky GPS
         // groundspeed with bad GPS reception
@@ -140,6 +141,10 @@ bool Plane::suppress_throttle(void)
             throttle_suppressed = false;
             return false;        
         }
+#else
+    throttle_suppressed = false;
+    return false;
+#endif
     }
 
 #if HAL_QUADPLANE_ENABLED

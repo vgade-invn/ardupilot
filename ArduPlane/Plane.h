@@ -987,7 +987,9 @@ private:
     void one_second_loop(void);
     void three_hz_loop(void);
 #if AP_AIRSPEED_AUTOCAL_ENABLE
+#if AP_AIRSPEED_ENABLED
     void airspeed_ratio_update(void);
+#endif
 #endif
     void compass_save(void);
     void update_logging1(void);
@@ -1026,7 +1028,9 @@ private:
 
     // sensors.cpp
     void read_rangefinder(void);
+#if AP_AIRSPEED_ENABLED
     void read_airspeed(void) override;
+#endif
     void rpm_update(void);
 
     // system.cpp

@@ -235,6 +235,7 @@ void GCS_MAVLINK_Plane::send_position_target_global_int()
 
 float GCS_MAVLINK_Plane::vfr_hud_airspeed() const
 {
+#if AP_AIRSPEED_ENABLED
     // airspeed sensors are best.  While the AHRS airspeed_estimate
     // will use an airspeed sensor, that value is constrained by the
     // ground speed.  When reporting we should send the true airspeed
@@ -242,6 +243,7 @@ float GCS_MAVLINK_Plane::vfr_hud_airspeed() const
     if (plane.airspeed.enabled() && plane.airspeed.healthy()) {
         return plane.airspeed.get_airspeed();
     }
+#endif
 
     // airspeed estimates are OK:
     float aspeed;
