@@ -7,6 +7,16 @@
 #include <AP_Math/AP_Math.h>
 #include <AP_MSP/msp.h>
 
+#ifndef AP_AIRSPEED_ENABLED
+#define AP_AIRSPEED_ENABLED 1
+/*
+// Build Airspeed for only Plane, Sub, & Rover and SITL
+#define AP_AIRSPEED_ENABLED APM_BUILD_TYPE(APM_BUILD_ArduPlane) || APM_BUILD_TYPE(APM_BUILD_Rover)  || \
+                             APM_BUILD_TYPE(APM_BUILD_ArduSub)   || APM_BUILD_TYPE(APM_BUILD_Replay)
+*/
+#endif
+
+
 class AP_Airspeed_Backend;
 
 #ifndef AIRSPEED_MAX_SENSORS
