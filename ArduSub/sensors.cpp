@@ -86,10 +86,12 @@ void Sub::rpm_update(void)
 }
 #endif
 
+#if AP_AIRSPEED_ENABLED
 /*
   ask airspeed sensor for a new value, duplicated from plane
  */
 void Sub::read_airspeed()
 {
-    g2.airspeed.update(should_log(MASK_LOG_IMU));
+    airspeed.update(should_log(MASK_LOG_IMU));
 }
+#endif

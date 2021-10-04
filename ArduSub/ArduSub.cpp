@@ -77,7 +77,9 @@ const AP_Scheduler::Task Sub::scheduler_tasks[] = {
 #ifdef USERHOOK_SUPERSLOWLOOP
     SCHED_TASK(userhook_SuperSlowLoop, 1,   75),
 #endif
-    SCHED_TASK(read_airspeed,          10,    100),
+#if AP_AIRSPEED_ENABLED
+    SCHED_TASK(read_airspeed,         10,    100),
+#endif
 };
 
 void Sub::get_scheduler_tasks(const AP_Scheduler::Task *&tasks,

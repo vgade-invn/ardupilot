@@ -583,7 +583,10 @@ private:
     bool verify_nav_delay(const AP_Mission::Mission_Command& cmd);
 
     void log_init(void);
-    void read_airspeed();
+
+#if AP_AIRSPEED_ENABLED
+    void read_airspeed() override;
+#endif
 
     void failsafe_leak_check();
     void failsafe_internal_pressure_check();
