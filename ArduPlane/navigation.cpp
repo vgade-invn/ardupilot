@@ -144,7 +144,10 @@ void Plane::calc_airspeed_errors()
 
     // we use the airspeed estimate function not direct sensor as TECS
     // may be using synthetic airspeed
-    ahrs.airspeed_estimate(airspeed_measured);
+    // update smoothed airspeed estimate
+    if (ahrs.airspeed_estimate(airspeed_measured)) {
+        smoothed_airspeed = smoothed_airspeed * 0.8f + airspeed_measured * 0.2f;
+    }
 
     // FBW_B/cruise airspeed target
     if (!failsafe.rc_failsafe && (control_mode == &mode_fbwb || control_mode == &mode_cruise)) {
