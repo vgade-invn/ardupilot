@@ -27,6 +27,7 @@
 #include <AP_Filesystem/AP_Filesystem_Available.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_VisualOdom/AP_VisualOdom.h>
+#include <AP_Vehicle/AP_Vehicle_Type.h>
 
 #include "MissionItemProtocol_Waypoints.h"
 #include "MissionItemProtocol_Rally.h"
