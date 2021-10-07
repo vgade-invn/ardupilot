@@ -36,6 +36,9 @@
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 #include <AP_HAL/SIMState.h>
 
+#if HAL_ENABLE_NETWORKING
+#include "lwipthread.h"
+#endif
 #include <hwdef.h>
 
 #ifndef HAL_SERIAL0_BAUD_DEFAULT
@@ -322,6 +325,10 @@ void HAL_ChibiOS::run(int argc, char * const argv[], Callbacks* callbacks) const
 
 #if HAL_USE_SERIAL_USB == TRUE
     usb_initialise();
+#endif
+
+#if HAL_ENABLE_NETWORKING
+    lwipInit(NULL);
 #endif
 
 #ifdef HAL_STDOUT_SERIAL
