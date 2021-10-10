@@ -35,6 +35,7 @@
 #include <AP_Declination/AP_Declination.h>
 #include <AP_Terrain/AP_Terrain.h>
 #include <AP_Scheduler/AP_Scheduler.h>
+#include <AP_Math/AP_Math.h>
 
 using namespace SITL;
 
@@ -515,7 +516,7 @@ float Aircraft::rangefinder_range() const
             altitude /= cosf(radians(sitl->state.rollDeg)) * cosf(radians(sitl->state.pitchDeg));
         }
         // Add some noise on reading
-        altitude += sitl->sonar_noise * rand_float();
+        altitude += ::rand_normal(sitl->sonar_noise);
     }
 
     return altitude;
