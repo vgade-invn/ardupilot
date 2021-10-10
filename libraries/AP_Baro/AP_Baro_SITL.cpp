@@ -67,7 +67,7 @@ void AP_Baro_SITL::_timer()
     }
 
     sim_alt += _sitl->baro[_instance].drift * now / 1000.0f;
-    sim_alt += _sitl->baro[_instance].noise * rand_float();
+    sim_alt += rand_normal(_sitl->baro[_instance].noise);
 
     // add baro glitch
     sim_alt += _sitl->baro[_instance].glitch;
