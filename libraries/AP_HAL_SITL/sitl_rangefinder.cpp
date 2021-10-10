@@ -52,7 +52,7 @@ void SITL_State::_update_rangefinder(float range_value)
             altitude /= cosf(radians(_sitl->state.rollDeg)) * cosf(radians(_sitl->state.pitchDeg));
         }
         // Add some noise on reading
-        altitude += _sitl->sonar_noise * rand_float();
+        altitude += rand_normal(_sitl->sonar_noise);
 
         // Altitude in in m, scaler in meters/volt
         voltage = altitude / _sitl->sonar_scale;

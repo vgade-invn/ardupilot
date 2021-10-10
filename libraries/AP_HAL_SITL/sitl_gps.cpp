@@ -1270,9 +1270,9 @@ void SITL_State::_update_gps(double latitude, double longitude, float altitude,
 
         // Add offet to c.g. velocity to get velocity at antenna and add simulated error
         Vector3f velErrorNED = _sitl->gps_vel_err[idx];
-        d.speedN = speedN + (velErrorNED.x * rand_float());
-        d.speedE = speedE + (velErrorNED.y * rand_float()); 
-        d.speedD = speedD + (velErrorNED.z * rand_float());
+        d.speedN = speedN + rand_normal(velErrorNED.x);
+        d.speedE = speedE + rand_normal(velErrorNED.y);
+        d.speedD = speedD + rand_normal(velErrorNED.z);
         d.have_lock = have_lock;
 
         if (_sitl->gps_drift_alt[idx] > 0) {

@@ -31,8 +31,8 @@ void SITL_State::_update_airspeed(float airspeed)
     
     // apply noise to the differential pressure. This emulates the way
     // airspeed noise reduces with speed
-    airspeed = sqrtf(fabsf(2*(diff_pressure + _sitl->arspd_noise[0] * rand_float())));
-    airspeed2 = sqrtf(fabsf(2*(diff_pressure + _sitl->arspd_noise[1] * rand_float())));
+    airspeed  = sqrtf(fabsf(2*(diff_pressure + rand_normal(_sitl->arspd_noise[0]))));
+    airspeed2 = sqrtf(fabsf(2*(diff_pressure + rand_normal(_sitl->arspd_noise[1]))));
 
     // check sensor failure
     if (is_positive(_sitl->arspd_fail[0])) {
