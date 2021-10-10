@@ -41,7 +41,7 @@ bool AP_InertialSensor_SITL::init_sensor(void)
 
 // calculate a noisy noise component
 static float calculate_noise(float noise, float noise_variation) {
-    return noise * (1.0f + noise_variation * rand_float());
+    return noise * (1.0f + rand_normal(noise_variation));
 }
 
 float AP_InertialSensor_SITL::get_temperature(void)
@@ -111,7 +111,7 @@ void AP_InertialSensor_SITL::generate_accel()
         float freq_variation = 0.12f;
 
         // add in sensor noise
-        accel += Vector3f{rand_float(), rand_float(), rand_float()} * accel_noise;
+        accel += Vector3f{rand_normal(accel_noise), rand_normal(accel_noise), rand_normal(accel_noise)};
 
         bool motors_on = sitl->throttle > sitl->ins_noise_throttle_min;
 
@@ -206,9 +206,9 @@ void AP_InertialSensor_SITL::generate_gyro()
         // this smears the individual motor peaks somewhat emulating physical motors
         float freq_variation = 0.12f;
         // add in sensor noise
-        p += gyro_noise * rand_float();
-        q += gyro_noise * rand_float();
-        r += gyro_noise * rand_float();
+        p += rand_normal(gyro_noise);
+        q += rand_normal(gyro_noise);
+        r += rand_normal(gyro_noise);
 
         bool motors_on = sitl->throttle > sitl->ins_noise_throttle_min;
         // on a real 180mm copter gyro noise varies between 0.2-0.4 rad/s for throttle 0.2-0.8
@@ -223,9 +223,9 @@ void AP_InertialSensor_SITL::generate_gyro()
 
         if (vibe_freq.is_zero() && is_zero(sitl->vibe_motor)) {
             // no rpm noise, so add in background noise if any
-            p += gyro_noise * rand_float();
-            q += gyro_noise * rand_float();
-            r += gyro_noise * rand_float();
+            p += rand_normal(gyro_noise);
+            q += rand_normal(gyro_noise);
+            r += rand_normal(gyro_noise);
         }
 
         if (!vibe_freq.is_zero() && motors_on) {
