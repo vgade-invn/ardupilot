@@ -1,6 +1,7 @@
 #include "AP_Math.h"
 
 #include <float.h>
+#include <random>
 
 #include <AP_InternalError/AP_InternalError.h>
 
@@ -340,6 +341,15 @@ float rand_float(void)
     return ((((unsigned)random()) % 2000000) - 1.0e6) / 1.0e6;
 }
 
+// generate a random float with given standard deviation and normal
+// distribution. The mean of the output is zero
+float rand_normal(const float sd)
+{
+    static std::mt19937 generator;
+    std::normal_distribution<double> normal(0.0, sd);
+    return normal(generator);
+}
+
 Vector3f rand_vec3f(void)
 {
     Vector3f v = Vector3f(rand_float(),
@@ -350,7 +360,7 @@ Vector3f rand_vec3f(void)
     }
     return v;
 }
-#endif
+#endif // HAL_BOARD_SITL
 
 /*
   return true if two rotations are equivalent

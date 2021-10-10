@@ -283,11 +283,17 @@ float throttle_curve(float thr_mid, float alpha, float thr_in);
 /* simple 16 bit random number generator */
 uint16_t get_random16(void);
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 // generate a random float between -1 and 1, for use in SITL
 float rand_float(void);
 
+// generate a random float with given standard deviation and normal
+// distribution
+float rand_normal(const float sd);
+
 // generate a random Vector3f of size 1
 Vector3f rand_vec3f(void);
+#endif // HAL_BOARD_SITL
 
 // return true if two rotations are equal
 bool rotation_equal(enum Rotation r1, enum Rotation r2) WARN_IF_UNUSED;
