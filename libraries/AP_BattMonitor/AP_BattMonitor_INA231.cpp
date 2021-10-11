@@ -98,7 +98,6 @@ bool AP_BattMonitor_INA231::read_word(const uint8_t reg, int16_t& data) const
     // convert byte order
     data = int16_t(be16toh(uint16_t(data)));
 
-    // return success
     return true;
 }
 
