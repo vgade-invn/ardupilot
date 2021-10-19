@@ -382,3 +382,15 @@ void fill_nanf(float *f, uint16_t count)
     }
 }
 #endif
+
+/*
+  calculate a low pass filter alpha value
+ */
+float calc_lowpass_alpha_dt(float dt, float cutoff_freq)
+{
+    if (dt <= 0.0f || cutoff_freq <= 0.0f) {
+        return 1.0;
+    }
+    float rc = 1.0f/(M_2PI*cutoff_freq);
+    return constrain_float(dt/(dt+rc), 0.0f, 1.0f);
+}
