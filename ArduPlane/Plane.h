@@ -516,6 +516,8 @@ private:
 
         // have we started an emergency landing?
         bool started_landing;
+
+        float land_alt_amsl = -1;
     } auto_state;
 
     struct {
