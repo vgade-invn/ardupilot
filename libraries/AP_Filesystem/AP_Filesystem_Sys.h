@@ -46,5 +46,6 @@ private:
         bool open;
         uint32_t file_ofs;
         ExpandingString *str;
+        bool is_storage_bin;
     } file[max_open_file];
 };
