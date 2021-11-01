@@ -716,12 +716,14 @@ AP_AHRS_DCM::drift_correction(float deltat)
             // not enough time has accumulated
             return;
         }
-        float airspeed;
+
+        float airspeed = _last_airspeed;
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
         if (airspeed_sensor_enabled()) {
             airspeed = AP::airspeed()->get_airspeed();
-        } else {
-            airspeed = _last_airspeed;
         }
+#endif
+
         // use airspeed to estimate our ground velocity in
         // earth frame by subtracting the wind
         velocity = _dcm_matrix.colx() * airspeed;
@@ -1025,12 +1027,15 @@ void AP_AHRS_DCM::estimate_wind(void)
         }
 
         _last_wind_time = now;
-    } else if (now - _last_wind_time > 2000 && airspeed_sensor_enabled()) {
+    }
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
+     else if (now - _last_wind_time > 2000 && airspeed_sensor_enabled()) {
         // when flying straight use airspeed to get wind estimate if available
         const Vector3f airspeed = _dcm_matrix.colx() * AP::airspeed()->get_airspeed();
         const Vector3f wind = velocity - (airspeed * get_EAS2TAS());
         _wind = _wind * 0.92f + wind * 0.08f;
     }
+#endif
 }
 
 
@@ -1064,13 +1069,15 @@ bool AP_AHRS_DCM::get_position(struct Location &loc) const
 
 bool AP_AHRS_DCM::airspeed_estimate(float &airspeed_ret) const
 {
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
     const auto *airspeed = AP::airspeed();
-    if (airspeed == nullptr) {
-        // airspeed_estimate will also make this nullptr check and act
-        // appropriately when we call it with a dummy sensor ID.
-        return airspeed_estimate(0, airspeed_ret);
+    if (airspeed != nullptr) {
+        return airspeed_estimate(airspeed->get_primary(), airspeed_ret);
     }
-    return airspeed_estimate(airspeed->get_primary(), airspeed_ret);
+#endif
+    // airspeed_estimate will also make this nullptr check and act
+    // appropriately when we call it with a dummy sensor ID.
+    return airspeed_estimate(0, airspeed_ret);
 }
 
 // return an airspeed estimate:
@@ -1079,9 +1086,13 @@ bool AP_AHRS_DCM::airspeed_estimate(float &airspeed_ret) const
 //  - otherwise from a cached wind-triangle estimate value (but returning false)
 bool AP_AHRS_DCM::airspeed_estimate(uint8_t airspeed_index, float &airspeed_ret) const
 {
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
     if (airspeed_sensor_enabled(airspeed_index)) {
         airspeed_ret = AP::airspeed()->get_airspeed(airspeed_index);
     } else if (AP::ahrs().get_wind_estimation_enabled() && have_gps()) {
+#else
+    if (AP::ahrs().get_wind_estimation_enabled() && have_gps()) {
+#endif
         // estimate it via GPS speed and wind
         airspeed_ret = _last_airspeed;
     } else {

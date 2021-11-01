@@ -820,6 +820,8 @@ Vector3f AP_AHRS::wind_estimate(void) const
 bool AP_AHRS::airspeed_estimate(float &airspeed_ret) const
 {
     bool ret = false;
+
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
     if (airspeed_sensor_enabled()) {
         airspeed_ret = AP::airspeed()->get_airspeed();
 
@@ -836,6 +838,7 @@ bool AP_AHRS::airspeed_estimate(float &airspeed_ret) const
 
         return true;
     }
+#endif
 
     if (!get_wind_estimation_enabled()) {
         return false;
@@ -2891,11 +2894,15 @@ uint8_t AP_AHRS::get_active_airspeed_index() const
         return EKF3.getActiveAirspeed(get_primary_core_index());   
     }
 #endif
+
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
     // for the rest, let the primary airspeed sensor be used
     const AP_Airspeed * _airspeed = AP::airspeed();
     if (_airspeed != nullptr) {
         return _airspeed->get_primary();
     }
+#endif
+
     return 0;
 }
 
