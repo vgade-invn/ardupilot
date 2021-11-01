@@ -1973,6 +1973,7 @@ void AP_OSD_Screen::draw_btemp(uint8_t x, uint8_t y)
 
 void AP_OSD_Screen::draw_atemp(uint8_t x, uint8_t y)
 {
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
     AP_Airspeed *airspeed = AP_Airspeed::get_singleton();
     if (!airspeed) {
         return;
@@ -1984,6 +1985,9 @@ void AP_OSD_Screen::draw_atemp(uint8_t x, uint8_t y)
     } else {
         backend->write(x, y, false, "--%c", u_icon(TEMPERATURE));
     }
+#else
+    return;
+#endif
 }
 
 void AP_OSD_Screen::draw_bat2_vlt(uint8_t x, uint8_t y)
@@ -2007,6 +2011,7 @@ void AP_OSD_Screen::draw_bat2used(uint8_t x, uint8_t y)
 
 void AP_OSD_Screen::draw_aspd1(uint8_t x, uint8_t y)
 {
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
     AP_Airspeed *airspeed = AP_Airspeed::get_singleton();
     if (!airspeed) {
         return;
@@ -2017,10 +2022,14 @@ void AP_OSD_Screen::draw_aspd1(uint8_t x, uint8_t y)
     } else {
         backend->write(x, y, false, "%c ---%c", SYMBOL(SYM_ASPD), u_icon(SPEED));
     }
+#else
+    return;
+#endif
 }
 
 void AP_OSD_Screen::draw_aspd2(uint8_t x, uint8_t y)
 {
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
     AP_Airspeed *airspeed = AP_Airspeed::get_singleton();
     if (!airspeed) {
         return;
@@ -2031,6 +2040,9 @@ void AP_OSD_Screen::draw_aspd2(uint8_t x, uint8_t y)
     } else {
         backend->write(x, y, false, "%c ---%c", SYMBOL(SYM_ASPD), u_icon(SPEED));
     }
+#else
+    return;
+#endif
 }
 
 void AP_OSD_Screen::draw_clk(uint8_t x, uint8_t y)
