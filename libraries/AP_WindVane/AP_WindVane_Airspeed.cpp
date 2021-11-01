@@ -17,8 +17,10 @@
 
 void AP_WindVane_Airspeed::update_speed()
 {
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
     const AP_Airspeed* airspeed = AP_Airspeed::get_singleton();
     if (airspeed != nullptr) {
         _frontend._speed_apparent_raw = airspeed->get_raw_airspeed();
     }
+#endif
 }
