@@ -127,10 +127,12 @@ void AP_DAL::init_sensors(void)
         alloc_failed |= (_rangefinder = new AP_DAL_RangeFinder) == nullptr;
     }
 
+#if AP_AIRSPEED_ENABLED && !(APM_BUILD_TYPE(APM_BUILD_ArduCopter) && BOARD_FLASH_SIZE < 1025)
     auto *aspeed = AP::airspeed();
     if (aspeed != nullptr && aspeed->get_num_sensors() > 0) {
         alloc_failed |= (_airspeed = new AP_DAL_Airspeed) == nullptr;
     }
+#endif
 
     auto *bcn = AP::beacon();
     if (bcn != nullptr && bcn->enabled()) {
