@@ -169,6 +169,13 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("BUS", 20, AP_BattMonitor_Params, _i2c_bus, 0),
 
+    // @Param: VLT_OFFSET
+    // @DisplayName: Voltage offset offset
+    // @Description: Voltage to subtract before applying scaling
+    // @Units: V
+    // @User: Advanced
+    AP_GROUPINFO("VLT_OFFSET", 21, AP_BattMonitor_Params, _volt_offset, 0),
+    
     AP_GROUPEND
 
 };

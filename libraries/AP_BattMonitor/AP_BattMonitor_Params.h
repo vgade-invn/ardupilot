@@ -45,6 +45,7 @@ public:
     AP_Float _volt_multiplier;          /// voltage on volt pin multiplied by this to calculate battery voltage
     AP_Float _curr_amp_per_volt;        /// voltage on current pin multiplied by this to calculate current in amps
     AP_Float _curr_amp_offset;          /// offset voltage that is subtracted from current pin before conversion to amps
+    AP_Float _volt_offset;              /// offset voltage that is subtracted from voltage pin before scaling
     AP_Int32 _pack_capacity;            /// battery pack capacity less reserve in mAh
     AP_Int16 _watt_max;                 /// max battery power allowed. Reduce max throttle to reduce current to satisfy t    his limit
     AP_Int32 _serial_number;            /// battery serial number, automatically filled in on SMBus batteries
