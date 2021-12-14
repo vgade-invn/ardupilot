@@ -663,20 +663,22 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     AP_GROUPINFO("_CUS_YAW", 51, Compass, _custom_yaw, 0),
 #endif
 
+    // index 52, 53 and 54 were used in first attempt at conversion to per-instance params
+
     // @Group: 1_
     // @Path: AP_Compass_Params.cpp
-    AP_SUBGROUPINFO(_state._priv_instance[0].params, "1_", 52, Compass, AP_Compass_Params),
+    AP_SUBGROUPINFO(_state._priv_instance[0].params, "1_", 55, Compass, AP_Compass_Params),
 
 #if COMPASS_MAX_INSTANCES > 1
     // @Group: 2_
     // @Path: AP_Compass_Params.cpp
-    AP_SUBGROUPINFO(_state._priv_instance[1].params, "2_", 53, Compass, AP_Compass_Params),
+    AP_SUBGROUPINFO(_state._priv_instance[1].params, "2_", 56, Compass, AP_Compass_Params),
 #endif
 
 #if COMPASS_MAX_INSTANCES > 2
     // @Group: 3_
     // @Path: AP_Compass_Params.cpp
-    AP_SUBGROUPINFO(_state._priv_instance[2].params, "3_", 54, Compass, AP_Compass_Params),
+    AP_SUBGROUPINFO(_state._priv_instance[2].params, "3_", 57, Compass, AP_Compass_Params),
 #endif
 
     AP_GROUPEND
