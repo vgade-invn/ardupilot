@@ -210,6 +210,9 @@ bool AP_Compass_AK09916::init()
         goto fail;
     }
 
+    // one checked register for mode
+    _bus->setup_checked_registers(1);
+
     if (!_setup_mode()) {
         hal.console->printf("AK09916: Could not setup mode\n");
         goto fail;
@@ -314,7 +317,7 @@ bool AP_Compass_AK09916::_check_id()
 }
 
 bool AP_Compass_AK09916::_setup_mode() {
-    return _bus->register_write(REG_CNTL2, 0x08); //Continuous Mode 2
+    return _bus->register_write(REG_CNTL2, 0x08, true); //Continuous Mode 2
 }
 
 bool AP_Compass_AK09916::_reset()
@@ -338,9 +341,9 @@ bool AP_AK09916_BusDriver_HALDevice::register_read(uint8_t reg, uint8_t *val)
     return _dev->read_registers(reg, val, 1);
 }
 
-bool AP_AK09916_BusDriver_HALDevice::register_write(uint8_t reg, uint8_t val)
+bool AP_AK09916_BusDriver_HALDevice::register_write(uint8_t reg, uint8_t val, bool checked)
 {
-    return _dev->write_register(reg, val);
+    return _dev->write_register(reg, val, checked);
 }
 
 AP_HAL::Semaphore *AP_AK09916_BusDriver_HALDevice::get_semaphore()
@@ -400,8 +403,9 @@ bool AP_AK09916_BusDriver_Auxiliary::register_read(uint8_t reg, uint8_t *val)
     return _slave->passthrough_read(reg, val, 1) == 1;
 }
 
-bool AP_AK09916_BusDriver_Auxiliary::register_write(uint8_t reg, uint8_t val)
+bool AP_AK09916_BusDriver_Auxiliary::register_write(uint8_t reg, uint8_t val, bool checked)
 {
+    (void)checked;
     return _slave->passthrough_write(reg, val) == 1;
 }
 
