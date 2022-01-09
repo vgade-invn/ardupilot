@@ -2197,6 +2197,17 @@ void QuadPlane::vtol_position_controller(void)
         poscontrol.last_run_ms = now_ms;
     }
 
+    // avoid running the z controller in approach and airbrake if we're not already running it
+    // and tilt is more than tilt max
+    bool suppress_z_controller = false;
+    if (tiltrotor.enabled() && poscontrol.get_state() == QPOS_AIRBRAKE) {
+        if ((now_ms - last_pidz_active_ms > 2000 && tiltrotor.tilt_over_max_angle()) ||
+            tiltrotor.current_tilt >= tiltrotor.get_fully_forward_tilt()) {
+            suppress_z_controller = true;
+            hold_stabilize(0.01);
+        }
+    }
+    
     // horizontal position control
     switch (poscontrol.get_state()) {
 
@@ -2251,9 +2262,10 @@ void QuadPlane::vtol_position_controller(void)
 
         const float stop_distance = stopping_distance();
 
-        if (poscontrol.get_state() == QPOS_AIRBRAKE && !(tiltrotor.enabled() && !tiltrotor.has_vtol_motor() && (tiltrotor.current_tilt >= tiltrotor.get_fully_forward_tilt()))) {
-            // don't ouput VTOL throttle on tiltrotors if there are no fixed VTOL motors and the tilt is still forward
+        if (!suppress_z_controller && poscontrol.get_state() == QPOS_AIRBRAKE) {
             hold_hover(0);
+            // don't run Z controller again in this loop
+            suppress_z_controller = true;
         }
 
         /*
@@ -2426,8 +2438,9 @@ void QuadPlane::vtol_position_controller(void)
             // if continuous tiltrotor only advance to position 2 once tilts have finished moving
             poscontrol.set_state(QPOS_POSITION2);
             poscontrol.pilot_correction_done = false;
-            gcs().send_text(MAV_SEVERITY_INFO,"VTOL position2 started v=%.1f d=%.1f",
-                                    (double)ahrs.groundspeed(), (double)plane.auto_state.wp_distance);
+            gcs().send_text(MAV_SEVERITY_INFO,"VTOL position2 started v=%.1f d=%.1f h=%.1f",
+                            (double)ahrs.groundspeed(), (double)plane.auto_state.wp_distance,
+                            plane.relative_ground_altitude(plane.g.rangefinder_landing));
         }
         break;
     }
@@ -2599,8 +2612,14 @@ void QuadPlane::vtol_position_controller(void)
     case QPOS_LAND_COMPLETE:
         break;
     }
-    
-    run_z_controller();
+
+    /*
+      run the z controller unless something has already run it or set a target throttle
+     */
+    if (!suppress_z_controller) {
+        // otherwise run z controller
+        run_z_controller();
+    }
 
     if (now_ms - poscontrol.last_log_ms >= 40) {
         // log poscontrol at 25Hz
