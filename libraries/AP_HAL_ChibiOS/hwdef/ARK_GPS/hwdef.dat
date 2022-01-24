@@ -1,0 +1,131 @@
+# hw definition file for processing by chibios_pins.py
+# hardware repository: https://github.com/ARK-Electronics/ARK_GPS
+
+# MCU class and specific type
+# note: the device is STM32F412CE, not all F412 pins are available
+MCU STM32F4xx STM32F412Rx
+
+# board ID for firmware load
+APJ_BOARD_ID 1060
+
+# crystal frequency
+OSCILLATOR_HZ 8000000
+
+# ChibiOS system timer
+STM32_ST_USE_TIMER 5
+
+# bootloader starts firmware at 64k
+FLASH_RESERVE_START_KB 64
+
+# assume 512k flash size
+FLASH_SIZE_KB 512
+
+# order of I2C buses
+I2C_ORDER I2C1 I2C2
+
+# order of UARTs
+# TODO: how do I find the order, and why is it only USARTS for this parameter?
+SERIAL_ORDER USART2 USART1
+
+# pin definitions
+# PWM output for buzzer
+# TODO: is it linked to GPIO & what GPIO?
+PA0 TIM2_CH1 TIM2 GPIO(77) ALARM
+
+# safety LED, active low
+PA1 SAFE_LED OUTPUT HIGH
+define SAFE_LED_ON 0
+
+# USART2 to IO
+PA2 USART2_TX USART2
+PA3 USART2_RX USART2
+
+# SPI bus
+PA5 SPI1_SCK SPI1
+PA6 SPI1_MISO SPI1
+PA7 SPI1_MOSI SPI1
+
+# LEDs
+# TODO: how to setup as PWM vs GPIO
+PA8 TIM1_CH1 TIM1 PWM(1)
+PA9 TIM1_CH2 TIM1 PWM(2)
+PA10 TIM1_CH3 TIM1 PWM(3)
+
+# CAN bus
+PA11 CAN1_RX CAN1
+PA12 CAN1_TX CAN1
+
+# pins for SWD debugging with a STlink or black-magic probe.
+PA13 JTMS-SWDIO SWD
+PA14 JTCK-SWCLK SWD
+
+# USART1 for GPS
+# TODO: does this need DMA?
+PA15 USART1_TX USART1
+PB3 USART1_RX USART1
+
+# TODO: no SPI1 CS or DRDY available for PB0 and PB1 in alt functions of STM32F412Rx.py but this is the format in fmuv3
+PB0 MPU_CS CS
+PB1 MPU_DRDY INPUT
+# SPIDEV rm3100 SPI1 DEVID1   MPU_CS MODE0  1*MHZ  1*MHZ
+
+# I2C bus for magnetometer
+PB6 I2C1_SCL I2C1
+PB7 I2C1_SDA I2C1
+
+# SPI1 FSYNC for ICM42688p 
+# TODO: does this need any modifiers?
+# PB8 TIM10_CH1 TIM10
+
+# I2C bus for barometer
+PB9 I2C2_SDA I2C2
+PB10 I2C2_SCL I2C2
+
+# TODO: no CAN1_SILENT in alt functions? this is in the CUAV_GPS too though
+# TODO: need anything for CAN_TERM?
+PB12 GPIO_CAN1_SILENT OUTPUT PUSHPULL SPEED_LOW LOW
+
+# safety button
+PB15 SAFE_BUTTON INPUT PULLDOWN
+
+# TODO: params changed in CUAV_GPS we might want
+# env AP_PERIPH 1
+# define CH_CFG_ST_FREQUENCY 1000000
+# STDOUT_SERIAL SD1
+# STDOUT_BAUDRATE 57600
+# define HAL_SERIAL0_BAUD_DEFAULT 57600
+# define HAL_USE_I2C TRUE
+# define STM32_I2C_USE_I2C1 TRUE
+# define STM32_I2C_USE_I2C2 TRUE
+# define HAL_I2C_CLEAR_ON_TIMEOUT 0
+# define HAL_I2C_INTERNAL_MASK 0
+# COMPASS IST8310 I2C:0:0x0E false ROTATION_ROLL_180_YAW_90
+# COMPASS RM3100 SPI:rm3100 false ROTATION_PITCH_180
+# BARO BMP388 I2C:0:0x76
+# BARO MS56XX SPI:ms5611
+# define SAFE_LED_ON 0
+# define HAL_USE_ADC FALSE
+# define STM32_ADC_USE_ADC1 FALSE
+# define HAL_DISABLE_ADC_DRIVER TRUE
+# define HAL_NO_GPIO_IRQ
+# define HAL_NO_RCIN_THREAD
+# define HAL_USE_RTC FALSE
+# define DISABLE_SERIAL_ESC_COMM TRUE
+# define DMA_RESERVE_SIZE 0
+# define HAL_DISABLE_LOOP_DELAY
+# define HAL_NO_MONITOR_THREAD
+# define HAL_MINIMIZE_FEATURES 0
+# define HAL_DEVICE_THREAD_STACK 768
+# define GPS_MAX_RECEIVERS 1
+# define GPS_MAX_INSTANCES 1
+# define HAL_COMPASS_MAX_SENSORS 1
+# define HAL_PERIPH_ENABLE_GPS
+# define HAL_PERIPH_ENABLE_MAG
+# define HAL_PERIPH_ENABLE_BARO
+# define HAL_PERIPH_ENABLE_RC_OUT
+# define HAL_PERIPH_ENABLE_NOTIFY
+
+define CAN_APP_NODE_NAME "org.ardupilot.ark_gps"
+
+
+
