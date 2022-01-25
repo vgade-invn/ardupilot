@@ -115,7 +115,28 @@
 #error "Unsupported F7 HSE clock"
 #endif
 #else // F4
-// F4 clock config
+#if HAL_EXPECTED_SYSCLOCK == 100000000
+// low frequency varients of F4, such as F412
+#if STM32_HSECLK == 8000000U
+#define STM32_PLLM_VALUE                    4
+#define STM32_PLLN_VALUE                    100
+#define STM32_PLLP_VALUE                    2
+#define STM32_PLLQ_VALUE                    2
+#elif STM32_HSECLK == 16000000U
+#define STM32_PLLM_VALUE                    8
+#define STM32_PLLN_VALUE                    100
+#define STM32_PLLP_VALUE                    2
+#define STM32_PLLQ_VALUE                    2
+#elif STM32_HSECLK == 24000000U
+#define STM32_PLLM_VALUE                    12
+#define STM32_PLLN_VALUE                    100
+#define STM32_PLLP_VALUE                    2
+#define STM32_PLLQ_VALUE                    2
+#else
+#error "Unsupported F4 HSE clock"
+#endif
+#else
+// F4 high clock config
 #if STM32_HSECLK == 8000000U
 #define STM32_PLLM_VALUE                    8
 #define STM32_PLLN_VALUE                    336
@@ -134,6 +155,7 @@
 #else
 #error "Unsupported F4 HSE clock"
 #endif
+#endif // HAL_EXPECTED_SYSCLOCK
 #endif // MCU
 #endif // HAL_CUSTOM_CLOCK_TREE
 
