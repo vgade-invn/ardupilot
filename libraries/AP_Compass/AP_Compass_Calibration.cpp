@@ -526,7 +526,7 @@ MAV_RESULT Compass::mag_cal_fixed_yaw(float yaw_deg, uint8_t compass_mask,
             // skip this compass
             continue;
         }
-        if (_use_for_yaw[Priority(i)] == 0 || (!force_use && !use_for_yaw(i))) {
+        if (_state[_get_state_id(Priority(i))].params.use_for_yaw == 0 || (!force_use && !use_for_yaw(i))) {
             continue;
         }
         if (!healthy(i)) {
