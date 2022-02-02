@@ -505,7 +505,7 @@ void AP_TECS::_update_height_demand(float hgt_afe)
         }
 
         // linear interpolation of sink rate as we approach the ground
-        const float end_height = 10;
+        const float end_height = 5;
         _hgt_rate_dem = linear_interpolate(-_land_sink, -flare.sink_rate_start,
                                            hgt_afe,
                                            end_height, flare.height_flare_start);
