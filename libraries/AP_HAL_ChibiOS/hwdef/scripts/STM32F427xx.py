@@ -27,6 +27,21 @@ mcu = {
     }
 }
 
+# number of pins in each port
+pincount = {
+    'A': 16,
+    'B': 16,
+    'C': 16,
+    'D': 16,
+    'E': 16,
+    'F': 16,
+    'G': 16,
+    'H': 16,
+    'I': 0,
+    'J': 0,
+    'K': 0
+}
+
 DMA_Map = {
 	# format is (DMA_TABLE, StreamNum, Channel)
 	# extracted from tabula-STM32F4x7-dma.csv

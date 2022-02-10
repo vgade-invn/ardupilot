@@ -1,0 +1,64 @@
+# hw definition file for processing by chibios_hwdef.py
+# for bootloader for FMUv3 hardware (ie. for Pixhawk1, Pixhawk2 cube, XUAV2.1 etc)
+
+# MCU class and specific type
+MCU STM32F4xx STM32F427xx
+
+# board ID for firmware load
+APJ_BOARD_ID 9
+
+# crystal frequency
+OSCILLATOR_HZ 24000000
+
+
+# ChibiOS system timer
+STM32_ST_USE_TIMER 5
+
+# flash size
+FLASH_SIZE_KB 2048
+
+# location of application code
+FLASH_BOOTLOADER_LOAD_KB 16
+
+# bootloader loads at start of flash
+FLASH_RESERVE_START_KB 0
+
+# USB setup
+USB_STRING_MANUFACTURER "Wurzbach"
+
+# baudrate to run bootloader at on uarts
+define BOOTLOADER_BAUDRATE 115200
+
+# uarts and USB to run bootloader protocol on
+SERIAL_ORDER OTG1
+# SERIAL_ORDER OTG1 USART2 USART3 UART7
+
+# this is the pin that senses USB being connected. It is an input pin
+# setup as OPENDRAIN
+PA9 VBUS INPUT OPENDRAIN
+
+# now we define the pins that USB is connected on
+PA11 OTG_FS_DM OTG1
+PA12 OTG_FS_DP OTG1
+
+# these are the pins for SWD debugging with a STlinkv2 or black-magic probe
+PA13 JTMS-SWDIO SWD
+PA14 JTCK-SWCLK SWD
+
+# define a LED
+PE8 LED_BOOTLOADER OUTPUT LOW
+PE10 LED_ACTIVITY  OUTPUT LOW
+define HAL_LED_ON 1
+
+# this adds a C define which sets up the ArduPilot architecture
+# define. Any line starting with 'define' is copied literally as
+# a #define in the hwdef.h header
+define HAL_CHIBIOS_ARCH_FMUV3 1
+
+# we need to tell HAL_ChibiOS/Storage.cpp how much storage is
+# available (in bytes)
+
+# Add CS pins to ensure they are high in bootloader
+PA4 BARO_CS1 CS          # SPI1_CS1
+PA8 ICM20689_1_CS2 CS    # SPI1_CS2
+PB4 ICM20689_2_CS3 CS    # SPI1_CS3
