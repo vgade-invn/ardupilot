@@ -10,7 +10,6 @@ APJ_BOARD_ID 9
 # crystal frequency
 OSCILLATOR_HZ 24000000
 
-
 # ChibiOS system timer
 STM32_ST_USE_TIMER 5
 
@@ -18,7 +17,7 @@ STM32_ST_USE_TIMER 5
 FLASH_SIZE_KB 2048
 
 # location of application code
-FLASH_BOOTLOADER_LOAD_KB 16
+FLASH_BOOTLOADER_LOAD_KB 64
 
 # bootloader loads at start of flash
 FLASH_RESERVE_START_KB 0
@@ -26,12 +25,8 @@ FLASH_RESERVE_START_KB 0
 # USB setup
 USB_STRING_MANUFACTURER "Wurzbach"
 
-# baudrate to run bootloader at on uarts
-define BOOTLOADER_BAUDRATE 115200
-
 # uarts and USB to run bootloader protocol on
 SERIAL_ORDER OTG1
-# SERIAL_ORDER OTG1 USART2 USART3 UART7
 
 # this is the pin that senses USB being connected. It is an input pin
 # setup as OPENDRAIN
@@ -62,3 +57,12 @@ define HAL_CHIBIOS_ARCH_FMUV3 1
 PA4 BARO_CS1 CS          # SPI1_CS1
 PA8 ICM20689_1_CS2 CS    # SPI1_CS2
 PB4 ICM20689_2_CS3 CS    # SPI1_CS3
+
+
+PD0 CAN1_RX CAN1
+PD1 CAN1_TX CAN1
+PB6 CAN2_TX CAN2
+PB12 CAN2_RX CAN2
+
+define CAN_APP_NODE_NAME "org.ardupilot.jeffw-bl"
+define HAL_RAM_RESERVE_START 0
