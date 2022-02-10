@@ -93,6 +93,8 @@ PD1 CAN1_TX CAN1
 PB6 CAN2_TX CAN2
 PB12 CAN2_RX CAN2
 
+define CAN_APP_NODE_NAME "org.ardupilot.jeffw"
+
 ############################
 
 # I2C
@@ -148,6 +150,17 @@ PC11 SDIO_D3 SDIO
 PC12 SDIO_CK SDIO
 PD2 SDIO_CMD SDIO
 
+define HAL_OS_FATFS_IO 1
+define HAL_BOARD_LOG_DIRECTORY "/APM/LOGS"
+define HAL_BOARD_TERRAIN_DIRECTORY "/APM/TERRAIN"
+
+############################
+
+# Param Storage
+STORAGE_FLASH_PAGE 2
+define HAL_STORAGE_SIZE 15360
+FLASH_RESERVE_START_KB 64
+
 ############################
 
 # ADCs
@@ -162,7 +175,7 @@ define HAL_DISABLE_ADC_DRIVER TRUE
 PE14 TIM1_CH4 TIM1 PWM(1) GPIO(50)
 PE13 TIM1_CH3 TIM1 PWM(2) GPIO(51)
 PE11 TIM1_CH2 TIM1 PWM(3) GPIO(52)
-PE9 TIM1_CH1 TIM1 PWM(4) GPIO(53)
+PE9  TIM1_CH1 TIM1 PWM(4) GPIO(53)
 PD13 TIM4_CH2 TIM4 PWM(5) GPIO(54)
 PD14 TIM4_CH3 TIM4 PWM(6) GPIO(55)
 
@@ -171,7 +184,7 @@ PD14 TIM4_CH3 TIM4 PWM(6) GPIO(55)
 # GPIOs
 
 PE8 FMU_LED_AMBER OUTPUT HIGH GPIO(1)       # DEBUG1 LED1
-PE10 DEBUG2 OUTPUT GPIO(2)                  # DEBUG2 LED2
+PE10 LED_SAFETY OUTPUT GPIO(2)              # DEBUG2 LED2
 PE12 DEBUG3 OUTPUT GPIO(3)                  # DEBUG3 LED3
 PE15 DEBUG4 OUTPUT GPIO(4)                  # DEBUG4 LED4
 
@@ -180,7 +193,7 @@ PF12 PWR_MON_WARN INPUT GPIO(11)
 PF13 PWR_MON_TC INPUT GPIO(12)
 PF14 PWR_MON_PV INPUT GPIO(13)
 
-# RTC 32.768kHz crytsal. Not supported
+# RTC 32.768kHz crystal. Not supported
 PC14 RTC_37KHZ_A INPUT GPIO(14)
 PC15 RTC_37KHZ_B INPUT GPIO(15)
 
@@ -205,7 +218,7 @@ PH11 CAM_SHOE_EN_4 OUTPUT GPIO(36)
 PH12 CAM_SHOE_EN_5 OUTPUT GPIO(37)
 PH13 CAM_SHOE_EN_6 OUTPUT GPIO(38)
 
-PF8 PWM_IN INPUT GPIO(42)
+PF8 PWM_IN INPUT GPIO(42)               # TIM13_CH1 is not mapped correctly in the DMA matrix so we can't use it's timer :(
 PF9 HOTSHOE_OUT OUTPUT GPIO(43)
 
 PB2 TEST_POINT_85 INPUT GPIO(85)        # BOOT1
@@ -236,53 +249,3 @@ IMU Invensense SPI:icm20689_1 ROTATION_NONE
 IMU Invensense SPI:icm20689_2 ROTATION_NONE
 
 ############################
-
-
-#SPIDEV ms5611         SPI1 DEVID3  BARO_CS      MODE3 20*MHZ 20*MHZ
-#SPIDEV ms5611_ext     SPI4 DEVID2  BARO_EXT_CS  MODE3 20*MHZ 20*MHZ
-#SPIDEV mpu6000        SPI1 DEVID4  MPU_CS       MODE3  2*MHZ  8*MHZ
-#SPIDEV icm20608-am    SPI1 DEVID2  ACCEL_EXT_CS MODE3  4*MHZ  8*MHZ
-#SPIDEV mpu9250        SPI1 DEVID4  MPU_CS       MODE3  4*MHZ  8*MHZ
-#SPIDEV mpu9250_ext    SPI4 DEVID1  MPU_EXT_CS   MODE3  4*MHZ  8*MHZ
-#SPIDEV icm20948       SPI1 DEVID4  MPU_CS       MODE3  4*MHZ  8*MHZ
-#SPIDEV icm20948_ext   SPI4 DEVID1  MPU_EXT_CS   MODE3  4*MHZ  8*MHZ
-#SPIDEV hmc5843        SPI1 DEVID5  MAG_CS       MODE3 11*MHZ 11*MHZ
-#SPIDEV lsm9ds0_g      SPI1 DEVID1  GYRO_EXT_CS  MODE3 11*MHZ 11*MHZ 
-#SPIDEV lsm9ds0_am     SPI1 DEVID2  ACCEL_EXT_CS MODE3 11*MHZ 11*MHZ 
-#SPIDEV lsm9ds0_ext_g  SPI4 DEVID4  GYRO_EXT_CS  MODE3 11*MHZ 11*MHZ 
-#SPIDEV lsm9ds0_ext_am SPI4 DEVID3  ACCEL_EXT_CS MODE3 11*MHZ 11*MHZ 
-#SPIDEV icm20602_ext   SPI4 DEVID4  GYRO_EXT_CS  MODE3  4*MHZ  8*MHZ
-#SPIDEV ramtron        SPI2 DEVID10 FRAM_CS      MODE3  8*MHZ  8*MHZ
-#SPIDEV external0m0    SPI4 DEVID5  MPU_EXT_CS   MODE0  2*MHZ  2*MHZ
-#SPIDEV external0m1    SPI4 DEVID5  MPU_EXT_CS   MODE1  2*MHZ  2*MHZ
-#SPIDEV external0m2    SPI4 DEVID5  MPU_EXT_CS   MODE2  2*MHZ  2*MHZ
-#SPIDEV external0m3    SPI4 DEVID5  MPU_EXT_CS   MODE3  2*MHZ  2*MHZ
-#SPIDEV pixartPC15     SPI4 DEVID13 ACCEL_EXT_CS MODE3  2*MHZ  2*MHZ
-
-# Now some commented out SPI device names which can be used by
-# developers to test that the clock calculations are right for a
-# bus. This is used in conjunction with the mavproxy devop module.
-
-# for SPI clock testing
-#SPIDEV clock500 SPI4 DEVID5  MPU_EXT_CS   MODE0  500*KHZ 500*KHZ # gives 329KHz
-#SPIDEV clock1   SPI4 DEVID5  MPU_EXT_CS   MODE0  1*MHZ 1*MHZ     # gives 657kHz
-#SPIDEV clock2   SPI4 DEVID5  MPU_EXT_CS   MODE0  2*MHZ 2*MHZ     # gives 1.3MHz
-#SPIDEV clock4   SPI4 DEVID5  MPU_EXT_CS   MODE0  4*MHZ 4*MHZ     # gives 2.6MHz
-#SPIDEV clock8   SPI4 DEVID5  MPU_EXT_CS   MODE0  8*MHZ 8*MHZ     # gives 5.5MHz
-#SPIDEV clock16  SPI4 DEVID5  MPU_EXT_CS   MODE0  16*MHZ 16*MHZ   # gives 10.6MHz
-############################
-
-
-# Now some defines for logging and terrain data files.
-define HAL_BOARD_LOG_DIRECTORY "/APM/LOGS"
-define HAL_BOARD_TERRAIN_DIRECTORY "/APM/TERRAIN"
-
-# We need to tell HAL_ChibiOS/Storage.cpp how much storage is
-# available (in bytes).
-define HAL_STORAGE_SIZE 16384
-
-# Enable RAMTROM parameter storage.
-#define HAL_WITH_RAMTRON 1
-
-# Enable FAT filesystem support (needs a microSD defined via SDIO).
-define HAL_OS_FATFS_IO 1
