@@ -132,6 +132,11 @@ private:
     private:
         AP_Int8 _driver_number;
         AP_Int32 _bitrate;
+#if HAL_CANFD_SUPPORTED
+        AP_Int32 _fdbitrate;
+#else
+        const uint32_t _fdbitrate = 0;
+#endif
     };
 
     //Parameter Interface for CANDrivers
