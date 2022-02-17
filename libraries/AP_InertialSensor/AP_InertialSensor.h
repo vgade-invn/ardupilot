@@ -304,7 +304,7 @@ public:
     bool is_still();
 
     // return true if harmonic notch enabled
-    bool gyro_harmonic_notch_enabled(void) const { return _harmonic_notch_filter.enabled(); }
+    bool gyro_harmonic_notch_enabled() const { return _harmonic_notch_filter.enabled(); }
 
     AuxiliaryBus *get_auxiliary_bus(int16_t backend_id) { return get_auxiliary_bus(backend_id, 0); }
     AuxiliaryBus *get_auxiliary_bus(int16_t backend_id, uint8_t instance);

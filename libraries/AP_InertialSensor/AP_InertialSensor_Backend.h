@@ -284,6 +284,7 @@ protected:
     float gyro_harmonic_notch_attenuation_dB(void) const { return _imu._harmonic_notch_filter.attenuation_dB(); }
 
     bool gyro_harmonic_notch_enabled(void) const { return _imu._harmonic_notch_filter.enabled(); }
+    bool gyro_harmonic_notch_enabled(uint8_t instance) const;
 
     // common gyro update function for all backends
     void update_gyro(uint8_t instance); /* front end */

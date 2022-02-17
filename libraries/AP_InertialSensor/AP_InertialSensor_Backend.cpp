@@ -280,7 +280,7 @@ void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
         }
 
         // apply the harmonic notch filter
-        if (gyro_harmonic_notch_enabled()) {
+        if (gyro_harmonic_notch_enabled(instance)) {
             gyro_filtered = _imu._gyro_harmonic_notch_filter[instance].apply(gyro_filtered);
         }
 
@@ -401,7 +401,7 @@ void AP_InertialSensor_Backend::_notify_new_delta_angle(uint8_t instance, const 
         }
 
         // apply the harmonic notch filter
-        if (gyro_harmonic_notch_enabled()) {
+        if (gyro_harmonic_notch_enabled(instance)) {
             gyro_filtered = _imu._gyro_harmonic_notch_filter[instance].apply(gyro_filtered);
         }
 
@@ -809,3 +809,19 @@ void AP_InertialSensor_Backend::log_register_change(uint32_t bus_id, const AP_HA
                        reg.regnum,
                        reg.value);
 }
+
+/*
+  see if harmonic notch is enabled on a particular instance
+  by default we only run on the primary gyro to save CPU
+ */
+bool AP_InertialSensor_Backend::gyro_harmonic_notch_enabled(uint8_t instance) const
+{
+    if (!gyro_harmonic_notch_enabled()) {
+        return false;
+    }
+    if (_imu._harmonic_notch_filter.hasOption(HarmonicNotchFilterParams::Options::AllIMUs)) {
+        return true;
+    }
+    return instance == AP::ahrs().get_primary_gyro_index();
+}
+
