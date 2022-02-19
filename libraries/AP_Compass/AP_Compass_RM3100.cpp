@@ -22,6 +22,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <utility>
 #include <AP_Math/AP_Math.h>
+#include <AP_Logger/AP_Logger.h>
 #include <stdio.h>
 
 #define RM3100_POLL_REG        0x00
@@ -157,8 +158,8 @@ bool AP_Compass_RM3100::init()
         set_external(compass_instance, true);
     }
     
-    // call timer() at 80Hz
-    dev->register_periodic_callback(1000000U/80U,
+    // call timer() at 160Hz
+    dev->register_periodic_callback(1000000U/160U,
                                     FUNCTOR_BIND_MEMBER(&AP_Compass_RM3100::timer, void));
 
     return true;
@@ -203,6 +204,10 @@ void AP_Compass_RM3100::timer()
     magy = ((uint32_t)data.magy_2 << 24) | ((uint32_t)data.magy_1 << 16) | ((uint32_t)data.magy_0 << 8);
     magz = ((uint32_t)data.magz_2 << 24) | ((uint32_t)data.magz_1 << 16) | ((uint32_t)data.magz_0 << 8);
 
+    AP::logger().WriteStreaming("MAGR", "TimeUS,MagX,MagY,MagZ", "Qiii",
+                                AP_HAL::micros64(),
+                                magx, magy, magz);
+    
     // right-shift signed integer back to get correct measurement value
     magx >>= 8;
     magy >>= 8;
