@@ -114,6 +114,7 @@ extern const AP_HAL::HAL& hal;
 #define SERIAL9_PROTOCOL SerialProtocol_None
 #endif // HAL_BUILD_AP_PERIPH
 
+struct AP_SerialManager::UARTState AP_SerialManager::state[SERIALMANAGER_NUM_PORTS];
 
 const AP_Param::GroupInfo AP_SerialManager::var_info[] = {
 #if SERIALMANAGER_NUM_PORTS > 0

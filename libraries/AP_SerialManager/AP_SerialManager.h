@@ -224,11 +224,11 @@ private:
     static AP_SerialManager *_singleton;
 
     // array of uart info
-    struct UARTState {
+    static struct UARTState {
         AP_Int8 protocol;
         AP_Int32 baud;
         AP_Int16 options;
-    } state[SERIALMANAGER_NUM_PORTS];
+    } state[];
 
     // pass-through serial support
     AP_Int8 passthru_port1;
