@@ -33,6 +33,7 @@
 #include <AP_Logger/AP_Logger.h>
 #include <AP_Param/AP_Param.h>
 #include <AP_Declination/AP_Declination.h>
+#include <AP_Baro/AP_Baro.h>
 
 using namespace SITL;
 
@@ -574,11 +575,7 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
     // velocity relative to airmass in body frame
     velocity_air_bf = dcm.transposed() * velocity_air_ef;
 
-    // airspeed
-    airspeed = velocity_air_ef.length();
-
-    // airspeed as seen by a fwd pitot tube (limited to 120m/s)
-    airspeed_pitot = constrain_float(velocity_air_bf * Vector3f(1.0f, 0.0f, 0.0f), 0.0f, 120.0f);
+    update_eas_airspeed();
 
     // constrain height to the ground
     if (on_ground()) {
@@ -1022,4 +1019,38 @@ void Aircraft::add_twist_forces(Vector3f &rot_accel)
         sitl->twist.start_ms = 0;
         sitl->twist.t = 0;
     }
+}
+
+/*
+  update EAS airspeed and pitot speed
+ */
+void Aircraft::update_eas_airspeed()
+{
+    const float air_density_ratio = AP::baro().get_air_density_ratio();
+    air_density = SSL_AIR_DENSITY * air_density_ratio;
+    airspeed = velocity_air_ef.length() * sqrtf(air_density_ratio);
+
+    /*
+      airspeed as seen by a fwd pitot tube (limited to 120m/s)
+    */
+    airspeed_pitot = airspeed;
+
+    // calculate angle between the local flow vector and a pitot tube aligned with the X body axis
+    const float pitot_aoa =  atan2f(sqrtf(sq(velocity_air_bf.y) + sq(velocity_air_bf.z)), velocity_air_bf.x);
+
+    /*
+      assume the pitot can correctly capture airspeed up to 20 degrees off the nose
+      and follows a cose law outside that range
+    */
+    const float max_pitot_aoa = radians(20);
+    if (pitot_aoa > radians(90)) {
+        airspeed_pitot = 0;
+    } else if (pitot_aoa > max_pitot_aoa) {
+        const float gain_factor = M_PI_2 / (radians(90) - max_pitot_aoa);
+        airspeed_pitot *= cosf((pitot_aoa - max_pitot_aoa) * gain_factor);
+    }
+
+    // limit to speed common pitot setups can measure
+    const float airspeed_eas_max = 120.0;
+    airspeed_pitot = constrain_float(airspeed_pitot, 0.0f, airspeed_eas_max);
 }

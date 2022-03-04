@@ -18,8 +18,10 @@
 */
 
 #include "SIM_Plane.h"
-
 #include <stdio.h>
+#include <AP_AHRS/AP_AHRS.h>
+
+extern const AP_HAL::HAL& hal;
 
 using namespace SITL;
 
@@ -88,250 +90,137 @@ Plane::Plane(const char *frame_str) :
         mass = 2.0;
         coefficient.c_drag_p = 0.05;
     }
-}
 
-/*
-  the following functions are from last_letter
-  https://github.com/Georacer/last_letter/blob/master/last_letter/src/aerodynamicsLib.cpp
-  many thanks to Georacer!
- */
-float Plane::liftCoeff(float alpha) const
-{
-    const float alpha0 = coefficient.alpha_stall;
-    const float M = coefficient.mcoeff;
-    const float c_lift_0 = coefficient.c_lift_0;
-    const float c_lift_a0 = coefficient.c_lift_a;
+    convert_cfd_data(default_cfd_model);
 
-    // clamp the value of alpha to avoid exp(90) in calculation of sigmoid
-    const float max_alpha_delta = 0.8f;
-    if (alpha-alpha0 > max_alpha_delta) {
-        alpha = alpha0 + max_alpha_delta;
-    } else if (alpha0-alpha > max_alpha_delta) {
-        alpha = alpha0 - max_alpha_delta;
-    }
-	double sigmoid = ( 1+exp(-M*(alpha-alpha0))+exp(M*(alpha+alpha0)) ) / (1+exp(-M*(alpha-alpha0))) / (1+exp(M*(alpha+alpha0)));
-	double linear = (1.0-sigmoid) * (c_lift_0 + c_lift_a0*alpha); //Lift at small AoA
-	double flatPlate = sigmoid*(2*copysign(1,alpha)*pow(sin(alpha),2)*cos(alpha)); //Lift beyond stall
-
-	float result  = linear+flatPlate;
-	return result;
-}
-
-float Plane::dragCoeff(float alpha) const
-{
-    const float b = coefficient.b;
-    const float s = coefficient.s;
-    const float c_drag_p = coefficient.c_drag_p;
-    const float c_lift_0 = coefficient.c_lift_0;
-    const float c_lift_a0 = coefficient.c_lift_a;
-    const float oswald = coefficient.oswald;
-    
-	double AR = pow(b,2)/s;
-	double c_drag_a = c_drag_p + pow(c_lift_0+c_lift_a0*alpha,2)/(M_PI*oswald*AR);
-
-	return c_drag_a;
 }
 
 // Torque calculation function
-Vector3f Plane::getTorque(float inputAileron, float inputElevator, float inputRudder, float inputThrust, const Vector3f &force) const
+Vector3f Plane::getTorque(float inputAileron, float inputElevator, float inputRudder, const Vector3f &force) const
 {
-    float alpha = angle_of_attack;
+    // Calculate dynamic pressure
+    const auto &m = model;
+    double qPa = 0.5*air_density*sq(velocity_air_bf.length());
+    const float aileron_rad = inputAileron * radians(m.aileronDeflectionLimitDeg);
+    const float elevator_rad = inputElevator * radians(m.elevatorDeflectionLimitDeg);
+    const float rudder_rad = inputRudder * radians(m.rudderDeflectionLimitDeg);
+    const float tas = MAX(airspeed * AP::ahrs().get_EAS2TAS(), 1);
 
-	//calculate aerodynamic torque
-    float effective_airspeed = airspeed;
+    float Cl = (m.Cl2 * sq(alpharad) + m.Cl1 * alpharad + m.Cl0) * betarad;
+    float Cm = m.Cm2 * sq(alpharad) + m.Cm1 * alpharad + m.Cm0;
+    float Cn = (m.Cn2 * sq(alpharad) + m.Cn1 * alpharad + m.Cn0) * betarad;
 
-    if (tailsitter) {
-        /*
-          tailsitters get airspeed from prop-wash
-         */
-        effective_airspeed += inputThrust * 20;
+    Cl += m.deltaClperRadianElev * elevator_rad;
+    Cm += m.deltaCmperRadianElev * elevator_rad;
+    Cn += m.deltaCnperRadianElev * elevator_rad;
 
-        // reduce effective angle of attack as thrust increases
-        alpha *= constrain_float(1 - inputThrust, 0, 1);
-    }
-    
-    const float s = coefficient.s;
-    const float c = coefficient.c;
-    const float b = coefficient.b;
-    const float c_l_0 = coefficient.c_l_0;
-    const float c_l_b = coefficient.c_l_b;
-    const float c_l_p = coefficient.c_l_p;
-    const float c_l_r = coefficient.c_l_r;
-    const float c_l_deltaa = coefficient.c_l_deltaa;
-    const float c_l_deltar = coefficient.c_l_deltar;
-    const float c_m_0 = coefficient.c_m_0;
-    const float c_m_a = coefficient.c_m_a;
-    const float c_m_q = coefficient.c_m_q;
-    const float c_m_deltae = coefficient.c_m_deltae;
-    const float c_n_0 = coefficient.c_n_0;
-    const float c_n_b = coefficient.c_n_b;
-    const float c_n_p = coefficient.c_n_p;
-    const float c_n_r = coefficient.c_n_r;
-    const float c_n_deltaa = coefficient.c_n_deltaa;
-    const float c_n_deltar = coefficient.c_n_deltar;
-    const Vector3f &CGOffset = coefficient.CGOffset;
-    
-    float rho = air_density;
+    Cl += m.deltaClperRadianRud * rudder_rad;
+    Cm += m.deltaCmperRadianRud * rudder_rad;
+    Cn += m.deltaCnperRadianRud * rudder_rad;
 
-	//read angular rates
-	double p = gyro.x;
-	double q = gyro.y;
-	double r = gyro.z;
+    Cl += (m.deltaClperRadianAil2 * sq(alpharad) + m.deltaClperRadianAil1 * alpharad + m.deltaClperRadianAil0) * aileron_rad;
+    Cm += m.deltaCmperRadianAil * aileron_rad;
+    Cn += (m.deltaCnperRadianAil2 * sq(alpharad) + m.deltaCnperRadianAil1 * alpharad + m.deltaCnperRadianAil0) * aileron_rad;
 
-	double qbar = 1.0/2.0*rho*pow(effective_airspeed,2)*s; //Calculate dynamic pressure
-	double la, na, ma;
-	if (is_zero(effective_airspeed))
-	{
-		la = 0;
-		ma = 0;
-		na = 0;
-	}
-	else
-	{
-		la = qbar*b*(c_l_0 + c_l_b*beta + c_l_p*b*p/(2*effective_airspeed) + c_l_r*b*r/(2*effective_airspeed) + c_l_deltaa*inputAileron + c_l_deltar*inputRudder);
-		ma = qbar*c*(c_m_0 + c_m_a*alpha + c_m_q*c*q/(2*effective_airspeed) + c_m_deltae*inputElevator);
-		na = qbar*b*(c_n_0 + c_n_b*beta + c_n_p*b*p/(2*effective_airspeed) + c_n_r*b*r/(2*effective_airspeed) + c_n_deltaa*inputAileron + c_n_deltar*inputRudder);
-	}
+    // derivatives
+    float Clp = m.Clp2 * sq(alpharad) + m.Clp1 * alpharad + m.Clp0;
+    float Clr = m.Clr2 * sq(alpharad) + m.Clr1 * alpharad + m.Clr0;
+    float Cnp = m.Cnp2 * sq(alpharad) + m.Cnp1 * alpharad + m.Cnp0;
+    float Cnr = m.Cnr2 * sq(alpharad) + m.Cnr1 * alpharad + m.Cnr0;
+
+    // normalise gyro rates
+    Vector3f pqr_norm = gyro;
+    pqr_norm.x *= 0.5 * m.refSpan / tas;
+    pqr_norm.y *= 0.5 * m.refChord / tas;
+    pqr_norm.z *= 0.5 * m.refSpan / tas;
+
+    Cl += pqr_norm.x * Clp;
+    Cl += pqr_norm.z * Clr;
+    Cn += pqr_norm.x * Cnp;
+    Cn += pqr_norm.z * Cnr;
+
+    Cm += pqr_norm.y * m.Cmq;
+
+    float Mx = Cl * qPa * m.Sref * m.refSpan;
+    float My = Cm * qPa * m.Sref * m.refChord;
+    float Mz = Cn * qPa * m.Sref * m.refSpan;
 
 
-	// Add torque to to force misalignment with CG
-	// r x F, where r is the distance from CoG to CoL
-	la +=  CGOffset.y * force.z - CGOffset.z * force.y;
-	ma += -CGOffset.x * force.z + CGOffset.z * force.x;
-	na += -CGOffset.y * force.x + CGOffset.x * force.y;
+#if 0
+    AP::logger().Write("GLT", "TimeUS,Alpha,Beta,Cl,Cm,Cn", "Qfffff",
+                       AP_HAL::micros64(),
+                       degrees(alpharad),
+                       degrees(betarad),
+                       Cl, Cm, Cn);
+#endif
 
-	return Vector3f(la, ma, na);
+    return Vector3f(Mx/m.IXX, My/m.IYY, Mz/m.IZZ);
 }
 
-// Force calculation function from last_letter
+// Force calculation, return vector in Newtons
 Vector3f Plane::getForce(float inputAileron, float inputElevator, float inputRudder) const
 {
-    const float alpha = angle_of_attack;
-    const float c_drag_q = coefficient.c_drag_q;
-    const float c_lift_q = coefficient.c_lift_q;
-    const float s = coefficient.s;
-    const float c = coefficient.c;
-    const float b = coefficient.b;
-    const float c_drag_deltae = coefficient.c_drag_deltae;
-    const float c_lift_deltae = coefficient.c_lift_deltae;
-    const float c_y_0 = coefficient.c_y_0;
-    const float c_y_b = coefficient.c_y_b;
-    const float c_y_p = coefficient.c_y_p;
-    const float c_y_r = coefficient.c_y_r;
-    const float c_y_deltaa = coefficient.c_y_deltaa;
-    const float c_y_deltar = coefficient.c_y_deltar;
+    const auto &m = model;
+    const float aileron_rad = inputAileron * radians(m.aileronDeflectionLimitDeg);
+    const float elevator_rad = inputElevator * radians(m.elevatorDeflectionLimitDeg);
+    const float rudder_rad = inputRudder * radians(m.rudderDeflectionLimitDeg);
+
+    // dynamic pressure
+    double qPa = 0.5*air_density*sq(velocity_air_bf.length());
+
+    float CA = m.CA2 * sq(alpharad) + m.CA1 * alpharad + m.CA0;
+    float CY = (m.CY2 * sq(alpharad) + m.CY1 * alpharad + m.CY0) * betarad;
+    float CN = m.CN2 * sq(alpharad) + m.CN1 * alpharad + m.CN0;
+
+    CN += m.deltaCNperRadianElev * elevator_rad;
+    CA += m.deltaCAperRadianElev * elevator_rad;
+    CY += m.deltaCYperRadianElev * elevator_rad;
+
+    CN += m.deltaCNperRadianRud * rudder_rad;
+    CA += m.deltaCAperRadianRud * rudder_rad;
+    CY += m.deltaCYperRadianRud * rudder_rad;
+
+    CN += m.deltaCNperRadianAil * aileron_rad;
+    CA += m.deltaCAperRadianAil * aileron_rad;
+    CY += m.deltaCYperRadianAil * aileron_rad;
     
-    float rho = air_density;
+    float Fx = -CA * qPa * m.Sref;
+    float Fy =  CY * qPa * m.Sref;
+    float Fz = -CN * qPa * m.Sref;
 
-	//request lift and drag alpha-coefficients from the corresponding functions
-	double c_lift_a = liftCoeff(alpha);
-	double c_drag_a = dragCoeff(alpha);
+    Vector3f ret = Vector3f(Fx, Fy, Fz);
 
-	//convert coefficients to the body frame
-	double c_x_a = -c_drag_a*cos(alpha)+c_lift_a*sin(alpha);
-	double c_x_q = -c_drag_q*cos(alpha)+c_lift_q*sin(alpha);
-	double c_z_a = -c_drag_a*sin(alpha)-c_lift_a*cos(alpha);
-	double c_z_q = -c_drag_q*sin(alpha)-c_lift_q*cos(alpha);
-
-	//read angular rates
-	double p = gyro.x;
-	double q = gyro.y;
-	double r = gyro.z;
-
-	//calculate aerodynamic force
-	double qbar = 1.0/2.0*rho*pow(airspeed,2)*s; //Calculate dynamic pressure
-	double ax, ay, az;
-	if (is_zero(airspeed))
-	{
-		ax = 0;
-		ay = 0;
-		az = 0;
-	}
-	else
-	{
-		ax = qbar*(c_x_a + c_x_q*c*q/(2*airspeed) - c_drag_deltae*cos(alpha)*fabs(inputElevator) + c_lift_deltae*sin(alpha)*inputElevator);
-		// split c_x_deltae to include "abs" term
-		ay = qbar*(c_y_0 + c_y_b*beta + c_y_p*b*p/(2*airspeed) + c_y_r*b*r/(2*airspeed) + c_y_deltaa*inputAileron + c_y_deltar*inputRudder);
-		az = qbar*(c_z_a + c_z_q*c*q/(2*airspeed) - c_drag_deltae*sin(alpha)*fabs(inputElevator) - c_lift_deltae*cos(alpha)*inputElevator);
-		// split c_z_deltae to include "abs" term
-	}
-    return Vector3f(ax, ay, az);
+    return ret;
 }
 
 void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel)
 {
-    float aileron  = filtered_servo_angle(input, 0);
-    float elevator = filtered_servo_angle(input, 1);
-    float rudder   = filtered_servo_angle(input, 3);
-    bool launch_triggered = input.servos[6] > 1700;
-    float throttle;
-    if (reverse_elevator_rudder) {
-        elevator = -elevator;
-        rudder = -rudder;
-    }
-    if (elevons) {
-        // fake an elevon plane
-        float ch1 = aileron;
-        float ch2 = elevator;
-        aileron  = (ch2-ch1)/2.0f;
-        // the minus does away with the need for RC2_REVERSED=-1
-        elevator = -(ch2+ch1)/2.0f;
-
-        // assume no rudder
-        rudder = 0;
-    } else if (vtail) {
-        // fake a vtail plane
-        float ch1 = elevator;
-        float ch2 = rudder;
-        // this matches VTAIL_OUTPUT==2
-        elevator = (ch2-ch1)/2.0f;
-        rudder   = (ch2+ch1)/2.0f;
-    } else if (dspoilers) {
-        // fake a differential spoiler plane. Use outputs 1, 2, 4 and 5
-        float dspoiler1_left = filtered_servo_angle(input, 0);
-        float dspoiler1_right = filtered_servo_angle(input, 1);
-        float dspoiler2_left = filtered_servo_angle(input, 3);
-        float dspoiler2_right = filtered_servo_angle(input, 4);
-        float elevon_left  = (dspoiler1_left + dspoiler2_left)/2;
-        float elevon_right = (dspoiler1_right + dspoiler2_right)/2;
-        aileron  = (elevon_right-elevon_left)/2;
-        elevator = (elevon_left+elevon_right)/2;
-        rudder = fabsf(dspoiler1_right - dspoiler2_right)/2 - fabsf(dspoiler1_left - dspoiler2_left)/2;
-    }
-    //printf("Aileron: %.1f elevator: %.1f rudder: %.1f\n", aileron, elevator, rudder);
-
-    if (reverse_thrust) {
-        throttle = filtered_servo_angle(input, 2);
-    } else {
-        throttle = filtered_servo_range(input, 2);
-    }
-    
-    float thrust     = throttle;
-
-    if (ice_engine) {
-        thrust = icengine.update(input);
-    }
+    // mapping is:
+    // RC1 -> front right
+    // RC2 -> rear right
+    // RC3 -> front left
+    // RC4 -> rear left
+    // Assume positive is te down.
+    // TBD better handle scaling and limits when more data is provided
+    float aileron  = 0.25*( - filtered_servo_angle(input, 1) - filtered_servo_angle(input, 2) + filtered_servo_angle(input, 3) + filtered_servo_angle(input, 4));
+    float elevator = 0.25*( + filtered_servo_angle(input, 1) - filtered_servo_angle(input, 2) + filtered_servo_angle(input, 3) - filtered_servo_angle(input, 4));
+    float rudder   = 0.0f;
 
     // calculate angle of attack
-    angle_of_attack = atan2f(velocity_air_bf.z, velocity_air_bf.x);
-    beta = atan2f(velocity_air_bf.y,velocity_air_bf.x);
+    alpharad = atan2f(velocity_air_bf.z, velocity_air_bf.x);
+    betarad = atan2f(velocity_air_bf.y,velocity_air_bf.x);
 
-    if (tailsitter) {
-        /*
-          tailsitters get 4x the control surfaces
-         */
-        aileron *= 4;
-        elevator *= 4;
-        rudder *= 4;
-    }
-    
+    alpharad = constrain_float(alpharad, -model.alphaRadMax, model.alphaRadMax);
+    betarad = constrain_float(betarad, -model.betaRadMax, model.betaRadMax);
+
     Vector3f force = getForce(aileron, elevator, rudder);
-    rot_accel = getTorque(aileron, elevator, rudder, thrust, force);
+    rot_accel = getTorque(aileron, elevator, rudder, force);
 
+    /*
+        simple simulation of a launcher
+        */
     if (have_launcher) {
-        /*
-          simple simulation of a launcher
-         */
+        bool launch_triggered = input.servos[6] > 1700;
         if (launch_triggered) {
             uint64_t now = AP_HAL::millis64();
             if (launch_start_ms == 0) {
@@ -346,28 +235,21 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
             launch_start_ms = 0;
         }
     }
-    
-    // simulate engine RPM
-    rpm[0] = thrust * 7000;
-    
-    // scale thrust to newtons
-    thrust *= thrust_scale;
 
-    accel_body = Vector3f(thrust, 0, 0) + force;
-    accel_body /= mass;
+    accel_body = force / model.mass;
 
-    // add some noise
-    if (thrust_scale > 0) {
-        add_noise(fabsf(thrust) / thrust_scale);
-    }
-
-    if (on_ground() && !tailsitter) {
+    if (on_ground()) {
         // add some ground friction
         Vector3f vel_body = dcm.transposed() * velocity_ef;
         accel_body.x -= vel_body.x * 0.3f;
     }
+
+    // constrain accelerations
+    accel_body.x = constrain_float(accel_body.x, -16*GRAVITY_MSS, 16*GRAVITY_MSS);
+    accel_body.y = constrain_float(accel_body.y, -16*GRAVITY_MSS, 16*GRAVITY_MSS);
+    accel_body.z = constrain_float(accel_body.z, -16*GRAVITY_MSS, 16*GRAVITY_MSS);
 }
-    
+
 /*
   update the plane simulation by one time step
  */
@@ -397,4 +279,170 @@ void Plane::update(const struct sitl_input &input)
 
     // update magnetic field
     update_mag_field_bf();
+}
+
+void Plane::convert_cfd_data(ModelCFD &cfd) {
+    // calculate AoA and AoS force and moment derivatives
+    const float delta_alpha_inv = 1.0f / cfd.delta_alpha;
+    const float delta_beta_inv = 1.0f / cfd.delta_beta;
+
+    model.CA0 = cfd.Base_Aero[CFx];
+    model.CA1 = (cfd.Alpha_Delta[CFx] - cfd.Base_Aero[CFx]) * delta_alpha_inv;
+    model.CA2 = 0;
+
+    model.CY0 = (cfd.Beta_Delta[CFy] - cfd.Base_Aero[CFy]) * delta_beta_inv;
+    model.CY1 = 0;
+    model.CY2 = 0;
+
+    model.CN0 = cfd.Base_Aero[CFz];
+    model.CN1 = (cfd.Alpha_Delta[CFz] - cfd.Base_Aero[CFz]) * delta_alpha_inv;
+    model.CN2 = 0;
+
+    model.Cl0 = - (cfd.Beta_Delta[CMx] - cfd.Base_Aero[CMx]) * delta_beta_inv;
+    model.Cl1 = 0;
+    model.Cl2 = 0;
+
+    model.Cm0 = cfd.Base_Aero[CMy];
+    model.Cm1 = (cfd.Alpha_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_alpha_inv;
+    model.Cm2 = 0;
+
+    model.Cn0 = - (cfd.Beta_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_beta_inv;
+    model.Cn1 = 0;
+    model.Cn2 = 0;
+
+    // calculate dynamic derivatives
+    Vector3f pqr_norm = Vector3f(cfd.delta_roll_rate, cfd.delta_pitch_rate, cfd.delta_yaw_rate);
+    pqr_norm.x *= 0.5f * cfd.Bref / cfd.Vinf;
+    pqr_norm.y *= 0.5f * cfd.Cref / cfd.Vinf;
+    pqr_norm.z *= 0.5f * cfd.Bref / cfd.Vinf;
+
+    model.Clp0 = - (cfd.Roll_Rate_Delta[CMx] - cfd.Base_Aero[CMx]) / pqr_norm.x;
+    model.Clp1 = 0;
+    model.Clp2 = 0;
+
+    model.Cnp0 = - (cfd.Roll_Rate_Delta[CMz] - cfd.Base_Aero[CMz]) / pqr_norm.x;
+    model.Cnp1 = 0;
+    model.Cnp2 = 0;
+
+    model.Clr0 = - (cfd.Yaw_Rate_Delta[CMx] - cfd.Base_Aero[CMx]) / pqr_norm.z;
+    model.Clr1 = 0;
+    model.Clr2 = 0;
+
+    model.Cnr0 = - (cfd.Yaw_Rate_Delta[CMz] - cfd.Base_Aero[CMz]) / pqr_norm.z;
+    model.Cnr1 = 0;
+    model.Cnr2 = 0;
+
+    model.Cmq = (cfd.Pitch_Rate_Delta[CMz] - cfd.Base_Aero[CMz]) / pqr_norm.y;
+
+    // control surface derivatives
+    const float delta_inv  = 1.0f / cfd.delta_control;
+
+    // aileron
+    model.aileronDeflectionLimitDeg = cfd.aileronDeflectionLimitDeg;
+
+    // front right control surface - positive is down
+    model.deltaCAperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
+    model.deltaCYperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
+    model.deltaCNperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
+    model.deltaClperRadianAil0 = - cfd.ail_to_fr * (cfd.Front_Right_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
+    model.deltaCmperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
+    model.deltaCnperRadianAil0 = - cfd.ail_to_fr * (cfd.Front_Right_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+
+    // front left control surface - positive is up
+    model.deltaCAperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
+    model.deltaCYperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
+    model.deltaCNperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
+    model.deltaClperRadianAil0 += - cfd.ail_to_fl * (cfd.Front_Left_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
+    model.deltaCmperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
+    model.deltaCnperRadianAil0 += - cfd.ail_to_fl * (cfd.Front_Left_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+
+    // rear right control surface
+    model.deltaCAperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
+    model.deltaCYperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
+    model.deltaCNperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
+    model.deltaClperRadianAil0 += - cfd.ail_to_rr * (cfd.Rear_Right_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
+    model.deltaCmperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
+    model.deltaCnperRadianAil0 += - cfd.ail_to_rr * (cfd.Rear_Right_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+
+    // rear left control surface
+    model.deltaCAperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
+    model.deltaCYperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
+    model.deltaCNperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
+    model.deltaClperRadianAil0 += - cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
+    model.deltaCmperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
+    model.deltaCnperRadianAil0 += - cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+
+    model.deltaCAperRadianAil  *= 0.25;
+    model.deltaCYperRadianAil  *= 0.25;
+    model.deltaCNperRadianAil  *= 0.25;
+    model.deltaClperRadianAil0 *= 0.25;
+    model.deltaCmperRadianAil  *= 0.25;
+    model.deltaCnperRadianAil0 *= 0.25;
+
+    // no data for higher order terms
+    model.deltaClperRadianAil1 = 0;
+    model.deltaClperRadianAil2 = 0;
+    model.deltaCnperRadianAil1 = 0;
+    model.deltaCnperRadianAil2 = 0;
+
+    // elevator
+    model.elevatorDeflectionLimitDeg = cfd.elevatorDeflectionLimitDeg;
+
+    // front right control surface
+    model.deltaCAperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
+    model.deltaCYperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
+    model.deltaCNperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
+    model.deltaClperRadianElev = - cfd.ele_to_fr * (cfd.Front_Right_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
+    model.deltaCmperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
+    model.deltaCnperRadianElev = - cfd.ele_to_fr * (cfd.Front_Right_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+
+    // front left control surface
+    model.deltaCAperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
+    model.deltaCYperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
+    model.deltaCNperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
+    model.deltaClperRadianElev += - cfd.ele_to_fl * (cfd.Front_Left_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
+    model.deltaCmperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
+    model.deltaCnperRadianElev += - cfd.ele_to_fl * (cfd.Front_Left_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+
+    // rear right control surface
+    model.deltaCAperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
+    model.deltaCYperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
+    model.deltaCNperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
+    model.deltaClperRadianElev += - cfd.ele_to_rr * (cfd.Rear_Right_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
+    model.deltaCmperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
+    model.deltaCnperRadianElev += - cfd.ele_to_rr * (cfd.Rear_Right_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+
+    // rear left control surface
+    model.deltaCAperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
+    model.deltaCYperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
+    model.deltaCNperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
+    model.deltaClperRadianElev += - cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
+    model.deltaCmperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
+    model.deltaCnperRadianElev += - cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+
+    model.deltaCAperRadianElev *= 0.25f;
+    model.deltaCYperRadianElev *= 0.25f;
+    model.deltaCNperRadianElev *= 0.25f;
+    model.deltaClperRadianElev *= 0.25f;
+    model.deltaCmperRadianElev *= 0.25f;
+    model.deltaCnperRadianElev *= 0.25f;
+
+    // rudder
+    model.rudderDeflectionLimitDeg = 0.0f;
+    model.deltaCNperRadianRud = 0.0f;
+    model.deltaCAperRadianRud = 0.0f;
+    model.deltaCYperRadianRud = 0.0f;
+    model.deltaClperRadianRud = 0.0f;
+    model.deltaCmperRadianRud = 0.0f;
+    model.deltaCnperRadianRud = 0.0f;
+
+    // AoA and AoS limits
+    model.alphaRadMax = radians(cfd.alphaMaxDeg);
+    model.betaRadMax = radians(cfd.betaMaxDeg);
+
+    // position of c.g. wrt the aero moment reference centre
+    model.Xcg = cfd.Xref - cfd.Xcg; // CFD X axis points rearwards
+    model.Ycg = cfd.Ycg - cfd.Yref; // CFD Y axis points right
+    model.Zcg = cfd.Zref - cfd.Zcg; // CFD Z axis points up
+
 }
