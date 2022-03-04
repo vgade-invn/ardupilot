@@ -164,6 +164,7 @@ protected:
     Vector3f velocity_air_bf;            // velocity relative to airmass, body frame
     Vector3f position;                   // meters, NED from origin
     float mass;                          // kg
+    float air_density = SSL_AIR_DENSITY; // Kg/m^3
     float external_payload_mass = 0.0f;  // kg
     Vector3f accel_body;                 // m/s/s NED, body frame
     float airspeed;                      // m/s, apparent airspeed
@@ -287,6 +288,9 @@ protected:
 
     // get local thermal updraft
     float get_local_updraft(Vector3f currentPos);
+
+    // update EAS speeds
+    void update_eas_airspeed();
 
 private:
     uint64_t last_time_us = 0;
