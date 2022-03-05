@@ -218,7 +218,7 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
 
     /*
         simple simulation of a launcher
-        */
+    */
     if (have_launcher) {
         bool launch_triggered = input.servos[6] > 1700;
         if (launch_triggered) {
@@ -341,36 +341,36 @@ void Plane::convert_cfd_data(ModelCFD &cfd) {
     model.aileronDeflectionLimitDeg = cfd.aileronDeflectionLimitDeg;
 
     // front right control surface - positive is down
-    model.deltaCAperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
-    model.deltaCYperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
-    model.deltaCNperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
-    model.deltaClperRadianAil0 = - cfd.ail_to_fr * (cfd.Front_Right_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
-    model.deltaCmperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
-    model.deltaCnperRadianAil0 = - cfd.ail_to_fr * (cfd.Front_Right_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+    model.deltaCAperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CFx] - cfd.Base_Aero[CFx]) * delta_inv;
+    model.deltaCYperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CFy] - cfd.Base_Aero[CFy]) * delta_inv;
+    model.deltaCNperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CFz] - cfd.Base_Aero[CFz]) * delta_inv;
+    model.deltaClperRadianAil0 = - cfd.ail_to_fr * (cfd.Front_Right_Delta[CMx] - cfd.Base_Aero[CMx]) * delta_inv;
+    model.deltaCmperRadianAil  =   cfd.ail_to_fr * (cfd.Front_Right_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
+    model.deltaCnperRadianAil0 = - cfd.ail_to_fr * (cfd.Front_Right_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
 
     // front left control surface - positive is up
-    model.deltaCAperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
-    model.deltaCYperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
-    model.deltaCNperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
-    model.deltaClperRadianAil0 += - cfd.ail_to_fl * (cfd.Front_Left_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
-    model.deltaCmperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
-    model.deltaCnperRadianAil0 += - cfd.ail_to_fl * (cfd.Front_Left_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+    model.deltaCAperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CFx] - cfd.Base_Aero[CFx]) * delta_inv;
+    model.deltaCYperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CFy] - cfd.Base_Aero[CFy]) * delta_inv;
+    model.deltaCNperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CFz] - cfd.Base_Aero[CFz]) * delta_inv;
+    model.deltaClperRadianAil0 += - cfd.ail_to_fl * (cfd.Front_Left_Delta[CMx] - cfd.Base_Aero[CMx]) * delta_inv;
+    model.deltaCmperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
+    model.deltaCnperRadianAil0 += - cfd.ail_to_fl * (cfd.Front_Left_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
 
     // rear right control surface
-    model.deltaCAperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
-    model.deltaCYperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
-    model.deltaCNperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
-    model.deltaClperRadianAil0 += - cfd.ail_to_rr * (cfd.Rear_Right_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
-    model.deltaCmperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
-    model.deltaCnperRadianAil0 += - cfd.ail_to_rr * (cfd.Rear_Right_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+    model.deltaCAperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFx] - cfd.Base_Aero[CFx]) * delta_inv;
+    model.deltaCYperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFy] - cfd.Base_Aero[CFy]) * delta_inv;
+    model.deltaCNperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFz] - cfd.Base_Aero[CFz]) * delta_inv;
+    model.deltaClperRadianAil0 += - cfd.ail_to_rr * (cfd.Rear_Right_Delta[CMx] - cfd.Base_Aero[CMx]) * delta_inv;
+    model.deltaCmperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
+    model.deltaCnperRadianAil0 += - cfd.ail_to_rr * (cfd.Rear_Right_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
 
     // rear left control surface
-    model.deltaCAperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
-    model.deltaCYperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
-    model.deltaCNperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
-    model.deltaClperRadianAil0 += - cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
-    model.deltaCmperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
-    model.deltaCnperRadianAil0 += - cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+    model.deltaCAperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFx] - cfd.Base_Aero[CFx]) * delta_inv;
+    model.deltaCYperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFy] - cfd.Base_Aero[CFy]) * delta_inv;
+    model.deltaCNperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFz] - cfd.Base_Aero[CFz]) * delta_inv;
+    model.deltaClperRadianAil0 += - cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMx] - cfd.Base_Aero[CMx]) * delta_inv;
+    model.deltaCmperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
+    model.deltaCnperRadianAil0 += - cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
 
     model.deltaCAperRadianAil  *= 0.25;
     model.deltaCYperRadianAil  *= 0.25;
@@ -389,36 +389,36 @@ void Plane::convert_cfd_data(ModelCFD &cfd) {
     model.elevatorDeflectionLimitDeg = cfd.elevatorDeflectionLimitDeg;
 
     // front right control surface
-    model.deltaCAperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
-    model.deltaCYperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
-    model.deltaCNperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
-    model.deltaClperRadianElev = - cfd.ele_to_fr * (cfd.Front_Right_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
-    model.deltaCmperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
-    model.deltaCnperRadianElev = - cfd.ele_to_fr * (cfd.Front_Right_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+    model.deltaCAperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CFx] - cfd.Base_Aero[CFx]) * delta_inv;
+    model.deltaCYperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CFy] - cfd.Base_Aero[CFy]) * delta_inv;
+    model.deltaCNperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CFz] - cfd.Base_Aero[CFz]) * delta_inv;
+    model.deltaClperRadianElev = - cfd.ele_to_fr * (cfd.Front_Right_Delta[CMx] - cfd.Base_Aero[CMx]) * delta_inv;
+    model.deltaCmperRadianElev =   cfd.ele_to_fr * (cfd.Front_Right_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
+    model.deltaCnperRadianElev = - cfd.ele_to_fr * (cfd.Front_Right_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
 
     // front left control surface
-    model.deltaCAperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
-    model.deltaCYperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
-    model.deltaCNperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
-    model.deltaClperRadianElev += - cfd.ele_to_fl * (cfd.Front_Left_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
-    model.deltaCmperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
-    model.deltaCnperRadianElev += - cfd.ele_to_fl * (cfd.Front_Left_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+    model.deltaCAperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CFx] - cfd.Base_Aero[CFx]) * delta_inv;
+    model.deltaCYperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CFy] - cfd.Base_Aero[CFy]) * delta_inv;
+    model.deltaCNperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CFz] - cfd.Base_Aero[CFz]) * delta_inv;
+    model.deltaClperRadianElev += - cfd.ele_to_fl * (cfd.Front_Left_Delta[CMx] - cfd.Base_Aero[CMx]) * delta_inv;
+    model.deltaCmperRadianElev +=   cfd.ele_to_fl * (cfd.Front_Left_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
+    model.deltaCnperRadianElev += - cfd.ele_to_fl * (cfd.Front_Left_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
 
     // rear right control surface
-    model.deltaCAperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
-    model.deltaCYperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
-    model.deltaCNperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
-    model.deltaClperRadianElev += - cfd.ele_to_rr * (cfd.Rear_Right_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
-    model.deltaCmperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
-    model.deltaCnperRadianElev += - cfd.ele_to_rr * (cfd.Rear_Right_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+    model.deltaCAperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CFx] - cfd.Base_Aero[CFx]) * delta_inv;
+    model.deltaCYperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CFy] - cfd.Base_Aero[CFy]) * delta_inv;
+    model.deltaCNperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CFz] - cfd.Base_Aero[CFz]) * delta_inv;
+    model.deltaClperRadianElev += - cfd.ele_to_rr * (cfd.Rear_Right_Delta[CMx] - cfd.Base_Aero[CMx]) * delta_inv;
+    model.deltaCmperRadianElev +=   cfd.ele_to_rr * (cfd.Rear_Right_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
+    model.deltaCnperRadianElev += - cfd.ele_to_rr * (cfd.Rear_Right_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
 
     // rear left control surface
-    model.deltaCAperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CFx] - cfd.Base_Aero_Control[CFx]) * delta_inv;
-    model.deltaCYperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CFy] - cfd.Base_Aero_Control[CFy]) * delta_inv;
-    model.deltaCNperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CFz] - cfd.Base_Aero_Control[CFz]) * delta_inv;
-    model.deltaClperRadianElev += - cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMx] - cfd.Base_Aero_Control[CMx]) * delta_inv;
-    model.deltaCmperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMy] - cfd.Base_Aero_Control[CMy]) * delta_inv;
-    model.deltaCnperRadianElev += - cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMz] - cfd.Base_Aero_Control[CMz]) * delta_inv;
+    model.deltaCAperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CFx] - cfd.Base_Aero[CFx]) * delta_inv;
+    model.deltaCYperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CFy] - cfd.Base_Aero[CFy]) * delta_inv;
+    model.deltaCNperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CFz] - cfd.Base_Aero[CFz]) * delta_inv;
+    model.deltaClperRadianElev += - cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMx] - cfd.Base_Aero[CMx]) * delta_inv;
+    model.deltaCmperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
+    model.deltaCnperRadianElev += - cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
 
     model.deltaCAperRadianElev *= 0.25f;
     model.deltaCYperRadianElev *= 0.25f;
