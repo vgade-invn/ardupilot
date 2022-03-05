@@ -1,4 +1,3 @@
-EK2_ENABLE      1
 ALT_CTRL_ALG    2
 BATT_MONITOR    4
 LOG_BITMASK	65535
@@ -138,3 +137,7 @@ WP_RADIUS             600
 
 ARSPD_FBW_MAX          67
 ARSPD_FBW_MIN          43
+
+LOG_DISARMED            1
+
+AHRS_EKF_TYPE          10
