@@ -309,14 +309,15 @@ protected:
       float betaMaxDeg = 12.0;
 
       // mixing from aileron and elevator to individual control surfaces (front right, front left, rear right, rear left)
-      float ail_to_fr = - 0.5; // positive deflection in CFD model is TE down
-      float ail_to_fl = - 0.5; // positive deflection is CFD model TE up
-      float ail_to_rr = - 0.5; // positive deflection is CFD model TE down
-      float ail_to_rl = - 0.5; // positive deflection is CFD model TE up
-      float ele_to_fr = + 0.5; // positive deflection is CFD model TE down
-      float ele_to_fl = - 0.5; // positive deflection is CFD model TE up
-      float ele_to_rr = - 0.5; // positive deflection is CFD model TE down
-      float ele_to_rl = + 0.5; // positive deflection is CFD model TE up
+      // assume 50% aileron differential is used
+      float ail_to_fr = - 0.125; // positive deflection in CFD model is TE down
+      float ail_to_fl = - 0.25; // positive deflection is CFD model TE up
+      float ail_to_rr = - 0.125; // positive deflection is CFD model TE down
+      float ail_to_rl = - 0.25; // positive deflection is CFD model TE up
+      float ele_to_fr = + 0.125; // positive deflection is CFD model TE down
+      float ele_to_fl = - 0.25; // positive deflection is CFD model TE up
+      float ele_to_rr = - 0.125; // positive deflection is CFD model TE down
+      float ele_to_rl = + 0.25; // positive deflection is CFD model TE up
 
     } default_cfd_model;
 
