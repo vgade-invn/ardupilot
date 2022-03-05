@@ -142,7 +142,12 @@ float Aircraft::hagl() const
 */
 bool Aircraft::on_ground() const
 {
-    return hagl() <= 0.001f;  // prevent bouncing around ground
+    return hagl() <= 0.001f && !waiting_to_launch();  // prevent bouncing around ground
+}
+
+bool Aircraft::waiting_to_launch() const
+{
+    return (launch_start_ms == 0);
 }
 
 /*
@@ -577,8 +582,18 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
 
     update_eas_airspeed();
 
-    // constrain height to the ground
-    if (on_ground()) {
+    // constrain height to the ground or launcher
+    if (waiting_to_launch()) {
+        float r, p, y;
+        dcm.to_euler(&r, &p, &y);
+        dcm.from_euler(0.0f, 0.0f, y);
+        // X, Y movement tracks ground movement
+        velocity_ef.zero();
+        gyro.zero();
+        position.z = -3000.0f;
+        use_smoothing = true;
+
+    } else if (on_ground()) {
         if (!was_on_ground && AP_HAL::millis() - last_ground_contact_ms > 1000) {
             gcs().send_text(MAV_SEVERITY_INFO, "SIM Hit ground at %f m/s", velocity_ef.z);
             last_ground_contact_ms = AP_HAL::millis();

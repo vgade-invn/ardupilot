@@ -58,29 +58,29 @@ Plane::Plane(const char *frame_str) :
     } else if (strstr(frame_str, "-dspoilers")) {
         dspoilers = true;
     }
-    if (strstr(frame_str, "-elevrev")) {
-        reverse_elevator_rudder = true;
-    }
-    if (strstr(frame_str, "-catapult")) {
+    // if (strstr(frame_str, "-elevrev")) {
+    //     reverse_elevator_rudder = true;
+    // }
+    // if (strstr(frame_str, "-catapult")) {
         have_launcher = true;
         launch_accel = 15;
-        launch_time = 2;
-    }
-    if (strstr(frame_str, "-bungee")) {
-        have_launcher = true;
-        launch_accel = 7;
-        launch_time = 4;
-    }
-    if (strstr(frame_str, "-throw")) {
-        have_launcher = true;
-        launch_accel = 25;
-        launch_time = 0.4;
-    }
-    if (strstr(frame_str, "-tailsitter")) {
-        tailsitter = true;
-        ground_behavior = GROUND_BEHAVIOR_TAILSITTER;
-        thrust_scale *= 1.5;
-    }
+        launch_time = 5;
+    // }
+    // if (strstr(frame_str, "-bungee")) {
+    //     have_launcher = true;
+    //     launch_accel = 7;
+    //     launch_time = 4;
+    // }
+    // if (strstr(frame_str, "-throw")) {
+    //     have_launcher = true;
+    //     launch_accel = 25;
+    //     launch_time = 0.4;
+    // }
+    // if (strstr(frame_str, "-tailsitter")) {
+    //     tailsitter = true;
+    //     ground_behavior = GROUND_BEHAVIOR_TAILSITTER;
+    //     thrust_scale *= 1.5;
+    // }
 
     if (strstr(frame_str, "-ice")) {
         ice_engine = true;
