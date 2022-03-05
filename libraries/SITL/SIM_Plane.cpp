@@ -65,6 +65,7 @@ Plane::Plane(const char *frame_str) :
         have_launcher = true;
         launch_accel = 15;
         launch_time = 5;
+        mass = model.mass;
     // }
     // if (strstr(frame_str, "-bungee")) {
     //     have_launcher = true;
