@@ -197,12 +197,12 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
 {
     // mapping is:
     // RC1 -> front right
-    // RC2 -> rear right
+    // RC2 -> rear left
     // RC3 -> front left
-    // RC4 -> rear left
+    // RC4 -> rear right
     // Assume positive is te down.
     // TBD better handle scaling and limits when more data is provided
-    float aileron  = 0.25*( - filtered_servo_angle(input, 1) - filtered_servo_angle(input, 2) + filtered_servo_angle(input, 3) + filtered_servo_angle(input, 4));
+    float aileron  = 0.25*( - filtered_servo_angle(input, 1) + filtered_servo_angle(input, 2) + filtered_servo_angle(input, 3) - filtered_servo_angle(input, 4));
     float elevator = 0.25*( + filtered_servo_angle(input, 1) - filtered_servo_angle(input, 2) + filtered_servo_angle(input, 3) - filtered_servo_angle(input, 4));
     float rudder   = 0.0f;
 
@@ -357,7 +357,7 @@ void Plane::convert_cfd_data(ModelCFD &cfd) {
     model.deltaCmperRadianAil  +=   cfd.ail_to_fl * (cfd.Front_Left_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
     model.deltaCnperRadianAil0 += - cfd.ail_to_fl * (cfd.Front_Left_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
 
-    // rear right control surface
+    // rear right control surface - positive is down
     model.deltaCAperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFx] - cfd.Base_Aero[CFx]) * delta_inv;
     model.deltaCYperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFy] - cfd.Base_Aero[CFy]) * delta_inv;
     model.deltaCNperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CFz] - cfd.Base_Aero[CFz]) * delta_inv;
@@ -365,20 +365,13 @@ void Plane::convert_cfd_data(ModelCFD &cfd) {
     model.deltaCmperRadianAil  +=   cfd.ail_to_rr * (cfd.Rear_Right_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
     model.deltaCnperRadianAil0 += - cfd.ail_to_rr * (cfd.Rear_Right_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
 
-    // rear left control surface
+    // rear left control surface - positive is up
     model.deltaCAperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFx] - cfd.Base_Aero[CFx]) * delta_inv;
     model.deltaCYperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFy] - cfd.Base_Aero[CFy]) * delta_inv;
     model.deltaCNperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CFz] - cfd.Base_Aero[CFz]) * delta_inv;
     model.deltaClperRadianAil0 += - cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMx] - cfd.Base_Aero[CMx]) * delta_inv;
     model.deltaCmperRadianAil  +=   cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
     model.deltaCnperRadianAil0 += - cfd.ail_to_rl * (cfd.Rear_Left_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
-
-    model.deltaCAperRadianAil  *= 0.25;
-    model.deltaCYperRadianAil  *= 0.25;
-    model.deltaCNperRadianAil  *= 0.25;
-    model.deltaClperRadianAil0 *= 0.25;
-    model.deltaCmperRadianAil  *= 0.25;
-    model.deltaCnperRadianAil0 *= 0.25;
 
     // no data for higher order terms
     model.deltaClperRadianAil1 = 0;
@@ -420,13 +413,6 @@ void Plane::convert_cfd_data(ModelCFD &cfd) {
     model.deltaClperRadianElev += - cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMx] - cfd.Base_Aero[CMx]) * delta_inv;
     model.deltaCmperRadianElev +=   cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMy] - cfd.Base_Aero[CMy]) * delta_inv;
     model.deltaCnperRadianElev += - cfd.ele_to_rl * (cfd.Rear_Left_Delta[CMz] - cfd.Base_Aero[CMz]) * delta_inv;
-
-    model.deltaCAperRadianElev *= 0.25f;
-    model.deltaCYperRadianElev *= 0.25f;
-    model.deltaCNperRadianElev *= 0.25f;
-    model.deltaClperRadianElev *= 0.25f;
-    model.deltaCmperRadianElev *= 0.25f;
-    model.deltaCnperRadianElev *= 0.25f;
 
     // rudder
     model.rudderDeflectionLimitDeg = 0.0f;
