@@ -166,7 +166,7 @@ protected:
     float mass;                          // kg
     float air_density = SSL_AIR_DENSITY; // Kg/m^3
     float external_payload_mass = 0.0f;  // kg
-    Vector3f accel_body;                 // m/s/s NED, body frame
+    Vector3f accel_body;                 // m/s/s body frame specific forces
     float airspeed;                      // m/s, apparent airspeed
     float airspeed_pitot;                // m/s, apparent airspeed, as seen by fwd pitot tube
     float battery_voltage = -1.0f;

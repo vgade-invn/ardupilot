@@ -228,7 +228,8 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
             }
             if (now - launch_start_ms < launch_time*1000) {
                 force.x += mass * launch_accel;
-                force.z += mass * launch_accel/3;
+                const Vector3f gravity_compensation = dcm.transposed() * Vector3f(0.0f, 0.0f, GRAVITY_MSS) * mass;
+                force += gravity_compensation;
             }
         } else {
             // allow reset of catapult
