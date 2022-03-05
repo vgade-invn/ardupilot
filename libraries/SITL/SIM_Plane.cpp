@@ -217,23 +217,14 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     Vector3f force = getForce(aileron, elevator, rudder);
     rot_accel = getRotAccel(aileron, elevator, rudder, force);
 
-    /*
-        simple simulation of a launcher
-    */
     if (have_launcher) {
-        bool launch_triggered = input.servos[6] > 1700;
-        if (launch_triggered) {
+        bool release_triggered = input.servos[6] > 1700;
+        if (release_triggered) {
             uint64_t now = AP_HAL::millis64();
             if (launch_start_ms == 0) {
                 launch_start_ms = now;
             }
-            if (now - launch_start_ms < launch_time*1000) {
-                force.x += mass * launch_accel;
-                const Vector3f gravity_compensation = dcm.transposed() * Vector3f(0.0f, 0.0f, GRAVITY_MSS) * mass;
-                force += gravity_compensation;
-            }
         } else {
-            // allow reset of catapult
             launch_start_ms = 0;
         }
     }
