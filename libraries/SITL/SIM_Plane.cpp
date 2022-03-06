@@ -107,9 +107,11 @@ Vector3f Plane::getRotAccel(float inputAileron, float inputElevator, float input
     const float rudder_rad = inputRudder * radians(m.rudderDeflectionLimitDeg);
     const float tas = MAX(airspeed * AP::ahrs().get_EAS2TAS(), 1);
 
-    float Cl = (m.Cl2 * sq(alpharad) + m.Cl1 * alpharad + m.Cl0) * betarad;
-    float Cm = m.Cm2 * sq(alpharad) + m.Cm1 * alpharad + m.Cm0;
-    float Cn = (m.Cn2 * sq(alpharad) + m.Cn1 * alpharad + m.Cn0) * betarad;
+    const float delta_alpha = alpharad - m.alphaRef;
+
+    float Cl = (m.Cl2 * sq(delta_alpha) + m.Cl1 * delta_alpha + m.Cl0) * betarad;
+    float Cm = m.Cm2 * sq(delta_alpha) + m.Cm1 * delta_alpha + m.Cm0;
+    float Cn = (m.Cn2 * sq(delta_alpha) + m.Cn1 * delta_alpha + m.Cn0) * betarad;
 
     Cl += m.deltaClperRadianElev * elevator_rad;
     Cm += m.deltaCmperRadianElev * elevator_rad;
@@ -119,15 +121,15 @@ Vector3f Plane::getRotAccel(float inputAileron, float inputElevator, float input
     Cm += m.deltaCmperRadianRud * rudder_rad;
     Cn += m.deltaCnperRadianRud * rudder_rad;
 
-    Cl += (m.deltaClperRadianAil2 * sq(alpharad) + m.deltaClperRadianAil1 * alpharad + m.deltaClperRadianAil0) * aileron_rad;
+    Cl += (m.deltaClperRadianAil2 * sq(delta_alpha) + m.deltaClperRadianAil1 * delta_alpha + m.deltaClperRadianAil0) * aileron_rad;
     Cm += m.deltaCmperRadianAil * aileron_rad;
-    Cn += (m.deltaCnperRadianAil2 * sq(alpharad) + m.deltaCnperRadianAil1 * alpharad + m.deltaCnperRadianAil0) * aileron_rad;
+    Cn += (m.deltaCnperRadianAil2 * sq(delta_alpha) + m.deltaCnperRadianAil1 * delta_alpha + m.deltaCnperRadianAil0) * aileron_rad;
 
     // derivatives
-    float Clp = m.Clp2 * sq(alpharad) + m.Clp1 * alpharad + m.Clp0;
-    float Clr = m.Clr2 * sq(alpharad) + m.Clr1 * alpharad + m.Clr0;
-    float Cnp = m.Cnp2 * sq(alpharad) + m.Cnp1 * alpharad + m.Cnp0;
-    float Cnr = m.Cnr2 * sq(alpharad) + m.Cnr1 * alpharad + m.Cnr0;
+    float Clp = m.Clp2 * sq(delta_alpha) + m.Clp1 * delta_alpha + m.Clp0;
+    float Clr = m.Clr2 * sq(delta_alpha) + m.Clr1 * delta_alpha + m.Clr0;
+    float Cnp = m.Cnp2 * sq(delta_alpha) + m.Cnp1 * delta_alpha + m.Cnp0;
+    float Cnr = m.Cnr2 * sq(delta_alpha) + m.Cnr1 * delta_alpha + m.Cnr0;
 
     // normalise gyro rates
     Vector3f pqr_norm = gyro;
@@ -203,8 +205,15 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     // RC4 -> rear right
     // Assume positive is te down.
     // TBD better handle scaling and limits when more data is provided
-    float aileron  = 0.25*( - filtered_servo_angle(input, 1) + filtered_servo_angle(input, 2) + filtered_servo_angle(input, 3) - filtered_servo_angle(input, 4));
-    float elevator = 0.25*( + filtered_servo_angle(input, 1) - filtered_servo_angle(input, 2) + filtered_servo_angle(input, 3) - filtered_servo_angle(input, 4));
+
+    // these deflections are nromalised between +-1
+    const float servo_front_right_defln = filtered_servo_angle(input, 0);
+    const float servo_rear_left_defln   = filtered_servo_angle(input, 1);
+    const float servo_front_left_defln  = filtered_servo_angle(input, 2);
+    const float servo_rear_right_defln  = filtered_servo_angle(input, 3);
+
+    float aileron  = 0.25 * ( - servo_front_right_defln + servo_rear_left_defln + servo_front_left_defln - servo_rear_right_defln);
+    float elevator = 0.25 * ( + servo_front_right_defln - servo_rear_left_defln + servo_front_left_defln - servo_rear_right_defln);
     float rudder   = 0.0f;
 
     // calculate angle of attack
@@ -276,6 +285,7 @@ void Plane::update(const struct sitl_input &input)
 
 void Plane::convert_cfd_data(ModelCFD &cfd) {
     // calculate AoA and AoS force and moment derivatives
+    model.alphaRef = radians(cfd.AoA_ref);
     const float delta_alpha_inv = 1.0f / cfd.delta_alpha;
     const float delta_beta_inv = 1.0f / cfd.delta_beta;
 
