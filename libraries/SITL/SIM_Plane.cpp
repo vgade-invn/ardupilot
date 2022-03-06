@@ -20,6 +20,7 @@
 #include "SIM_Plane.h"
 #include <stdio.h>
 #include <AP_AHRS/AP_AHRS.h>
+#include <AP_Logger/AP_Logger.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -148,6 +149,20 @@ Vector3f Plane::getRotAccel(float inputAileron, float inputElevator, float input
     float My = Cm * qPa * m.Sref * m.refChord;
     float Mz = Cn * qPa * m.Sref * m.refSpan;
 
+#if 0
+    AP::logger().Write("MMT2", "TimeUS,alpha,m0,m1,m2,m3,m4,m5,m6,Iyy",
+                                           "Qfffffffff",
+                                           AP_HAL::micros64(),
+                                           degrees(alpharad),
+                                           m.Cm0,
+                                           m.Cm1 * alpharad,
+                                           m.Cm2 * sq(alpharad),
+                                           m.deltaCmperRadianElev * elevator_rad,
+                                           m.deltaCmperRadianRud * rudder_rad,
+                                           m.deltaCmperRadianAil * aileron_rad,
+                                           pqr_norm.y * m.Cmq,
+                                           m.IYY);
+#endif
 
 #if 0
     AP::logger().Write("GLT", "TimeUS,Alpha,Beta,Cl,Cm,Cn", "Qfffff",
@@ -215,6 +230,20 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     float aileron  = 0.25 * ( - servo_front_right_defln + servo_rear_left_defln + servo_front_left_defln - servo_rear_right_defln);
     float elevator = 0.25 * ( + servo_front_right_defln - servo_rear_left_defln + servo_front_left_defln - servo_rear_right_defln);
     float rudder   = 0.0f;
+
+#if 0
+    AP::logger().Write("MMT1", "TimeUS,pwm1,defln1,pwm2,defln2,pwm3,defln3,pwm4,defln4",
+                                           "QIfIfIfIf",
+                                           AP_HAL::micros64(),
+                                           input.servos[0],
+                                           servo_front_right_defln,
+                                           input.servos[1],
+                                           servo_rear_left_defln,
+                                           input.servos[2],
+                                           servo_front_left_defln,
+                                           input.servos[3],
+                                           servo_rear_right_defln);
+#endif
 
     // calculate angle of attack
     alpharad = atan2f(velocity_air_bf.z, velocity_air_bf.x);
