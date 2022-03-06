@@ -325,7 +325,7 @@ protected:
     struct ModelCFD cfd_model;
 
     Vector3f getForce(float inputAileron, float inputElevator, float inputRudder) const;
-    Vector3f getRotAccel(float inputAileron, float inputElevator, float inputRudder, const Vector3f &force) const;
+    Vector3f getTorque(float inputAileron, float inputElevator, float inputRudder, const Vector3f &force) const;
     void calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel);
     void convert_cfd_data(ModelCFD &cfd);
 };
