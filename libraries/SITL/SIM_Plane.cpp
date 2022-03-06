@@ -172,7 +172,7 @@ Vector3f Plane::getTorque(float inputAileron, float inputElevator, float inputRu
                        Cl, Cm, Cn);
 #endif
 
-    return Vector3f(Mx/m.IXX, My/m.IYY, Mz/m.IZZ);
+    return Vector3f(Mx, My, Mz);
 }
 
 // Force calculation, return vector in Newtons
@@ -253,7 +253,15 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     betarad = constrain_float(betarad, -model.betaRadMax, model.betaRadMax);
 
     Vector3f force = getForce(aileron, elevator, rudder);
-    rot_accel = getTorque(aileron, elevator, rudder, force);
+    Vector3f moment = getTorque(aileron, elevator, rudder, force);
+
+    // correct moments for aerodynamic moment reference centre offset from c.g.
+    const Vector3f offset = Vector3f( - model.Xcg, - model.Ycg, - model.Zcg);
+    moment += offset % force;
+
+    // calculate angular accelerations ingonring cross products of inertia
+    // TODO include cross-products
+    rot_accel = Vector3f(moment.x/model.IXX, moment.y/model.IYY, moment.z/model.IZZ);
 
     if (have_launcher) {
         bool release_triggered = input.servos[6] > 1700;
