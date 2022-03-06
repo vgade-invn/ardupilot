@@ -141,3 +141,5 @@ ARSPD_FBW_MIN          43
 LOG_DISARMED            1
 
 AHRS_EKF_TYPE          10
+
+SIM_SPEEDUP             2
