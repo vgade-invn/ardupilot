@@ -434,4 +434,9 @@ void Plane::convert_cfd_data(ModelCFD &cfd) {
     model.Ycg = cfd.Ycg - cfd.Yref; // CFD Y axis points right
     model.Zcg = cfd.Zref - cfd.Zcg; // CFD Z axis points up
 
+    model.mass = cfd.mass;
+    model.IXX = cfd.IXX;
+    model.IYY = cfd.IYY;
+    model.IZZ = cfd.IZZ;
+
 }
