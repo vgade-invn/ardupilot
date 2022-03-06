@@ -130,6 +130,8 @@ protected:
         // reference area
         float Sref = 0.92762; // m^2
 
+        float alphaRef = 0.0f; // angle of attack used as zero datum for aero derivatives (rad)
+
         float refSpan = 1.827411; // m
         float refChord = 0.507614; // m
         float IXX = 0.234; // kg-m^2
@@ -275,7 +277,7 @@ protected:
       float Xcg = 0.6044410; // X coordinate of c.g. - positive is back - m
       float Ycg = 0.0000000; // Y coordinate of c.g. - positive is right - m
       float Zcg = 0.0000000; // Z coordinate of c.g. - positive is up - m
-      float AoA_ref = 2.7000000; // angle of attack used to generate Base_Aero data - deg
+      float AoA_ref = 10.000000; // angle of attack used to generate Base_Aero data - deg
       float Beta_ref = 0.0000000; // angle fo sideslip used to generate Base_Aero data - deg
       float Vinf = 50.0000000; // true airspeed used to generate aero data - m/s
 

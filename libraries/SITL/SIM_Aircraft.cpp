@@ -586,9 +586,9 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
     if (waiting_to_launch()) {
         float r, p, y;
         dcm.to_euler(&r, &p, &y);
-        dcm.from_euler(0.0f, 0.0f, y);
+        dcm.from_euler(0.0f, radians(3.0f), y);
         // X, Y movement tracks launching plane movement
-        const float launch_speed = 50.0f;
+        const float launch_speed = 60.0f;
         velocity_ef.x = launch_speed * MIN((((float)time_now_us - 10E6f) / 30E6f), 1.0f) * cosf(y);
         velocity_ef.y = launch_speed * MIN((((float)time_now_us - 10E6f) / 30E6f), 1.0f) * sinf(y);
         velocity_ef.z = 0.0f;
