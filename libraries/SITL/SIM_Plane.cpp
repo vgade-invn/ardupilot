@@ -98,7 +98,7 @@ Plane::Plane(const char *frame_str) :
 }
 
 // Torque calculation function
-Vector3f Plane::getRotAccel(float inputAileron, float inputElevator, float inputRudder, const Vector3f &force) const
+Vector3f Plane::getTorque(float inputAileron, float inputElevator, float inputRudder, const Vector3f &force) const
 {
     // Calculate dynamic pressure
     const auto &m = model;
@@ -253,7 +253,7 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     betarad = constrain_float(betarad, -model.betaRadMax, model.betaRadMax);
 
     Vector3f force = getForce(aileron, elevator, rudder);
-    rot_accel = getRotAccel(aileron, elevator, rudder, force);
+    rot_accel = getTorque(aileron, elevator, rudder, force);
 
     if (have_launcher) {
         bool release_triggered = input.servos[6] > 1700;
