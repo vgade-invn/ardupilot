@@ -186,9 +186,11 @@ Vector3f Plane::getForce(float inputAileron, float inputElevator, float inputRud
     // dynamic pressure
     double qPa = 0.5*air_density*sq(velocity_air_bf.length());
 
-    float CA = m.CA2 * sq(alpharad) + m.CA1 * alpharad + m.CA0;
-    float CY = (m.CY2 * sq(alpharad) + m.CY1 * alpharad + m.CY0) * betarad;
-    float CN = m.CN2 * sq(alpharad) + m.CN1 * alpharad + m.CN0;
+    const float delta_alpha = alpharad - m.alphaRef;
+
+    float CA = m.CA2 * sq(delta_alpha) + m.CA1 * delta_alpha + m.CA0;
+    float CY = (m.CY2 * sq(delta_alpha) + m.CY1 * delta_alpha + m.CY0) * betarad;
+    float CN = m.CN2 * sq(delta_alpha) + m.CN1 * delta_alpha + m.CN0;
 
     CN += m.deltaCNperRadianElev * elevator_rad;
     CA += m.deltaCAperRadianElev * elevator_rad;
