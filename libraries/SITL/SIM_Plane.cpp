@@ -252,6 +252,10 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     alpharad = constrain_float(alpharad, -model.alphaRadMax, model.alphaRadMax);
     betarad = constrain_float(betarad, -model.betaRadMax, model.betaRadMax);
 
+    // update airspeed and density
+    const float air_density_ratio = AP::baro().get_air_density_ratio();
+    air_density = SSL_AIR_DENSITY * air_density_ratio;
+
     Vector3f force = getForce(aileron, elevator, rudder);
     Vector3f moment = getTorque(aileron, elevator, rudder, force);
 
