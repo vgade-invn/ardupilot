@@ -188,13 +188,49 @@ Vector3f Plane::getForce(float inputAileron, float inputElevator, float inputRud
 
     const float delta_alpha = alpharad - m.alphaRef;
 
-    float CA = m.CA2 * sq(delta_alpha) + m.CA1 * delta_alpha + m.CA0;
     float CY = (m.CY2 * sq(delta_alpha) + m.CY1 * delta_alpha + m.CY0) * betarad;
-    float CN = m.CN2 * sq(delta_alpha) + m.CN1 * delta_alpha + m.CN0;
 
-    CN += m.deltaCNperRadianElev * elevator_rad;
-    CA += m.deltaCAperRadianElev * elevator_rad;
-    CY += m.deltaCYperRadianElev * elevator_rad;
+    // use alpha sweep data if available
+    float CA, CN;
+    if (m.n_alpha < 2 || m.n_alpha > 25) {
+        // can't do interpolation so use second order fit data
+        CA = m.CA2 * sq(delta_alpha) + m.CA1 * delta_alpha + m.CA0;
+        CN = m.CN2 * sq(delta_alpha) + m.CN1 * delta_alpha + m.CN0;
+    } else {
+        // lookup table of CN and CA vs alpha
+        static uint8_t last_alpha_index = 0;
+        const float alpha_rad_input = constrain_float(alpharad, m.alpha_sweep_rad[0], m.alpha_sweep_rad[m.n_alpha - 1]);
+        last_alpha_index = MIN(last_alpha_index, m.n_alpha-2);
+        if (alpha_rad_input > m.alpha_sweep_rad[last_alpha_index+1]) {
+            if (last_alpha_index < m.n_alpha-2) {
+                // search up
+                for (uint8_t i=last_alpha_index; i<=m.n_alpha-2; i++) {
+                    if (alpha_rad_input <= m.alpha_sweep_rad[last_alpha_index+1] && alpha_rad_input >= m.alpha_sweep_rad[last_alpha_index]) {
+                        last_alpha_index = i;
+                        break;
+                    }
+                }
+            }
+        } else if (alpha_rad_input < m.alpha_sweep_rad[last_alpha_index]) {
+            if (last_alpha_index > 0) {
+                // search down
+                for (uint8_t i=last_alpha_index; i>=0; i--) {
+                    if (alpha_rad_input <= m.alpha_sweep_rad[last_alpha_index+1] && alpha_rad_input >= m.alpha_sweep_rad[last_alpha_index]) {
+                        last_alpha_index = i;
+                        break;
+                    }
+                }
+            }
+        }
+        const float delta_alpha = m.alpha_sweep_rad[last_alpha_index+1] - m.alpha_sweep_rad[last_alpha_index];
+        const float fraction = (alpha_rad_input - m.alpha_sweep_rad[last_alpha_index]) / delta_alpha;
+        CA = m.CA_sweep[last_alpha_index] + fraction * (m.CA_sweep[last_alpha_index+1] - m.CA_sweep[last_alpha_index]);
+        CN = m.CN_sweep[last_alpha_index] + fraction * (m.CN_sweep[last_alpha_index+1] - m.CN_sweep[last_alpha_index]);
+    }
+
+    CN = m.deltaCNperRadianElev * elevator_rad;
+    CA = m.deltaCAperRadianElev * elevator_rad;
+    CY = m.deltaCYperRadianElev * elevator_rad;
 
     CN += m.deltaCNperRadianRud * rudder_rad;
     CA += m.deltaCAperRadianRud * rudder_rad;
@@ -327,6 +363,15 @@ void Plane::update(const struct sitl_input &input)
 }
 
 void Plane::convert_cfd_data(ModelCFD &cfd) {
+    if (cfd.n_alpha >= 2 && cfd.n_alpha <= 25) {
+        model.n_alpha = cfd.n_alpha;
+        for (uint8_t i=0; i<cfd.n_alpha; i++) {
+            model.alpha_sweep_rad[i] = radians(cfd.alpha_sweep_deg[i]);
+            model.CA_sweep[i] = cfd.CFx_sweep[i];
+            model.CN_sweep[i] = cfd.CFz_sweep[i];
+        }
+    }
+
     // calculate AoA and AoS force and moment derivatives
     model.alphaRef = radians(cfd.AoA_ref);
     const float delta_alpha_inv = 1.0f / cfd.delta_alpha;

@@ -142,6 +142,12 @@ protected:
         float Ycg = 0.0000000; // Y coordinate of c.g. wrt the aero moment reference centre - positive is right - m
         float Zcg = 0.0000000; // Z coordinate of c.g. wrt the aero moment reference centre - positive is down - m
 
+        // tables containing AoA, CN and CA coefficient data
+        uint8_t n_alpha = 0; // number of points - set to zero if no sweep data available
+        float alpha_sweep_rad[25];
+        float CA_sweep[25];
+        float CN_sweep[25];
+
         // CN is coefficients for forces on +Z axis
         // quadratic in alpharad
         float CN2 = -0.5771;
@@ -287,6 +293,13 @@ protected:
       float delta_pitch_rate = 1.0f; // pitch rate used to generate Pitch_Rate_Delta data - rad/sec
       float delta_yaw_rate = 1.0f; // yaw rate used to generate Yaw_Rate_Delta data - rad/sec
       float delta_control = radians(1.0); // deflection used to generate control surface effectiveness data - rad
+
+      // CFx and CFz vs alpha data derived from sweep data provided 2022-04-08
+      // X is rearwards,Z is up in body frame
+      uint8_t n_alpha = 25;
+      float alpha_sweep_deg[25] = {-2.0,-1.0,0.0,0.5,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0,16.0,17.0,18.0,19.0,20.0,21.0};
+      float CFx_sweep[25] = {0.156,0.166,0.164,0.168,0.172,0.172,0.168,0.162,0.158,0.152,0.144,0.139,0.129,0.116,0.107,0.092,0.078,0.064,0.056,0.030,0.013,0.003,-0.004,0.071,0.068};
+      float CFz_sweep[25] = {0.138,0.197,0.236,0.284,0.339,0.409,0.466,0.512,0.576,0.640,0.708,0.782,0.844,0.906,0.977,1.039,1.092,1.164,1.211,1.274,1.319,1.356,1.369,1.240,1.262};
 
       // table data from PGB_19_DegenGeom.stab
       // X is rearwards, Y is right, Z is up in body frame
