@@ -214,7 +214,7 @@ Vector3f Plane::getForce(float inputAileron, float inputElevator, float inputRud
         } else if (alpha_rad_input < m.alpha_sweep_rad[last_alpha_index]) {
             if (last_alpha_index > 0) {
                 // search down
-                for (uint8_t i=last_alpha_index; i>=0; i--) {
+                for (int8_t i=last_alpha_index; i>=0; i--) {
                     if (alpha_rad_input <= m.alpha_sweep_rad[last_alpha_index+1] && alpha_rad_input >= m.alpha_sweep_rad[last_alpha_index]) {
                         last_alpha_index = i;
                         break;
@@ -222,8 +222,8 @@ Vector3f Plane::getForce(float inputAileron, float inputElevator, float inputRud
                 }
             }
         }
-        const float delta_alpha = m.alpha_sweep_rad[last_alpha_index+1] - m.alpha_sweep_rad[last_alpha_index];
-        const float fraction = (alpha_rad_input - m.alpha_sweep_rad[last_alpha_index]) / delta_alpha;
+        const float delta_alpha2 = m.alpha_sweep_rad[last_alpha_index+1] - m.alpha_sweep_rad[last_alpha_index];
+        const float fraction = (alpha_rad_input - m.alpha_sweep_rad[last_alpha_index]) / delta_alpha2;
         CA = m.CA_sweep[last_alpha_index] + fraction * (m.CA_sweep[last_alpha_index+1] - m.CA_sweep[last_alpha_index]);
         CN = m.CN_sweep[last_alpha_index] + fraction * (m.CN_sweep[last_alpha_index+1] - m.CN_sweep[last_alpha_index]);
     }

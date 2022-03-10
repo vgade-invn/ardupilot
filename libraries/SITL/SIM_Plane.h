@@ -123,7 +123,7 @@ protected:
       parameters that define the multicopter model. Can be loaded from
       a json file to give a custom model
      */
-    const struct Model {
+    struct Model {
         // total vehicle mass
         float mass = 9.07441; // kg
 
