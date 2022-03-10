@@ -391,11 +391,17 @@ void XPlane::send_data(const struct sitl_input &input)
     // uses misc wings, setup for elevator control
     const float delfection_max = 20.0;
     send_dref("sim/operation/override/override_control_surfaces", 1);
+#if 0
     send_dref("sim/flightmodel2/wing/elevator1_deg[12]", rear_right*delfection_max);
     send_dref("sim/flightmodel2/wing/elevator1_deg[13]", -rear_left*delfection_max);
     send_dref("sim/flightmodel2/wing/elevator1_deg[14]", front_right*delfection_max);
     send_dref("sim/flightmodel2/wing/elevator1_deg[15]", -front_left*delfection_max);
-
+#else
+    send_dref("sim/flightmodel2/wing/aileron1_deg[3]", rear_right*delfection_max);
+    send_dref("sim/flightmodel2/wing/aileron1_deg[2]", -rear_left*delfection_max);
+    send_dref("sim/flightmodel2/wing/elevator1_deg[1]", front_right*delfection_max);
+    send_dref("sim/flightmodel2/wing/elevator1_deg[0]", -front_left*delfection_max);
+#endif
     // 12 rear right
     // 13 rear left
     // 14 front right
