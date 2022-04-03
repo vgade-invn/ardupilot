@@ -14,6 +14,7 @@
  */
 
 #include "stm32_util.h"
+#include "watchdog.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,6 +22,9 @@
 #include <hrt.h>
 
 static int64_t utc_time_offset;
+uint32_t *_persistent_data;
+uint32_t *_persistent_data_reason;
+uint32_t _persistent_data_size;
 
 /*
   setup the timer capture digital filter for a channel
@@ -447,8 +451,19 @@ void fault_printf(const char *fmt, ...)
 }
 #endif // HAL_GPIO_PIN_HARDFAULT
 
-void system_halt_hook(void)
+void save_persistent_data(void)
 {
+    if (_persistent_data_size > 0) {
+        stm32_watchdog_save(_persistent_data, (_persistent_data_size+3)/4);
+    }
+}
+
+void system_halt_hook(const char *reason)
+{
+    if (_persistent_data_reason != NULL) {
+        *_persistent_data_reason = (uint32_t)reason;
+    }
+    save_persistent_data();
 #ifdef HAL_GPIO_PIN_FAULT
     // optionally print the message on a fault pin
     while (true) {

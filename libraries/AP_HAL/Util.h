@@ -67,9 +67,9 @@ public:
         uint32_t internal_errors;
         uint16_t internal_error_count;
         uint16_t internal_error_last_line;
-        uint32_t spi_count;
-        uint32_t i2c_count;
-        uint32_t i2c_isr_count;
+        uint32_t halt_addr;
+        uint32_t panic_addr;
+        uint32_t loop_delay;
         uint16_t waypoint_num;
         uint16_t last_mavlink_msgid;
         uint16_t last_mavlink_cmd;

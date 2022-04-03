@@ -395,22 +395,24 @@ void Scheduler::_monitor_thread(void *arg)
 
     while (true) {
         sched->delay(100);
+        uint32_t now = AP_HAL::millis();
+        uint32_t loop_delay = now - sched->last_watchdog_pat_ms;
+
         if (using_watchdog) {
+            hal.util->persistent_data.loop_delay = loop_delay;
             stm32_watchdog_save((uint32_t *)&hal.util->persistent_data, (sizeof(hal.util->persistent_data)+3)/4);
         }
 
         // if running memory guard then check all allocations
         malloc_check(nullptr);
 
-        uint32_t now = AP_HAL::millis();
-        uint32_t loop_delay = now - sched->last_watchdog_pat_ms;
         if (loop_delay >= 200) {
             // the main loop has been stuck for at least
             // 200ms. Starting logging the main loop state
 #if HAL_LOGGING_ENABLED
             const AP_HAL::Util::PersistentData &pd = hal.util->persistent_data;
             if (AP_Logger::get_singleton()) {
-                AP::logger().Write("MON", "TimeUS,LDelay,Task,IErr,IErrCnt,IErrLn,MavMsg,MavCmd,SemLine,SPICnt,I2CCnt", "QIbIHHHHHII",
+                AP::logger().Write("MON", "TimeUS,LDelay,Task,IErr,IErrCnt,IErrLn,MavMsg,MavCmd,SemLine,SPICnt,I2CCnt", "QIbIHHHHH",
                                    AP_HAL::micros64(),
                                    loop_delay,
                                    pd.scheduler_task,
@@ -419,9 +421,7 @@ void Scheduler::_monitor_thread(void *arg)
                                    pd.internal_error_last_line,
                                    pd.last_mavlink_msgid,
                                    pd.last_mavlink_cmd,
-                                   pd.semaphore_line,
-                                   pd.spi_count,
-                                   pd.i2c_count);
+                                   pd.semaphore_line);
                 }
 #endif
         }
@@ -451,6 +451,11 @@ void Scheduler::_monitor_thread(void *arg)
                                    pd.fault_icsr,
                                    pd.fault_lr,
                                    pd.thread_name4);
+        AP::logger().WriteCritical("WDG2", "TimeUS,HAddr,PAddr,LDel", "QIII",
+                                   AP_HAL::micros64(),
+                                   pd.halt_addr,
+                                   pd.panic_addr,
+                                   pd.loop_delay);
     }
 #endif // HAL_LOGGING_ENABLED
 

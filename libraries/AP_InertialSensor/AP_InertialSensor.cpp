@@ -2354,17 +2354,7 @@ void AP_InertialSensor::kill_imu(uint8_t imu_idx, bool kill_it)
 {
     if (kill_it) {
         uint8_t new_kill_mask = imu_kill_mask | (1U<<imu_idx);
-        // don't allow the last IMU to be killed
-        bool all_dead = true;
-        for (uint8_t i=0; i<MIN(_gyro_count, _accel_count); i++) {
-            if (use_gyro(i) && use_accel(i) && !(new_kill_mask & (1U<<i))) {
-                // we have at least one healthy IMU left
-                all_dead = false;
-            }
-        }
-        if (!all_dead) {
-            imu_kill_mask = new_kill_mask;
-        }
+        imu_kill_mask = new_kill_mask;
     } else {
         imu_kill_mask &= ~(1U<<imu_idx);
     }

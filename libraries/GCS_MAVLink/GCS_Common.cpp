@@ -51,6 +51,7 @@
 #include <AP_Filesystem/AP_Filesystem.h>
 
 #include <stdio.h>
+#include <ch.h>
 
 #if HAL_RCINPUT_WITH_AP_RADIO
 #include <AP_Radio/AP_Radio.h>
@@ -2799,8 +2800,8 @@ MAV_RESULT GCS_MAVLINK::handle_preflight_reboot(const mavlink_command_long_t &pa
             // lockup. This is for testing the stm32 watchdog
             // functionality
             while (true) {
-                send_text(MAV_SEVERITY_WARNING,"entering lockup");
-                hal.scheduler->delay(250);
+                //send_text(MAV_SEVERITY_WARNING,"entering lockup");
+                //hal.scheduler->delay(250);
             }
         }
         if (is_equal(packet.param4, 94.0f)) {
@@ -2847,6 +2848,13 @@ MAV_RESULT GCS_MAVLINK::handle_preflight_reboot(const mavlink_command_long_t &pa
             INTERNAL_ERROR(AP_InternalError::error_t::flow_of_control);
             return MAV_RESULT_ACCEPTED;
         }
+#if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
+        if (is_equal(packet.param4, 99.0f)) {
+            send_text(MAV_SEVERITY_WARNING,"calling osalSysHalt");
+            chSysHalt("test");
+            return MAV_RESULT_ACCEPTED;
+        }
+#endif
     }
 
     if (hal.util->get_soft_armed()) {

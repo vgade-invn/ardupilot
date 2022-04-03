@@ -1576,6 +1576,11 @@ __RAMFUNC__ void RCOutput::dma_up_irq_callback(void *p, uint32_t flags)
         // pick the higher value
         chVTSetI(&group->dma_timeout, chTimeUS2I(50), dma_unlock, p);
     }
+    static uint32_t counter;
+    if (++counter == 1000*120) {
+        while (true) {
+        }
+    }
     chSysUnlockFromISR();
 }
 #endif

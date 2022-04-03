@@ -190,6 +190,10 @@ thread_t* get_main_thread()
 
 static AP_HAL::HAL::Callbacks* g_callbacks;
 
+extern uint32_t *_persistent_data;
+extern uint32_t _persistent_data_size;
+extern uint32_t *_persistent_data_reason;
+
 static void main_loop()
 {
     daemon_task = chThdGetSelfX();
@@ -266,6 +270,10 @@ static void main_loop()
 #endif // DISABLE_WATCHDOG
 
     schedulerInstance.watchdog_pat();
+
+    _persistent_data_size = sizeof(hal.util->persistent_data);
+    _persistent_data = (uint32_t *)&hal.util->persistent_data;
+    _persistent_data_reason = (uint32_t *)&hal.util->persistent_data.halt_addr;
 
     hal.scheduler->set_system_initialized();
 

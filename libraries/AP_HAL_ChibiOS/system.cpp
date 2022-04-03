@@ -251,6 +251,9 @@ void panic(const char *errormsg, ...)
 {
 #if !defined(HAL_BOOTLOADER_BUILD) && !APM_BUILD_TYPE(APM_BUILD_iofirmware)
     INTERNAL_ERROR(AP_InternalError::error_t::panic);
+    hal.util->persistent_data.panic_addr = (uint32_t)errormsg;
+    save_persistent_data();
+
     va_list ap;
 
     va_start(ap, errormsg);

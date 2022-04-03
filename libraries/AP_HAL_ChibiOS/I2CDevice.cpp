@@ -366,10 +366,6 @@ bool I2CDevice::_transfer(const uint8_t *send, uint32_t send_len,
         i2cStart(I2CD[bus.busnum].i2c, &bus.i2ccfg);
         osalDbgAssert(I2CD[bus.busnum].i2c->state == I2C_READY, "i2cStart state");
 
-        osalSysLock();
-        hal.util->persistent_data.i2c_count++;
-        osalSysUnlock();
-
         if(send_len == 0) {
             ret = i2cMasterReceiveTimeout(I2CD[bus.busnum].i2c, _address, recv, recv_len, chTimeMS2I(timeout_ms));
         } else {
@@ -386,11 +382,6 @@ bool I2CDevice::_transfer(const uint8_t *send, uint32_t send_len,
             INTERNAL_ERROR(AP_InternalError::error_t::i2c_isr);
             break;
         }
-
-#ifdef STM32_I2C_ISR_LIMIT
-        AP_HAL::Util::PersistentData &pd = hal.util->persistent_data;
-        pd.i2c_isr_count += I2CD[bus.busnum].i2c->isr_count;
-#endif
 
         if (ret == MSG_OK) {
             bus.bouncebuffer_finish(send, recv, recv_len);

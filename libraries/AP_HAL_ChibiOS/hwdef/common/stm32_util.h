@@ -117,10 +117,12 @@ void fault_printf(const char *fmt, ...);
 #endif
 
 // halt hook for printing panic message
-void system_halt_hook(void);
+void system_halt_hook(const char *reason);
 
 // hook for stack overflow
 void stack_overflow(thread_t *tp);
+
+void save_persistent_data(void);
 
 /*
   check how much stack is free given a stack base. Assumes the fill

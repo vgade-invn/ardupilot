@@ -191,7 +191,6 @@ bool SPIDevice::do_transfer(const uint8_t *send, uint8_t *recv, uint32_t len)
         return false;
     }
     osalSysLock();
-    hal.util->persistent_data.spi_count++;
     if (send == nullptr) {
         spiStartReceiveI(spi_devices[device_desc.bus].driver, len, recv);
     } else if (recv == nullptr) {
