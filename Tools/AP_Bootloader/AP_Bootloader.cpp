@@ -31,6 +31,7 @@
 #include "support.h"
 #include "bl_protocol.h"
 #include "can.h"
+#include "sdcard.h"
 #include <stdio.h>
 #if EXT_FLASH_SIZE_MB
 #include <AP_FlashIface/AP_FlashIface_JEDEC.h>
@@ -145,6 +146,9 @@ int main(void)
         timeout = 0;
     }
 #endif
+
+    uprintf("Started\n");
+    bl_sdcard_init();
 
     if (try_boot) {
         jump_to_app();

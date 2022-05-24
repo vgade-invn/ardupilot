@@ -15,6 +15,9 @@
  */
 
 #include <hal.h>
+
+#ifndef HAL_BOOTLOADER_BUILD
+
 #include "SPIDevice.h"
 #include "sdcard.h"
 #include "hwdef/common/spi_hook.h"
@@ -236,3 +239,4 @@ __RAMFUNC__ void spiReceiveHook(SPIDriver *spip, size_t n, void *rxbuf)
 }
 
 #endif
+#endif // HAL_BOOTLOADER_BUILD

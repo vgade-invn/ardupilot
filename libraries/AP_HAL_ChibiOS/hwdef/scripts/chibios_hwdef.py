@@ -1113,7 +1113,7 @@ def write_mcu_config(f):
 #define CH_CFG_USE_WAITEXIT FALSE
 #define CH_CFG_USE_MEMPOOLS FALSE
 #define CH_DBG_FILL_THREADS FALSE
-#define CH_CFG_USE_MUTEXES FALSE
+#define CH_CFG_USE_MUTEXES TRUE
 #define CH_CFG_USE_EVENTS FALSE
 #define CH_CFG_USE_EVENTS_TIMEOUT FALSE
 #define HAL_USE_EMPTY_STORAGE 1
@@ -1126,9 +1126,9 @@ def write_mcu_config(f):
 ''')
         if not env_vars['EXT_FLASH_SIZE_MB']:
             f.write('''
-#define CH_CFG_USE_MEMCORE FALSE
-#define CH_CFG_USE_SEMAPHORES FALSE
-#define CH_CFG_USE_HEAP FALSE
+#define CH_CFG_USE_MEMCORE TRUE
+#define CH_CFG_USE_SEMAPHORES TRUE
+#define CH_CFG_USE_HEAP TRUE
 ''')
     if env_vars.get('ROMFS_UNCOMPRESSED', False):
         f.write('#define HAL_ROMFS_UNCOMPRESSED\n')

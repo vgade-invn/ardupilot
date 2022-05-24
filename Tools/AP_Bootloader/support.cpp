@@ -20,7 +20,7 @@
 #include "mcu_l4.h"
 
 // optional uprintf() code for debug
-// #define BOOTLOADER_DEBUG SD1
+#define BOOTLOADER_DEBUG SD7
 
 #if defined(BOOTLOADER_DEV_LIST)
 static BaseChannel *uarts[] = { BOOTLOADER_DEV_LIST };
