@@ -2736,6 +2736,10 @@ def add_apperiph_defaults(f):
 #define AP_STATS_ENABLED 0
 #endif
 
+#ifndef HAL_PERIPH_ARM_MONITORING_ENABLE
+#define HAL_PERIPH_ARM_MONITORING_ENABLE 0
+#endif
+
 #endif
 ''')
 
