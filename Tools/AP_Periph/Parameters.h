@@ -52,6 +52,7 @@ public:
         k_param_scripting,
         k_param_esc_telem_port,
         k_param_node_stats,
+        k_param_disarm_delay,
     };
 
     AP_Int16 format_version;
@@ -122,6 +123,10 @@ public:
 
 #if HAL_GCS_ENABLED
     AP_Int16 sysid_this_mav;
+#endif
+
+#if HAL_PERIPH_ARM_MONITORING_ENABLE
+    AP_Int32 disarm_delay;
 #endif
 
     Parameters() {}
