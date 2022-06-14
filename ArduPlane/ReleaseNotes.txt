@@ -158,10 +158,18 @@ This is the 4th beta of the 4.2.0 major release.
  - fixed param conversion bug (impacts airspeed enable)
  - changed MatekH743 to use a 32 bit timer
 
-Release ArduPlane V4.2.0beta3_Carbopilot V4.0.0 1st June 2022
+Release ArduPlane V4.2.0beta3_Carbopilot V4.0.2 6th June 2022
 ----------------------------------
 
-This is the first release of Carbopilot 4.0.0
+This is the Test release of Carbopilot 4.0.2
+ - AP_UAVCAN : Remove CAN node status print 
+
+Happy flying!
+
+Release ArduPlane V4.2.0beta3_Carbopilot V4.0.1 1st June 2022
+----------------------------------
+
+This is the first release of Carbopilot 4.0.1
  - Rebase to Ardupilot 4.2
  - Add AP_Periph:Hwdef CarbonixF405 
  - Updated Batt Monitor Backend
