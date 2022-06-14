@@ -2732,6 +2732,10 @@ def add_apperiph_defaults(f):
 #define HAL_UART_STATS_ENABLED (HAL_GCS_ENABLED || HAL_LOGGING_ENABLED)
 #endif
 
+#ifndef AP_STATS_ENABLED
+#define AP_STATS_ENABLED 0
+#endif
+
 #endif
 ''')
 
