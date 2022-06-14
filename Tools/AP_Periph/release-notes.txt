@@ -1,3 +1,15 @@
+Release AP_Periph V1.3dev_CarboPeriph V4.0 1st June 2022
+--------------------------
+
+This is the first release of CarboPeriph 4.0
+improvements:
+
+ - support Periph Stats monitoring - boot count, runtime, etc.
+
+ - support ARMING and ESC cmd polling 
+
+ - Add GCS Print on Periph Init 
+
 Release 1.2.0 6th Jan 2020
 --------------------------
 

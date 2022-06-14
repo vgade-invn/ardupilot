@@ -158,6 +158,18 @@ This is the 4th beta of the 4.2.0 major release.
  - fixed param conversion bug (impacts airspeed enable)
  - changed MatekH743 to use a 32 bit timer
 
+Release ArduPlane V4.2.0beta3_Carbopilot V4.0.0 1st June 2022
+----------------------------------
+
+This is the first release of Carbopilot 4.0.0
+ - Rebase to Ardupilot 4.2
+ - Add AP_Periph:Hwdef CarbonixF405 
+ - Updated Batt Monitor Backend
+ - Add Batt Monitor AD7091R5
+ - Add Can Device Health Logging & Print
+ - Updated AP_Periph:Hwdef CarbonixL496
+ - Add QMC5883P Compass
+
 Happy flying!
 
 Release 4.2.0beta3 18th March 2022
