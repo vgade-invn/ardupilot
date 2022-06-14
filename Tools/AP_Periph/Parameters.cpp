@@ -373,6 +373,13 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     // @Path: ../libraries/AP_Scripting/AP_Scripting.cpp
     GOBJECT(scripting, "SCR_", AP_Scripting),
 #endif
+
+#if AP_STATS_ENABLED
+    // @Group: Node
+    // @Path: ../libraries/AP_Stats/AP_Stats.cpp
+    GOBJECT(node_stats, "STAT", AP_Stats),
+#endif
+
     AP_VAREND
 };
 
