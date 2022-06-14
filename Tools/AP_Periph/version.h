@@ -1,6 +1,6 @@
 #pragma once
 
-#define THISFIRMWARE "AP_Periph V1.3dev"
+#define THISFIRMWARE "AP_Periph V1.3dev_CarboPeriph V4.0"
 
 // the following line is parsed by the autotest scripts
 #define FIRMWARE_VERSION 1,3,0,FIRMWARE_VERSION_TYPE_DEV
