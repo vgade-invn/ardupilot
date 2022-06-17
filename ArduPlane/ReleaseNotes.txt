@@ -1,3 +1,12 @@
+Release ArduPlane V4.2.1_Carbopilot V4.1.0 17th June 2022
+----------------------------------
+
+This is the Test release of Carbopilot 4.1.0
+ - Code Rebased to ardupilot 4.2.1
+ - Drop commit of CANH Logging.
+
+Happy flying!
+
 Release 4.2.1 23rd May 2022
 ---------------------------
 
