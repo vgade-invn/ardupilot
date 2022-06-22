@@ -251,12 +251,12 @@ void SRV_Channels::set_digital_outputs(uint16_t dig_mask, uint16_t rev_mask) {
     for (uint8_t i = 0; i < NUM_SERVO_CHANNELS; i++) {
         SRV_Channel &c = channels[i];
         if (digital_mask & (1U<<i)) {
-            c.servo_min.set(1000);
-            c.servo_max.set(2000);
+            c.servo_min.set_and_default(1000);
+            c.servo_max.set_and_default(2000);
             if (reversible_mask & (1U<<i)) {
-                c.servo_trim.set(1500);
+                c.servo_trim.set_and_default(1500);
             } else {
-                c.servo_trim.set(1000);
+                c.servo_trim.set_and_default(1000);
             }
         }
     }
@@ -489,7 +489,7 @@ bool SRV_Channels::set_aux_channel_default(SRV_Channel::Aux_servo_function_t fun
         return false;
     }
     channels[channel].type_setup = false;
-    channels[channel].function.set(function);
+    channels[channel].function.set_and_default(function);
     channels[channel].aux_servo_function_setup();
     function_mask.set((uint16_t)function);
     if (SRV_Channel::valid_function(function)) {
@@ -583,7 +583,7 @@ void SRV_Channels::set_trim_to_pwm_for(SRV_Channel::Aux_servo_function_t functio
 {
     for (uint8_t i=0; i<NUM_SERVO_CHANNELS; i++) {
         if (channels[i].function == function) {
-            channels[i].servo_trim.set(pwm);
+            channels[i].servo_trim.set_and_default(pwm);
         }
     }
 }
@@ -593,7 +593,7 @@ void SRV_Channels::set_trim_to_min_for(SRV_Channel::Aux_servo_function_t functio
 {
     for (uint8_t i=0; i<NUM_SERVO_CHANNELS; i++) {
         if (channels[i].function == function) {
-            channels[i].servo_trim.set((channels[i].get_reversed() && !ignore_reversed)?channels[i].servo_max:channels[i].servo_min);
+            channels[i].servo_trim.set_and_default((channels[i].get_reversed() && !ignore_reversed)?channels[i].servo_max:channels[i].servo_min);
         }
     }
 }

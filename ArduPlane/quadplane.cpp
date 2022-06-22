@@ -471,6 +471,7 @@ static const struct AP_Param::defaults_table_struct defaults_table[] = {
     { "Q_WP_SPEED",       500 },
     { "Q_WP_ACCEL",       100 },
     { "Q_P_JERK_XY",      2   },
+    { "SIM_ACC1_BIAS_Y",  0.6542 },
 };
 
 /*

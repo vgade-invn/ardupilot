@@ -62,6 +62,7 @@ private:
 
     struct rfile {
         bool open;
+        bool is_defaults;
         uint16_t read_size;
         uint16_t start;
         uint16_t count;
@@ -73,7 +74,7 @@ private:
 
     bool token_seek(const struct rfile &r, const uint32_t data_ofs, struct cursor &c);
     uint8_t pack_param(const struct rfile &r, struct cursor &c, uint8_t *buf);
-    bool check_file_name(const char *fname);
+    bool check_file_name(const char *fname, bool &is_defaults);
 
     // finish uploading parameters
     bool finish_upload(const rfile &r);

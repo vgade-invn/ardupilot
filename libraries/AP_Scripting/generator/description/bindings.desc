@@ -324,6 +324,7 @@ userdata Parameter method get boolean float'Null
 userdata Parameter method set boolean float'skip_check
 userdata Parameter method set_and_save boolean float'skip_check
 userdata Parameter method configured boolean
+userdata Parameter method load boolean
 userdata Parameter method set_default boolean float'skip_check
 
 

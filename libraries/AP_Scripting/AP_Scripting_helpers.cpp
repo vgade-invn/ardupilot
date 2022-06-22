@@ -134,6 +134,15 @@ bool Parameter::configured()
     return vp->configured();
 }
 
+// reload a parameter
+bool Parameter::load()
+{
+    if (vp == nullptr) {
+        return false;
+    }
+    return vp->load();
+}
+
 // set default value
 bool Parameter::set_default(float value)
 {

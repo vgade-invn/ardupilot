@@ -18,6 +18,7 @@ public:
     bool set_and_save(float value);
     bool get(float &value);
     bool configured();
+    bool load();
     bool set_default(float value);
 
 private:

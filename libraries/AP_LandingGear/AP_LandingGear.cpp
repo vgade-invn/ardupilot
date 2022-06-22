@@ -94,7 +94,8 @@ void AP_LandingGear::init()
     if (!_enable.configured() && (SRV_Channels::function_assigned(SRV_Channel::k_landing_gear_control) || 
             (_pin_deployed > 0) || (_pin_weight_on_wheels > 0))) {
         // if not configured set enable param if output servo or sense pins are defined
-        _enable.set_and_save(1);
+        _enable.set_and_default(1);
+        _enable.save(1);
     }
 
     if (_pin_deployed != -1) {

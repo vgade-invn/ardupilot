@@ -22,13 +22,15 @@
 #include <ctype.h>
 
 #define PACKED_NAME "param.pck"
+#define PACKED_DEFAULTS_NAME "defaults.pck"
 
 extern const AP_HAL::HAL& hal;
 extern int errno;
 
 int AP_Filesystem_Param::open(const char *fname, int flags, bool allow_absolute_path)
 {
-    if (!check_file_name(fname)) {
+    bool is_defaults = false;
+    if (!check_file_name(fname, is_defaults)) {
         errno = ENOENT;
         return -1;
     }
@@ -53,6 +55,7 @@ int AP_Filesystem_Param::open(const char *fname, int flags, bool allow_absolute_
     }
     r.file_ofs = 0;
     r.open = true;
+    r.is_defaults = is_defaults;
     r.start = 0;
     r.count = 0;
     r.read_size = 0;
@@ -205,7 +208,11 @@ uint8_t AP_Filesystem_Param::pack_param(const struct rfile &r, struct cursor &c,
     buf[0] = uint8_t(ptype) | (flags<<4);
     buf[1] = common_len | ((name_len-1)<<4);
     memcpy(&buf[2], pname, name_len);
-    memcpy(&buf[2+name_len], ap, type_len);
+    if (r.is_defaults) {
+        ap->fill_default_token(c.token, (AP_Param *)&buf[2+name_len]);
+    } else {
+        memcpy(&buf[2+name_len], ap, type_len);
+    }
 
     strcpy(c.last_name, name);
 
@@ -402,7 +409,8 @@ int32_t AP_Filesystem_Param::lseek(int fd, int32_t offset, int seek_from)
 
 int AP_Filesystem_Param::stat(const char *name, struct stat *stbuf)
 {
-    if (!check_file_name(name)) {
+    bool is_defaults = false;
+    if (!check_file_name(name, is_defaults)) {
         errno = ENOENT;
         return -1;
     }
@@ -415,11 +423,18 @@ int AP_Filesystem_Param::stat(const char *name, struct stat *stbuf)
 /*
   check for the right file name
  */
-bool AP_Filesystem_Param::check_file_name(const char *name)
+bool AP_Filesystem_Param::check_file_name(const char *name, bool &is_defaults)
 {
     const uint8_t packed_len = strlen(PACKED_NAME);
     if (strncmp(name, PACKED_NAME, packed_len) == 0 &&
         (name[packed_len] == 0 || name[packed_len] == '?')) {
+        is_defaults = false;
+        return true;
+    }
+    const uint8_t packed_defaults_len = strlen(PACKED_DEFAULTS_NAME);
+    if (strncmp(name, PACKED_DEFAULTS_NAME, packed_defaults_len) == 0 &&
+        (name[packed_defaults_len] == 0 || name[packed_defaults_len] == '?')) {
+        is_defaults = true;
         return true;
     }
     return false;

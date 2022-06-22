@@ -303,9 +303,13 @@ function Parameter() end
 ---@return boolean
 function Parameter_ud:set_default(value) end
 
--- desc
+-- desc return true if a parameter is configured by the user (set in storage)
 ---@return boolean
 function Parameter_ud:configured() end
+
+-- desc reload a parameter from storage or default value
+---@return boolean
+function Parameter_ud:load() end
 
 -- desc
 ---@param value number

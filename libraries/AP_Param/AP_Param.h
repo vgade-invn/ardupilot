@@ -272,6 +272,11 @@ public:
     /// Uses token to look up AP_Param::Info for the variable
     void copy_name_token(const ParamToken &token, char *buffer, size_t bufferSize, bool force_scalar=false) const;
 
+    /// Fill in AP_Param from its default value
+    ///
+    /// Uses token to look up AP_Param::Info for the variable
+    bool fill_default_token(const ParamToken &token, AP_Param *ap) const;
+    
     /// Find a variable by name.
     ///
     /// If the variable has no name, it cannot be found by this interface.
@@ -520,6 +525,9 @@ public:
     // check if a given frame type should be included
     static bool check_frame_type(uint16_t flags);
 
+    // add a default value to the defaults list
+    static void add_default(const AP_Param *object_ptr, const float value);
+
 #if AP_PARAM_KEY_DUMP
     /// print the value of all variables
     static void         show_all(AP_HAL::BetterStream *port, bool showKeyValues=false);
@@ -743,6 +751,18 @@ private:
     static uint16_t num_param_overrides;
     static uint16_t num_read_only;
 
+    // list of defaults set with set_default()
+    struct param_default {
+        struct param_default *next;
+        const AP_Param *object_ptr;
+        float value;
+    };
+    static uint16_t num_param_defaults;
+    static struct param_default *param_defaults;
+    static HAL_Semaphore param_defaults_sem;
+
+
+
     // values filled into the EEPROM header
     static const uint8_t        k_EEPROM_magic0      = 0x50;
     static const uint8_t        k_EEPROM_magic1      = 0x41; ///< "AP"
@@ -792,6 +812,9 @@ public:
     void set(const T &v) {
         _value = v;
     }
+    void set2(const T &v) {
+        _value = v;
+    }
 
     // set a parameter that is an ENABLE param
     void set_enable(const T &v) {
@@ -803,10 +826,12 @@ public:
     
     /// Sets if the parameter is unconfigured
     ///
-    void set_default(const T &v) {
-        if (!configured()) {
-            set(v);
-        }
+    void set_default(const T &v);
+
+    /// Sets a value and also saves the value as the default
+    void set_and_default(const T &v) {
+        set_default(v);
+        set2(v);
     }
 
     /// Value setter - set value, tell GCS

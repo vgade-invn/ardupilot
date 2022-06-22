@@ -92,9 +92,13 @@ HAL_Semaphore AP_Param::_count_sem;
 // storage and naming information about all types that can be saved
 const AP_Param::Info *AP_Param::_var_info;
 
-struct AP_Param::param_override *AP_Param::param_overrides = nullptr;
+struct AP_Param::param_override *AP_Param::param_overrides;
 uint16_t AP_Param::num_param_overrides = 0;
 uint16_t AP_Param::num_read_only = 0;
+
+struct AP_Param::param_default *AP_Param::param_defaults;
+uint16_t AP_Param::num_param_defaults;
+HAL_Semaphore AP_Param::param_defaults_sem;
 
 ObjectBuffer_TS<AP_Param::param_save> AP_Param::save_queue{30};
 bool AP_Param::registered_save_handler;
@@ -823,6 +827,35 @@ void AP_Param::copy_name_info(const struct AP_Param::Info *info,
     }
 }
 
+/// Fill in AP_Param from its default value
+///
+/// Uses token to look up AP_Param::Info for the variable
+bool AP_Param::fill_default_token(const ParamToken &token, AP_Param *ap) const
+{
+    uint32_t group_element;
+    const struct GroupInfo *ginfo;
+    struct GroupNesting group_nesting {};
+    uint8_t idx;
+    const struct AP_Param::Info *info = find_var_info_token(token, &group_element, ginfo, group_nesting, &idx);
+    if (info == nullptr) {
+        return false;
+    }
+    float v;
+    enum ap_var_type vtype;
+    if (ginfo != nullptr) {
+        v = get_default_value(this, &ginfo->def_value);
+        vtype = (ap_var_type)ginfo->type;
+    } else {
+        v = get_default_value(this, &info->def_value);
+        vtype = (ap_var_type)info->type;
+    }
+    if (vtype == AP_PARAM_VECTOR3F) {
+        vtype = AP_PARAM_FLOAT;
+    }
+    set_value(vtype, ap, v);
+    return true;
+}
+
 // Find a variable by name in a group
 AP_Param *
 AP_Param::find_group(const char *name, uint16_t vindex, ptrdiff_t group_offset,
@@ -1426,16 +1459,16 @@ void AP_Param::set_value(enum ap_var_type type, void *ptr, float value)
 {
     switch (type) {
     case AP_PARAM_INT8:
-        ((AP_Int8 *)ptr)->set(value);
+        ((AP_Int8 *)ptr)->set2(value);
         break;
     case AP_PARAM_INT16:
-        ((AP_Int16 *)ptr)->set(value);
+        ((AP_Int16 *)ptr)->set2(value);
         break;
     case AP_PARAM_INT32:
-        ((AP_Int32 *)ptr)->set(value);
+        ((AP_Int32 *)ptr)->set2(value);
         break;
     case AP_PARAM_FLOAT:
-        ((AP_Float *)ptr)->set(value);
+        ((AP_Float *)ptr)->set2(value);
         break;
     default:
         break;
@@ -2393,9 +2426,22 @@ void AP_Param::load_embedded_param_defaults(bool last_pass)
  */
 float AP_Param::get_default_value(const AP_Param *vp, const float *def_value_ptr)
 {
+    /*
+      check a defaults file (override)
+     */
     for (uint16_t i=0; i<num_param_overrides; i++) {
         if (vp == param_overrides[i].object_ptr) {
             return param_overrides[i].value;
+        }
+    }
+
+    /* then check defaults list */
+    if (param_defaults != nullptr) {
+        //WITH_SEMAPHORE(param_defaults_sem);
+        for (auto p = param_defaults; p; p = p->next) {
+            if (p->object_ptr == vp) {
+                return p->value;
+            }
         }
     }
     return *def_value_ptr;
@@ -2483,6 +2529,46 @@ void AP_Param::invalidate_count(void)
     // not-equal test is strong enough to ensure we get the right
     // answer
     _count_marker++;
+}
+
+/*
+  add a default value to the defaults list
+  This is needed so that a load() call will go back to the correct default
+  value if the value is not stored in HAL storage
+*/
+void AP_Param::add_default(const AP_Param *object_ptr, const float value)
+{
+    //WITH_SEMAPHORE(param_defaults_sem);
+    auto p = param_defaults;
+    for (; p; p = p->next) {
+        if (p->object_ptr == object_ptr) {
+            // update existing value
+            p->value = value;
+            return;
+        }
+    }
+    p = new param_default;
+    if (p == nullptr) {
+        // internal error?
+        return;
+    }
+    p->next = param_defaults;
+    p->value = value;
+    p->object_ptr = object_ptr;
+    param_defaults = p;
+    num_param_defaults++;
+}
+
+template <typename T,ap_var_type PT>
+void AP_ParamT<T,PT>::set_default(const T &v)
+{
+    if (is_equal(v, _value)) {
+        return;
+    }
+    add_default(this, float(v));
+    if (!configured()) {
+        set2(v);
+    }
 }
 
 /*
