@@ -24,6 +24,7 @@
 #include <AP_Filesystem/AP_Filesystem_Available.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_OpticalFlow/AP_OpticalFlow.h>
+#include <AP_OpenDroneID/AP_OpenDroneID.h>
 #include <AP_Mount/AP_Mount.h>
 #include <AC_Fence/AC_Fence.h>
 
@@ -321,6 +322,15 @@ public:
 #endif // HAL_HIGH_LATENCY2_ENABLED
     void send_uavionix_adsb_out_status() const;
     void send_autopilot_state_for_gimbal_device() const;
+
+// OpenDroneID Send Messages
+#if AP_OPENDRONEID_ENABLED
+    void send_open_drone_id_basic_id();
+    void send_open_drone_id_location();
+    void send_open_drone_id_system();
+    void send_open_drone_id_operator_id();
+    void send_open_drone_id_self_id();
+#endif
 
     // lock a channel, preventing use by MAVLink
     void lock(bool _lock) {
