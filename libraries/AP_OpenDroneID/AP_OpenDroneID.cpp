@@ -455,6 +455,10 @@ void AP_OpenDroneID::send_basic_id_message() const
 
 void AP_OpenDroneID::send_system_message() const
 {
+    Location orgn {};
+    AP_AHRS &ahrs = AP::ahrs();
+    IGNORE_RETURN(ahrs.get_origin(orgn));
+
     mavlink_msg_open_drone_id_system_send(
         _chan,
         0,                          // System ID (0 for broadcast)
@@ -462,8 +466,8 @@ void AP_OpenDroneID::send_system_message() const
         _id_or_mac,                 // id_or_mac: unused. Only used for drone ID data received from other UAs
         _operator_location_type,
         _classification_type,
-        _operator_position.lat,
-        _operator_position.lng,
+        orgn.lat,
+        orgn.lng,
         _area_count,
         _area_radius,
         _area_ceiling,
