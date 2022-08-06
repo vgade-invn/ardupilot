@@ -61,8 +61,25 @@ const AP_Param::GroupInfo AP_OpenDroneID::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("UA_TYPE", 3, AP_OpenDroneID, _ua_type_parm, MAV_ODID_UA_TYPE_NONE),
 
+    // @Param: MAVPORT
+    // @DisplayName: MAVLink serial port
+    // @Description: Serial port number to send OpenDroneID MAVLink messages to
+    // @Values: -1:Disabled,0:Serial0,1:Serial1,2:Serial2,3:Serial3,4:Serial4,5:Serial5,6:Serial6
+    // @User: Advanced
+    AP_GROUPINFO("MAVPORT", 4, AP_OpenDroneID, _mav_port, -1),
+
+    // @Param: OPTIONS
+    // @DisplayName: OpenDroneID options
+    // @Description: Options for OpenDroneID subsystem
+    // @Bitmask: 0:EnableDroneCAN
+    // @User: Advanced
+    AP_GROUPINFO("OPTIONS", 5, AP_OpenDroneID, _options, 0),
+    
     AP_GROUPEND
 };
+
+// copy a byte array field into a packet with length check
+#define ODID_COPY_FIELD(to,from) memcpy(to,from,MIN(sizeof(to),sizeof(from)))
 
 // constructor
 AP_OpenDroneID::AP_OpenDroneID()
@@ -83,7 +100,7 @@ void AP_OpenDroneID::init()
     _mavlink_dynamic_period_ms = 1000;
     _mavlink_static_period_ms = 10000;
 
-     _chan = MAVLINK_COMM_0; //set default to MAVLink channel 0
+    _chan = mavlink_channel_t(gcs().get_channel_from_port_number(_mav_port));
      _id_type = MAV_ODID_ID_TYPE_NONE;
      _uav_status = MAV_ODID_STATUS_UNDECLARED;
     _height_reference = MAV_ODID_HEIGHT_REF_OVER_TAKEOFF;
@@ -123,7 +140,6 @@ void AP_OpenDroneID::init()
     }
 
 //code to be replaced: set dummy values in open drone ID messages
-    set_mavlink_channel(MAVLINK_COMM_1); //set to MAVLink channel 1
     set_mavlink_dynamic_messages_period_ms(1000); //send dynamic messages at 1 Hz frequency i.e. every 1 second
     set_mavlink_static_messages_period_ms(10000); //send dynamic messages at 0.1 Hz frequency i.e. every 10 seconds
     set_id_type(MAV_ODID_ID_TYPE_SERIAL_NUMBER);
@@ -214,6 +230,10 @@ void AP_OpenDroneID::update()
 
     if (now - _last_send_static_messages_ms >= _mavlink_static_period_ms) {
         _last_send_static_messages_ms = now;
+
+        // allow update of channel during setup, this makes it easy to debug with a GCS
+        _chan = mavlink_channel_t(gcs().get_channel_from_port_number(_mav_port));
+
         send_static_out();
     }
 
@@ -412,45 +432,48 @@ void AP_OpenDroneID::send_location_message()
 
 
         MAV_ODID_STATUS status = get_uav_status();
-        const uint8_t* id_or_mac = _id_or_mac;
-        mavlink_channel_t mavlink_channel = get_mavlink_channel();
 
-        mavlink_msg_open_drone_id_location_send(
-            mavlink_channel,
-            0,                                          // System ID (0 for broadcast)
-            0,                                          // Component ID (0 for broadcast)
-            id_or_mac,                                  // id_or_mac: unused. Only used for drone ID data received from other UAs
-            status,
-            uint16_t(direction * 100.0),                // Heading (centi-degrees)
-            uint16_t(speed_horizontal * 100.0),         // Ground speed (cm/s)
-            int16_t(climb_rate * 100.0),                // Climb rate (cm/s)
-            latitude,
-            longitude,
-            altitude_barometric,
-            altitude_geodetic_cm,
-            MAV_ODID_HEIGHT_REF_OVER_TAKEOFF,           // height reference enum: Above takeoff location or above ground
-            height,
-            horizontal_accuracy_mav,
-            vertical_accuracy_mav,
-            barometer_accuracy,
-            speed_accuracy_mav,
-            timestamp,
-            timestamp_accuracy_mav
-        );
+        mavlink_open_drone_id_location_t pkt {
+          latitude : latitude,
+          longitude : longitude,
+          altitude_barometric : altitude_barometric,
+          altitude_geodetic : altitude_geodetic_cm,
+          height : height,
+          timestamp : timestamp,
+          direction : uint16_t(direction * 100.0), // Heading (centi-degrees)
+          speed_horizontal : uint16_t(speed_horizontal * 100.0), // Ground speed (cm/s)
+          speed_vertical : int16_t(climb_rate * 100.0), // Climb rate (cm/s)
+          target_system : 0,
+          target_component : 0,
+          status : status,
+          MAV_ODID_HEIGHT_REF_OVER_TAKEOFF,           // height reference enum: Above takeoff location or above ground
+          horizontal_accuracy : horizontal_accuracy_mav,
+          vertical_accuracy : vertical_accuracy_mav,
+          barometer_accuracy : barometer_accuracy,
+          speed_accuracy : speed_accuracy_mav,
+          timestamp_accuracy : timestamp_accuracy_mav
+        };
+        ODID_COPY_FIELD(pkt.id_or_mac, _id_or_mac);
+
+        if (_chan != MAV_CHAN_INVALID) {
+            mavlink_msg_open_drone_id_location_send_struct(_chan, &pkt);
+        }
     }
 }
 
 void AP_OpenDroneID::send_basic_id_message() const
 {
-    mavlink_msg_open_drone_id_basic_id_send(
-        _chan,
-        0,                      // System ID (0 for broadcast)
-        0,                      // Component ID (0 for broadcast)
-        _id_or_mac,             // id_or_mac: unused. Only used for drone ID data received from other UAs
-        _id_type,
-        _ua_type,
-        (uint8_t *) _uas_id     //_uas_id is char als in Open Drone ID core library, but MAVLink defines it as uint8_t.
-    );
+    mavlink_open_drone_id_basic_id_t pkt {
+      target_system : 0,      // System ID (0 for broadcast)
+      target_component : 0,   // Component ID (0 for broadcast)
+      id_type : _id_type,
+      ua_type : _ua_type,
+    };
+    ODID_COPY_FIELD(pkt.id_or_mac, _id_or_mac);
+    ODID_COPY_FIELD(pkt.uas_id, _uas_id);
+    if (_chan != MAV_CHAN_INVALID) {
+        mavlink_msg_open_drone_id_basic_id_send_struct(_chan, &pkt);
+    }
 }
 
 void AP_OpenDroneID::send_system_message() const
@@ -459,48 +482,57 @@ void AP_OpenDroneID::send_system_message() const
     AP_AHRS &ahrs = AP::ahrs();
     IGNORE_RETURN(ahrs.get_origin(orgn));
 
-    mavlink_msg_open_drone_id_system_send(
-        _chan,
-        0,                          // System ID (0 for broadcast)
-        0,                          // Component ID (0 for broadcast)
-        _id_or_mac,                 // id_or_mac: unused. Only used for drone ID data received from other UAs
-        _operator_location_type,
-        _classification_type,
-        orgn.lat,
-        orgn.lng,
-        _area_count,
-        _area_radius,
-        _area_ceiling,
-        _area_floor,
-        _category_eu,
-        _class_eu,
-        _operator_position.alt * 0.01f,     // Geodetic altitude relative to WGS84
-        _operator_timestamp
-    );
+    mavlink_open_drone_id_system_t pkt {
+      operator_latitude : orgn.lat,
+      operator_longitude : orgn.lng,
+      area_ceiling : _area_ceiling,
+      area_floor : _area_floor,
+      operator_altitude_geo : _operator_position.alt * 0.01f,     // Geodetic altitude relative to WGS84
+      timestamp : _operator_timestamp,
+      area_count : _area_count,
+      area_radius : _area_radius,
+      target_system : 0,                          // System ID (0 for broadcast)
+      target_component : 0,                          // Component ID (0 for broadcast)
+      operator_location_type : _operator_location_type,
+      classification_type : _classification_type,
+      category_eu : _category_eu,
+      class_eu : _class_eu,
+    };
+    ODID_COPY_FIELD(pkt.id_or_mac, _id_or_mac);
+
+    if (_chan != MAV_CHAN_INVALID) {
+        mavlink_msg_open_drone_id_system_send_struct(_chan, &pkt);
+    }
 }
 
 void AP_OpenDroneID::send_self_id_message() const
 {
-    mavlink_msg_open_drone_id_self_id_send(
-        _chan,
-        0,                  // System ID (0 for broadcast)
-        0,                  // Component ID (0 for broadcast)
-        _id_or_mac,         // id_or_mac: unused. Only used for drone ID data received from other UAs
-        _description_type,
-        _description
-    );
+    mavlink_open_drone_id_self_id_t pkt {
+      target_system : 0,
+      target_component : 0,
+      description_type : _description_type,
+    };
+    ODID_COPY_FIELD(pkt.id_or_mac, _id_or_mac);
+    ODID_COPY_FIELD(pkt.description, _description);
+
+    if (_chan != MAV_CHAN_INVALID) {
+        mavlink_msg_open_drone_id_self_id_send_struct(_chan, &pkt);
+    }
 }
 
 void AP_OpenDroneID::send_operator_id_message() const
 {
-    mavlink_msg_open_drone_id_operator_id_send(
-        _chan,
-        0,                  // System ID (0 for broadcast)
-        0,                  // Component ID (0 for broadcast)
-        _id_or_mac,         // id_or_mac: unused. Only used for drone ID data received from other UAs
-        _operator_id_type,
-        _operator_id
-    );
+    mavlink_open_drone_id_operator_id_t pkt {
+      target_system : 0,    // System ID (0 for broadcast)
+      target_component : 0, // Component ID (0 for broadcast)
+      operator_id_type : _operator_id_type,
+    };
+    ODID_COPY_FIELD(pkt.id_or_mac, _id_or_mac);
+    ODID_COPY_FIELD(pkt.operator_id, _operator_id);
+
+    if (_chan != MAV_CHAN_INVALID) {
+        mavlink_msg_open_drone_id_operator_id_send_struct(_chan, &pkt);
+    }
 }
 
 /*

@@ -251,10 +251,6 @@ public:
        _mavlink_static_period_ms = constrain_int32(period_ms, 1000, 360000); //between 1 and 1 hour, Remote ID transponder needs to broadcast the static packages every 3 seconds or faster.
     }
 
-    void set_mavlink_channel(mavlink_channel_t chan){
-        _chan = chan;
-    }
-
     //transmit functions to manually send a static MAVLink message
     void send_basic_id_message() const;
     void send_system_message() const;
@@ -283,9 +279,12 @@ private:
     AP_Int32 _serial_number; // do we need this parameter?
     AP_Float _baro_accuracy;    // Vertical accuracy of the barometer when installed
     AP_Int8  _ua_type_parm;     // Unmanned aircraft type parameter
+    AP_Int16 _options;
+    AP_Int8  _mav_port;
 
 
     mavlink_channel_t _chan; // MAVLink channel that communicates with the Remote ID Transceiver
+    const mavlink_channel_t MAV_CHAN_INVALID = mavlink_channel_t(255U);
     uint32_t _last_send_dynamic_messages_ms;
     uint32_t _last_send_static_messages_ms;
     uint32_t _mavlink_dynamic_period_ms; //how often are mavlink dynamic messages sent in ms. E.g. 1000 = 1 Hz
