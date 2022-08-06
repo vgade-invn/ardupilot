@@ -5242,7 +5242,7 @@ void GCS_MAVLINK::send_uavionix_adsb_out_status() const
 #if AP_OPENDRONEID_ENABLED
 void GCS_MAVLINK::send_open_drone_id_basic_id()
 {
-    const AP_OpenDroneID &opendrone_id = AP::opendroneid();
+    AP_OpenDroneID &opendrone_id = AP::opendroneid();
     opendrone_id.send_basic_id_message();
 }
 
@@ -5254,19 +5254,19 @@ void GCS_MAVLINK::send_open_drone_id_location()
 
 void GCS_MAVLINK::send_open_drone_id_system()
 {
-    const AP_OpenDroneID &opendrone_id = AP::opendroneid();
+    AP_OpenDroneID &opendrone_id = AP::opendroneid();
     opendrone_id.send_system_message();
 }
 
 void GCS_MAVLINK::send_open_drone_id_operator_id()
 {
-    const AP_OpenDroneID &opendrone_id = AP::opendroneid();
+    AP_OpenDroneID &opendrone_id = AP::opendroneid();
     opendrone_id.send_operator_id_message();
 }
 
 void GCS_MAVLINK::send_open_drone_id_self_id()
 {
-    const AP_OpenDroneID &opendrone_id = AP::opendroneid();
+    AP_OpenDroneID &opendrone_id = AP::opendroneid();
     opendrone_id.send_self_id_message();
 }
 #endif // AP_OPENDRONEID_ENABLED
