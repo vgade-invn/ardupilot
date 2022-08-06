@@ -31,6 +31,8 @@
 #define AP_OPENDRONEID_ENABLED 1
 #endif
 
+#if AP_OPENDRONEID_ENABLED
+
 // Enforces the OpenDroneID arming check
 // Allows for progressive inclusion of this as required by regulators dues to different
 // requirement dates for new vehicles vs. retrofits in various countries
@@ -63,6 +65,8 @@
 #define ODID_MAX_AREA_RADIUS 2550
 #define ODID_AREA_COUNT_MIN  1
 #define ODID_AREA_COUNT_MAX  65000
+
+class AP_UAVCAN;
 
 class AP_OpenDroneID {
 public:
@@ -252,10 +256,10 @@ public:
     }
 
     //transmit functions to manually send a static MAVLink message
-    void send_basic_id_message() const;
-    void send_system_message() const;
-    void send_self_id_message() const;
-    void send_operator_id_message() const;
+    void send_basic_id_message();
+    void send_system_message();
+    void send_self_id_message();
+    void send_operator_id_message();
     void send_location_message();
 
     //helper functions
@@ -268,6 +272,9 @@ public:
     int16_t create_speed_vertical(int16_t speed) const;
     float create_altitude(float altitude) const;
     float create_location_timestamp(float timestamp) const;
+
+    // send pending dronecan messages
+    void dronecan_send(AP_UAVCAN *);
 
     // get singleton instance
     static AP_OpenDroneID *get_singleton() { return _singleton; }
@@ -282,6 +289,14 @@ private:
     AP_Int16 _options;
     AP_Int8  _mav_port;
 
+    enum Options : int16_t {
+        EnableDroneCAN    = (1U << 0U),
+    };
+
+    // check if an option is set
+    bool option_set(const Options option) const {
+        return (uint8_t(_options.get()) & uint8_t(option)) != 0;
+    }
 
     mavlink_channel_t _chan; // MAVLink channel that communicates with the Remote ID Transceiver
     const mavlink_channel_t MAV_CHAN_INVALID = mavlink_channel_t(255U);
@@ -317,8 +332,38 @@ private:
     char _uas_id[ODID_ID_SIZE + 1];
     char _operator_id[ODID_ID_SIZE + 1];
     char _description[ODID_STR_SIZE + 1];
+
+    // packets ready to be sent, updated with semaphore held
+    HAL_Semaphore _sem;
+    mavlink_open_drone_id_location_t pkt_location;
+    mavlink_open_drone_id_basic_id_t pkt_basic_id;
+    mavlink_open_drone_id_system_t pkt_system;
+    mavlink_open_drone_id_self_id_t pkt_self_id;
+    mavlink_open_drone_id_operator_id_t pkt_operator_id;
+
+    // mask of what UAVCAN drivers need to send each packet
+    const uint8_t dronecan_send_all = (1U<<HAL_MAX_CAN_PROTOCOL_DRIVERS)-1;
+    uint8_t need_send_location;
+    uint8_t need_send_basic_id;
+    uint8_t need_send_system;
+    uint8_t need_send_self_id;
+    uint8_t need_send_operator_id;
+
+    uint8_t dronecan_done_init;
+    uint8_t dronecan_init_failed;
+    void dronecan_init(AP_UAVCAN *uavcan);
+    void dronecan_send_location(AP_UAVCAN *uavcan);
+    void dronecan_send_basic_id(AP_UAVCAN *uavcan);
+    void dronecan_send_system(AP_UAVCAN *uavcan);
+    void dronecan_send_self_id(AP_UAVCAN *uavcan);
+    void dronecan_send_operator_id(AP_UAVCAN *uavcan);
 };
+
+// copy a byte array field into a packet with length check
+#define ODID_COPY_FIELD(to,from) memcpy(to,from,MIN(sizeof(to),sizeof(from)))
 
 namespace AP {
     AP_OpenDroneID &opendroneid();
 };
+
+#endif // AP_OPENDRONEID_ENABLED

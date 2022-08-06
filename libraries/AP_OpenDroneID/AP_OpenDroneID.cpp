@@ -78,9 +78,6 @@ const AP_Param::GroupInfo AP_OpenDroneID::var_info[] = {
     AP_GROUPEND
 };
 
-// copy a byte array field into a packet with length check
-#define ODID_COPY_FIELD(to,from) memcpy(to,from,MIN(sizeof(to),sizeof(from)))
-
 // constructor
 AP_OpenDroneID::AP_OpenDroneID()
 {
@@ -433,105 +430,128 @@ void AP_OpenDroneID::send_location_message()
 
         MAV_ODID_STATUS status = get_uav_status();
 
-        mavlink_open_drone_id_location_t pkt {
-          latitude : latitude,
-          longitude : longitude,
-          altitude_barometric : altitude_barometric,
-          altitude_geodetic : altitude_geodetic_cm,
-          height : height,
-          timestamp : timestamp,
-          direction : uint16_t(direction * 100.0), // Heading (centi-degrees)
-          speed_horizontal : uint16_t(speed_horizontal * 100.0), // Ground speed (cm/s)
-          speed_vertical : int16_t(climb_rate * 100.0), // Climb rate (cm/s)
-          target_system : 0,
-          target_component : 0,
-          status : status,
-          MAV_ODID_HEIGHT_REF_OVER_TAKEOFF,           // height reference enum: Above takeoff location or above ground
-          horizontal_accuracy : horizontal_accuracy_mav,
-          vertical_accuracy : vertical_accuracy_mav,
-          barometer_accuracy : barometer_accuracy,
-          speed_accuracy : speed_accuracy_mav,
-          timestamp_accuracy : timestamp_accuracy_mav
-        };
-        ODID_COPY_FIELD(pkt.id_or_mac, _id_or_mac);
+        {
+            WITH_SEMAPHORE(_sem);
+            pkt_location = {
+            latitude : latitude,
+            longitude : longitude,
+            altitude_barometric : altitude_barometric,
+            altitude_geodetic : altitude_geodetic_cm,
+            height : height,
+            timestamp : timestamp,
+            direction : uint16_t(direction * 100.0), // Heading (centi-degrees)
+            speed_horizontal : uint16_t(speed_horizontal * 100.0), // Ground speed (cm/s)
+            speed_vertical : int16_t(climb_rate * 100.0), // Climb rate (cm/s)
+            target_system : 0,
+            target_component : 0,
+            status : status,
+            MAV_ODID_HEIGHT_REF_OVER_TAKEOFF,           // height reference enum: Above takeoff location or above ground
+            horizontal_accuracy : horizontal_accuracy_mav,
+            vertical_accuracy : vertical_accuracy_mav,
+            barometer_accuracy : barometer_accuracy,
+            speed_accuracy : speed_accuracy_mav,
+            timestamp_accuracy : timestamp_accuracy_mav
+            };
+            ODID_COPY_FIELD(pkt_location.id_or_mac, _id_or_mac);
+
+            need_send_location = dronecan_send_all;
+        }
 
         if (_chan != MAV_CHAN_INVALID) {
-            mavlink_msg_open_drone_id_location_send_struct(_chan, &pkt);
+            mavlink_msg_open_drone_id_location_send_struct(_chan, &pkt_location);
         }
     }
 }
 
-void AP_OpenDroneID::send_basic_id_message() const
+void AP_OpenDroneID::send_basic_id_message()
 {
-    mavlink_open_drone_id_basic_id_t pkt {
-      target_system : 0,      // System ID (0 for broadcast)
-      target_component : 0,   // Component ID (0 for broadcast)
-      id_type : _id_type,
-      ua_type : _ua_type,
-    };
-    ODID_COPY_FIELD(pkt.id_or_mac, _id_or_mac);
-    ODID_COPY_FIELD(pkt.uas_id, _uas_id);
+    {
+        WITH_SEMAPHORE(_sem);
+        pkt_basic_id = {
+        target_system : 0,      // System ID (0 for broadcast)
+        target_component : 0,   // Component ID (0 for broadcast)
+        id_type : _id_type,
+        ua_type : _ua_type,
+        };
+        ODID_COPY_FIELD(pkt_basic_id.id_or_mac, _id_or_mac);
+        ODID_COPY_FIELD(pkt_basic_id.uas_id, _uas_id);
+
+        need_send_basic_id = dronecan_send_all;
+    }
     if (_chan != MAV_CHAN_INVALID) {
-        mavlink_msg_open_drone_id_basic_id_send_struct(_chan, &pkt);
+        mavlink_msg_open_drone_id_basic_id_send_struct(_chan, &pkt_basic_id);
     }
 }
 
-void AP_OpenDroneID::send_system_message() const
+void AP_OpenDroneID::send_system_message()
 {
     Location orgn {};
     AP_AHRS &ahrs = AP::ahrs();
     IGNORE_RETURN(ahrs.get_origin(orgn));
 
-    mavlink_open_drone_id_system_t pkt {
-      operator_latitude : orgn.lat,
-      operator_longitude : orgn.lng,
-      area_ceiling : _area_ceiling,
-      area_floor : _area_floor,
-      operator_altitude_geo : _operator_position.alt * 0.01f,     // Geodetic altitude relative to WGS84
-      timestamp : _operator_timestamp,
-      area_count : _area_count,
-      area_radius : _area_radius,
-      target_system : 0,                          // System ID (0 for broadcast)
-      target_component : 0,                          // Component ID (0 for broadcast)
-      operator_location_type : _operator_location_type,
-      classification_type : _classification_type,
-      category_eu : _category_eu,
-      class_eu : _class_eu,
-    };
-    ODID_COPY_FIELD(pkt.id_or_mac, _id_or_mac);
+    {
+        WITH_SEMAPHORE(_sem);
+        pkt_system = {
+        operator_latitude : orgn.lat,
+        operator_longitude : orgn.lng,
+        area_ceiling : _area_ceiling,
+        area_floor : _area_floor,
+        operator_altitude_geo : _operator_position.alt * 0.01f,     // Geodetic altitude relative to WGS84
+        timestamp : _operator_timestamp,
+        area_count : _area_count,
+        area_radius : _area_radius,
+        target_system : 0,                          // System ID (0 for broadcast)
+        target_component : 0,                          // Component ID (0 for broadcast)
+        operator_location_type : _operator_location_type,
+        classification_type : _classification_type,
+        category_eu : _category_eu,
+        class_eu : _class_eu,
+        };
+        ODID_COPY_FIELD(pkt_system.id_or_mac, _id_or_mac);
+
+        need_send_system = dronecan_send_all;
+    }
 
     if (_chan != MAV_CHAN_INVALID) {
-        mavlink_msg_open_drone_id_system_send_struct(_chan, &pkt);
+        mavlink_msg_open_drone_id_system_send_struct(_chan, &pkt_system);
     }
 }
 
-void AP_OpenDroneID::send_self_id_message() const
+void AP_OpenDroneID::send_self_id_message()
 {
-    mavlink_open_drone_id_self_id_t pkt {
-      target_system : 0,
-      target_component : 0,
-      description_type : _description_type,
-    };
-    ODID_COPY_FIELD(pkt.id_or_mac, _id_or_mac);
-    ODID_COPY_FIELD(pkt.description, _description);
+    {
+        WITH_SEMAPHORE(_sem);
+        pkt_self_id = {
+        target_system : 0,
+        target_component : 0,
+        description_type : _description_type,
+        };
+        ODID_COPY_FIELD(pkt_self_id.id_or_mac, _id_or_mac);
+        ODID_COPY_FIELD(pkt_self_id.description, _description);
+        need_send_self_id = dronecan_send_all;
+    }
 
     if (_chan != MAV_CHAN_INVALID) {
-        mavlink_msg_open_drone_id_self_id_send_struct(_chan, &pkt);
+        mavlink_msg_open_drone_id_self_id_send_struct(_chan, &pkt_self_id);
     }
 }
 
-void AP_OpenDroneID::send_operator_id_message() const
+void AP_OpenDroneID::send_operator_id_message()
 {
-    mavlink_open_drone_id_operator_id_t pkt {
-      target_system : 0,    // System ID (0 for broadcast)
-      target_component : 0, // Component ID (0 for broadcast)
-      operator_id_type : _operator_id_type,
-    };
-    ODID_COPY_FIELD(pkt.id_or_mac, _id_or_mac);
-    ODID_COPY_FIELD(pkt.operator_id, _operator_id);
+    {
+        WITH_SEMAPHORE(_sem);
+        pkt_operator_id = {
+        target_system : 0,    // System ID (0 for broadcast)
+        target_component : 0, // Component ID (0 for broadcast)
+        operator_id_type : _operator_id_type,
+        };
+        ODID_COPY_FIELD(pkt_operator_id.id_or_mac, _id_or_mac);
+        ODID_COPY_FIELD(pkt_operator_id.operator_id, _operator_id);
 
+        need_send_operator_id = dronecan_send_all;
+    }
     if (_chan != MAV_CHAN_INVALID) {
-        mavlink_msg_open_drone_id_operator_id_send_struct(_chan, &pkt);
+        mavlink_msg_open_drone_id_operator_id_send_struct(_chan, &pkt_operator_id);
     }
 }
 
