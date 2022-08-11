@@ -1,3 +1,11 @@
+Release AP_Periph V1.3dev_CarboPeriph V4.1 11th August 2022
+--------------------------
+
+This is the release of CarboPeriph 4.1
+improvements:
+
+ - Can Loop time increase from 512 - 1025
+
 Release AP_Periph V1.3dev_CarboPeriph V4.0 1st June 2022
 --------------------------
 
