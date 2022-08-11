@@ -1,3 +1,12 @@
+Release ArduPlane V4.2.1_Carbopilot V4.1.1 11th August 2022
+----------------------------------
+
+This is a Relsease
+ - AP_Periph update to 4.1
+ - gpsfix frequency check script added for test purposes.
+
+Happy flying!
+
 Release ArduPlane V4.2.1_Carbopilot V4.1.0 17th June 2022
 ----------------------------------
 
