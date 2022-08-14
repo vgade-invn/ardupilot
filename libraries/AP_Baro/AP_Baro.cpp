@@ -619,7 +619,7 @@ void AP_Baro::init(void)
     case AP_BoardConfig::PX4_BOARD_PIXHAWK_PRO:
 #if AP_BARO_MS56XX_ENABLED
         ADD_BACKEND(AP_Baro_MS56XX::probe(*this,
-                                          std::move(hal.spi->get_device(HAL_BARO_MS5611_NAME))));
+                                          std::move(hal.spi->get_device(HAL_BARO_MS5611_NAME)), AP_Baro_MS56XX::BARO_MS5607));
 #endif
         break;
 
