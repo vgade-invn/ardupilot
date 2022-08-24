@@ -3014,6 +3014,8 @@ def add_apperiph_defaults(f):
 #ifndef HAL_ENABLE_SAVE_PERSISTENT_PARAMS
 #define HAL_ENABLE_SAVE_PERSISTENT_PARAMS 0
 #endif
+
+// end AP_Periph defaults
 ''')
 
 def add_bootloader_defaults(f):
@@ -3052,6 +3054,8 @@ def add_bootloader_defaults(f):
 #ifndef HAL_GCS_ENABLED
 #define HAL_GCS_ENABLED 0
 #endif
+
+// end AP_Bootloader defaults
 ''')
 
 def add_iomcu_firmware_defaults(f):
@@ -3079,6 +3083,8 @@ def add_iomcu_firmware_defaults(f):
 #ifndef AP_VIDEOTX_ENABLED
 #define AP_VIDEOTX_ENABLED 0
 #endif
+
+// end IOMCU Firmware defaults
 ''')
 
 def add_normal_firmware_defaults(f):
@@ -3101,6 +3107,7 @@ def add_normal_firmware_defaults(f):
 #define HAL_DSHOT_ALARM_ENABLED (HAL_PWM_COUNT>0)
 #endif
 
+// end firmware defaults
 ''')
 
 # process input file
