@@ -345,8 +345,9 @@ for t in $CI_BUILD_TARGET; do
 
     if [ "$t" == "signing" ]; then
         echo "Building signed firmwares"
+        sudo apt-get update
         sudo apt-get install -y python3-dev
-        python -m pip install pymonocypher
+        python3 -m pip install pymonocypher
         ./Tools/scripts/signing/generate_keys.py testkey
         $waf configure --board CubeOrange-ODID --signed-fw --private-key testkey_private_key.dat
         $waf copter
