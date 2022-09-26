@@ -42,6 +42,49 @@ float AP_EFI_Backend::get_coef2(void) const
     return frontend.coef2;
 }
 
+float AP_EFI_Backend::get_throttle_firstorder(void) const
+{
+    return frontend.throttle_firstorder;
+}
+
+float AP_EFI_Backend::get_throttle_secondorder(void) const
+{
+    return frontend.throttle_secondorder;
+}
+
+float AP_EFI_Backend::get_throttle_thirdorder(void) const
+{
+    return frontend.throttle_thirdorder;
+}
+
+float AP_EFI_Backend::get_throttle_offset(void) const
+{
+    return frontend.throttle_offset;
+}
+
+float AP_EFI_Backend::get_ecu_fcr_slope(void) const
+{
+    return frontend.ecu_fcr_slope;
+}
+
+float AP_EFI_Backend::get_ecu_fcr_offset(void) const
+{
+    return frontend.ecu_fcr_offset;
+}
+
+int16_t AP_EFI_Backend::get_ecu_fcr_average_count(void) const
+{
+    if (frontend.ecu_fcr_average_count >= 255){
+        return 255;
+    }
+    return frontend.ecu_fcr_average_count;
+}
+
+int16_t AP_EFI_Backend::get_fuel_volume_in_ml(void) const
+{
+    return frontend.fuel_volume_in_ml;
+}
+
 HAL_Semaphore &AP_EFI_Backend::get_sem(void)
 {
     return frontend.sem;
