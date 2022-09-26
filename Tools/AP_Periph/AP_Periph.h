@@ -19,6 +19,7 @@
 #include <AP_Scripting/AP_Scripting.h>
 #include <AP_HAL/CANIface.h>
 #include <AP_Stats/AP_Stats.h>
+#include "AP_ESC_APDHVPro.h"
 
 #if HAL_GCS_ENABLED
 #include "GCS_MAVLink.h"
@@ -187,6 +188,11 @@ public:
 #ifdef HAL_PERIPH_ENABLE_HWESC
     HWESC_Telem hwesc_telem;
     void hwesc_telem_update();
+#endif
+
+#ifdef HAL_PERIPH_ENABLE_ESC_APDHVPRO200
+    AP_ESC_APDHVPro APD_ESC_Telem;
+    void APD_ESC_Telem_update();
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_RC_OUT
