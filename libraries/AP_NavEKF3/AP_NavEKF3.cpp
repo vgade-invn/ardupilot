@@ -1345,6 +1345,10 @@ bool NavEKF3::getOriginLLH(int8_t instance, struct Location &loc) const
     if (!core) {
         return false;
     }
+    if (common_origin_valid) {
+        loc = common_EKF_origin;
+        return true;
+    }
     return core[instance].getOriginLLH(loc);
 }
 
