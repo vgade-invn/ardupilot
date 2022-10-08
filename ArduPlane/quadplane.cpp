@@ -843,7 +843,7 @@ void QuadPlane::run_esc_calibration(void)
  */
 void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
 {
-    bool use_multicopter_control = in_vtol_mode() && !tailsitter.in_vtol_transition();
+    bool use_multicopter_control = !use_fw_attitude_controllers();
     bool use_yaw_target = false;
 
     float yaw_target_cd = 0.0;
@@ -3936,12 +3936,16 @@ uint16_t QuadPlane::get_pilot_velocity_z_max_dn() const
  */
 bool QuadPlane::use_fw_attitude_controllers(void) const
 {
+    if (tailsitter.in_vtol_transition()) {
+        return true;
+    }
     if (available() &&
         motors->armed() &&
         motors->get_desired_spool_state() >= AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED &&
         in_vtol_mode() &&
         !tailsitter.enabled() &&
-        poscontrol.get_state() != QPOS_AIRBRAKE) {
+        poscontrol.get_state() != QPOS_AIRBRAKE &&
+        poscontrol.get_state() != QPOS_POSITION1) {
         // we want the desired rates for fixed wing slaved to the
         // multicopter rates
         return false;
