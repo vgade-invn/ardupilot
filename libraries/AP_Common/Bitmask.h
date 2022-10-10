@@ -20,128 +20,50 @@
 
 #include <stdint.h>
 #include <string.h>
-
 #include <AP_InternalError/AP_InternalError.h>
 
-template<uint16_t num_bits>
-class Bitmask {
+/*
+  underlying Bitmask class that takes a pre-allocated array of bits
+ */
+class _Bitmask {
 public:
-    Bitmask() :
-        numbits(num_bits),
-        numwords((num_bits+31)/32) {
-        clearall();
-    }
+    _Bitmask(uint16_t num_bits, uint32_t *bits);
 
-    Bitmask &operator=(const Bitmask&other) {
-        memcpy(bits, other.bits, sizeof(bits[0])*other.numwords);
-        return *this;
-    }
+    _Bitmask(const _Bitmask &other) = delete;
 
-    bool operator==(const Bitmask&other) {
-        if (other.numbits != numbits) {
-            return false;
-        } else {
-            return memcmp(bits, other.bits, sizeof(bits[0])*numwords) == 0;
-        }
-    }
+    _Bitmask &operator=(const _Bitmask &other);
 
-    bool operator!=(const Bitmask&other) {
-        return !(*this == other);
-    }
+    bool operator==(const _Bitmask&other);
 
-    Bitmask(const Bitmask &other) = delete;
+    bool operator!=(const _Bitmask&other);
+
 
     // set given bitnumber
-    void set(uint16_t bit) {
-        // ignore an invalid bit number
-        if (bit >= numbits) {
-            INTERNAL_ERROR(AP_InternalError::error_t::bitmask_range);
-            return;
-        }
-        uint16_t word = bit/32;
-        uint8_t ofs = bit & 0x1f;
-        bits[word] |= (1U << ofs);
-    }
+    void set(uint16_t bit);
 
     // set all bits
-    void setall(void) {
-        // set all words to 111... except the last one.
-        for (uint16_t i=0; i<numwords-1; i++) {
-            bits[i] = 0xffffffff;
-        }
-        // set most of the last word to 111.., leaving out-of-range bits to be 0
-        uint16_t num_valid_bits = numbits % 32;
-        bits[numwords-1] = (1 << num_valid_bits) - 1;
-    }
+    void setall(void);
 
     // clear given bitnumber
-    void clear(uint16_t bit) {
-        uint16_t word = bit/32;
-        uint8_t ofs = bit & 0x1f;
-        bits[word] &= ~(1U << ofs);
-    }
+    void clear(uint16_t bit);
+
+    // set given bitnumber to on/off
+    void setonoff(uint16_t bit, bool onoff);
 
     // clear all bits
-    void clearall(void) {
-        memset(bits, 0, numwords*sizeof(bits[0]));
-    }
+    void clearall(void);
 
     // return true if given bitnumber is set
-    bool get(uint16_t bit) const {
-        uint16_t word = bit/32;
-        uint8_t ofs = bit & 0x1f;
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-        if (bit >= numbits) {
-            INTERNAL_ERROR(AP_InternalError::error_t::bitmask_range);
-            return false;
-        }
-#endif
-        return (bits[word] & (1U << ofs)) != 0;
-    }
+    bool get(uint16_t bit) const;
 
     // return true if all bits are clear
-    bool empty(void) const {
-        for (uint16_t i=0; i<numwords; i++) {
-            if (bits[i] != 0) {
-                return false;
-            }
-        }
-        return true;
-    }
+    bool empty(void) const;
 
     // return number of bits set
-    uint16_t count() const {
-        uint16_t sum = 0;
-        for (uint16_t i=0; i<numwords; i++) {
-            if (sizeof(bits[i]) <= sizeof(int)) {
-                sum += __builtin_popcount(bits[i]);
-            } else if (sizeof(bits[i]) <= sizeof(long)) {
-                sum += __builtin_popcountl(bits[i]);
-            } else {
-                sum += __builtin_popcountll(bits[i]);
-            }
-        }
-        return sum;
-    }
+    uint16_t count() const;
 
     // return first bit set, or -1 if none set
-    int16_t first_set() const {
-        for (uint16_t i=0; i<numwords; i++) {
-            if (bits[i] == 0) {
-                continue;
-            }
-            int fs;
-            if (sizeof(bits[i]) <= sizeof(int)) {
-                fs = __builtin_ffs(bits[i]);
-            } else if (sizeof(bits[i]) <= sizeof(long)) {
-                fs = __builtin_ffsl(bits[i]);
-            } else {
-                fs = __builtin_ffsll(bits[i]);
-            }
-            return i*32 + fs - 1;
-        }
-        return -1;
-    }
+    int16_t first_set() const;
 
     // return number of bits available
     uint16_t size() const {
@@ -151,5 +73,17 @@ public:
 private:
     uint16_t numbits;
     uint16_t numwords;
+    uint32_t *bits;
+};
+
+/*
+  template class for a specific size with allocation in the class
+ */
+template<uint16_t num_bits>
+class Bitmask : public _Bitmask {
+public:
+    Bitmask() : _Bitmask(num_bits, bits) {}
+
+private:
     uint32_t bits[(num_bits+31)/32];
 };
