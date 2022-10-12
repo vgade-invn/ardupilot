@@ -11,6 +11,7 @@
 #define ESC_PACKET_SIZE 22
 
 #define POLECOUNT 42
+#define POLEPAIRS (POLECOUNT / 2)
 #define CURRENT_COEFFICIENT 12.5
 
 #define SERIESRESISTOR 10000
@@ -23,8 +24,8 @@
 
 typedef struct {
     uint16_t voltage;
-    uint16_t temperature;
-    uint16_t bus_current;
+    int16_t temperature;
+    int16_t bus_current;
     uint16_t reserved1;
     uint32_t rpm;
     uint16_t input_duty;
