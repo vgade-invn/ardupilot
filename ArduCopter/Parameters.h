@@ -668,8 +668,10 @@ public:
     AP_Int8                 failsafe_dr_enable;
     AP_Int16                failsafe_dr_timeout;
 
-    // ramp time of throttle during take-off
-    AP_Float takeoff_throttle_slew_time;
+    // Take Off parameters
+    //
+    AP_Float takeoff_throttle_slew_time;    // ramp time of throttle during take-off
+    AP_Float takeoff_speed;                 // ramp time of throttle during take-off
 #if HAL_WITH_ESC_TELEM && FRAME_CONFIG != HELI_FRAME
     AP_Int16 takeoff_rpm_min;
 #endif
