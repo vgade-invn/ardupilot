@@ -57,6 +57,7 @@
 #include <AP_OpticalFlow/AP_OpticalFlow_HereFlow.h>
 #include <AP_ADSB/AP_ADSB.h>
 #include "AP_UAVCAN_DNA_Server.h"
+#include "AP_UAVCAN_Serial.h"
 #include <AP_Logger/AP_Logger.h>
 #include <AP_Notify/AP_Notify.h>
 #include <AP_OpenDroneID/AP_OpenDroneID.h>
@@ -355,6 +356,9 @@ void AP_UAVCAN::init(uint8_t driver_index, bool enable_filters)
 #if HAL_EFI_DRONECAN_ENABLED
     AP_EFI_DroneCAN::subscribe_msgs(this);
 #endif
+#if AP_SERIAL_EXTENSION_ENABLED
+    AP_UAVCAN_Serial::subscribe_msgs(this);
+#endif
 
     act_out_array[driver_index] = new uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>(*_node);
     act_out_array[driver_index]->setTxTimeout(uavcan::MonotonicDuration::fromMSec(2));
@@ -493,6 +497,9 @@ void AP_UAVCAN::loop(void)
         _dna_server->verify_nodes();
 #if AP_OPENDRONEID_ENABLED
         AP::opendroneid().dronecan_send(this);
+#endif
+#if AP_SERIAL_EXTENSION_ENABLED
+        AP::serialmanager().uavcan_loop();
 #endif
     }
 }
@@ -1215,6 +1222,21 @@ bool AP_UAVCAN::prearm_check(char* fail_msg, uint8_t fail_msg_len) const
 {
     // forward this to DNA_Server
     return _dna_server->prearm_check(fail_msg, fail_msg_len);
+}
+
+// find driver index where we saw the node in healthy state
+int8_t AP_UAVCAN::find_node_driver_index(uint8_t node_id)
+{
+    for (uint8_t i=0; i<AP::can().get_num_drivers(); i++) {
+        AP_UAVCAN *ap_uavcan = get_uavcan(i);
+        if (ap_uavcan  == nullptr) {
+            continue;
+        }
+        if (ap_uavcan->_dna_server->get_node_seen_and_healthy(node_id)) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 #endif // HAL_NUM_CAN_IFACES
