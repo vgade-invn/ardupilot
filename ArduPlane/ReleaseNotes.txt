@@ -1,3 +1,11 @@
+Release ArduPlane V4.2.1_Carbopilot V4.1.2_ANU_V1 25th October 2022
+----------------------------------
+
+This is a Test Release
+ - Add Intelliject EFI Telemetry for ANU D9
+
+Happy flying!
+
 Release ArduPlane V4.2.1_Carbopilot V4.1.1 11th August 2022
 ----------------------------------
 
