@@ -54,13 +54,14 @@ bool Mode::do_user_takeoff(float takeoff_alt_cm, bool must_navigate)
     return true;
 }
 
-// start takeoff to specified altitude above home in centimeters
+// start takeoff to specified altitude above home in centimetres
 void Mode::_TakeOff::start(float alt_cm)
 {
     // initialise takeoff state
     _running = true;
     take_off_start_alt = copter.pos_control->get_pos_target_z_cm();
     take_off_complete_alt  = take_off_start_alt + alt_cm;
+    SRV_Channels::set_output_scaled(SRV_Channel::k_tie_down_release, 1000);
 }
 
 // stop takeoff
@@ -71,6 +72,7 @@ void Mode::_TakeOff::stop()
     // aircraft may have left the ground but not yet detected the climb.
     if (copter.attitude_control->get_throttle_in() > copter.get_non_takeoff_throttle()) {
         copter.set_land_complete(false);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_tie_down_release, 0);
     }
 }
 
@@ -101,6 +103,7 @@ void Mode::_TakeOff::do_pilot_takeoff(float& pilot_climb_rate_cm)
             // velocity > 50% maximum velocity
             // altitude change greater than half complete alt from start off alt
             copter.set_land_complete(false);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_tie_down_release, 0);
         }
     } else {
         float pos_z = take_off_complete_alt;
@@ -182,6 +185,7 @@ void Mode::auto_takeoff_run()
             // velocity > 10% maximum velocity
             // altitude change greater than half auto_takeoff_no_nav_alt_cm
             copter.set_land_complete(false);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_tie_down_release, 0);
         }
         return;
     }
@@ -251,6 +255,7 @@ void Mode::auto_takeoff_start(float complete_alt_cm, bool terrain_alt)
     if (is_positive(copter.g2.takeoff_speed)) {
             pos_control->set_max_speed_accel_z(wp_nav->get_default_speed_down(), copter.g2.takeoff_speed, wp_nav->get_accel_z());
     }
+    SRV_Channels::set_output_scaled(SRV_Channel::k_tie_down_release, 1000);
 }
 
 // return takeoff final position if takeoff has completed successfully
