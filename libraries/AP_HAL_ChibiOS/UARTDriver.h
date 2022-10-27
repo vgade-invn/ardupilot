@@ -151,6 +151,7 @@ public:
     bool is_dma_enabled() const override { return rx_dma_enabled && tx_dma_enabled; }
 
     bool is_usb() const override { return sdef.is_usb; }
+    void set_passthrough(AP_HAL::UARTDriver *pass) override;
 
 private:
     const SerialDef &sdef;
@@ -181,6 +182,8 @@ private:
     // key for a locked port
     uint32_t lock_write_key;
     uint32_t lock_read_key;
+
+    static constexpr uint32_t passthrough_lock_key = 0x12345678;
 
     uint32_t _baudrate;
 #if HAL_USE_SERIAL == TRUE
@@ -260,6 +263,9 @@ private:
     event_listener_t ev_listener;
     bool parity_enabled;
 #endif
+
+    HAL_Semaphore _passthrough_sem; // for use when changing passthrough port
+    AP_HAL::UARTDriver* _passthrough_port;
 
 #ifndef HAL_UART_NODMA
     static void rx_irq_cb(void* sd);
