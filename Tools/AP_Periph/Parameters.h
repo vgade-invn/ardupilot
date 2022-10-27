@@ -63,6 +63,17 @@ public:
         k_param_can_slcan_cport,
         k_param_temperature_sensor,
         k_param_esc_command_timeout_ms,
+        k_param_serial_chan_id0,
+        k_param_serial_chan_id1,
+        k_param_serial_chan_id2,
+        k_param_serial_chan_id3,
+        k_param_serial_chan_id4,
+        k_param_serial_chan_id5,
+        k_param_serial_chan_id6,
+        k_param_serial_chan_id7,
+        k_param_serial_chan_id8,
+        k_param_serial_chan_id9,
+        k_param_serial_auto_passthrough_select,
     };
 
     AP_Int16 format_version;
@@ -154,6 +165,11 @@ public:
     AP_Int8 can_fdbaudrate[HAL_NUM_CAN_IFACES];
 #else
     static constexpr uint8_t can_fdmode = 0;
+#endif
+
+#if HAL_ENABLE_SERIAL_TUNNEL
+    AP_Int8 serial_chan_id[SERIALMANAGER_NUM_UART_PORTS];
+    AP_Int8 serial_auto_passthrough_select;
 #endif
     Parameters() {}
 };
