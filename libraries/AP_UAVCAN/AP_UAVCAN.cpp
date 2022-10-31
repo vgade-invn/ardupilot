@@ -57,7 +57,7 @@
 #include <AP_OpticalFlow/AP_OpticalFlow_HereFlow.h>
 #include <AP_ADSB/AP_ADSB.h>
 #include "AP_UAVCAN_DNA_Server.h"
-#include "AP_UAVCAN_Serial.h"
+#include "AP_DroneCAN_Serial.h"
 #include <AP_Logger/AP_Logger.h>
 #include <AP_Notify/AP_Notify.h>
 #include <AP_OpenDroneID/AP_OpenDroneID.h>
@@ -357,7 +357,7 @@ void AP_UAVCAN::init(uint8_t driver_index, bool enable_filters)
     AP_EFI_DroneCAN::subscribe_msgs(this);
 #endif
 #if AP_SERIAL_EXTENSION_ENABLED
-    AP_UAVCAN_Serial::subscribe_msgs(this);
+    AP_DroneCAN_Serial::subscribe_msgs(this);
 #endif
 
     act_out_array[driver_index] = new uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>(*_node);
@@ -499,7 +499,7 @@ void AP_UAVCAN::loop(void)
         AP::opendroneid().dronecan_send(this);
 #endif
 #if AP_SERIAL_EXTENSION_ENABLED
-        AP::serialmanager().uavcan_loop();
+        AP::serialmanager().dronecan_loop();
 #endif
     }
 }
