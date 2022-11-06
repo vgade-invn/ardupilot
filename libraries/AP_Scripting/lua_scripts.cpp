@@ -539,7 +539,11 @@ void lua_scripts::run(void) {
             const int startMem = lua_gc(L, LUA_GCCOUNT, 0) * 1024 + lua_gc(L, LUA_GCCOUNTB, 0);
             const uint32_t loadEnd = AP_HAL::micros();
 
-            run_next_script(L);
+
+            {
+                WITH_SEMAPHORE(AP::scheduler().get_semaphore());
+                run_next_script(L);
+            }
 
             const uint32_t runEnd = AP_HAL::micros();
             const int endMem = lua_gc(L, LUA_GCCOUNT, 0) * 1024 + lua_gc(L, LUA_GCCOUNTB, 0);

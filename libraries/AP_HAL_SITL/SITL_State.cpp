@@ -172,6 +172,7 @@ void SITL_State::_fdm_input_step(void)
     _scheduler->sitl_end_atomic();
 }
 
+#define IS_CYGWIN defined(__CYGWIN__) || defined(__CYGWIN64__) || defined(CYGWIN_BUILD)
 
 void SITL_State::wait_clock(uint64_t wait_time_usec)
 {
@@ -180,7 +181,9 @@ void SITL_State::wait_clock(uint64_t wait_time_usec)
             Scheduler::from(hal.scheduler)->semaphore_wait_hack_required()) {
             _fdm_input_step();
         } else {
+#if !IS_CYGWIN
             usleep(1000);
+#endif
         }
     }
     // check the outbound TCP queue size.  If it is too long then
@@ -194,7 +197,9 @@ void SITL_State::wait_clock(uint64_t wait_time_usec)
             if (queue_length < 1024) {
                 break;
             }
+#if !IS_CYGWIN
             usleep(1000);
+#endif
         }
     }
 }
