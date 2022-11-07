@@ -65,8 +65,9 @@ bool AP_ESC_APDHVPro::parse_ESC_telemetry_data() {
 
     int check_fletch = check_flectcher16();
 
-    decoded.voltage = (float)(((raw_buffer[1] << 8) | raw_buffer[0])/100.0);
-    
+    //decoded.voltage = (float)(((raw_buffer[1] << 8) | raw_buffer[0])/100.0);
+    decoded.voltage = (float)(((((raw_buffer[1] << 8) | raw_buffer[0])/100.0) - HVPRO_CALIB_INTCPT)/HVPRO_CALIB_SLOPE);
+ 
     float rntc = (TEMPERATURE_MAX_RESOLUTION / (float)((raw_buffer[3] << 8) | raw_buffer[2])) - 1;
 
     rntc = SERIESRESISTOR / rntc;

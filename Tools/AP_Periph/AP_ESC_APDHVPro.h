@@ -21,6 +21,8 @@
 
 #define TEMPERATURE_MAX_RESOLUTION 4096
 
+#define HVPRO_CALIB_SLOPE 0.9309
+#define HVPRO_CALIB_INTCPT 2.2297
 
 typedef struct {
     float voltage;
