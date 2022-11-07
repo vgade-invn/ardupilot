@@ -65,7 +65,7 @@ bool AP_ESC_APDHVPro::parse_ESC_telemetry_data() {
 
     int check_fletch = check_flectcher16();
 
-    decoded.voltage = (uint16_t)(((raw_buffer[1] << 8) | raw_buffer[0])/100);
+    decoded.voltage = (float)(((raw_buffer[1] << 8) | raw_buffer[0])/100.0);
     
     float rntc = (TEMPERATURE_MAX_RESOLUTION / (float)((raw_buffer[3] << 8) | raw_buffer[2])) - 1;
 
@@ -86,7 +86,7 @@ bool AP_ESC_APDHVPro::parse_ESC_telemetry_data() {
 
     decoded.temperature = ((float)trunc(temperature * 100) / 100) + 273.15;  // Temperature
 
-    short temp_current = (short)((raw_buffer[5] << 8) | raw_buffer[4]);
+    float temp_current = (short)((raw_buffer[5] << 8) | raw_buffer[4]);
     temp_current /= CURRENT_COEFFICIENT;
     decoded.bus_current = (temp_current);
     decoded.reserved1 = (uint16_t)((raw_buffer[7] << 8) | raw_buffer[6]);
