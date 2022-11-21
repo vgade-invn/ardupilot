@@ -238,9 +238,9 @@ bool NavEKF3_core::getPosNE(Vector2f &posNE) const
     return false;
 }
 
-// Write the last calculated D position of the body frame origin relative to the EKF origin (m).
+// Write the last calculated D position of the body frame origin relative to the EKF local origin
 // Return true if the estimate is valid
-bool NavEKF3_core::getPosD(float &posD) const
+bool NavEKF3_core::getPosD_local(float &posD) const
 {
     // The EKF always has a height estimate regardless of mode of operation
     // Correct for the IMU offset (EKF calculations are at the IMU)
@@ -257,6 +257,21 @@ bool NavEKF3_core::getPosD(float &posD) const
     // Return the current height solution status
     return filterStatus.flags.vert_pos;
 
+}
+
+// Write the last calculated D position of the body frame origin relative to the public origin
+// Return true if the estimate is valid
+bool NavEKF3_core::getPosD(float &posD) const
+{
+    bool ret = getPosD_local(posD);
+
+    // adjust posD for difference between our origin and the public_origin
+    Location local_origin;
+    if (getOriginLLH(local_origin)) {
+        posD += (public_origin.alt - local_origin.alt) * 0.01;
+    }
+
+    return ret;
 }
 
 // return the estimated height of body frame origin above ground level
@@ -276,7 +291,7 @@ bool NavEKF3_core::getLLH(struct Location &loc) const
     Location origin;
     if (getOriginLLH(origin)) {
         float posD;
-        if(getPosD(posD) && PV_AidingMode != AID_NONE) {
+        if (getPosD_local(posD) && PV_AidingMode != AID_NONE) {
             // Altitude returned is an absolute altitude relative to the WGS-84 spherioid
             loc.alt = origin.alt - posD*100;
             loc.relative_alt = 0;
