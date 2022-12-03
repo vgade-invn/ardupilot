@@ -6,7 +6,7 @@ ARSPD_FBW_MAX          67
 ARSPD_FBW_MIN          43
 ARSPD_PIN               0
 ARSPD_RATIO             1.2
-ARSPD_TUBE_ORDER        0
+ARSPD_TUBE_ORDER        2
 ARSPD_TYPE              3
 ARSPD_USE               1
 ARSPD_WIND_DIR          0
