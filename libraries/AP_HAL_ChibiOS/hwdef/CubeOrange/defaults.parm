@@ -288,7 +288,6 @@ THROTTLE_NUDGE          0
 THR_FAILSAFE            2
 THR_FS_VALUE          890
 THR_MAX                 1
-TRIM_ARSPD_CM        5660
+TRIM_ARSPD_CM        6040
 WP_LOITER_RAD         300
 WP_RADIUS             600
-
