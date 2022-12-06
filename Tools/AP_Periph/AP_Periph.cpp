@@ -226,6 +226,10 @@ void AP_Periph_FW::init()
     hwesc_telem.init(hal.serial(3));
 #endif
 
+#ifdef HAL_PERIPH_ENABLE_ESC_APDHVPRO200
+    APD_ESC_Telem.init(hal.serial(1));
+#endif
+
 #ifdef HAL_PERIPH_ENABLE_MSP
     if (g.msp_port >= 0) {
         msp_init(hal.serial(g.msp_port));
@@ -240,7 +244,7 @@ void AP_Periph_FW::init()
     scripting.init();
 #endif
    //custom code carbonix
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "CPN Start %s", "Ottano Carbopilot V4.2.0");
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "CPN Start %s", "Ottano Carbopilot V4.2.1");
     start_ms = AP_HAL::native_millis();
 }
 
