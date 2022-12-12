@@ -244,7 +244,7 @@ void AP_Periph_FW::init()
     scripting.init();
 #endif
    //custom code carbonix
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "CPN Start %s", "Ottano Carbopilot V4.2.3");
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "CPN Start %s", "Ottano Carbopilot V4.2.4");
     start_ms = AP_HAL::native_millis();
 }
 
@@ -396,6 +396,7 @@ void AP_Periph_FW::update()
         last_error_ms = now;
         can_printf("IERR 0x%x %u", unsigned(ierr.errors()), unsigned(ierr.last_error_line()));
     }
+//this will only monitor Arming signal
 #if HAL_PERIPH_ARM_MONITORING_ENABLE
     static uint32_t last_arm_check_ms;
     if (now - last_arm_check_ms > g.disarm_delay){
