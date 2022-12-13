@@ -513,7 +513,7 @@ void Plane::update_alt()
         float groundspeed = sqrtf(sq(vel.x)+sq(vel.y));
         float desired_climb_m = (next_WP_loc.alt - current_loc.alt) * 0.01;
         float wp_time = auto_state.wp_distance / MAX(groundspeed,1);
-        float desired_climb_rate = desired_climb_m / wp_time;
+        float desired_climb_rate = desired_climb_m / MAX(wp_time,0.1);
         float projection_time = 5;
         float target_alt_cm = target_alt + desired_climb_rate*projection_time*100;
 
