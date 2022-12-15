@@ -184,28 +184,31 @@ void AP_DroneCAN_Serial::dronecan_loop(AP_SerialManager::SerialProtocol protocol
     // check if broadcast or call
     // broadcast
     uavcan::tunnel::Broadcast bcast_msg;
-    uint8_t data_count = _writebuf.available();
-    if (data_count == 0) {
+    if (_writebuf.available() == 0) {
         // nothing to send
         return;
     }
-    for (uint8_t i = 0; i < MIN(data_count, bcast_msg.buffer.capacity()); i++) {
-        uint8_t byte;
-        if (_writebuf.read_byte(&byte)) {
-            bcast_msg.buffer.push_back(byte);
-        } else {
-            break;
-        }
+    uint8_t buf[60];
+    const uint32_t n = _writebuf.peekbytes(buf, sizeof(buf));
+    for (uint8_t i = 0; i < n; i++) {
+        bcast_msg.buffer.push_back(buf[i]);
     }
     // set channel id
     bcast_msg.channel_id = _channel_id;
     // set protocol_id
     bcast_msg.protocol = protocol;
     // find and publish on all interfaces
+    bool done_send = false;
     for (uint8_t i = 0; i < AP::can().get_num_drivers(); i++) {
         if (broadcast_pub[i] != nullptr) {
-            broadcast_pub[i]->broadcast(bcast_msg);
+            if (broadcast_pub[i]->broadcast(bcast_msg) > 0) {
+                done_send = true;
+            }
         }
+    }
+    if (done_send) {
+        // we've sent the bytes on at least one link
+        _writebuf.advance(n);
     }
 }
 #endif
