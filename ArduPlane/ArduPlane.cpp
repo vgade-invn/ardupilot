@@ -554,6 +554,13 @@ void Plane::update_alt()
             tecs_target_alt_cm = MAX(tecs_target_alt_cm, prev_WP_loc.alt - home.alt) + (g2.rtl_climb_min+10)*100;
         }
 
+        if (plane.flight_stage == AP_FixedWing::FlightStage::TAKEOFF) {
+            // during takeoff we ask TECS to use a synthetic airspeed
+            // if real airspeed is not available. This allows for full
+            // throttle with an airspeed based check for overspeed.
+            plane.TECS_controller.use_synthetic_airspeed();
+        }
+
         TECS_controller.update_pitch_throttle(tecs_target_alt_cm,
                                                  target_airspeed_cm,
                                                  flight_stage,
