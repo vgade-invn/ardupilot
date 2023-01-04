@@ -2978,6 +2978,10 @@ def add_apperiph_defaults(f):
 #define AP_INERTIALSENSOR_ENABLED 0
 #endif
 
+// no fence by default in AP_Periph:
+#ifndef AP_FENCE_ENABLED
+#define AP_FENCE_ENABLED 0
+#endif
 ''')
 
 def add_bootloader_defaults(f):
