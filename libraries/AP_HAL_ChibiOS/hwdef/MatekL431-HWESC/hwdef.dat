@@ -1,0 +1,24 @@
+include ../MatekL431/hwdef.inc
+
+
+define CAN_APP_NODE_NAME "org.ardupilot.MatekL431_HWESC"
+
+# no ADC pins
+define HAL_USE_ADC FALSE
+
+# disable unnecessary threads
+define HAL_NO_MONITOR_THREAD
+define HAL_NO_RCIN_THREAD
+define HAL_NO_RCOUT_THREAD
+define HAL_NO_TIMER_THREAD
+
+# no SPI
+undef SPI1
+
+# no I2C
+undef I2C2
+
+define HAL_PERIPH_ENABLE_HWESC
+
+define AP_PERIPH_ESC_TELEM_PORT_DEFAULT 2
+
