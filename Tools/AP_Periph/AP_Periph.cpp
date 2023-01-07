@@ -228,7 +228,7 @@ void AP_Periph_FW::init()
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_HWESC
-    hwesc_telem.init(hal.serial(3));
+    hwesc_telem.init(hal.serial(g.esc_telem_port));
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_MSP

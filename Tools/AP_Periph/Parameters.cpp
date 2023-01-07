@@ -381,17 +381,6 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     // @User: Advanced
     GSCALAR(esc_command_timeout_ms, "ESC_CMD_TIMO",     200),
 
-#if HAL_WITH_ESC_TELEM && !HAL_GCS_ENABLED
-    // @Param: ESC_TELEM_PORT
-    // @DisplayName: ESC Telemetry Serial Port
-    // @Description: This is the serial port number where SERIALx_PROTOCOL will be set to ESC Telemetry
-    // @Range: 0 10
-    // @Increment: 1
-    // @User: Advanced
-    // @RebootRequired: True
-    GSCALAR(esc_telem_port, "ESC_TELEM_PORT", AP_PERIPH_ESC_TELEM_PORT_DEFAULT),
-#endif
-
 #if HAL_WITH_ESC_TELEM
     // @Param: ESC_TELEM_RATE
     // @DisplayName: ESC Telemetry update rate
@@ -402,6 +391,17 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     // @RebootRequired: True
     GSCALAR(esc_telem_rate, "ESC_TELEM_RATE", AP_PERIPH_ESC_TELEM_RATE_DEFAULT),
 #endif
+#endif
+
+#if (HAL_WITH_ESC_TELEM || defined(HAL_PERIPH_ENABLE_HWESC)) && !HAL_GCS_ENABLED
+    // @Param: ESC_TELEM_PORT
+    // @DisplayName: ESC Telemetry Serial Port
+    // @Description: This is the serial port number where SERIALx_PROTOCOL will be set to ESC Telemetry
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
+    // @RebootRequired: True
+    GSCALAR(esc_telem_port, "ESC_TELEM_PORT", AP_PERIPH_ESC_TELEM_PORT_DEFAULT),
 #endif
 
 #if AP_TEMPERATURE_SENSOR_ENABLED

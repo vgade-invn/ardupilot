@@ -135,12 +135,12 @@ public:
 #ifdef HAL_PERIPH_ENABLE_RC_OUT
     AP_Int8 esc_pwm_type;
     AP_Int16 esc_command_timeout_ms;
-#if HAL_WITH_ESC_TELEM && !HAL_GCS_ENABLED
-    AP_Int8 esc_telem_port;
-#endif
 #if HAL_WITH_ESC_TELEM
     AP_Int32 esc_telem_rate;
 #endif
+#endif
+#if (HAL_WITH_ESC_TELEM || defined(HAL_PERIPH_ENABLE_HWESC)) && !HAL_GCS_ENABLED
+    AP_Int8 esc_telem_port;
 #endif
 
     AP_Int8 debug;

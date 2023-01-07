@@ -24,8 +24,10 @@ AP_ESCSerialTelem::AP_ESCSerialTelem(void)
 void AP_ESCSerialTelem::init(AP_HAL::UARTDriver *_uart)
 {
     uart = _uart;
-    uart->begin(19200);
-    uart->set_options(AP_HAL::UARTDriver::OPTION_PULLDOWN_RX);
+    if (uart != nullptr) {
+        uart->begin(19200);
+        uart->set_options(AP_HAL::UARTDriver::OPTION_PULLDOWN_RX);
+    }
 }
 
 /*
@@ -33,6 +35,9 @@ void AP_ESCSerialTelem::init(AP_HAL::UARTDriver *_uart)
  */
 bool AP_ESCSerialTelem::update()
 {
+    if (uart == nullptr) {
+        return false;
+    }
     uint32_t n = uart->available();
     if (n == 0) {
         return false;
