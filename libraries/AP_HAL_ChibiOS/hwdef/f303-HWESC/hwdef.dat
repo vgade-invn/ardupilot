@@ -4,3 +4,5 @@ include ../f303-periph/hwdef.inc
 define CAN_APP_NODE_NAME "org.ardupilot.ap_periph_HWESC"
 
 define HAL_PERIPH_ENABLE_HWESC
+define AP_PERIPH_ESC_TELEM_PORT_DEFAULT 3
+
