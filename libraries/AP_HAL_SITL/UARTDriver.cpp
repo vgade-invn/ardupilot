@@ -64,6 +64,7 @@ void UARTDriver::begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace)
 
     if (baud != 0) {
         _uart_baudrate = baud;
+        buffer_model.set_baudrate(baud);
     }
     
     if (strcmp(path, "GPS1") == 0) {
@@ -118,6 +119,7 @@ void UARTDriver::begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace)
             ::printf("UART connection %s:%u\n", args1, baudrate);
             _uart_path = strdup(args1);
             _uart_baudrate = baudrate;
+            buffer_model.set_baudrate(baudrate);
             _uart_start_connection();
         } else if (strcmp(devtype, "fifo") == 0) {
             if(strcmp(args1, "gps") == 0) {
@@ -753,6 +755,7 @@ void UARTDriver::_timer_tick(void)
     } else {
         uint32_t navail;
         const uint8_t *readptr = _writebuffer.readptr(navail);
+        buffer_model.adjust_send_size(navail);
         if (readptr && navail > 0) {
             navail = MIN(navail, max_bytes);
             if (_sim_serial_device != nullptr) {
@@ -769,6 +772,7 @@ void UARTDriver::_timer_tick(void)
             }
             if (nwritten > 0) {
                 _writebuffer.advance(nwritten);
+                buffer_model.sent(nwritten);
             }
         }
     }

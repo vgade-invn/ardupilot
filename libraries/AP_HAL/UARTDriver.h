@@ -12,6 +12,22 @@
 
 class ExpandingString;
 
+/*
+  a model of a link that has a serial buffer
+ */
+class BufferModel {
+public:
+    void adjust_send_size(uint32_t &size);
+    void set_baudrate(uint32_t baudrate);
+    void sent(uint32_t size);
+
+private:
+    float avail_space = 1024;
+    float byte_rate;
+    uint32_t last_radio_status_us;
+    uint32_t last_update_us;
+};
+
 /* Pure virtual UARTDriver class */
 class AP_HAL::UARTDriver : public AP_HAL::BetterStream {
 private:
@@ -158,4 +174,7 @@ public:
 
     // disable TX/RX pins for unusued uart
     virtual void disable_rxtx(void) const {}
+
+protected:
+    BufferModel buffer_model;
 };
