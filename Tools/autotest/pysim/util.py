@@ -117,6 +117,7 @@ def waf_configure(board,
                   extra_hwdef=None,
                   ubsan=False,
                   ubsan_abort=False,
+                  dronecan_tests=False,
                   extra_defines={}):
     cmd_configure = [relwaf(), "configure", "--board", board]
     if debug:
@@ -135,6 +136,8 @@ def waf_configure(board,
         cmd_configure.append('--ubsan')
     if ubsan_abort:
         cmd_configure.append('--ubsan-abort')
+    if dronecan_tests:
+        cmd_configure.append('--enable-dronecan-tests')
     if extra_hwdef is not None:
         cmd_configure.extend(['--extra-hwdef', extra_hwdef])
     for nv in extra_defines.items():
@@ -174,6 +177,7 @@ def build_SITL(
         force_32bit=False,
         ubsan=False,
         ubsan_abort=False,
+        dronecan_tests=False,
 ):
 
     # first configure
@@ -189,7 +193,8 @@ def build_SITL(
                       ubsan=ubsan,
                       ubsan_abort=ubsan_abort,
                       extra_defines=extra_defines,
-                      extra_args=extra_configure_args)
+                      extra_args=extra_configure_args,
+                      dronecan_tests=dronecan_tests)
 
     # then clean
     if clean:
@@ -205,7 +210,7 @@ def build_SITL(
 
 def build_examples(board, j=None, debug=False, clean=False, configure=True, math_check_indexes=False, coverage=False,
                    ekf_single=False, postype_single=False, force_32bit=False, ubsan=False, ubsan_abort=False,
-                   extra_configure_args=[]):
+                   dronecan_tests=False, extra_configure_args=[]):
     # first configure
     if configure:
         waf_configure(board,
@@ -218,7 +223,8 @@ def build_examples(board, j=None, debug=False, clean=False, configure=True, math
                       force_32bit=force_32bit,
                       ubsan=ubsan,
                       ubsan_abort=ubsan_abort,
-                      extra_args=extra_configure_args)
+                      extra_args=extra_configure_args,
+                      dronecan_tests=dronecan_tests)
 
     # then clean
     if clean:
@@ -256,6 +262,7 @@ def build_tests(board,
                 force_32bit=False,
                 ubsan=False,
                 ubsan_abort=False,
+                dronecan_tests=False,
                 extra_configure_args=[]):
 
     # first configure
@@ -270,7 +277,8 @@ def build_tests(board,
                       force_32bit=force_32bit,
                       ubsan=ubsan,
                       ubsan_abort=ubsan_abort,
-                      extra_args=extra_configure_args)
+                      extra_args=extra_configure_args,
+                      dronecan_tests=dronecan_tests)
 
     # then clean
     if clean:

@@ -447,6 +447,7 @@ def run_step(step):
         "force_32bit" : opts.force_32bit,
         "ubsan" : opts.ubsan,
         "ubsan_abort" : opts.ubsan_abort,
+        "dronecan_tests" : opts.dronecan_tests,
     }
 
     if opts.Werror:
@@ -973,6 +974,11 @@ if __name__ == "__main__":
                            action='store_true',
                            dest="ubsan_abort",
                            help="compile sitl with undefined behaviour sanitiser and abort on error")
+    group_build.add_option("--enable-dronecan-tests",
+                           default=False,
+                           action='store_true',
+                           dest="dronecan_tests",
+                           help="enable dronecan tests")
     parser.add_option_group(group_build)
 
     group_sim = optparse.OptionGroup(parser, "Simulation options")
