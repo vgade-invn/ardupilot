@@ -1,3 +1,11 @@
+Release Ottano Carbopilot V4.3.2 2nd Feb 2023
+----------------------------------
+
+This release includes:
+ - feature/OV3-405-hirth-log-floating-point-calculation
+
+Happy flying!
+
 Release Ottano Carbopilot V4.3.1 2nd Feb 2023
 ----------------------------------
 
