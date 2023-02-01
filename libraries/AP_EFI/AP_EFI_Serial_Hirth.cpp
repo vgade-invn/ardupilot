@@ -285,6 +285,7 @@ void AP_EFI_Serial_Hirth::decode_data() {
         internal_state.thr_pos = (raw_data[72] | raw_data[73] << 0x08);
         internal_state.air_temp = (raw_data[78] | raw_data[79] << 0x08);
         internal_state.eng_temp = (raw_data[74] | raw_data[75] << 0x08);
+        internal_state.battery_voltage = (raw_data[76] | raw_data[77] << 0x08) * VOLTAGE_RESOLUTION;
 
         //EFI1 Log
         internal_state.engine_speed_rpm = (raw_data[10] | raw_data[11] << 0x08);
