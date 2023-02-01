@@ -93,6 +93,8 @@ void AP_EFI::init(void)
         gcs().send_text(MAV_SEVERITY_INFO, "Unknown EFI type");
         break;
     }
+
+    lua_fuel_consumed = 0;
 }
 
 // Ask all backends to update the frontend
@@ -100,6 +102,7 @@ void AP_EFI::update()
 {
     if (backend) {
         backend->update();
+        state.estimated_consumed_fuel_volume_cm3 = lua_fuel_consumed;
         log_status();
     }
 }
