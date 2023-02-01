@@ -53,8 +53,10 @@ void AP_EFI_Serial_Hirth::update() {
             // reset request if not response for SERIAL_WAIT_TIMEOUT-ms
             if (now - last_response_ms > SERIAL_WAIT_TIMEOUT) {
                 waiting_response = false;
-                port->discard_input();
                 last_response_ms = now;
+
+                port->discard_input();
+
                 internal_state.ack_fail_cnt++;
                 if(data_send == 1) {internal_state.ack_s1++;}
                 if(data_send == 2) {internal_state.ack_s2++;}
@@ -80,10 +82,8 @@ void AP_EFI_Serial_Hirth::update() {
                     }
 
                     res_data.checksum = port->read();
-                    computed_checksum = computed_checksum % 256;
-                    // computed_checksum = (256 - computed_checksum);
-                    // discard further bytes if checksum is not matching
-                    if (res_data.checksum != (CHECKSUM_MAX - computed_checksum)) {
+                    computed_checksum = computed_checksum % BYTE_RANGE_MAX;
+                    if (res_data.checksum != (BYTE_RANGE_MAX - computed_checksum)) {
                         internal_state.crc_fail_cnt++;
                         port->discard_input();
                     }
@@ -94,25 +94,26 @@ void AP_EFI_Serial_Hirth::update() {
                         decode_data();
                         copy_to_frontend();
                     }
+
                     waiting_response = false;
                 }
             }
         }
         
-        //sending cmd
+        // sending cmd
         if(!waiting_response) {
 
             // get new throttle value
             new_throttle = (uint16_t)SRV_Channels::get_output_scaled(SRV_Channel::k_throttle);
 
-            // Limit throttle percent to 65% for testing purposes only
+            // limit throttle percent to 65% for testing purposes only
             if (new_throttle > 65)
             {
                 new_throttle = 65;
             }
 
-            //check for change or timeout for throttle value
-            if ((new_throttle != old_throttle) || (now - last_req_send_throttle > 500)){
+            // check for change or timeout for throttle value
+            if ((new_throttle != old_throttle) || (now - last_req_send_throttle > 500)) {
                 // if new throttle value, send throttle request
                 status = send_target_values(new_throttle);
                 old_throttle = new_throttle;
@@ -120,7 +121,7 @@ void AP_EFI_Serial_Hirth::update() {
                 last_req_send_throttle = now;
             }
             else {
-                //request Status request, if no throttle commands
+                // request Status request, if no throttle commands
                 status = send_request_status();
             }      
 
@@ -167,13 +168,13 @@ bool AP_EFI_Serial_Hirth::send_target_values(uint16_t thr) {
     int idx = 0;
     uint8_t computed_checksum = 0;
 
-    //clear buffer
-    for (size_t i = 0; i < sizeof(raw_data); i++)
+    // clear buffer 
+    for (size_t i = 0; i < BYTE_RANGE_MAX; i++)
     {
         raw_data[i] = 0;
     }
     
-    // Get throttle value
+    // get throttle value
     uint16_t throttle = thr * THROTTLE_POSITION_FACTOR;
 
     // set Quantity + Code + "20 bytes of records to set" + Checksum
@@ -187,12 +188,12 @@ bool AP_EFI_Serial_Hirth::send_target_values(uint16_t thr) {
         raw_data[idx] = 0;
     }
     //checksum calculation
-    computed_checksum = computed_checksum % 256;
-    raw_data[QUANTITY_SET_VALUE - 1] = (256 - computed_checksum);
+    computed_checksum = computed_checksum % BYTE_RANGE_MAX;
+    raw_data[QUANTITY_SET_VALUE - 1] = (BYTE_RANGE_MAX - computed_checksum);
 
     //debug
     internal_state.packet_sent = 5;
-    data_send =5;
+    data_send = 5;
     
     expected_bytes = QUANTITY_ACK_SET_VALUES;
     //write data
