@@ -101,6 +101,7 @@ protected:
     // Back end Parameters
     AP_Float coef1;
     AP_Float coef2;
+    AP_Float throttle_scale;
 
     EFI_State state;
 
