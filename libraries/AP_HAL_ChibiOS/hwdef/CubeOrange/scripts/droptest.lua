@@ -30,6 +30,7 @@ local release_start_t = 0.0
 local last_tick_t = 0.0
 local last_mission_update_t = 0.0
 local last_mission_setup_t = 0.0
+local last_wp_change_t = 0.0
 
 logfile = io.open("log.txt", "w")
 
@@ -397,6 +398,12 @@ function mission_update()
       return false
    end
 
+   local t = 0.001 * millis():tofloat()
+   if t - last_wp_change_t < 5 then
+      -- don't change too rapidly
+      return
+   end
+
    -- look for alternatives
    local N = mission:num_commands()
    local best = cnum
@@ -418,6 +425,7 @@ function mission_update()
       gcs:send_text(0, string.format("NEW WP %u err=%.0f imp=%.0f", best, current_err, improvement))
       logit(string.format("NEW WP %u err=%.0f imp=%.0f", best, current_err, improvement))
       mission:set_current_cmd(best)
+      last_wp_change_t = t
    end
 end
 
