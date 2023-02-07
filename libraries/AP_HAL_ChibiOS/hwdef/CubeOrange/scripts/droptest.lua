@@ -21,6 +21,8 @@ local GLIDE_SLOPE = 6.0
 
 local MAX_WIND = 10.0
 
+local SMALL_WP_DIST = 500
+
 -- expected height loss for a 180 degree turn, meters
 local TURN_HEIGHT_LOSS = 180
 
@@ -28,6 +30,13 @@ local release_start_t = 0.0
 local last_tick_t = 0.0
 local last_mission_update_t = 0.0
 local last_mission_setup_t = 0.0
+
+logfile = io.open("log.txt", "w")
+
+function logit(txt)
+   --logfile:write(txt .. "\n")
+   --logfile:flush()
+end
 
 DO_JUMP = 177
 NAV_WAYPOINT = 16
@@ -139,36 +148,46 @@ end
 
 -- return true if cnum is a candidate for wp change
 function is_change_candidate(cnum)
+   logit(string.format('is_change_candidate(%d)', cnum))
+
    if is_candidate(cnum) then
+      logit(string.format(' YES -> is_candidate'))
       return true
    end
    local loc = ahrs:get_position()
    local m1 = mission:get_item(cnum)
    if m1:command() ~= NAV_WAYPOINT then
       -- only change when navigating to a WP
+      logit(string.format(' NO -> not WP'))
       return false
    end
    if loc:alt() * 0.01 - LANDING_AMSL > 1000 then
       -- if we have lots of height then we can change
+      logit(string.format(' YES -> plenty of height'))
       return true
    end
    local loc2 = get_location(cnum)
-   if loc:get_distance(loc2) < 1500 then
+   if loc:get_distance(loc2) < SMALL_WP_DIST then
       -- if we are within 1.5km then no change
+      logit(string.format(' NO -> within %.0f', SMALL_WP_DIST))
       return false
    end
    if loc:get_distance(loc2) > 3500 then
       -- if a long way from target allow change
+      logit(string.format(' YES -> long way'))
       return true
    end
    if cnum > mission:num_commands()-2 then
+      logit(string.format(' NO -> num cmds'))
       return false
    end
    local m2 = mission:get_item(cnum+1)
    if m1:command() == NAV_WAYPOINT and m2:command() ~= NAV_LAND then
       -- allow change of cross WPs when more than 2km away
+      logit(string.format(' YES -> is land'))
       return true
    end
+   logit(string.format(' NO -> default'))
    return false
 end
 
@@ -311,23 +330,28 @@ end
 -- see if we are on the optimal waypoint number for landing
 -- given the assumed glide slope
 function mission_update()
+   logit("mission_update()")
    local cnum = mission:get_current_nav_index()
    if cnum <= 0 then
+      logit("no mission")
       -- not flying mission yet
       return
    end
    local m = mission:get_item(cnum)
    if not m then
+      logit("invalid mission")
       -- invalid mission?
       gcs:send_text(0, string.format("Invalid current cnum %u", cnum))
       return
    end
    if m:command() ~= NAV_WAYPOINT then
       -- only update when tracking to a waypoint (not LAND)
+      logit("not NAV_WAYPOINT")
       return
    end
    local loc = get_position()
    if loc == nil then
+      logit("no position")
       return
    end
    local current_distance = distance_to_land(cnum)
@@ -339,10 +363,13 @@ function mission_update()
    gcs:send_text(0, string.format("cnum=%u dist=%.0f alt=%.0f slope=%.2f err=%.0f",
                                   cnum, feet(current_distance), feet(current_alt), current_slope,
                                   feet(-current_err)))
+   logit(string.format("cnum=%u dist=%.0f alt=%.0f slope=%.2f err=%.0f",
+                       cnum, feet(current_distance), feet(current_alt), current_slope,
+                       feet(-current_err)))
 
    local current_wp_loc = get_location(cnum)
    local current_wp_dist = loc:get_distance(current_wp_loc)
-   if current_wp_dist < 1500 then
+   if current_wp_dist < SMALL_WP_DIST then
       -- when within 1.5km of current wp consider moving to next WP
       if mission:get_item(cnum+1):command() == NAV_WAYPOINT then
          -- check if we should skip the current WP and move to the next WP
@@ -360,11 +387,13 @@ function mission_update()
             return true
          end
       end
+      logit(string.format("wp dist %.2f", current_wp_dist))
       return false
    end
 
    if not is_change_candidate(cnum) then
       -- only change if on a candidate now
+      logit("not candidate")
       return false
    end
 
@@ -377,6 +406,7 @@ function mission_update()
          local dist = distance_to_land(i)
          local err = dist - avail_dist
          local diff = math.abs(current_err) - math.abs(err)
+         logit(string.format("  i=%u dist=%.0f err=%.0f current_err=%.0f diff=%.0f", i, dist, err, current_err, diff))
          if diff > CHANGE_MARGIN then
             best = i
             current_err = err
@@ -386,6 +416,7 @@ function mission_update()
    improvement = math.abs(current_err) - math.abs(original_err)
    if cnum ~= best then
       gcs:send_text(0, string.format("NEW WP %u err=%.0f imp=%.0f", best, current_err, improvement))
+      logit(string.format("NEW WP %u err=%.0f imp=%.0f", best, current_err, improvement))
       mission:set_current_cmd(best)
    end
 end
