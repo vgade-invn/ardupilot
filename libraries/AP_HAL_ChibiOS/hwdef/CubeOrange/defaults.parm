@@ -7,7 +7,7 @@ ARSPD_FBW_MIN          43
 ARSPD_PIN               0
 ARSPD_RATIO             1.2
 ARSPD_TUBE_ORDER        2
-ARSPD_TYPE              3
+ARSPD_TYPE              1
 ARSPD_USE               1
 ARSPD_WIND_DIR          0
 ARSPD_WIND_SPD          0
@@ -162,7 +162,7 @@ LOG_FILE_BUFSIZE      200
 LOG_FILE_DSRMROT        1
 LOG_FILE_MB_FREE     2000
 MIXING_GAIN             1
-NAVL1_PERIOD           25
+NAVL1_PERIOD           20
 NTF_LED_OVERRIDE        1
 NTF_LED_TYPES         231
 PTCH2SRV_D              0.3
@@ -239,7 +239,7 @@ SCHED_LOOP_RATE       300
 SCR_DEBUG_LVL           0
 SCR_ENABLE              1
 SCR_HEAP_SIZE      100000
-SCR_USER1               3
+SCR_USER1               1.5
 SCR_USER2               5.0
 SCR_USER3               0
 SCR_USER4               0
@@ -286,7 +286,7 @@ TECS_TIME_CONST        6.0
 TERRAIN_ENABLE          1
 THROTTLE_NUDGE          0
 THR_FAILSAFE            2
-THR_FS_VALUE          890
+THR_FS_VALUE          995
 THR_MAX                 1
 TRIM_ARSPD_CM        5660
 WP_LOITER_RAD         300
