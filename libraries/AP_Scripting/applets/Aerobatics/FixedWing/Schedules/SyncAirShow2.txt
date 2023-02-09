@@ -1,0 +1,132 @@
+# a cross-box tophat, positive width moves right
+function crossbox_tophat(radius, height, width, height_loss) -- top hat
+   local abs_width = math.abs(width)
+   local sign = sgn(width)
+   local w = abs_width - 2*radius
+   return make_paths('crossbox_tophat', {
+            { path_vertical_arc(radius, 90),      roll_angle(0) },
+            { path_straight((height-2*radius)),   roll_sequence({{1,0}, {1, sign*90}, {1, 0}}), set_orient=qorient(0,90,sign*90) },
+            { path_vertical_arc(-radius, 90),     roll_angle(0), set_orient=qorient(180,0,sign*90) },
+            { path_straight(w),                   roll_angle(0) },
+            { path_vertical_arc(radius, 90),      roll_angle(0), set_orient=qorient(0,-90,sign*90) },
+            { path_straight((height-2*radius)+height_loss),   roll_sequence({{1,0}, {1, -sign*90}, {1, 0}}), set_orient=qorient(0,-90,180) },
+            { path_vertical_arc(radius, 90),      roll_angle(0), set_orient=qorient(0,0,180) },
+      })
+end
+
+function triangular_loop(radius, height, arg3, arg4)   -- triangle
+   local h1 = radius * math.sin(math.rad(45))
+   local h2 = (2 * radius) - (radius * math.cos(math.rad(45)))
+   local h3 = height - (2 * radius)
+   local side = h3 / math.cos(math.rad(45))
+   --local base = (h3 + (2 * (radius - radius * math.cos(math.rad(45))))) - (2 * radius)   
+   local base = (2 * (h3 + radius)) - 2 * radius
+   return make_paths("triangular_loop", {
+            { path_straight(base * 1/5),                   roll_angle(180) },
+            { path_straight(base * 2/5),                   roll_angle(0) },         
+            { path_vertical_arc(radius, 135) ,             roll_angle(0) },
+            { path_straight(side*2/9),                     roll_angle(0) },
+            { path_straight(side*2/9),                     roll_angle(90) },
+            { path_straight(side*1/9),                     roll_angle(0) },
+            { path_straight(side*2/9),                     roll_angle(90) },
+            { path_straight(side*2/9),                     roll_angle(0) },
+            { path_vertical_arc(radius, 90),               roll_angle(0) },
+            { path_straight(side*2/9),                     roll_angle(0) },
+            { path_straight(side*2/9),                     roll_angle(90) },
+            { path_straight(side*1/9),                     roll_angle(0) },
+            { path_straight(side*2/9),                     roll_angle(90) },
+            { path_straight(side*2/9),                     roll_angle(0) },
+            { path_vertical_arc(radius, 135),              roll_angle(0) },
+            { path_straight(base * 2/5),                   roll_angle(0) }, 
+            { path_straight(base * 1/5),                   roll_angle(180) },
+            { path_straight(base * 2/5),                   roll_angle(0) },  
+      })
+end
+
+name: TakeoffTest
+
+message: Takeoff
+timestamp: 0
+takeoff 80 40 30
+
+straight_roll 20 0
+
+message: TopHat
+timestamp: 1
+crossbox_tophat 20 60 -80 0
+
+align_center
+message: Loop
+timestamp: 2
+loop 25 0 1
+
+align_box 1
+message: HalfReverseCubanEight
+timestamp: 3
+half_reverse_cuban_eight   25
+
+align_center
+message: CubanEight
+timestamp: 4
+cuban_eight 25
+
+align_box 1
+message: Immelmann
+timestamp: 5
+immelmann_turn 30
+
+align_center
+message: Roll
+timestamp: 6
+straight_roll 80 2
+
+align_box 1
+message: Split-S
+timestamp: 7
+split_s  30
+
+align_center
+message: Loop
+timestamp: 8
+loop 25 0 1
+
+align_box 1
+message: HumptyBump
+timestamp: 9
+humpty_bump 20 60
+
+align_center
+message: 2 Point Roll
+timestamp: 10
+multi_point_roll 120 2 0.7
+
+align_box 1
+message: HalfCubanEight
+timestamp: 11
+half_cuban_eight 20
+
+align_box 0.4
+message: BarrelRoll
+timestamp: 12
+barrel_roll 25 80 2
+
+align_box 0.9
+message: CrossBoxTopHat
+timestamp: 13
+crossbox_tophat 20 60 50 0
+
+align_center
+message: SquareLoop
+timestamp: 14
+vertical_aerobatic_box 60 60 15 0
+
+# prepare for landing
+timestamp: 15
+align_box 1.5
+message: TopHat
+timestamp: 16
+crossbox_tophat 20 60 -100 15
+
+message: Landing
+timestamp: 17
+straight_roll 20 0
