@@ -5,7 +5,7 @@ ARSPD_BUS               0
 ARSPD_FBW_MAX          67
 ARSPD_FBW_MIN          43
 ARSPD_PIN               0
-ARSPD_RATIO             1.2
+ARSPD_RATIO             1.33
 ARSPD_TUBE_ORDER        2
 ARSPD_TYPE              1
 ARSPD_USE               1
@@ -148,7 +148,7 @@ INS_NOTCH_ATT           9
 INS_NOTCH_BW            7
 INS_LOG_BAT_MASK        1
 LAND_FLARE_ALT         30
-LAND_FLARE_SEC          4
+LAND_FLARE_SEC          3
 LAND_PF_ALT            60
 LAND_PF_ARSPD           0
 LAND_PF_PITCH_CD     -300
@@ -290,5 +290,4 @@ THR_FS_VALUE          995
 THR_MAX                 1
 TRIM_ARSPD_CM        5810
 WP_LOITER_RAD         300
-WP_RADIUS             600
-
+WP_RADIUS             750
