@@ -62,6 +62,7 @@ static const char * const error_bit_descriptions[] {
     "dma_fail",
     "params_restored",
     "invalid arguments",
+    "storage failed",
 };
 
 static_assert((1U<<(ARRAY_SIZE(error_bit_descriptions))) == uint32_t(AP_InternalError::error_t::__LAST__), "too few descriptions for bits");
