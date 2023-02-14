@@ -23,6 +23,9 @@
 #include <AP_Math/AP_Math.h>
 
 #include <AP_Vehicle/AP_Vehicle_Type.h>
+#include <AP_BoardConfig/AP_BoardConfig.h>
+#include <AP_Filesystem/AP_Filesystem.h>
+#include <AP_InternalError/AP_InternalError.h>
 
 #include "StorageManager.h"
 
@@ -160,6 +163,15 @@ bool StorageAccess::read_block(void *data, uint16_t addr, size_t n) const
         // continue writing at the beginning of next valid area
         addr = 0;
     }
+
+#if AP_SDCARD_STORAGE_ENABLE
+    if (file != nullptr && n > 0 && addr < file->bufsize) {
+        const size_t n2 = MIN(n, file->bufsize - addr);
+        memcpy(b, &file->buffer[addr], n2);
+        n -= n2;
+    }
+#endif
+
     return (n == 0);
 }
 
@@ -200,6 +212,19 @@ bool StorageAccess::write_block(uint16_t addr, const void *data, size_t n) const
         // continue writing at the beginning of next valid area
         addr = 0;
     }
+
+#if AP_SDCARD_STORAGE_ENABLE
+    if (file != nullptr && n > 0 && addr < file->bufsize) {
+        WITH_SEMAPHORE(file->sem);
+        const size_t n2 = MIN(n, file->bufsize - addr);
+        memcpy(&file->buffer[addr], b, n2);
+        for (uint8_t i=addr/1024U; i<(addr+n2+1023U)/1024U; i++) {
+            file->dirty_mask |= (1ULL<<i);
+        }
+        n -= n2;
+    }
+#endif
+
     return (n == 0);
 }
 
@@ -296,3 +321,97 @@ bool StorageAccess::copy_area(const StorageAccess &source) const
     }
     return true;
 }
+
+#if AP_SDCARD_STORAGE_ENABLE
+/*
+  attach a file to a storage region
+ */
+bool StorageAccess::attach_file(const char *filename, uint16_t size_kbyte)
+{
+    if (file != nullptr) {
+        // only one attach per boot
+        return false;
+    }
+    const uint32_t size = MIN(0xFFFFU - total_size, size_kbyte * 1024U);
+    file = new FileStorage;
+    if (file == nullptr) {
+        AP_BoardConfig::allocation_error("StorageFile");
+    }
+    ssize_t nread;
+
+    file->fd = AP::FS().open(filename, O_RDWR | O_CREAT);
+    if (file->fd == -1) {
+        goto fail;
+    }
+    file->buffer = new uint8_t[size];
+    if (file->buffer == nullptr) {
+        AP_BoardConfig::allocation_error("StorageFile");
+    }
+    file->bufsize = size;
+    nread = AP::FS().read(file->fd, file->buffer, size);
+    if (nread == -1) {
+        goto fail;
+    }
+    if (nread < int32_t(size)) {
+        if (AP::FS().write(file->fd, &file->buffer[nread], size-nread) != size-nread) {
+            goto fail;
+        }
+        if (AP::FS().fsync(file->fd) != 0) {
+            goto fail;
+        }
+    }
+
+    hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&StorageAccess::flush_file, void));
+
+    total_size += file->bufsize;
+
+    return true;
+
+fail:
+    if (file->fd != -1) {
+        AP::FS().close(file->fd);
+    }
+    if (file->buffer != nullptr) {
+        delete[] file->buffer;
+    }
+    delete file;
+    file = nullptr;
+    return false;
+}
+
+/*
+  flush file changes to microSD
+ */
+void StorageAccess::flush_file(void)
+{
+    if (file == nullptr || file->dirty_mask == 0) {
+        return;
+    }
+    const uint32_t now_ms = AP_HAL::millis();
+    if (now_ms - file->last_clean_ms < 1000) {
+        return;
+    }
+    WITH_SEMAPHORE(file->sem);
+    // write out 1k at a time
+    const int b = __builtin_ffsll(file->dirty_mask);
+    const uint32_t ofs = (b-1)*1024;
+    const uint32_t len = MIN(1024U, file->bufsize-ofs);
+    bool io_fail = false;
+    if (AP::FS().lseek(file->fd, ofs, SEEK_SET) != int32_t(ofs) ||
+        AP::FS().write(file->fd, &file->buffer[ofs], len) != int32_t(len)) {
+        io_fail = true;
+    } else {
+        file->dirty_mask &= ~(1ULL<<(b-1));
+    }
+    if (file->dirty_mask == 0) {
+        file->last_clean_ms = now_ms;
+        if (AP::FS().fsync(file->fd) != 0) {
+            io_fail = true;
+        }
+    }
+    if (io_fail) {
+        INTERNAL_ERROR(AP_InternalError::error_t::storage_fail);
+    }
+}
+#endif // AP_SDCARD_STORAGE_ENABLE
+

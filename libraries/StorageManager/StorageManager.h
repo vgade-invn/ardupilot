@@ -21,6 +21,7 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
+#include <AP_BoardConfig/AP_BoardConfig_config.h>
 
 /*
   use just one area per storage type for boards with 4k of
@@ -106,7 +107,28 @@ public:
     // copy from one storage area to another
     bool copy_area(const StorageAccess &source) const;
 
+    // attach a storage file from microSD
+    bool attach_file(const char *fname, uint16_t size_kbyte);
+
 private:
     const StorageManager::StorageType type;
     uint16_t total_size;
+
+#if AP_SDCARD_STORAGE_ENABLE
+    /*
+      support for storage regions on microSD. Only the StorageMission
+      for now
+     */
+    struct FileStorage {
+        HAL_Semaphore sem;
+        int fd;
+        uint8_t *buffer;
+        uint32_t bufsize;
+        uint32_t last_clean_ms;
+        // each bit of the dirty mask covers 1k of data
+        uint64_t dirty_mask;
+    } *file;
+
+    void flush_file(void);
+#endif
 };
