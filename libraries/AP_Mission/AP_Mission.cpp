@@ -53,6 +53,14 @@ HAL_Semaphore AP_Mission::_rsem;
 /// init - initialises this library including checks the version in eeprom matches this library
 void AP_Mission::init()
 {
+#if AP_SDCARD_STORAGE_ENABLE
+    // check for extra storage on microsd
+    const auto *bc = AP::boardConfig();
+    if (bc != nullptr) {
+        _failed_sdcard_storage = !_storage.attach_file(AP_MISSION_SDCARD_FILENAME, bc->get_sdcard_mission_kb());
+    }
+#endif
+
     // check_eeprom_version - checks version of missions stored in eeprom matches this library
     // command list will be cleared if they do not match
     check_eeprom_version();

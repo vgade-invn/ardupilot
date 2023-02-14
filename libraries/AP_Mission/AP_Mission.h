@@ -52,6 +52,12 @@
 #define AP_MISSION_MAX_WP_HISTORY           7       // The maximum number of previous wp commands that will be stored from the active missions history
 #define LAST_WP_PASSED (AP_MISSION_MAX_WP_HISTORY-2)
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
+#define AP_MISSION_SDCARD_FILENAME "APM/mission.stg"
+#else
+#define AP_MISSION_SDCARD_FILENAME "mission.stg"
+#endif
+
 union PackedContent;
 
 /// @class    AP_Mission
@@ -659,6 +665,12 @@ public:
     bool get_item(uint16_t index, mavlink_mission_item_int_t& result) const ;
     bool set_item(uint16_t index, mavlink_mission_item_int_t& source) ;
 
+#if AP_SDCARD_STORAGE_ENABLE
+    bool failed_sdcard_storage(void) const {
+        return _failed_sdcard_storage;
+    }
+#endif
+
 private:
     static AP_Mission *_singleton;
 
@@ -779,6 +791,10 @@ private:
 
     // last time that mission changed
     uint32_t _last_change_time_ms;
+
+#if AP_SDCARD_STORAGE_ENABLE
+    bool _failed_sdcard_storage;
+#endif
 
     // memoisation of contains-relative:
     bool _contains_terrain_alt_items;  // true if the mission has terrain-relative items
