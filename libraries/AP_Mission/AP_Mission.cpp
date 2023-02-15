@@ -2137,7 +2137,11 @@ uint16_t AP_Mission::get_landing_sequence_start()
     float min_distance = -1;
 
     // Go through mission looking for nearest landing start command
-    for (uint16_t i = 1; i < num_commands(); i++) {
+    const auto count = num_commands();
+    for (uint16_t i = 1; i < count; i++) {
+        if (get_command_id(i) != uint16_t(MAV_CMD_DO_LAND_START)) {
+            continue;
+        }
         Mission_Command tmp;
         if (!read_cmd_from_storage(i, tmp)) {
             continue;
@@ -2200,7 +2204,11 @@ bool AP_Mission::jump_to_abort_landing_sequence(void)
     if (AP::ahrs().get_location(current_loc)) {
         float min_distance = FLT_MAX;
 
-        for (uint16_t i = 1; i < num_commands(); i++) {
+        const auto count = num_commands();
+        for (uint16_t i = 1; i < count; i++) {
+            if (get_command_id(i) != uint16_t(MAV_CMD_DO_GO_AROUND)) {
+                continue;
+            }
             Mission_Command tmp;
             if (!read_cmd_from_storage(i, tmp)) {
                 continue;
@@ -2495,9 +2503,36 @@ const char *AP_Mission::Mission_Command::type() const
     }
 }
 
+/*
+  get the command ID of a mission index. Caller should have checked the index is in range
+ */
+uint16_t AP_Mission::get_command_id(uint16_t index) const
+{
+    const uint16_t pos_in_storage = 4 + (index * AP_MISSION_EEPROM_COMMAND_SIZE);
+    uint8_t b[3] {};
+    if (!_storage.read_block(b, pos_in_storage, sizeof(b))) {
+        return 0U;
+    }
+    uint16_t id = 0;
+    if (b[0] == 0 || b[0] == 1) {
+        memcpy((void*)&id, (void*)&b[1], 2);
+    } else {
+        id = b[0];
+    }
+    return id;
+}
+
+/*
+  see if the mission contains a particular item
+ */
 bool AP_Mission::contains_item(MAV_CMD command) const
 {
-    for (uint16_t i = 1; i < num_commands(); i++) {
+    const auto count = num_commands();
+    for (uint16_t i = 1; i < count; i++) {
+        if (get_command_id(i) != uint16_t(command)) {
+            continue;
+        }
+        // confirm with full read
         Mission_Command tmp;
         if (!read_cmd_from_storage(i, tmp)) {
             continue;
@@ -2532,7 +2567,11 @@ bool AP_Mission::contains_terrain_alt_items(void)
 
 bool AP_Mission::calculate_contains_terrain_alt_items(void) const
 {
-    for (uint16_t i = 1; i < num_commands(); i++) {
+    const auto count = num_commands();
+    for (uint16_t i = 1; i < count; i++) {
+        if (!stored_in_location(get_command_id(i))) {
+            continue;
+        }
         Mission_Command tmp;
         if (!read_cmd_from_storage(i, tmp)) {
             continue;

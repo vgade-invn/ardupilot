@@ -796,6 +796,9 @@ private:
     bool _failed_sdcard_storage;
 #endif
 
+    // fast call to get command ID of a mission index
+    uint16_t get_command_id(uint16_t index) const;
+
     // memoisation of contains-relative:
     bool _contains_terrain_alt_items;  // true if the mission has terrain-relative items
     uint32_t _last_contains_relative_calculated_ms;  // will be equal to _last_change_time_ms if _contains_terrain_alt_items is up-to-date
