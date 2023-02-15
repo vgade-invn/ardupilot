@@ -33,10 +33,14 @@
 #define THROTTLE_POSITION_FACTOR 10
 #define CRANK_SHAFT_SENSOR_OK 0x0F
 #define INJECTION_TIME_RESOLUTION 0.8
-#define FUEL_CONSUMPTION_RESOLUTION 0.1
+#define FUEL_CONSUMPTION_RESOLUTION 10.0
 #define THROTTLE_POSITION_RESOLUTION 0.1
 #define KELVIN_CONVERSION_CONSTANT 273.5
 #define VOLTAGE_RESOLUTION 0.0049       /* 5/1024 */
+#define ADC_CALIBRATION 5.0/1024.0
+#define MAP_HPA_PER_VOLT_FACTOR 248.2673
+#define HPA_TO_KPA 0.1
+#define TPS_SCALE 0.70
 
 const uint8_t QUANTITY_REQUEST_STATUS    = 0x03;
 const uint8_t QUANTITY_SET_VALUE         = 0x17;
@@ -87,6 +91,8 @@ public:
 
     void get_quantity();
 
+    float get_avg_fuel_consumption_rate(float fuel_consumed);
+
 private:
     // serial port instance
     AP_HAL::UARTDriver *port;
@@ -118,5 +124,16 @@ private:
     uint16_t new_throttle;
     uint16_t old_throttle;
 
+    float fuel_consumption_rate_average;
+    float fuel_consumption_rate_raw;
+    float fuel_consumption_rate;
+    float total_fuel_consumed;
+    float instance_fuel_reading[BYTE_RANGE_MAX];
+    uint8_t fuel_avg_count;
+    uint8_t fuel_avg_config;
+
+
     uint8_t data_send;
+
+    float throttle_scaling_factor;
 };

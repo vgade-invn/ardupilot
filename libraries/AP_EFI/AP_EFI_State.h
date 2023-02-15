@@ -224,6 +224,7 @@ struct EFI_State {
     float air_temp;
     float eng_temp;
     float battery_voltage;
+    float converted_map;
     uint32_t crc_fail_cnt;
     uint32_t uptime;
     uint32_t loop_cnt;
@@ -233,4 +234,7 @@ struct EFI_State {
     uint32_t ack_s1;
     uint32_t ack_s2;
     uint32_t ack_s3;
+    float fuel_consumption_rate_average;
+    float fuel_consumption_rate_raw;
+    float total_fuel_consumed;
 };

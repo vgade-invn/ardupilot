@@ -23,6 +23,8 @@
 #include "SRV_Channel/SRV_Channel.h"
 
 
+extern const AP_HAL::HAL& hal;
+
 /**
  * @brief Constructor with port initialization
  * 
@@ -30,6 +32,9 @@
  */
 AP_EFI_Serial_Hirth::AP_EFI_Serial_Hirth(AP_EFI &_frontend) : AP_EFI_Backend(_frontend) {
     port = AP::serialmanager().find_serial(AP_SerialManager::SerialProtocol_EFI, 0);
+    throttle_scaling_factor = (get_throttle_max() - get_throttle_idle()) / 100;
+    fuel_avg_config = get_ecu_fcr_average_count();
+    fuel_avg_count = 0;
 }
 
 
@@ -106,16 +111,17 @@ void AP_EFI_Serial_Hirth::update() {
             // get new throttle value
             new_throttle = (uint16_t)SRV_Channels::get_output_scaled(SRV_Channel::k_throttle);
 
-            // limit throttle percent to 65% for testing purposes only
-            if (new_throttle > 65)
-            {
-                new_throttle = 65;
-            }
-
             // check for change or timeout for throttle value
             if ((new_throttle != old_throttle) || (now - last_req_send_throttle > 500)) {
                 // if new throttle value, send throttle request
-                status = send_target_values(new_throttle);
+                // also send new throttle value, only when ARMED
+                if (hal.util->persistent_data.armed) {
+                    status = send_target_values((new_throttle * throttle_scaling_factor) + get_throttle_idle());
+                }
+                else{
+                    status = send_target_values(0);
+                }
+
                 old_throttle = new_throttle;
                 internal_state.k_throttle = new_throttle;
                 last_req_send_throttle = now;
@@ -174,7 +180,7 @@ bool AP_EFI_Serial_Hirth::send_target_values(uint16_t thr) {
         raw_data[i] = 0;
     }
     
-    // get throttle value
+    // Get throttle value from parameters config
     uint16_t throttle = thr * THROTTLE_POSITION_FACTOR;
 
     // set Quantity + Code + "20 bytes of records to set" + Checksum
@@ -285,6 +291,8 @@ void AP_EFI_Serial_Hirth::decode_data() {
         internal_state.thr_pos = (raw_data[72] | raw_data[73] << 0x08);
         internal_state.air_temp = (raw_data[78] | raw_data[79] << 0x08);
         internal_state.eng_temp = (raw_data[74] | raw_data[75] << 0x08);
+        //add in ADC voltage of MAP sensor > convert to MAP in kPa
+        internal_state.converted_map = (raw_data[50] | raw_data[51] << 0x08) * ADC_CALIBRATION * MAP_HPA_PER_VOLT_FACTOR * HPA_TO_KPA;
         internal_state.battery_voltage = (raw_data[76] | raw_data[77] << 0x08) * VOLTAGE_RESOLUTION;
 
         //EFI1 Log
@@ -300,11 +308,14 @@ void AP_EFI_Serial_Hirth::decode_data() {
         break;
 
     case CODE_REQUEST_STATUS_2:
-        internal_state.fuel_consumption_rate_cm3pm = (raw_data[52] | raw_data[53] << 0x08) / FUEL_CONSUMPTION_RESOLUTION;
+
+        fuel_consumption_rate_raw = (raw_data[52] | raw_data[53] << 0x08) / FUEL_CONSUMPTION_RESOLUTION;
+        internal_state.fuel_consumption_rate_raw = get_avg_fuel_consumption_rate(fuel_consumption_rate_raw);
+        internal_state.fuel_consumption_rate_cm3pm = (fuel_consumption_rate_raw * get_ecu_fcr_slope()) + get_ecu_fcr_offset();
+
+        total_fuel_consumed = total_fuel_consumed + internal_state.fuel_consumption_rate_cm3pm;
+        internal_state.total_fuel_consumed = total_fuel_consumed;
         internal_state.throttle_position_percent = (raw_data[62] | raw_data[63] << 0x08) / THROTTLE_POSITION_RESOLUTION;
-        
-        //EFI2 Log
-        // internal_state.no_of_log_data = raw_data[52] | raw_data[53] << 0x08 | raw_data[53] << 0x08 | raw_data[53] << 0x08
         break;
 
     case CODE_REQUEST_STATUS_3: // TBD - internal state addition
@@ -325,6 +336,19 @@ void AP_EFI_Serial_Hirth::decode_data() {
     //     // Do nothing for now
     //     break;
     }
+}
+
+
+float AP_EFI_Serial_Hirth::get_avg_fuel_consumption_rate(float fuel_consumed) {
+    fuel_avg_count = (fuel_avg_count) % fuel_avg_config;
+    float avg_fuel_consumed = 0;
+
+    instance_fuel_reading[fuel_avg_count++] = fuel_consumed;
+    for (int i = 0; i < fuel_avg_config; i++) {
+        avg_fuel_consumed += instance_fuel_reading[i];
+    }
+    
+    return (avg_fuel_consumed / fuel_avg_config);
 }
 
 #endif // HAL_EFI_ENABLED
