@@ -1,3 +1,11 @@
+Release Ottano Carbopilot V4.3.8 21th Feb 2023
+----------------------------------
+
+This release includes: 
+ - feature/OV3-460-advance-failsafe-check-esc-telemetry
+
+Happy flying!
+
 Release Ottano Carbopilot V4.3.7 20th Feb 2023
 ----------------------------------
 
