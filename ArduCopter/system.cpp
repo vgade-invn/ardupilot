@@ -206,6 +206,9 @@ void Copter::init_ardupilot()
         enable_motor_output();
     }
 
+    // initialize adv failsafe
+    adv_failsafe.init();
+
     // attempt to set the intial_mode, else set to STABILIZE
     if (!set_mode((enum Mode::Number)g.initial_mode.get(), ModeReason::INITIALISED)) {
         // set mode to STABILIZE will trigger mode change notification to pilot

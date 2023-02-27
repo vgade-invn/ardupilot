@@ -378,6 +378,9 @@ public:
 
         k_param_vehicle = 257, // vehicle common block of parameters
 
+        // 258: advanced failsafe to save exact coordinates after leaving a mission
+        k_param_adv_failsafe = 258,
+        
         // the k_param_* space is 9-bits in size
         // 511: reserved
     };

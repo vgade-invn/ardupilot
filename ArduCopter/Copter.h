@@ -178,6 +178,8 @@
 #include "avoidance_adsb.h"
 #endif
 
+#include <AC_Adv_Failsafe/AC_Adv_Failsafe.h>
+
 #include "mode.h"
 
 class Copter : public AP_Vehicle {
@@ -546,6 +548,9 @@ private:
     AP_Avoidance_Copter avoidance_adsb{adsb};
 #endif
 
+    // Advanced failsafe, to go back to exact point where we left the mission instead of next waypoint
+    AC_Adv_Failsafe adv_failsafe;
+
     // last valid RC input time
     uint32_t last_radio_update_ms;
 
@@ -770,6 +775,7 @@ private:
     bool should_disarm_on_failsafe();
     void do_failsafe_action(FailsafeAction action, ModeReason reason);
     void announce_failsafe(const char *type, const char *action_undertaken=nullptr);
+    void save_failsafe_coordinates(void);
 
     // failsafe.cpp
     void failsafe_enable();
