@@ -52,6 +52,8 @@ public:
         _trigg_dist.set(distance_m);
     }
 
+    float           get_trigger_dist() { return _trigg_dist; }
+
     // momentary switch to change camera modes
     void cam_mode_toggle();
 

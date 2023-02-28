@@ -74,6 +74,9 @@ public:
     /// get default target horizontal velocity during wp navigation
     float get_default_speed_xy() const { return _wp_speed_cms; }
 
+    // get the instantaneous target wp desired horizontal speed during wp navigation
+    float get_wp_desired_speed_xy_cms() const { return _wp_desired_speed_xy_cms; }
+
     /// get default target climb speed in cm/s during missions
     float get_default_speed_up() const { return _wp_speed_up_cms; }
 
