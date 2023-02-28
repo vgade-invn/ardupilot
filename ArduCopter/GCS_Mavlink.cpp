@@ -1011,6 +1011,31 @@ MAV_RESULT GCS_MAVLINK_Copter::handle_command_long_packet(const mavlink_command_
         GCS_MAVLINK_Copter::convert_COMMAND_LONG_to_COMMAND_INT(packet, packet_int);
         return handle_command_pause_continue(packet_int);
     }
+    case MAV_CMD_USER_1:
+    {
+        return copter.adv_failsafe.handle_send_fs_coords_to_gcs();
+    }
+
+    case MAV_CMD_USER_2:
+    {
+        // if no failsafe active, or not enabled, just do regular continue mission
+        if (!copter.adv_failsafe.get_active() || !copter.adv_failsafe.get_enabled()) {
+            if (copter.motors->armed() && copter.set_mode(Mode::Number::AUTO, ModeReason::GCS_COMMAND)) {
+                copter.set_auto_armed(true);
+
+                if (copter.mode_auto.mission.state() != AP_Mission::MISSION_RUNNING) {
+                    copter.mode_auto.mission.start_or_resume();
+                }
+                return MAV_RESULT_ACCEPTED;
+            }
+            return MAV_RESULT_FAILED;
+        // otherwise perform our custom return to mission procedure
+        } else {
+            copter.mode_guided.set_return_to_mission_proc(true);
+            return MAV_RESULT_ACCEPTED;
+        }
+    }
+
     default:
         return GCS_MAVLINK::handle_command_long_packet(packet);
     }
