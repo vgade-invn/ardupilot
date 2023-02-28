@@ -545,3 +545,44 @@ bool Copter::is_tradheli() const
     return false;
 #endif
 }
+
+void Copter::save_failsafe_coordinates()
+{
+    // only save failsafe coordinates if in auto mode
+    if (flightmode->mode_number() != Mode::Number::AUTO) {
+        return;
+    }
+
+    // do not save the coordinates if we didn't even reached the first navigation waypoint
+    if ((uint16_t)(mode_auto.mission.get_current_nav_cmd().index) <= 2)
+        return;
+
+    // prevent the system to save altitude zero commands (such as home) and hitting to the ground
+    if (mode_auto.mission.get_current_nav_cmd().content.location.alt == 0)
+        return;
+
+    // do not save coordinates if the UAV is landed
+    if (ap.land_complete)
+        return;
+
+    int32_t latitude; 
+    int32_t longitude;
+    int32_t altitude;
+    float velocity;
+    float trigger_dist = 0;
+
+    latitude = current_loc.lat;
+    longitude = current_loc.lng;
+    
+    AP_Mission::Mission_Command fs_cmd = mode_auto.mission.get_current_nav_cmd();
+    altitude = fs_cmd.content.location.alt;
+    
+    if (!is_zero(camera.get_trigger_dist())) {
+        trigger_dist = camera.get_trigger_dist();
+    }
+
+    velocity = wp_nav->get_wp_desired_speed_xy_cms();
+
+    adv_failsafe.save_failsafe_status(latitude, longitude, altitude, fs_cmd.index, velocity, trigger_dist);
+    adv_failsafe.log_failsafe_status();
+}
