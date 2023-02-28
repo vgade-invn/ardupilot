@@ -283,6 +283,9 @@ bool ModeAuto::loiter_start()
 // auto_rtl_start - initialises RTL in AUTO flight mode
 void ModeAuto::rtl_start()
 {
+    // reset adv failsafe when RTL waypoint
+    copter.adv_failsafe.clear_failsafe_status();
+
     // call regular rtl flight mode initialisation and ask it to ignore checks
     if (copter.mode_rtl.init(true)) {
         set_submode(SubMode::RTL);
@@ -742,6 +745,11 @@ void ModeAuto::exit_mission()
         // if we've landed it's safe to disarm
         copter.arming.disarm(AP_Arming::Method::MISSIONEXIT);
     }
+
+    // reset adv failsafe coordinates and state.
+    // This will only be called if the last mission item is not RTL!
+    // if it is RTL we need to manage differently
+    copter.adv_failsafe.clear_failsafe_status();
 }
 
 // do_guided - start guided mode

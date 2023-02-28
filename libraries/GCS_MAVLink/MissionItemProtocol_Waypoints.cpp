@@ -23,6 +23,8 @@
 
 #include "GCS.h"
 
+#include <AC_Adv_Failsafe/AC_Adv_Failsafe.h>
+
 MAV_MISSION_RESULT MissionItemProtocol_Waypoints::append_item(const mavlink_mission_item_int_t &mission_item_int)
 {
     // sanity check for DO_JUMP command
@@ -54,6 +56,13 @@ MAV_MISSION_RESULT MissionItemProtocol_Waypoints::complete(const GCS_MAVLINK &_l
 {
     _link.send_text(MAV_SEVERITY_INFO, "Flight plan received");
     AP::logger().Write_EntireMission();
+
+    // Use adv_failsafe singleton to reset failsafe status
+    AC_Adv_Failsafe* adv_failsafe = AP::ac_adv_failsafe(); 
+    if ( adv_failsafe != nullptr ) {
+        adv_failsafe->clear_failsafe_status();
+    }
+
     return MAV_MISSION_ACCEPTED;
 }
 
