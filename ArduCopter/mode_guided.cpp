@@ -1291,7 +1291,7 @@ void ModeGuided::update_adv_failsafe()
     // start takeoff to arfs_travel_alt
     case AC_Adv_Failsafe::StartTakeOff: {
         // first set our target altitude
-        int16_t ascent_altitude = MAX(copter.adv_failsafe.get_travel_altitude(), copter.adv_failsafe.get_altitude());
+        int16_t ascent_altitude = copter.adv_failsafe.get_travel_altitude();
         // if not flying, same procedure as takeoff gcs command
         if (!AP_Notify::flags.flying) {
             do_user_takeoff(ascent_altitude, true); // tranlsate to cm
@@ -1312,7 +1312,7 @@ void ModeGuided::update_adv_failsafe()
         // when we arrive to arfs_travel_alt, change to next stage, go to failsafe coordinate
         if (wp_nav->reached_wp_destination()) {
             // get altude to ascent, maximum of failsafe altitude and failsafe travel altitude
-            int16_t ascent_altitude = MAX(copter.adv_failsafe.get_travel_altitude(), copter.adv_failsafe.get_altitude());
+            int16_t ascent_altitude = copter.adv_failsafe.get_travel_altitude();
             // set_destination to o ur failsafe coordinate, but arfs_travel_alt
             Location dest(copter.adv_failsafe.get_latitude(), copter.adv_failsafe.get_longitude(), ascent_altitude, Location::AltFrame::ABOVE_HOME);
             set_destination(dest);
@@ -1335,7 +1335,7 @@ void ModeGuided::update_adv_failsafe()
             // ABOVE_HOME frame. As we will use only terrain_frame it is fine,
             // but in case a mission with relative altitudes is used instead we should
             // manage it here and send the proper frame
-            Location dest(copter.adv_failsafe.get_latitude(), copter.adv_failsafe.get_longitude(), copter.adv_failsafe.get_altitude(), Location::AltFrame::ABOVE_HOME);
+            Location dest(copter.adv_failsafe.get_latitude(), copter.adv_failsafe.get_longitude(), copter.adv_failsafe.get_altitude(), Location::AltFrame::ABSOLUTE);
             set_destination(dest);
             // set again to true, as it is set to false in set_destination for regular guided mode to work normally
             _return_to_mission_proc = true;

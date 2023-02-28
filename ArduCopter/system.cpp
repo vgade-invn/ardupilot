@@ -570,12 +570,26 @@ void Copter::save_failsafe_coordinates()
     int32_t altitude;
     float velocity;
     float trigger_dist = 0;
+    AP_Mission::Mission_Command fs_cmd;
 
+    // Get lat/lon
     latitude = current_loc.lat;
     longitude = current_loc.lng;
     
-    AP_Mission::Mission_Command fs_cmd = mode_auto.mission.get_current_nav_cmd();
-    altitude = fs_cmd.content.location.alt;
+    // Get mission item
+    fs_cmd = mode_auto.mission.get_current_nav_cmd();
+    
+    // Get the altitude of the current mission command
+    // altitude = fs_cmd.content.location.alt;
+
+    // Get ASL altitude. Get the location, to get asl altitude. If failed throw warning message and return
+    struct Location current_loc_asl;
+    if (!ahrs.get_location(current_loc_asl)) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Failed to save mission state, unable to get ASL altitude");
+        return;
+    }
+
+    altitude = current_loc_asl.alt;
     
     if (!is_zero(camera.get_trigger_dist())) {
         trigger_dist = camera.get_trigger_dist();
