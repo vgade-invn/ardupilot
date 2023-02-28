@@ -225,6 +225,37 @@ bool Copter::set_mode(Mode::Number mode, ModeReason reason)
     }
 #endif
 
+    // -------------------- ADVANCED FAILSAFE MANAGEMENT HERE -------------------------------------------------
+    // --------------------------------------------------------------------------------------------------------
+
+    // Mission coordinates are saved every time we leave auto mode, as long as conditions in save_failsafe_coordinates() are met ( valid mission state )
+    if (flightmode->mode_number() == Mode::Number::AUTO) 
+    {
+        save_failsafe_coordinates();
+        copter.adv_failsafe.set_active(true);
+    }    
+
+    // this condition prevents ADFS states machine to be stuck when the user has to avoid manually any obstacle while returning to the mission
+    if((mode == Mode::Number::LOITER || mode == Mode::Number::BRAKE) && (flightmode->mode_number() == Mode::Number::GUIDED))
+    {
+        copter.adv_failsafe.set_stage(AC_Adv_Failsafe::StartTakeOff);
+    }
+
+    // turn off camera trigger if any mode other than auto... or turn it on again going back to auto if required
+    if (flightmode->mode_number() == Mode::Number::AUTO) 
+    {
+        if (!is_zero(camera.get_trigger_dist())) {
+            camera.set_trigger_distance(0.0f);
+        }
+    }
+    else if (mode == Mode::Number::AUTO) {
+        if (!is_zero(copter.adv_failsafe.get_trigg_dist())) {
+            camera.set_trigger_distance(copter.adv_failsafe.get_trigg_dist());
+        }
+    }
+
+    // -------------------------------------------------------------------------------------------------------------
+
     Mode *new_flightmode = mode_from_mode_num(mode);
     if (new_flightmode == nullptr) {
         notify_no_such_mode((uint8_t)mode);
