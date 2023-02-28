@@ -1009,6 +1009,9 @@ public:
     // pause continue in guided mode
     bool pause() override;
     bool resume() override;
+    
+    // adv failsafe -- called from GCS command
+    void set_return_to_mission_proc(bool set) { _return_to_mission_proc = set; }
 
 protected:
 
@@ -1056,6 +1059,10 @@ private:
 
     // guided mode is paused or not
     bool _paused;
+    
+    // adv failsafe 
+    void update_adv_failsafe();
+    bool _return_to_mission_proc = false;
 };
 
 

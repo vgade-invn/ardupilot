@@ -35,6 +35,9 @@ struct Guided_Limit {
 // init - initialise guided controller
 bool ModeGuided::init(bool ignore_checks)
 {
+    // adv failsafe flag
+    _return_to_mission_proc = false;
+    
     // start in velaccel control mode
     velaccel_control_start();
     guided_vel_target_cms.zero();
@@ -95,7 +98,10 @@ void ModeGuided::run()
         angle_control_run();
         break;
     }
- }
+
+    // Update adv failsafe algorithm
+    update_adv_failsafe();
+}
 
 bool ModeGuided::allows_arming(AP_Arming::Method method) const
 {
@@ -340,6 +346,9 @@ void ModeGuided::angle_control_start()
 // else return false if the waypoint is outside the fence
 bool ModeGuided::set_destination(const Vector3f& destination, bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_yaw, bool terrain_alt)
 {
+    // adv failsafe flag
+    _return_to_mission_proc = false;
+
 #if AP_FENCE_ENABLED
     // reject destination if outside the fence
     const Location dest_loc(destination, terrain_alt ? Location::AltFrame::ABOVE_TERRAIN : Location::AltFrame::ABOVE_ORIGIN);
@@ -432,6 +441,9 @@ bool ModeGuided::get_wp(Location& destination) const
 // or if the fence is enabled and guided waypoint is outside the fence
 bool ModeGuided::set_destination(const Location& dest_loc, bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_yaw)
 {
+    // adv failsafe flag, we might want to double check this one
+    _return_to_mission_proc = false;
+
 #if AP_FENCE_ENABLED
     // reject destination outside the fence.
     // Note: there is a danger that a target specified as a terrain altitude might not be checked if the conversion to alt-above-home fails
@@ -675,6 +687,12 @@ void ModeGuided::takeoff_run()
         // optionally retract landing gear
         copter.landinggear.retract_after_takeoff();
 #endif
+    }
+
+    if (wp_nav->reached_wp_destination()) {
+        if (copter.adv_failsafe.get_stage() == AC_Adv_Failsafe::AscentToFSCoordAlt ) {
+            _return_to_mission_proc = true;
+        }
     }
 }
 
@@ -1244,3 +1262,122 @@ bool ModeGuided::resume()
 }
 
 #endif
+
+void ModeGuided::update_adv_failsafe() 
+{
+    // if not called from GCS command exit inmediately
+    if (!_return_to_mission_proc) {
+        return;
+    }
+
+    // if not enabled by params or not active because already consumed
+    // return inmediately
+    if (!copter.adv_failsafe.get_enabled()) {
+        return;
+    }
+    if (!copter.adv_failsafe.get_active()) {
+        return;
+    }
+
+    AC_Adv_Failsafe::STAGE stage = copter.adv_failsafe.get_stage();
+    // switch based on stage of adv failsafe
+    switch(stage) {
+
+    // default stage, not active
+    case AC_Adv_Failsafe::NotActive:
+        _return_to_mission_proc = false;
+        break;
+
+    // start takeoff to arfs_travel_alt
+    case AC_Adv_Failsafe::StartTakeOff: {
+        // first set our target altitude
+        int16_t ascent_altitude = MAX(copter.adv_failsafe.get_travel_altitude(), copter.adv_failsafe.get_altitude());
+        // if not flying, same procedure as takeoff gcs command
+        if (!AP_Notify::flags.flying) {
+            do_user_takeoff(ascent_altitude, true); // tranlsate to cm
+        // otherwise it needs to be managed differnetly, setting wp_destination
+        } else {
+            Location dest(copter.current_loc.lat, copter.current_loc.lng, ascent_altitude, Location::AltFrame::ABOVE_HOME);
+            set_destination(dest); 
+            // set again to true, as it is set to false in set_destination for regular guided mode to work normally
+            _return_to_mission_proc = true;
+        }
+        // we are already ascending to arfs_travel_alt, so change state to wait for reaching desired altitude
+        copter.adv_failsafe.set_stage(AC_Adv_Failsafe::AscentToFSCoordAlt);
+        break;
+    }
+
+    // waiting to reach arfs_travel_alt
+    case AC_Adv_Failsafe::AscentToFSCoordAlt:
+        // when we arrive to arfs_travel_alt, change to next stage, go to failsafe coordinate
+        if (wp_nav->reached_wp_destination()) {
+            // get altude to ascent, maximum of failsafe altitude and failsafe travel altitude
+            int16_t ascent_altitude = MAX(copter.adv_failsafe.get_travel_altitude(), copter.adv_failsafe.get_altitude());
+            // set_destination to o ur failsafe coordinate, but arfs_travel_alt
+            Location dest(copter.adv_failsafe.get_latitude(), copter.adv_failsafe.get_longitude(), ascent_altitude, Location::AltFrame::ABOVE_HOME);
+            set_destination(dest);
+            // set again to true, as it is set to false in set_destination for regular guided mode to work normally
+            _return_to_mission_proc = true;
+
+            copter.adv_failsafe.set_stage(AC_Adv_Failsafe::GotoFSCoord);
+
+            // send coords to GCS for displaying
+            copter.adv_failsafe.handle_send_fs_coords_to_gcs();
+        }
+        break;
+
+    // waiting to reach failsafe coordinate at ar_fs_travel_alt
+    case AC_Adv_Failsafe::GotoFSCoord:
+        // if arrived, command new destination at same coordinates but at failsafe altitude (target altitude of the waypoint we were)
+        if (wp_nav->reached_wp_destination()) {
+
+            // Notice here when we go to the saved waypoint we force it to be 
+            // ABOVE_HOME frame. As we will use only terrain_frame it is fine,
+            // but in case a mission with relative altitudes is used instead we should
+            // manage it here and send the proper frame
+            Location dest(copter.adv_failsafe.get_latitude(), copter.adv_failsafe.get_longitude(), copter.adv_failsafe.get_altitude(), Location::AltFrame::ABOVE_HOME);
+            set_destination(dest);
+            // set again to true, as it is set to false in set_destination for regular guided mode to work normally
+            _return_to_mission_proc = true;
+
+            copter.adv_failsafe.set_stage(AC_Adv_Failsafe::DescentToFSCoordAlt);
+        }
+        break;
+
+    // waiting to reach failsafe altitude
+    case AC_Adv_Failsafe::DescentToFSCoordAlt:
+        if (wp_nav->reached_wp_destination()) {
+            // we are at the failsafe spot. change to auto to continue mission
+            copter.set_mode(Mode::Number::AUTO, ModeReason::SCRIPTING);
+
+            // we need to set the proper mission sequence, if comming from a reboot
+            // this could have been reseted
+            AP_Mission *mission = AP::mission();
+            if (mission == nullptr) { // sanity check
+                return;
+            }
+            mission->set_current_cmd(copter.adv_failsafe.get_index());
+
+            // manage sprayer if needed. First set the triggering distance
+            copter.camera.set_trigger_distance(copter.adv_failsafe.get_trigg_dist());
+            // and also trigger a picture now
+            copter.camera.take_picture();
+
+            // finally, update the ground speed for the mission
+            copter.wp_nav->set_speed_xy(copter.adv_failsafe.get_velocity());
+
+            // we have completed the procedure, clear failsafe state
+            copter.adv_failsafe.clear_failsafe_status();
+
+            // and deactivate the flag to do this procedure so guided works as normal
+            _return_to_mission_proc = false;
+        }
+        break;
+
+    // sanity check, set not active and deactivate flag
+    default:
+        copter.adv_failsafe.set_stage(AC_Adv_Failsafe::NotActive);
+        _return_to_mission_proc = false;
+        break;
+    }
+}
