@@ -1029,8 +1029,49 @@ MAV_RESULT GCS_MAVLINK_Copter::handle_command_long_packet(const mavlink_command_
                 return MAV_RESULT_ACCEPTED;
             }
             return MAV_RESULT_FAILED;
-        // otherwise perform our custom return to mission procedure
+
+        // Otherwise perform our custom return to mission procedure, checking first if returning point is not too far away
         } else {
+            // Get return point max allowed distance
+            int32_t max_dist_allowed = copter.adv_failsafe.get_max_dist_from_home();
+            if (!max_dist_allowed) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Not possible to continue mission. ADFS_MAXDST_M not set");
+                return MAV_RESULT_FAILED;
+            }
+
+            // Check returning data is healthy
+            if (copter.adv_failsafe.get_latitude() == 0 || copter.adv_failsafe.get_longitude() == 0 || copter.adv_failsafe.get_altitude() == 0 ) {
+                // Otherwise report, and clear status
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Not possible to continue mission. Corrupted returning point data");
+                copter.adv_failsafe.clear_failsafe_status();
+                return MAV_RESULT_FAILED;
+            }
+
+            // Get return point location, it should be healthy
+            Location return_location(copter.adv_failsafe.get_latitude(),
+                                     copter.adv_failsafe.get_longitude(),
+                                     copter.adv_failsafe.get_altitude(),
+                                     Location::AltFrame::ABSOLUTE);
+            
+            // Get ahrs location
+            AP_AHRS &ahrs = AP::ahrs();
+            struct Location global_position_current;
+            if (!ahrs.get_location(global_position_current)) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Not possible to continue mission. Failed to get home location");
+                return MAV_RESULT_FAILED;
+            }
+
+            // Get distance to returning point
+            float distance_to_returning_point = return_location.get_distance(global_position_current);
+
+            // If farther away than our ADFS_MAXDST_M return false, and throw warning messages
+            if ((int32_t)distance_to_returning_point > max_dist_allowed) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Returning point too far away");
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "maximum is %d meters, current is %0.1f meters", (int)max_dist_allowed, distance_to_returning_point);
+                return MAV_RESULT_FAILED;
+            }
+
+            // If we made it until here everything should be fine
             copter.mode_guided.set_return_to_mission_proc(true);
             return MAV_RESULT_ACCEPTED;
         }
