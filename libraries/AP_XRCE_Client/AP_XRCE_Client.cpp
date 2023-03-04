@@ -71,6 +71,7 @@ bool AP_XRCE_Client::init()
     }
 
     constexpr uint32_t uniqueClientKey = 0xAAAABBBB;
+    //TODO does this need to be inside the loop to handle reconnect?
     uxr_init_session(&session, &serial_transport.comm, uniqueClientKey);
     GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization wait");
     while (!uxr_create_session(&session)) {
