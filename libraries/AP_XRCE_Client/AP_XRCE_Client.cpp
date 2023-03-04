@@ -4,6 +4,7 @@
 
 #include <AP_RTC/AP_RTC.h>
 #include <AP_SerialManager/AP_SerialManager.h>
+#include <GCS_MAVLink/GCS.h>
 
 #include "AP_XRCE_Client.h"
 #include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
@@ -25,6 +26,35 @@ const AP_Param::GroupInfo AP_XRCE_Client::var_info[]={
 
 #include "AP_XRCE_Topic_Table.h"
 
+/*
+  class constructor
+ */
+AP_XRCE_Client::AP_XRCE_Client(void)
+{
+    if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_XRCE_Client::main_loop, void),
+                                      "XRCE",
+                                      8192, AP_HAL::Scheduler::PRIORITY_IO, 1)) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: thread create failed");
+    }
+}
+
+/*
+  main loop for XRCE thread
+ */
+void AP_XRCE_Client::main_loop(void)
+{
+    if (!init() || !create()) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ALERT,"XRCE Client: Creation Requests failed");
+        return;
+    }
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization passed");
+    while (true) {
+        hal.scheduler->delay(1);
+        update();
+    }
+}
+
+
 bool AP_XRCE_Client::init()
 {
     AP_SerialManager *serial_manager = AP_SerialManager::get_singleton();
@@ -42,8 +72,9 @@ bool AP_XRCE_Client::init()
 
     constexpr uint32_t uniqueClientKey = 0xAAAABBBB;
     uxr_init_session(&session, &serial_transport.comm, uniqueClientKey);
-    if (!uxr_create_session(&session)) {
-        return false;
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization wait");
+    while (!uxr_create_session(&session)) {
+        hal.scheduler->delay(100);
     }
 
     reliable_in = uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
