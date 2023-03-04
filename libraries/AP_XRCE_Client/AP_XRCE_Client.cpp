@@ -63,6 +63,9 @@ bool AP_XRCE_Client::init()
         return false;
     }
 
+    // ensure we own the UART
+    xrce_port->begin(0);
+
     constexpr uint8_t fd = 0;
     constexpr uint8_t relativeSerialAgentAddr = 0;
     constexpr uint8_t relativeSerialClientAddr = 1;
@@ -199,8 +202,8 @@ size_t uxr_write_serial_data_platform(void* args, const uint8_t* buf, size_t len
         *errcode = 1;
         return 0;
     }
-    size_t bytes_written = xrce_port->write(buf, (size_t)len);
-    if (bytes_written == 0) {
+    ssize_t bytes_written = xrce_port->write(buf, (size_t)len);
+    if (bytes_written <= 0) {
         *errcode = 1;
         return 0;
     }
@@ -218,7 +221,7 @@ size_t uxr_read_serial_data_platform(void* args, uint8_t* buf, size_t len, int t
         hal.scheduler->delay(1); // TODO select or poll this is limiting speed (1mS)
         timeout--;
     }
-    size_t bytes_read = xrce_port->read(buf, (size_t)len);
+    ssize_t bytes_read = xrce_port->read(buf, (size_t)len);
     if (bytes_read <= 0) {
         *errcode = 1;
         return 0;
@@ -236,7 +239,7 @@ int clock_gettime(clockid_t clockid, struct timespec *ts)
 {
     uint64_t utc_usec;
     if (!AP::rtc().get_utc_usec(utc_usec)) {
-        return -1;
+        utc_usec = AP_HAL::micros64();
     }
     ts->tv_sec = utc_usec / 1000000ULL;
     ts->tv_nsec = (utc_usec % 1000000ULL) * 1000UL;
