@@ -74,8 +74,10 @@ bool AP_XRCE_Client::init()
     uxr_init_session(&session, &serial_transport.comm, uniqueClientKey);
     GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization wait");
     while (!uxr_create_session(&session)) {
-        hal.scheduler->delay(100);
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization waiting...");
+        hal.scheduler->delay(1000);
     }
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Session Created");
 
     reliable_in = uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
     reliable_out = uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
@@ -89,13 +91,16 @@ bool AP_XRCE_Client::init()
     if(time_topic == nullptr) {
         return false;
     }
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Init Complete");
 
     return true;
 }
 
 bool AP_XRCE_Client::create()
 {
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: create() enter");
     WITH_SEMAPHORE(csem);
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: create semaphore csem");
 
     // Participant
     const uxrObjectId participant_id = {
@@ -164,8 +169,10 @@ void AP_XRCE_Client::update()
         return;
     }
     WITH_SEMAPHORE(csem);
+
     update_topic(time_topic);
-    connected = uxr_run_session_time(&session,1000);
+    write();
+    connected = uxr_run_session_time(&session, 1);
 }
 
 /*
