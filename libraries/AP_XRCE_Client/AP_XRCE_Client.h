@@ -53,7 +53,9 @@ private:
     AP_Int8 xrce_type;
 public:
     // Constructor
-    AP_XRCE_Client(){};
+    AP_XRCE_Client();
+
+    void main_loop(void);
 
     // 
     bool init();
