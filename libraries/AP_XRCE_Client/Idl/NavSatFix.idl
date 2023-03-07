@@ -2,8 +2,8 @@
 // with input from sensor_msgs/msg/NavSatFix.msg
 // generated code does not contain a copyright notice
 
-#include "sensor_msgs/msg/NavSatStatus.idl"
-#include "std_msgs/msg/Header.idl"
+#include "NavSatStatus.idl"
+#include "Header.idl"
 
 module sensor_msgs {
   module msg {

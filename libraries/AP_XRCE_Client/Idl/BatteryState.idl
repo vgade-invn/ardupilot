@@ -2,7 +2,7 @@
 // with input from sensor_msgs/msg/BatteryState.msg
 // generated code does not contain a copyright notice
 
-#include "std_msgs/msg/Header.idl"
+#include "Header.idl"
 
 module sensor_msgs {
   module msg {
