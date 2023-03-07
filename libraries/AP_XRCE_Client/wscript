@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+import os
+
 def configure(cfg):
     extra_src = ['modules/Micro-XRCE-DDS-Client/src/c/core/session/stream/*.c',
                  'modules/Micro-XRCE-DDS-Client/src/c/core/session/*.c',
@@ -52,3 +54,26 @@ def build(bld):
                                   config_h_nodes[i].abspath()),
             group='dynamic_sources'
         )
+
+    gen_path = "libraries/AP_XRCE_Client/generated"
+
+    # temporary whitelist while include issue is sorted out
+    whitelist = [ 'Duration.idl', 'Time.idl' ]
+
+    idl_files = bld.srcnode.ant_glob('libraries/AP_XRCE_Client/Idl/**/*.idl')
+    for idl in idl_files:
+        b = os.path.basename(idl.abspath())
+        if not b in whitelist:
+            continue
+        gen_h = b.replace('.idl', '.h')
+        gen_c = b.replace('.idl', '.c')
+        gen = [ bld.bldnode.find_or_declare(os.path.join(gen_path, gen_h)),
+                bld.bldnode.find_or_declare(os.path.join(gen_path, gen_c)) ]
+        bld(
+            # build IDL file
+            source=idl,
+            target=gen,
+            rule="%s -d %s %s" % (bld.env.MICROXRCEDDSGEN[0], gen_path, idl),
+            group='dynamic_sources'
+        )
+
