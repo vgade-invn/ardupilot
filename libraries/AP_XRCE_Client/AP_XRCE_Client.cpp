@@ -86,15 +86,6 @@ bool AP_XRCE_Client::init()
     reliable_in = uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
     reliable_out = uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
 
-    // Duplicate check for xrce_port, could simplify
-    if (xrce_port != nullptr) {
-         // do allocations
-        time_topic = new ROS2_BuiltinInterfacesTimeTopic();
-    }
-
-    if(time_topic == nullptr) {
-        return false;
-    }
     GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Init Complete");
 
     return true;
@@ -155,9 +146,9 @@ void AP_XRCE_Client::write()
     if(connected)
     {
         ucdrBuffer ub;
-        uint32_t topic_size = time_topic->size_of_topic(0);
+        uint32_t topic_size = rbi_time_topic.size_of_topic(0);
         uxr_prepare_output_stream(&session,reliable_out,dwriter_id,&ub,topic_size);
-        const bool success = time_topic->serialize_topic(&ub);
+        const bool success = rbi_time_topic.serialize_topic(&ub);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
             // AP_HAL::panic("FATAL: XRCE_Client failed to serialize\n");
@@ -169,12 +160,9 @@ void AP_XRCE_Client::write()
 
 void AP_XRCE_Client::update()
 {
-    if (time_topic == nullptr) {
-        return;
-    }
     WITH_SEMAPHORE(csem);
 
-    update_topic(time_topic);
+    update_topic(&rbi_time_topic);
     write();
     connected = uxr_run_session_time(&session, 1);
 }

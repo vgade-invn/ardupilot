@@ -5,6 +5,7 @@
 #include "uxr/client/client.h"
 #include "ucdr/microcdr.h"
 #include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
+#include "Time.h"
 #include "AP_XRCE_Generic_Fn_T.h"
 
 #include <AP_HAL/AP_HAL.h>
@@ -37,7 +38,8 @@ private:
     uxrStreamId reliable_out;
 
     // Topic
-    ROS2_BuiltinInterfacesTimeTopic* time_topic;
+    ROS2_BuiltinInterfacesTimeTopic rbi_time_topic;
+    builtin_interfaces_msg_Time normal_time_topic;
 
     // Data Writer
     const uxrObjectId dwriter_id = {
