@@ -78,4 +78,4 @@ def build(bld):
             rule="%s -d %s %s" % (bld.env.MICROXRCEDDSGEN[0], gen_path, idl),
             group='dynamic_sources'
         )
-
+        bld.env.AP_LIB_EXTRA_SOURCES['AP_XRCE_Client'] += [os.path.join('generated', gen_c)]
