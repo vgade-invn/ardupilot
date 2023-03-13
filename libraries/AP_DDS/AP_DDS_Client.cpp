@@ -7,7 +7,6 @@
 #include <GCS_MAVLink/GCS.h>
 
 #include "AP_DDS_Client.h"
-#include "AP_DDS_Gather_Data.h"
 #include "generated/Time.h"
 
 AP_HAL::UARTDriver *dds_port;
@@ -20,6 +19,20 @@ const AP_Param::GroupInfo AP_DDS_Client::var_info[]= {
 };
 
 #include "AP_DDS_Topic_Table.h"
+
+void AP_DDS_Client::update_topic(builtin_interfaces_msg_Time* msg)
+{
+    if (msg != nullptr) {
+
+        uint64_t utc_usec;
+        if (!AP::rtc().get_utc_usec(utc_usec)) {
+            utc_usec = AP_HAL::micros64();
+        }
+        msg->sec = utc_usec / 1000000ULL;
+        msg->nanosec = (utc_usec % 1000000ULL) * 1000UL;
+    }
+}
+
 
 /*
   class constructor

@@ -52,6 +52,9 @@ private:
     bool connected = true;
 
     AP_Int8 xrce_type;
+
+    static void update_topic(builtin_interfaces_msg_Time* msg);
+    
 public:
     // Constructor
     AP_DDS_Client();
