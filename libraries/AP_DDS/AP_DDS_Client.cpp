@@ -71,12 +71,10 @@ bool AP_DDS_Client::init()
     constexpr uint32_t uniqueClientKey = 0xAAAABBBB;
     //TODO does this need to be inside the loop to handle reconnect?
     uxr_init_session(&session, &serial_transport.comm, uniqueClientKey);
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: Initialization wait");
     while (!uxr_create_session(&session)) {
         GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: Initialization waiting...");
         hal.scheduler->delay(1000);
     }
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: Session Created");
 
     reliable_in = uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
     reliable_out = uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
@@ -88,9 +86,7 @@ bool AP_DDS_Client::init()
 
 bool AP_DDS_Client::create()
 {
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: create() enter");
     WITH_SEMAPHORE(csem);
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: create semaphore csem");
 
     // Participant
     const uxrObjectId participant_id = {
