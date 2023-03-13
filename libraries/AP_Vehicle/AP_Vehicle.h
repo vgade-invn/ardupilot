@@ -397,8 +397,8 @@ protected:
 
 #if AP_DDS_ENABLED
     // Declare the dds client for communication with ROS2 and DDS(common for all vehicles)
-    AP_DDS_Client *xrce_client;
-    [[nodiscard]] bool init_xrce_client();
+    AP_DDS_Client *dds_client;
+    [[nodiscard]] bool init_dds_client();
 #endif
 
 private:

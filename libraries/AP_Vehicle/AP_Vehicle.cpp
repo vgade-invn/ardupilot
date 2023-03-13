@@ -127,8 +127,8 @@ const AP_Param::GroupInfo AP_Vehicle::var_info[] = {
 
 #if AP_DDS_ENABLED
     // @Group: XRCE
-    // @Path: ../AP_DDS_Client/AP_DDS_Client.cpp
-    AP_SUBGROUPPTR(xrce_client, "XRCE_", 18, AP_Vehicle, AP_DDS_Client),
+    // @Path: ../AP_DDS/AP_DDS_Client.cpp
+    AP_SUBGROUPPTR(dds_client, "XRCE_", 18, AP_Vehicle, AP_DDS_Client),
 #endif
 
     AP_GROUPEND
@@ -310,7 +310,7 @@ void AP_Vehicle::setup()
     gcs().send_text(MAV_SEVERITY_INFO, "ArduPilot Ready");
 
 #if AP_DDS_ENABLED
-    if (!init_xrce_client()) {
+    if (!init_dds_client()) {
         gcs().send_text(MAV_SEVERITY_ERROR, "DDS Client: Failed to Initialize");
     }
 #endif
@@ -831,12 +831,12 @@ void AP_Vehicle::check_motor_noise()
 }
 
 #if AP_DDS_ENABLED
-[[nodiscard]] bool AP_Vehicle::init_xrce_client()
+[[nodiscard]] bool AP_Vehicle::init_dds_client()
 {
     if (AP::serialmanager().have_serial(AP_SerialManager::SerialProtocol_DDS_XRCE, 0)) {
-        xrce_client = new AP_DDS_Client();
+        dds_client = new AP_DDS_Client();
     }
-    return xrce_client != nullptr;
+    return dds_client != nullptr;
 }
 #endif // AP_DDS_ENABLED
 
