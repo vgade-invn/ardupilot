@@ -51,32 +51,32 @@ private:
     // connection parametrics
     bool connected = true;
 
-    AP_Int8 xrce_type;
-
     static void update_topic(builtin_interfaces_msg_Time* msg);
-    
+
 public:
     // Constructor
     AP_DDS_Client();
 
     void main_loop(void);
 
-    //
+    //! @brief Initialize the client's transport, uxr session, and IO stream(s)
+    //! @return True on successful initialization, false on failure
     [[nodiscard]] bool init();
 
-
-
-    // lookup serial manager to find the port
-    // then call all the new
-    // if it works, then call init to set up the thread
-    static void doAllocation();
-
+    //! @brief Set up the client's participants, data read/writes,
+    //         publishers, subscribers
+    //! @return True on successful creation, false on failure
     [[nodiscard]] bool create();
+
+    //! @brief Serialize the current data state and publish to to the IO stream(s)
     void write();
+    //! @brief Update the internally stored DDS messages with latest data
     void update();
+
+    //! @brief Parameter storage
     static const struct AP_Param::GroupInfo var_info[];
 
-
+    //! @brief Convenience grouping for a single "channel" of data
     struct Topic_table {
         const uint8_t topic_id;
         const uint8_t pub_id;
