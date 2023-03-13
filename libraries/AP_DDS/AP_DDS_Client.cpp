@@ -145,7 +145,7 @@ void AP_DDS_Client::write()
         const bool success = builtin_interfaces_msg_Time_serialize_topic(&ub, &time_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
-            // AP_HAL::panic("FATAL: XRCE_Client failed to serialize\n");
+            // AP_HAL::panic("FATAL: DDS_Client failed to serialize\n");
         }
 
     }
