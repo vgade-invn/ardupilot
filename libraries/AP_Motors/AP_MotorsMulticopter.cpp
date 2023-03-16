@@ -269,7 +269,7 @@ void AP_MotorsMulticopter::output_rpyt(void)
 {
     SRV_Channels::set_output_scaled(SRV_Channel::k_roll_out, _roll_in_ff * 4500);
     SRV_Channels::set_output_scaled(SRV_Channel::k_pitch_out, _pitch_in_ff * 4500);
-    SRV_Channels::set_output_scaled(SRV_Channel::k_yaw_out, _yaw_in_ff * 4500);
+    SRV_Channels::set_output_scaled(SRV_Channel::k_yaw_out, (_yaw_in + _yaw_in_ff) * 4500);
     SRV_Channels::set_output_scaled(SRV_Channel::k_thrust_out, get_throttle() * 1000);
 }
 
