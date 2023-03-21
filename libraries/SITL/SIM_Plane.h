@@ -144,9 +144,9 @@ protected:
 
         // tables containing AoA, CN and CA coefficient data
         uint8_t n_alpha = 0; // number of points - set to zero if no sweep data available
-        float alpha_sweep_rad[25];
-        float CA_sweep[25];
-        float CN_sweep[25];
+        float alpha_sweep_rad[25] {};
+        float CA_sweep[25] {};
+        float CN_sweep[25] {};
 
         // CN is coefficients for forces on +Z axis
         // quadratic in alpharad
