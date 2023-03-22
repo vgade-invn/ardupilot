@@ -1,9 +1,12 @@
+ARSPD_FBW_MAX          60
+ARSPD_FBW_MIN          48
+TRIM_ARSPD_CM        5400
+TECS_LAND_ARSPD        52
+
 ADSB_ENABLE             0
 AHRS_GPS_USE            2
 ARMING_CHECK            0
 ARSPD_BUS               0
-ARSPD_FBW_MAX          67
-ARSPD_FBW_MIN          43
 ARSPD_PIN               0
 ARSPD_RATIO             1.33
 ARSPD_TUBE_ORDER        2
@@ -240,7 +243,7 @@ SCR_DEBUG_LVL           0
 SCR_ENABLE              1
 SCR_HEAP_SIZE      100000
 SCR_USER1               1.5
-SCR_USER2               5.0
+SCR_USER2               2.0
 SCR_USER3               0
 SCR_USER4               0
 SCR_VM_I_COUNT      80000
@@ -268,9 +271,8 @@ SERVO4_FUNCTION        87
 SERVO4_MAX           1640
 SERVO4_MIN           1280
 SERVO4_TRIM          1460
-STAB_PITCH_DOWN         6.5000
+STAB_PITCH_DOWN         5.9
 STALL_PREVENTION        0
-TECS_LAND_ARSPD        52
 TECS_LAND_PMAX         12
 TECS_LAND_SINK          0.5
 TECS_LAND_SPDWGT        1
@@ -288,6 +290,5 @@ THROTTLE_NUDGE          0
 THR_FAILSAFE            2
 THR_FS_VALUE          995
 THR_MAX                 1
-TRIM_ARSPD_CM        5810
 WP_LOITER_RAD         300
 WP_RADIUS             750
