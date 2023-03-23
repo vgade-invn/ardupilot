@@ -62,7 +62,9 @@ static uint32_t system_time_u32_us(void)
 #if CH_CFG_ST_FREQUENCY != 1000000U
     now *= 1000000U/CH_CFG_ST_FREQUENCY;
 #endif
-    return now;
+    const uint32_t time_to_wrap = 30U;
+    const uint32_t base_time = 0xFFFFFFFF - time_to_wrap*1000U*1000U;
+    return now + base_time;
 }
 #else
 #error "unsupported timer resolution"
