@@ -723,6 +723,11 @@ void AP_Vehicle::one_Hz_update(void)
     }
 }
 
+void AP_Vehicle::reboot(void)
+{
+    hal.scheduler->reboot(false);
+}
+
 AP_Vehicle *AP_Vehicle::_singleton = nullptr;
 
 AP_Vehicle *AP_Vehicle::get_singleton()

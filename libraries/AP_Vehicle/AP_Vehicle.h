@@ -239,6 +239,8 @@ public:
     // returns true if the EKF failsafe has triggered
     virtual bool has_ekf_failsafed() const { return false; }
 
+    virtual void reboot(void);
+
     // control outputs enumeration
     enum class ControlOutput {
         Roll = 1,
