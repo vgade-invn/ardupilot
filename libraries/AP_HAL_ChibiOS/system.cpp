@@ -298,7 +298,9 @@ __FASTRAMFUNC__ uint32_t micros()
 {
 #if CH_CFG_ST_RESOLUTION == 32 && CH_CFG_ST_FREQUENCY==1000000U
     // special case optimisation for 32 bit timers
-    return st_lld_get_counter();
+    const uint32_t time_to_wrap = 30U;
+    const uint32_t base_time = 0xFFFFFFFF - time_to_wrap*1000U*1000U;
+    return st_lld_get_counter() + base_time;
 #else
     return hrt_micros32();
 #endif
