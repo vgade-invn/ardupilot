@@ -438,14 +438,9 @@ void AP_Networking::check_for_config_changes()
     _activeSettings.once = true;
     _activeSettings.announce_ms = now_ms;
 
-
-    // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: IP      %s", get_ip_active_str());
-    // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Mask    %s", get_netmask_active_str());
-    // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Gateway %s", get_gateway_active_str());
-
-    can_printf("NET: IP %s", get_ip_active_str());
-    can_printf("NET: Mask %s", get_netmask_active_str());
-    can_printf("NET: Gateway %s", get_gateway_active_str());
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: IP      %s", get_ip_active_str());
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Mask    %s", get_netmask_active_str());
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Gateway %s", get_gateway_active_str());
 }
 
 
