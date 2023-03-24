@@ -152,17 +152,28 @@ PF15    I2C4_SDA    I2C4
 I2C_ORDER I2C2 I2C4
 
 # Ethernet
-# PA1    ETH_RMII_REF_CLK    ETH1
-# PA2    ETH_MDIO    ETH1
-# PA7    ETH_RMII_CRS_DV    ETH1
-# PB11    ETH_RMII_TX_EN    ETH1
-# PB12    ETH_RMII_TXD0    ETH1
-# PB13    ETH_RMII_TXD1    ETH1
-# PC1    ETH_MDC    ETH1
-# PC4    ETH_RMII_RXD0    ETH1
-# PC5    ETH_RMII_RXD1    ETH1
-# define BOARD_PHY_ID  MII_LAN8720_ID
-# define BOARD_PHY_RMII
+PA1     ETH_RMII_REF_CLK ETH1
+PA2     ETH_MDIO         ETH1
+PA7     ETH_RMII_CRS_DV  ETH1
+PB11    ETH_RMII_TX_EN   ETH1
+PB12    ETH_RMII_TXD0    ETH1
+PB13    ETH_RMII_TXD1    ETH1
+PC1     ETH_MDC          ETH1
+PC4     ETH_RMII_RXD0    ETH1
+PC5     ETH_RMII_RXD1    ETH1
+define BOARD_PHY_ID  MII_LAN8720_ID
+define BOARD_PHY_RMII
+
+###################
+# IP Configuration
+define LWIP_DHCP 1
+
+# static IP for when LWIP_DHCP == 0. 
+# **NOTE** Use commas instead of periods
+define LWIP_IPADDR(p)   IP4_ADDR(p, 172,20,13,92)
+define LWIP_GATEWAY(p)  IP4_ADDR(p, 172,20,1,1)
+define LWIP_NETMASK(p)  IP4_ADDR(p, 255,255,0,0)
+###################
 
 # RCIN
 PB7  TIM4_CH2 TIM4 RCININT  PULLDOWN

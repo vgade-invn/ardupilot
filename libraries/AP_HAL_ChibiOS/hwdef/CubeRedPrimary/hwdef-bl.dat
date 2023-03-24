@@ -21,6 +21,8 @@ APJ_BOARD_ID 1069
 
 FLASH_SIZE_KB 2048
 
+STORAGE_FLASH_PAGE 14
+
 # bootloader is installed at zero offset
 FLASH_RESERVE_START_KB 0
 
