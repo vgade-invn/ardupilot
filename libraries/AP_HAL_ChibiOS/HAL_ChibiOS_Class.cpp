@@ -36,7 +36,7 @@
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 #include <AP_HAL/SIMState.h>
 
-#if HAL_ENABLE_NETWORKING
+#if 0 //HAL_ENABLE_NETWORKING
 #include <lwip/ip4_addr.h>
 #include "lwipthread.h"
 #endif
@@ -313,11 +313,13 @@ static void main_loop()
     }
     thread_running = false;
 }
+#if 0 //HAL_ENABLE_NETWORKING
 static uint8_t mac_address[] = {0xc2, 0xaf, 0x98, 0x76, 0x54, 0x32};
 uint8_t lwip_ipaddr[4] = {192, 168, 2, 15};
 uint8_t lwip_netmask = 24;
 uint8_t lwip_gwaddr[4] = {192, 168, 2, 1};
 static lwipthread_opts_t lwip_opts;
+#endif
 
 void HAL_ChibiOS::run(int argc, char * const argv[], Callbacks* callbacks) const
 {
@@ -333,7 +335,7 @@ void HAL_ChibiOS::run(int argc, char * const argv[], Callbacks* callbacks) const
     usb_initialise();
 #endif
 
-#if HAL_ENABLE_NETWORKING
+#if 0 //HAL_ENABLE_NETWORKING
 
     lwip_opts.macaddress = mac_address;
 
