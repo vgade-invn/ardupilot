@@ -423,6 +423,11 @@ void AP_Networking::check_for_config_changes()
     const uint32_t nm = lwipGetNetmask();
     const uint32_t gw = lwipGetGateway();
 
+    // struct netif thisif = lwipGetNetIf();
+    // const uint32_t ip = thisif.ip_addr.u_addr.ip4.addr;
+    // const uint32_t nm = thisif.netmask.u_addr.ip4.addr;
+    // const uint32_t gw = thisif.gw.u_addr.ip4.addr;
+
     if (_activeSettings.once &&
         ip == _activeSettings.ip &&
         nm == _activeSettings.nm &&
