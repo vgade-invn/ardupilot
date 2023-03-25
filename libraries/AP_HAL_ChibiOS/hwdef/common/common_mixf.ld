@@ -73,7 +73,6 @@ SECTIONS
     {
         *(.ap_romfs*)
         lib/lib*.a:GCS*.*(.text* .rodata*)
-        lib/lib*.a:AP_NavEKF*.*(.text* .rodata*)
         *(.extflash)
     } > ext_flash
 

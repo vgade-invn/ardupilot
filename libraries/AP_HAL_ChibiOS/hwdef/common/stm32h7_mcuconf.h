@@ -63,11 +63,18 @@
 /*
  * Memory attributes settings.
  */
+#define STM32_NOCACHE_ENABLE                TRUE
 #define STM32_NOCACHE_MPU_REGION            MPU_REGION_6
-#define STM32_NOCACHE_SRAM1_SRAM2           FALSE
-#ifndef STM32_NOCACHE_SRAM3
-#define STM32_NOCACHE_SRAM3                 FALSE
-#endif
+#define STM32_NOCACHE_RBAR                  0x30040000U
+#define STM32_NOCACHE_RASR                  MPU_RASR_SIZE_32K
+
+/*
+{TYPE = 0x1000, CTRL = 0x0, RNR = 0x6, RBAR = 0x30040006, RASR = 0x30c001d, RBAR_A1 = 0x30040006,
+  RASR_A1 = 0x30c001d, RBAR_A2 = 0x30040006, RASR_A2 = 0x30c001d, RBAR_A3 = 0x30040006, RASR_A3 = 0x30c001d}
+
+  {TYPE = 0x1000, CTRL = 0x0, RNR = 0x6, RBAR = 0x30040006, RASR = 0x30c001d, RBAR_A1 = 0x30040006,
+  RASR_A1 = 0x30c001d, RBAR_A2 = 0x30040006, RASR_A2 = 0x30c001d, RBAR_A3 = 0x30040006, RASR_A3 = 0x30c001d}
+*/
 /*
  * PWR system settings.
  * Reading STM32 Reference Manual is required, settings in PWR_CR3 are
@@ -463,7 +470,9 @@
 #define STM32_MAC_RECEIVE_BUFFERS           4
 #define STM32_MAC_BUFFERS_SIZE              1522
 #define STM32_MAC_PHY_TIMEOUT               100
+#ifndef STM32_MAC_ETH1_CHANGE_PHY_STATE
 #define STM32_MAC_ETH1_CHANGE_PHY_STATE     TRUE
+#endif
 #define STM32_MAC_ETH1_IRQ_PRIORITY         13
 #define STM32_MAC_IP_CHECKSUM_OFFLOAD       0
 

@@ -322,9 +322,9 @@ void AP_Networking::init()
 {
     // If we skip this init, everything locks up. Sooo.. for
     // now we need to run init() regardless of enable param
-    // if (!_param.enabled) {
-    //     return;
-    // }
+    if (!_param.enabled) {
+        return;
+    }
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
     _activeSettings.ip = get_ip_param();
@@ -358,7 +358,7 @@ void AP_Networking::init()
 
     lwipInit(&netOptions);
 
-    apply_errata_for_mac_KSZ9896C();
+    // apply_errata_for_mac_KSZ9896C();
 #endif
 
     // create each instance
