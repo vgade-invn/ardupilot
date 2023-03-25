@@ -380,6 +380,12 @@ __RAMFUNC__ void RCOutput::bdshot_finish_dshot_gcr_transaction(void *p)
     TOGGLE_PIN_DEBUG(56);
 #endif
     uint8_t curr_telem_chan = group->bdshot.curr_telem_chan;
+    if (!group->bdshot.ic_dma_handle[curr_telem_chan]->is_locked() ||
+        group->dshot_state == DshotState::IDLE) {
+        //::printf("LATE FINISH\n");
+        chSysUnlockFromISR();
+        return;
+    }
 
     // the DMA buffer is either the regular outbound one because we are sharing UP and CH
     // or the input channel buffer

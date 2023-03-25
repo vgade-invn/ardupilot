@@ -102,6 +102,17 @@ void Shared_DMA::unlock_stream(uint8_t stream_id, bool success)
     }
 }
 
+// unlock one stream from lock context
+void Shared_DMA::unlock_stream_S(uint8_t stream_id, bool success)
+{
+    if (stream_id < SHARED_DMA_MAX_STREAM_ID) {
+        chMtxUnlockS(&locks[stream_id].mutex);
+        if (success && _contention_stats != nullptr) {
+            _contention_stats[stream_id1].transactions++;
+        }
+    }
+}
+
 // lock one stream, non-blocking
 bool Shared_DMA::lock_stream_nonblocking(uint8_t stream_id)
 {
@@ -225,6 +236,14 @@ void Shared_DMA::unlock(bool success)
     have_lock = false;
     unlock_stream(stream_id2, success);
     unlock_stream(stream_id1, success);
+}
+
+void Shared_DMA::unlock_S(bool success)
+{
+    osalDbgAssert(have_lock, "must have lock");
+    have_lock = false;
+    unlock_stream_S(stream_id2, success);
+    unlock_stream_S(stream_id1, success);
 }
 #pragma GCC diagnostic pop
 

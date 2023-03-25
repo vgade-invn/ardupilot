@@ -248,6 +248,10 @@ void RCOutput::dshot_collect_dma_locks(uint32_t time_out_us)
                 wait_us = MAX(wait_us, group.dshot_pulse_send_time_us - pulse_elapsed_us);
             }
 
+#ifdef HAL_WITH_BIDIR_DSHOT
+            const uint8_t chan_used = group.bdshot.curr_telem_chan;
+#endif
+
             // waiting for a very short period of time can cause a
             // timer wrap with ChibiOS timers. Use CH_CFG_ST_TIMEDELTA
             // as minimum. Don't allow for a very long delay (over _dshot_period_us)
@@ -257,25 +261,26 @@ void RCOutput::dshot_collect_dma_locks(uint32_t time_out_us)
             wait_us = constrain_uint32(wait_us, min_delay_us, max_delay_us);
             mask = chEvtWaitOneTimeout(group.dshot_event_mask, chTimeUS2I(wait_us));
 
+            chSysLock();
+
             // no time left cancel and restart
             if (!mask) {
                 dma_cancel(group);
+                //::printf("CALCELLED\n");
             }
             group.dshot_waiter = nullptr;
 #ifdef HAL_WITH_BIDIR_DSHOT
             // if using input capture DMA then clean up
             if (group.bdshot.enabled) {
-                // the channel index only moves on with success
-                const uint8_t chan = mask ? group.bdshot.prev_telem_chan
-                    : group.bdshot.curr_telem_chan;
                 // only unlock if not shared
-                if (group.bdshot.ic_dma_handle[chan] != nullptr
-                    && group.bdshot.ic_dma_handle[chan] != group.dma_handle) {
-                    group.bdshot.ic_dma_handle[chan]->unlock();
+                if (group.bdshot.ic_dma_handle[chan_used] != nullptr
+                    && group.bdshot.ic_dma_handle[chan_used] != group.dma_handle) {
+                    group.bdshot.ic_dma_handle[chan_used]->unlock_S();
                 }
             }
 #endif
-            group.dma_handle->unlock();
+            group.dma_handle->unlock_S();
+            chSysUnlock();
         }
     }
 }
@@ -1652,7 +1657,6 @@ __RAMFUNC__ void RCOutput::dma_up_irq_callback(void *p, uint32_t flags)
  */
 void RCOutput::dma_cancel(pwm_group& group)
 {
-    chSysLock();
     dmaStreamDisable(group.dma);
 #ifdef HAL_WITH_BIDIR_DSHOT
     if (group.ic_dma_enabled()) {
@@ -1670,7 +1674,6 @@ void RCOutput::dma_cancel(pwm_group& group)
     chEvtGetAndClearEventsI(group.dshot_event_mask);
 
     group.dshot_state = DshotState::IDLE;
-    chSysUnlock();
 }
 
 /*

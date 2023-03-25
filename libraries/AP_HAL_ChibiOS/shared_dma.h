@@ -50,6 +50,7 @@ public:
     // deallocated. Instead it will be deallocated if another driver
     // needs it
     void unlock(bool success = true);
+    void unlock_S(bool success = true);
 
     //should be called inside the destructor of Shared DMA participants
     void unregister(void);
@@ -90,6 +91,9 @@ private:
     // unlock one stream
     void unlock_stream(uint8_t stream_id, bool success);
 
+    // unlock one stream from lock context
+    void unlock_stream_S(uint8_t stream_id, bool success);
+    
     // lock one stream, non-blocking
     bool lock_stream_nonblocking(uint8_t stream_id);
 

@@ -362,8 +362,8 @@ private:
             uint16_t dma_tx_size; // save tx value from last read
             Shared_DMA *ic_dma_handle[4];
             uint8_t telem_tim_ch[4];
-            uint8_t curr_telem_chan;
-            uint8_t prev_telem_chan;
+            volatile uint8_t curr_telem_chan;
+            volatile uint8_t prev_telem_chan;
             uint16_t telempsc;
             uint32_t dma_buffer_copy[GCR_TELEMETRY_BUFFER_LEN];
 #if RCOU_DSHOT_TIMING_DEBUG

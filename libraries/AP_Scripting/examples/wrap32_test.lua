@@ -12,6 +12,8 @@ a script to test handling of 32 bit micros timer wrap with BDShot
 local PARAM_TABLE_KEY = 138
 local PARAM_TABLE_PREFIX = "WRAP32_"
 
+local MODE_QSTABILIZE = 17
+
 -- setup quicktune specific parameters
 assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 10), 'could not add param table')
 
@@ -95,13 +97,19 @@ end
 
 function update()
    check_failure()
+
+   -- we want motors running
+   vehicle:set_mode(MODE_QSTABILIZE)
+   arming:arm()
+
    gcs:send_text(0,string.format("Boots:%.0f fail:%.0f err:%.0f pass:%.0f",
                                  WRAP32_COUNT:get(),
                                  WRAP32_FAIL:get(),
                                  WRAP32_ERR:get(),
                                  WRAP32_PASS:get()))
-   if done_post_wrap and time_to_wrap() < -6 then
+   if time_to_wrap() < -6 then
       gcs:send_text(0,string.format("REBOOTING"))
+      arming:disarm()
       vehicle:reboot(false)
    end
    return update, 1000
