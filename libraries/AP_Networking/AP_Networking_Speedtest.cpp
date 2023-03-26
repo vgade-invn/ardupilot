@@ -88,7 +88,7 @@ void AP_Networking_Speedtest::update()
 
     send_data();
 
-    if (!report_stats()) {
+    if (report_stats()) {
         _params.duration_seconds.set_and_save(0);
     }
 }
@@ -151,30 +151,26 @@ bool AP_Networking_Speedtest::report_stats()
 
     if (is_done) {
         // Post final stats
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: Speedtest Total pkts:%u, payload:%.3f MB, wire:%.3f Mb",
-            (unsigned)_stats.packets_total,
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: Total data:%.3f MB, wire:%.3f Mb",
             (double)(_stats.bytes_total * 1.0E-6f),
-            (double)(((_stats.packets_total*AP_NETWORKING_ETH_IP_UDP_OVERHEAD) + _stats.bytes_total) * 1.0E-6f));
+            (double)(((_stats.packets_total*AP_NETWORKING_ETH_IP_UDP_OVERHEAD) + _stats.bytes_total) * 8 * 1.0E-6f));
 
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: Speedtest Avg/s pkts:%u, payload:%.3f MB, wire:%.3f Mb",
-            (unsigned)(_stats.packets_total / elapsed_seconds),
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: Avg/s data:%.3f MB, wire:%.3f Mb",
             (double)((_stats.bytes_total * 1.0E-6f) / elapsed_seconds),
-            (double)((((_stats.packets_total*AP_NETWORKING_ETH_IP_UDP_OVERHEAD) + _stats.bytes_total) * 1.0E-6f) / elapsed_seconds));
+            (double)((((_stats.packets_total*AP_NETWORKING_ETH_IP_UDP_OVERHEAD) + _stats.bytes_total) * 8 * 1.0E-6f) / elapsed_seconds));
 
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: Speedtest Peak/s pkts:%u, payload:%.3f MB, wire:%.3f Mb",
-            (unsigned)_stats.packets_per_sec_max,
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: Peak/s data:%.3f MB, wire:%.3f Mb",
             (double)(_stats.bytes_per_sec_max * 1.0E-6f),
-            (double)(((_stats.packets_per_sec_max*AP_NETWORKING_ETH_IP_UDP_OVERHEAD) + _stats.bytes_per_sec_max) * 1.0E-6f));
+            (double)(((_stats.packets_per_sec_max*AP_NETWORKING_ETH_IP_UDP_OVERHEAD) + _stats.bytes_per_sec_max) * 8 * 1.0E-6f));
 
     } else if (now_ms - _stats.gcs_send_ms >= 1000) {
         _stats.gcs_send_ms = now_ms;
 
         // Post stats at 1Hz
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"NET: Speedtest t:%ds, payload %.3f MB, %.3f MB/s, wire %.3f Mb/s",
-            (int)elapsed_seconds,
-            (double)_stats.packets_total,
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"NET: data %.3f MB, %.3f MB/s, wire %.3f Mb/s",
+            (double)_stats.bytes_total,
             (double)_stats.bytes_per_sec,
-            (double)(((_stats.packets_per_sec*AP_NETWORKING_ETH_IP_UDP_OVERHEAD) + _stats.bytes_per_sec) * 1.0E-6f));
+            (double)(((_stats.packets_per_sec*AP_NETWORKING_ETH_IP_UDP_OVERHEAD) + _stats.bytes_per_sec) * 8 * 1.0E-6f));
 
         if (_stats.packets_per_sec_max < _stats.packets_per_sec) {
             _stats.packets_per_sec_max = _stats.packets_per_sec;
