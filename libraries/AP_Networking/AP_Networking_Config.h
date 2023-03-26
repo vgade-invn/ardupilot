@@ -26,6 +26,10 @@
 // Below are default params
 // ---------------------------
 
+#ifndef AP_NETWORKING_DEFAULT_OPTIONS
+    #define AP_NETWORKING_DEFAULT_OPTIONS 0
+#endif
+
 // Default DHCP
 #ifndef AP_NETWORKING_DEFAULT_DHCP_ENABLE
     #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS

@@ -61,6 +61,18 @@ public:
     };
     static const struct AP_Param::GroupInfo *backend_var_info[AP_NETWORKING_MAX_INSTANCES];
 
+
+    // options bitmask
+    enum class Options : uint32_t {
+        SNTP                        = (1U<<0),
+        NETBIOS                     = (1U<<1),
+    };
+
+    // check if a option is set
+    bool option_is_set(Options option) const {
+        return (uint32_t(_param.options.get()) & uint32_t(option)) != 0;
+    }
+
     void init();
 
     void update();
@@ -154,6 +166,7 @@ private:
         AP_Int8 dhcp;
         AP_Int16 macaddr[6];
         AP_Int8 enabled;
+        AP_Int32 options;        
     } _param;
 
     struct {

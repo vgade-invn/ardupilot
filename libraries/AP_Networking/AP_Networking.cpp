@@ -6,6 +6,8 @@
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
     #include <hal_mii.h>
     #include <lwip/sockets.h>
+    #include <lwip/apps/sntp.h>
+    #include <lwip/apps/netbiosns.h>
 
 #else
     #include <arpa/inet.h>
@@ -146,6 +148,14 @@ const AP_Param::GroupInfo AP_Networking::var_info[] = {
     // @Range: 0 255
     // @User: Advanced
     AP_GROUPINFO("_MACADDR5", 16,  AP_Networking,    _param.macaddr[5],   AP_NETWORKING_DEFAULT_MAC_ADDR5),
+
+    // @Param: _OPTIONS
+    // @DisplayName: Network Options
+    // @Description: Network Options
+    // @Bitmask: 0:SNTP, 1:NetBIOS
+    // @User: Advanced
+    AP_GROUPINFO("_OPTIONS", 17,  AP_Networking,    _param.options,   AP_NETWORKING_DEFAULT_OPTIONS),
+
 
     // @Group: 1_
     // @Path: AP_TemperatureSensor_Params.cpp
@@ -367,6 +377,15 @@ void AP_Networking::init()
     const uint32_t interval_ms = 1;
     _dev->register_periodic_callback(interval_ms * AP_USEC_PER_MSEC, FUNCTOR_BIND_MEMBER(&AP_Networking::thread, void));
 #endif
+
+    if (option_is_set(Options::SNTP)) {
+        sntp_init();
+    }
+    
+    if (option_is_set(Options::NETBIOS)) {
+        netbiosns_init();
+        netbiosns_set_name("ARDUPILOT");
+    }
 
     GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Initialized.%s", get_dhcp_enabled() ? " DHCP Enabled" : "");
     _init.done = true;
