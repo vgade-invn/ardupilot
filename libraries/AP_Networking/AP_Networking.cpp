@@ -6,8 +6,24 @@
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
     #include <hal_mii.h>
     #include <lwip/sockets.h>
+
+    #if LWIP_SNTP
+    #include <AP_RTC/AP_RTC.h>
     #include <lwip/apps/sntp.h>
+    static void sntp_set_system_time_us(u32_t t, u32_t us);
+    // static void sntp_set_system_time_us(uint32_t sec, uint32_t us);
+    static void sntp_set_system_time_us(uint32_t sec, uint32_t us) {
+        AP::rtc().set_utc_usec((uint64_t)sec*1E6 + (uint64_t)us, AP_RTC::SOURCE_NTP);
+    }
+    #endif
+
+    #if LWIP_NETBIOS
     #include <lwip/apps/netbiosns.h>
+    #ifndef AP_NETWORKING_NETBIOS_NAME
+        // This string must be less than 15 characters
+        #define AP_NETWORKING_NETBIOS_NAME "ARDUPILOT"
+    #endif
+    #endif
 
 #else
     #include <arpa/inet.h>
@@ -378,14 +394,22 @@ void AP_Networking::init()
     _dev->register_periodic_callback(interval_ms * AP_USEC_PER_MSEC, FUNCTOR_BIND_MEMBER(&AP_Networking::thread, void));
 #endif
 
+#if LWIP_SNTP
     if (option_is_set(Options::SNTP)) {
+        sntp_setoperatingmode(SNTP_OPMODE_POLL);
+        sntp_setservername(0, "pool.ntp.org");
         sntp_init();
     }
-    
+#endif
+
+#if LWIP_NETBIOS
     if (option_is_set(Options::NETBIOS)) {
         netbiosns_init();
-        netbiosns_set_name("ARDUPILOT");
+        #ifdef AP_NETWORKING_NETBIOS_NAME
+        netbiosns_set_name(AP_NETWORKING_NETBIOS_NAME);
+        #endif
     }
+#endif
 
     GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Initialized.%s", get_dhcp_enabled() ? " DHCP Enabled" : "");
     _init.done = true;
