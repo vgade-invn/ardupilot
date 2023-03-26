@@ -22,6 +22,7 @@
 #include <GCS_MAVLink/GCS.h>
 #include "AP_Networking_Serial2UDP.h"
 #include "AP_Networking_Speedtest.h"
+#include "AP_Networking_Ping.h"
 
 extern const AP_HAL::HAL& hal;
 
@@ -332,6 +333,12 @@ void AP_Networking::init()
 #if AP_NETWORKING_SPEEDTEST_ENABLED
             case AP_Networking_Params::Type::Speedtest:
                 _drivers[instance] = new AP_Networking_Speedtest(*this, _state[instance], _params[instance]);
+                break;
+#endif
+
+#if AP_NETWORKING_PING_ENABLED
+            case AP_Networking_Params::Type::Ping:
+                _drivers[instance] = new AP_Networking_Ping(*this, _state[instance], _params[instance]);
                 break;
 #endif
 

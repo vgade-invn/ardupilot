@@ -40,12 +40,14 @@
 class AP_Networking_Backend;
 class AP_Networking_Serial2UDP;
 class AP_Networking_Speedtest;
+class AP_Networking_Ping;
 
 class AP_Networking
 {
     friend class AP_Networking_Backend;
     friend class AP_Networking_Serial2UDP;
     friend class AP_Networking_Speedtest;
+    friend class AP_Networking_Ping;
 
 public:
     AP_Networking();
