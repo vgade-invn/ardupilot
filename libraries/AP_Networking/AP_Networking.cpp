@@ -3,10 +3,6 @@
 
 #if AP_NETWORKING_ENABLED
 
-#include "AP_Networking_Serial2UDP.h"
-#include "AP_Networking_Speedtest.h"
-
-
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
     #include <hal_mii.h>
     #include <lwip/sockets.h>
@@ -21,55 +17,11 @@
     // #include <sys/select.h>
     // #include <termios.h>
     // #include <sys/time.h>
-
 #endif
 
 #include <GCS_MAVLink/GCS.h>
-
-#ifndef LWIP_DHCP
-#define LWIP_DHCP 0
-//#define NET_ADDRESS_STATIC 222
-#endif
-
-#ifndef AP_NETWORKING_DEFAULT_IP_ADDR0
-#define AP_NETWORKING_DEFAULT_IP_ADDR0     192
-#define AP_NETWORKING_DEFAULT_IP_ADDR1     168
-#define AP_NETWORKING_DEFAULT_IP_ADDR2       0
-#define AP_NETWORKING_DEFAULT_IP_ADDR3      34
-#endif
-
-#ifndef AP_NETWORKING_DEFAULT_GW_ADDR0
-#define AP_NETWORKING_DEFAULT_GW_ADDR0     192
-#define AP_NETWORKING_DEFAULT_GW_ADDR1     168
-#define AP_NETWORKING_DEFAULT_GW_ADDR2       0
-#define AP_NETWORKING_DEFAULT_GW_ADDR3       1
-#endif
-
-#ifndef AP_NETWORKING_DEFAULT_NM_ADDR
-#define AP_NETWORKING_DEFAULT_NM_ADDR       24
-#endif
-
-#ifndef AP_NETWORKING_DEFAULT_DHCP_ENABLE
-#define AP_NETWORKING_DEFAULT_DHCP_ENABLE   LWIP_DHCP
-#endif
-
-#ifndef AP_NETWORKING_DEFAULT_MAC_ADDR0
-    #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR0   LWIP_ETHADDR_0
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR1   LWIP_ETHADDR_1
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR2   LWIP_ETHADDR_2
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR3   LWIP_ETHADDR_3
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR4   LWIP_ETHADDR_4
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR5   LWIP_ETHADDR_5
-    #else
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR0   1
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR1   2
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR2   3
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR3   4
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR4   5
-        #define AP_NETWORKING_DEFAULT_MAC_ADDR5   6
-    #endif
-#endif
+#include "AP_Networking_Serial2UDP.h"
+#include "AP_Networking_Speedtest.h"
 
 extern const AP_HAL::HAL& hal;
 
@@ -87,35 +39,35 @@ const AP_Param::GroupInfo AP_Networking::var_info[] = {
     // @Description: Allows setting static IP address
     // @Range: 0 255
     // @User: Advanced
-    AP_GROUPINFO("_IPADDR0", 1,  AP_Networking,    _param.ipaddr[0],   AP_NETWORKING_DEFAULT_IP_ADDR0),
+    AP_GROUPINFO("_IPADDR0", 1,  AP_Networking,    _param.ipaddr[0],   AP_NETWORKING_DEFAULT_STATIC_IP_ADDR0),
 
     // @Param: _IPADDR1
     // @DisplayName: IP Address 2nd byte
     // @Description: Allows setting static IP address
     // @Range: 0 255
     // @User: Advanced
-    AP_GROUPINFO("_IPADDR1", 2,  AP_Networking,    _param.ipaddr[1],   AP_NETWORKING_DEFAULT_IP_ADDR1),
+    AP_GROUPINFO("_IPADDR1", 2,  AP_Networking,    _param.ipaddr[1],   AP_NETWORKING_DEFAULT_STATIC_IP_ADDR1),
 
     // @Param: _IPADDR2
     // @DisplayName: IP Address 3rd byte
     // @Description: Allows setting static IP address
     // @Range: 0 255
     // @User: Advanced
-    AP_GROUPINFO("_IPADDR2", 3,  AP_Networking,    _param.ipaddr[2],   AP_NETWORKING_DEFAULT_IP_ADDR2),
+    AP_GROUPINFO("_IPADDR2", 3,  AP_Networking,    _param.ipaddr[2],   AP_NETWORKING_DEFAULT_STATIC_IP_ADDR2),
 
     // @Param: _IPADDR3
     // @DisplayName: IP Address LSB
     // @Description: Allows setting static IP address
     // @Range: 0 255
     // @User: Advanced
-    AP_GROUPINFO("_IPADDR3", 4,  AP_Networking,    _param.ipaddr[3],   AP_NETWORKING_DEFAULT_IP_ADDR3),
+    AP_GROUPINFO("_IPADDR3", 4,  AP_Networking,    _param.ipaddr[3],   AP_NETWORKING_DEFAULT_STATIC_IP_ADDR3),
 
     // @Param: _NETMASK
     // @DisplayName: IP Subnet mask
     // @Description: Allows setting static subnet mask. The value is a count of consecutive bits. Examples: 24 = 255.255.255.0, 16 = 255.255.0.0
     // @Range: 0 32
     // @User: Advanced
-    AP_GROUPINFO("_NETMASK", 5,  AP_Networking,    _param.netmask,   AP_NETWORKING_DEFAULT_NM_ADDR),
+    AP_GROUPINFO("_NETMASK", 5,  AP_Networking,    _param.netmask,   AP_NETWORKING_DEFAULT_NETMASK),
 
     // @Param: _DHCP
     // @DisplayName: DHCP client
@@ -129,28 +81,28 @@ const AP_Param::GroupInfo AP_Networking::var_info[] = {
     // @Description: Allows setting static GW address
     // @Range: 0 255
     // @User: Advanced
-    AP_GROUPINFO("_GWADDR0", 7,  AP_Networking,    _param.gwaddr[0],   AP_NETWORKING_DEFAULT_GW_ADDR0),
+    AP_GROUPINFO("_GWADDR0", 7,  AP_Networking,    _param.gwaddr[0],   AP_NETWORKING_DEFAULT_STATIC_GW_ADDR0),
 
     // @Param: _GWADDR1
     // @DisplayName: Gateway IP Address 2nd byte
     // @Description: Allows setting static GW address
     // @Range: 0 255
     // @User: Advanced
-    AP_GROUPINFO("_GWADDR1", 8,  AP_Networking,    _param.gwaddr[1],   AP_NETWORKING_DEFAULT_GW_ADDR1),
+    AP_GROUPINFO("_GWADDR1", 8,  AP_Networking,    _param.gwaddr[1],   AP_NETWORKING_DEFAULT_STATIC_GW_ADDR1),
 
     // @Param: _GWADDR2
     // @DisplayName: Gateway IP Address 3rd byte
     // @Description: Allows setting static GW address
     // @Range: 0 255
     // @User: Advanced
-    AP_GROUPINFO("_GWADDR2", 9,  AP_Networking,    _param.gwaddr[2],   AP_NETWORKING_DEFAULT_GW_ADDR2),
+    AP_GROUPINFO("_GWADDR2", 9,  AP_Networking,    _param.gwaddr[2],   AP_NETWORKING_DEFAULT_STATIC_GW_ADDR2),
 
     // @Param: _GWADDR3
     // @DisplayName: Gateway IP Address LSB
     // @Description: Allows setting static GW address
     // @Range: 0 255
     // @User: Advanced
-    AP_GROUPINFO("_GWADDR3", 10,  AP_Networking,    _param.gwaddr[3],   AP_NETWORKING_DEFAULT_GW_ADDR3),
+    AP_GROUPINFO("_GWADDR3", 10,  AP_Networking,    _param.gwaddr[3],   AP_NETWORKING_DEFAULT_STATIC_GW_ADDR3),
 
     // @Param: _MACADDR0
     // @DisplayName: MAC Address MSbyte
@@ -320,8 +272,15 @@ AP_Networking::AP_Networking(void)
 
 void AP_Networking::init()
 {
-    // If we skip this init, everything locks up. Sooo.. for
-    // now we need to run init() regardless of enable param
+    // set default MAC Address lower 3 bytes to UUID if possible
+    uint8_t uuid[12];
+    uint8_t uuid_len = sizeof(uuid);
+    if (hal.util->get_system_id_unformatted(uuid, uuid_len) && (uuid_len >= 3)) {
+        _param.macaddr[3].set_default(uuid[uuid_len-3]);
+        _param.macaddr[4].set_default(uuid[uuid_len-2]);
+        _param.macaddr[5].set_default(uuid[uuid_len-1]);
+    }
+
     if (!_param.enabled) {
         return;
     }
@@ -339,7 +298,7 @@ void AP_Networking::init()
                                         (uint8_t)_param.macaddr[4].get(),
                                         (uint8_t)_param.macaddr[5].get() };
 
-#if LWIP_DHCP
+#if AP_NETWORKING_DEFAULT_DHCP_ENABLE
     if (get_dhcp_enabled()) {
         _activeSettings.ip = 0;
         _activeSettings.nm = 0;
@@ -358,7 +317,7 @@ void AP_Networking::init()
 
     lwipInit(&netOptions);
 
-    // apply_errata_for_mac_KSZ9896C();
+    apply_errata_for_mac_KSZ9896C();
 #endif
 
     // create each instance
@@ -402,11 +361,11 @@ void AP_Networking::init()
     _dev->register_periodic_callback(interval_ms * AP_USEC_PER_MSEC, FUNCTOR_BIND_MEMBER(&AP_Networking::thread, void));
 #endif
 
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Initialized.");
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Initialized.%s", get_dhcp_enabled() ? " DHCP Enabled" : "");
     _init.done = true;
 }
 
-void AP_Networking::check_for_config_changes()
+void AP_Networking::announce_address_changes()
 {
     const uint32_t now_ms = AP_HAL::millis();
     if (_activeSettings.announce_ms == 0) {
@@ -428,24 +387,24 @@ void AP_Networking::check_for_config_changes()
     // const uint32_t nm = thisif.netmask.u_addr.ip4.addr;
     // const uint32_t gw = thisif.gw.u_addr.ip4.addr;
 
-    if (_activeSettings.once &&
+    if (_init.boot_gcs_announce &&
         ip == _activeSettings.ip &&
         nm == _activeSettings.nm &&
         gw == _activeSettings.gw)
     {
-        // nothing changed and we're already printed at least once. Nothing to do.
+        // nothing changed and we've already printed it at least once. Nothing to do.
         return;
     }
 
+    _init.boot_gcs_announce = true;
     _activeSettings.ip = ip;
     _activeSettings.nm = nm;
     _activeSettings.gw = gw;
-    _activeSettings.once = true;
     _activeSettings.announce_ms = now_ms;
 
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: IP      %s", get_ip_active_str());
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Mask    %s", get_netmask_active_str());
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Gateway %s", get_gateway_active_str());
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: IP      %s", get_ip_active_str());
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: Mask    %s", get_netmask_active_str());
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: Gateway %s", get_gateway_active_str());
 }
 
 
@@ -534,7 +493,7 @@ void AP_Networking::update()
     if (!_init.done) {
         return;
     }
-    check_for_config_changes();
+    announce_address_changes();
 
     for (uint8_t i=0; i<_num_instances; i++) {
         if (_drivers[i] != nullptr && get_type(i) != AP_Networking_Params::Type::None) {
@@ -621,12 +580,10 @@ int32_t AP_Networking::send_udp(struct udp_pcb *pcb, const ip4_addr_t &ip4_addr,
     if (data == nullptr || pcb == nullptr) {
         return ERR_ARG;
     }
-    if (data_len == 0) {
-        return 0;
-    }
+    // if (data_len == 0) {
+    //     return 0;
+    // }
     
-    //data_len = MIN(data_len, AP_NETWORKING_MTU_SIZE);
-
     struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT, data_len , PBUF_RAM);
     if (p == nullptr) {
         return ERR_MEM;

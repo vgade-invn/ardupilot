@@ -1,18 +1,10 @@
 
 #pragma once
 
-#include <AP_HAL/AP_HAL.h>
-
-#ifndef AP_NETWORKING_ENABLED
-#define AP_NETWORKING_ENABLED 0
-#endif
-
-#ifndef AP_NETWORKING_MAX_INSTANCES
-#define AP_NETWORKING_MAX_INSTANCES 15
-#endif
+#include "AP_Networking_Config.h"
 
 #if AP_NETWORKING_ENABLED
-
+#include <AP_HAL/AP_HAL.h>
 #include "AP_Networking_Params.h"
 
 
@@ -43,16 +35,6 @@
 
 #define IP4_ADDR_VALUE_FROM_ARRAY(array) IP4_ADDR_VALUE(array[0],array[1],array[2],array[3])
 
-#ifndef AP_NETWORKING_HAS_THREAD
-#define AP_NETWORKING_HAS_THREAD 0
-#endif
-
-#ifndef AP_NETWORKING_ETHERNET_TCP_PAYLOAD_MAX_SIZE
-#define AP_NETWORKING_ETHERNET_TCP_PAYLOAD_MAX_SIZE 1460
-#endif
-#ifndef AP_NETWORKING_ETHERNET_UDP_PAYLOAD_MAX_SIZE
-#define AP_NETWORKING_ETHERNET_UDP_PAYLOAD_MAX_SIZE 1472
-#endif
 
 // declare backend class
 class AP_Networking_Backend;
@@ -155,10 +137,11 @@ private:
 #endif
     
     void apply_errata_for_mac_KSZ9896C();
-    void check_for_config_changes();
+    void announce_address_changes();
 
     struct {
         bool done;
+        bool boot_gcs_announce;
     } _init;
 
     struct {

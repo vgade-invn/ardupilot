@@ -163,20 +163,19 @@ PC4     ETH_RMII_RXD0    ETH1
 PC5     ETH_RMII_RXD1    ETH1
 define BOARD_PHY_ID  MII_LAN8720_ID
 define BOARD_PHY_RMII
+define STM32_MAC_ETH1_CHANGE_PHY_STATE 0
 
 ###################
-# IP Configuration
-define LWIP_DHCP 1
 
-# static IP for when LWIP_DHCP == 0. 
-# **NOTE** Use commas instead of periods
-#define LWIP_IPADDR(p)   IP4_ADDR(p, 172,20,13,92)
-#define LWIP_GATEWAY(p)  IP4_ADDR(p, 172,20,1,1)
-#define LWIP_NETMASK(p)  IP4_ADDR(p, 255,255,0,0)
-
-define AP_NETWORKING_MAX_INSTANCES 4
 define AP_NETWORKING_ENABLED 1
-define STM32_MAC_ETH1_CHANGE_PHY_STATE 0
+define AP_NETWORKING_MAX_INSTANCES 4
+
+# Refer to https://maclookup.app/vendors/cubepilot-pty-ltd
+# A8-B0-28-??-??-?? where the ?? is the lower 3 bytes from the STM32 UUID
+define AP_NETWORKING_DEFAULT_MAC_ADDR0   0xA8
+define AP_NETWORKING_DEFAULT_MAC_ADDR1   0xB0
+define AP_NETWORKING_DEFAULT_MAC_ADDR2   0x28
+
 ###################
 
 # RCIN
