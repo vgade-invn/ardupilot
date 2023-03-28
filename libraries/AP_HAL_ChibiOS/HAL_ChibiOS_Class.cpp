@@ -35,11 +35,6 @@
 #endif
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 #include <AP_HAL/SIMState.h>
-
-#if 0 //HAL_ENABLE_NETWORKING
-#include <lwip/ip4_addr.h>
-#include "lwipthread.h"
-#endif
 #include <hwdef.h>
 
 #ifndef HAL_SERIAL0_BAUD_DEFAULT
@@ -313,13 +308,6 @@ static void main_loop()
     }
     thread_running = false;
 }
-#if 0 //HAL_ENABLE_NETWORKING
-static uint8_t mac_address[] = {0xc2, 0xaf, 0x98, 0x76, 0x54, 0x32};
-uint8_t lwip_ipaddr[4] = {192, 168, 2, 15};
-uint8_t lwip_netmask = 24;
-uint8_t lwip_gwaddr[4] = {192, 168, 2, 1};
-static lwipthread_opts_t lwip_opts;
-#endif
 
 void HAL_ChibiOS::run(int argc, char * const argv[], Callbacks* callbacks) const
 {
@@ -333,26 +321,6 @@ void HAL_ChibiOS::run(int argc, char * const argv[], Callbacks* callbacks) const
 
 #if HAL_USE_SERIAL_USB == TRUE
     usb_initialise();
-#endif
-
-#if 0 //HAL_ENABLE_NETWORKING
-
-    lwip_opts.macaddress = mac_address;
-
-    ip4_addr_t ipaddr, gw;
-    IP4_ADDR(&ipaddr, lwip_ipaddr[0], lwip_ipaddr[1], lwip_ipaddr[2], lwip_ipaddr[3]);
-    lwip_opts.address = ipaddr.addr;
-    // create a subnet mask based on the configured netmask
-    for (uint8_t i=0; i<lwip_netmask; i++) {
-        lwip_opts.netmask = lwip_opts.netmask | (0x10000000UL >> i);
-    }
-    //set gateway
-    IP4_ADDR(&gw, lwip_gwaddr[0], lwip_gwaddr[1], lwip_gwaddr[2], lwip_gwaddr[3]);
-    lwip_opts.gateway = gw.addr;
-
-    // set DHCP option
-    lwip_opts.addrMode = NET_ADDRESS_STATIC;
-    lwipInit(&lwip_opts);
 #endif
 
 #ifdef HAL_STDOUT_SERIAL

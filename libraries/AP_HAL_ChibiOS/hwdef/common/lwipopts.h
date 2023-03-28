@@ -41,22 +41,9 @@
 #include "stdio.h"
 #include "stm32_util.h"
 
-#ifndef LWIP_SNTP
-#define LWIP_SNTP 0
-#endif
-#if LWIP_SNTP
-   // TODO: figure out how to get this to work
-   #define SNTP_SET_SYSTEM_TIME_US(sec, us) sntp_set_system_time_us(sec, us)
-   #define SNTP_SET_SYSTEM_TIME_US(sec, us) AP::rtc().set_utc_usec((uint64_t)sec*1E6 + (uint64_t)us, AP_RTC::SOURCE_NTP)
-   #define SNTP_SERVER_ADDRESS "pool.ntp.org"
-   #define SNTP_SERVER_DNS 1
-#endif
-
-
-#ifndef LWIP_NETBIOS
-#define LWIP_NETBIOS 1
-#endif
-
+#define SNTP_SET_SYSTEM_TIME_US(sec, us) sntp_set_system_time_us(sec, us)
+#define SNTP_SERVER_ADDRESS "pool.ntp.org"
+#define SNTP_SERVER_DNS 1
 
 /*
    -----------------------------------------------
@@ -337,7 +324,7 @@
  * The formula expects settings to be either '0' or '1'.
  */
 #ifndef MEMP_NUM_SYS_TIMEOUT
-#define MEMP_NUM_SYS_TIMEOUT            (LWIP_TCP + IP_REASSEMBLY + LWIP_ARP + (2*LWIP_DHCP) + LWIP_AUTOIP + LWIP_IGMP + LWIP_DNS + LWIP_SNTP + PPP_SUPPORT + (LWIP_IPV6 * (1 + LWIP_IPV6_REASS + LWIP_IPV6_MLD)))
+#define MEMP_NUM_SYS_TIMEOUT            (LWIP_TCP + IP_REASSEMBLY + LWIP_ARP + (2*LWIP_DHCP) + LWIP_AUTOIP + LWIP_IGMP + LWIP_DNS + PPP_SUPPORT + (LWIP_IPV6 * (1 + LWIP_IPV6_REASS + LWIP_IPV6_MLD)))
 #endif
 
 /**

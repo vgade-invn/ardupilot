@@ -3,15 +3,11 @@
 
 #include "AP_Networking_Backend.h"
 
-#ifndef AP_NETWORKING_SPEEDTEST_ENABLED
-#define AP_NETWORKING_SPEEDTEST_ENABLED AP_NETWORKING_ENABLED
-#endif
-
 #if AP_NETWORKING_SPEEDTEST_ENABLED
 
-class AP_Networking_Speedtest  : public AP_Networking_Backend {
+class AP_Networking_SpeedTest  : public AP_Networking_Backend {
 public:
-    AP_Networking_Speedtest(AP_Networking &front,
+    AP_Networking_SpeedTest(AP_Networking &front,
                         AP_Networking::AP_Networking_State &state,
                         AP_Networking_Params &params);
 
@@ -35,7 +31,9 @@ private:
         AP_Float duration_seconds;
     } _params;
 
-    struct udp_pcb *_pcb;
+    struct {
+        struct udp_pcb *pcb;
+    } _eth;
 
     struct {
         uint32_t start_ms;

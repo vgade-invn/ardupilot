@@ -885,7 +885,7 @@ def write_mcu_config(f):
         f.write('#define USE_POSIX\n\n')
         f.write('#define HAL_USE_SDC TRUE\n')
         build_flags.append('USE_FATFS=yes')
-        env_vars['WITH_FATFS'] = "1"
+        env_vars['WITH_FATFS'] = True
     elif have_type_prefix('SDMMC2'):
         f.write('// SDMMC2 available, enable POSIX filesystem support\n')
         f.write('#define USE_POSIX\n\n')
@@ -893,7 +893,7 @@ def write_mcu_config(f):
         f.write('#define STM32_SDC_USE_SDMMC2 TRUE\n')
         f.write('#define HAL_USE_SDMMC 1\n')
         build_flags.append('USE_FATFS=yes')
-        env_vars['WITH_FATFS'] = "1"
+        env_vars['WITH_FATFS'] = True
     elif have_type_prefix('SDMMC'):
         f.write('// SDMMC available, enable POSIX filesystem support\n')
         f.write('#define USE_POSIX\n\n')
@@ -901,7 +901,7 @@ def write_mcu_config(f):
         f.write('#define STM32_SDC_USE_SDMMC1 TRUE\n')
         f.write('#define HAL_USE_SDMMC 1\n')
         build_flags.append('USE_FATFS=yes')
-        env_vars['WITH_FATFS'] = "1"
+        env_vars['WITH_FATFS'] = True
     elif has_sdcard_spi():
         f.write('// MMC via SPI available, enable POSIX filesystem support\n')
         f.write('#define USE_POSIX\n\n')
@@ -909,7 +909,7 @@ def write_mcu_config(f):
         f.write('#define HAL_USE_SDC FALSE\n')
         f.write('#define HAL_SDCARD_SPI_HOOK TRUE\n')
         build_flags.append('USE_FATFS=yes')
-        env_vars['WITH_FATFS'] = "1"
+        env_vars['WITH_FATFS'] = True
     else:
         f.write('#define HAL_USE_SDC FALSE\n')
         build_flags.append('USE_FATFS=no')
@@ -927,13 +927,13 @@ def write_mcu_config(f):
         f.write('#define HAL_USE_MAC                         TRUE\n')
         f.write('#define MAC_USE_EVENTS                      TRUE\n')
         f.write('#define STM32_NOCACHE_SRAM3                 TRUE\n')
-        f.write('#define HAL_ENABLE_NETWORKING               TRUE\n')
+        f.write('#define AP_NETWORKING_ENABLED               TRUE\n')
         build_flags.append('USE_LWIP=yes')
-        env_vars['WITH_NETWORKING'] = "1"
+        env_vars['WITH_NETWORKING'] = True
     else:
-        f.write('#define HAL_ENABLE_NETWORKING               FALSE\n')
+        f.write('#define AP_NETWORKING_ENABLED               FALSE\n')
         build_flags.append('USE_LWIP=no')
-        env_vars['WITH_NETWORKING'] = "0"
+        env_vars['WITH_NETWORKING'] = False
 
     defines = get_mcu_config('DEFINES', False)
     if defines is not None:

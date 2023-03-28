@@ -30,7 +30,7 @@ public:
     enum class Type : uint8_t {
         None                        = 0,
         Serial2UDP                  = 1,
-        Speedtest                   = 2,
+        SpeedTest                   = 2,
         Ping                        = 3,
     };
 

@@ -167,9 +167,6 @@ define STM32_MAC_ETH1_CHANGE_PHY_STATE 0
 
 ###################
 
-define AP_NETWORKING_ENABLED 1
-define AP_NETWORKING_MAX_INSTANCES 4
-
 # Refer to https://maclookup.app/vendors/cubepilot-pty-ltd
 # A8-B0-28-??-??-?? where the ?? is the lower 3 bytes from the STM32 UUID
 define AP_NETWORKING_DEFAULT_MAC_ADDR0   0xA8

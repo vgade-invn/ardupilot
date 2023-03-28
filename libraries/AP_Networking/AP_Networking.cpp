@@ -7,22 +7,17 @@
     #include <hal_mii.h>
     #include <lwip/sockets.h>
 
-    #if LWIP_SNTP
+    #if AP_NETWORKING_SNTP_ENABLED
     #include <AP_RTC/AP_RTC.h>
     #include <lwip/apps/sntp.h>
-    static void sntp_set_system_time_us(u32_t t, u32_t us);
-    // static void sntp_set_system_time_us(uint32_t sec, uint32_t us);
-    static void sntp_set_system_time_us(uint32_t sec, uint32_t us) {
+
+    void sntp_set_system_time_us(uint32_t sec, uint32_t us) {
         AP::rtc().set_utc_usec((uint64_t)sec*1E6 + (uint64_t)us, AP_RTC::SOURCE_NTP);
     }
     #endif
 
-    #if LWIP_NETBIOS
+    #if AP_NETWORKING_NETBIOS_ENABLED
     #include <lwip/apps/netbiosns.h>
-    #ifndef AP_NETWORKING_NETBIOS_NAME
-        // This string must be less than 15 characters
-        #define AP_NETWORKING_NETBIOS_NAME "ARDUPILOT"
-    #endif
     #endif
 
 #else
@@ -39,7 +34,7 @@
 
 #include <GCS_MAVLink/GCS.h>
 #include "AP_Networking_Serial2UDP.h"
-#include "AP_Networking_Speedtest.h"
+#include "AP_Networking_SpeedTest.h"
 #include "AP_Networking_Ping.h"
 
 extern const AP_HAL::HAL& hal;
@@ -344,7 +339,9 @@ void AP_Networking::init()
 
     lwipInit(&netOptions);
 
+#if defined(BOARD_PHY_ID) && defined(MII_KSZ9896C_ID) && BOARD_PHY_ID == MII_KSZ9896C_ID
     apply_errata_for_mac_KSZ9896C();
+#endif
 #endif
 
     // create each instance
@@ -357,8 +354,8 @@ void AP_Networking::init()
 #endif
 
 #if AP_NETWORKING_SPEEDTEST_ENABLED
-            case AP_Networking_Params::Type::Speedtest:
-                _drivers[instance] = new AP_Networking_Speedtest(*this, _state[instance], _params[instance]);
+            case AP_Networking_Params::Type::SpeedTest:
+                _drivers[instance] = new AP_Networking_SpeedTest(*this, _state[instance], _params[instance]);
                 break;
 #endif
 
@@ -389,20 +386,15 @@ void AP_Networking::init()
         }
     }
 
-#if AP_NETWORKING_HAS_THREAD
-    const uint32_t interval_ms = 1;
-    _dev->register_periodic_callback(interval_ms * AP_USEC_PER_MSEC, FUNCTOR_BIND_MEMBER(&AP_Networking::thread, void));
-#endif
-
-#if LWIP_SNTP
+#if AP_NETWORKING_SNTP_ENABLED
     if (option_is_set(Options::SNTP)) {
         sntp_setoperatingmode(SNTP_OPMODE_POLL);
-        sntp_setservername(0, "pool.ntp.org");
+        sntp_setservername(0, AP_NETWORKING_SNTP_SERVERNAME);
         sntp_init();
     }
 #endif
 
-#if LWIP_NETBIOS
+#if AP_NETWORKING_NETBIOS_ENABLED
     if (option_is_set(Options::NETBIOS)) {
         netbiosns_init();
         #ifdef AP_NETWORKING_NETBIOS_NAME
@@ -458,9 +450,9 @@ void AP_Networking::announce_address_changes()
 }
 
 
+#if defined(BOARD_PHY_ID) && defined(MII_KSZ9896C_ID) && BOARD_PHY_ID == MII_KSZ9896C_ID
 void AP_Networking::apply_errata_for_mac_KSZ9896C()
 {
-#if defined(BOARD_PHY_ID) && defined(MII_KSZ9896C_ID) && BOARD_PHY_ID == MII_KSZ9896C_ID
     /// Apply Erratas
     for (uint8_t phy = 0; phy < 32; phy++) {
         if (!(ETHD1.phyaddrmask & (1 << phy))) {
@@ -531,9 +523,8 @@ void AP_Networking::apply_errata_for_mac_KSZ9896C()
             mii_write(&ETHD1, phy, 0x0E, mmd[i][2]);
         }
     }
-#endif
 }
-
+#endif
 
 void AP_Networking::update()
 {
@@ -615,14 +606,6 @@ char* AP_Networking::convert_ip_to_str(const uint32_t ip)
 
     return convert_ip_to_str(ip_array);
 }
-
-// periodic callback in our own networking thread at 1000 Hz
-#if AP_NETWORKING_HAS_THREAD
-void AP_Networking::thread()
-{
-    // TODO: do awesome stuff at 1kHz in our own dedicated thread!
-}
-#endif
 
 // send a UDP packet and return with bytes sent or an error code
 int32_t AP_Networking::send_udp(struct udp_pcb *pcb, const ip4_addr_t &ip4_addr, const uint16_t port, const uint8_t* data, uint16_t data_len)

@@ -1,5 +1,5 @@
 
-#include "AP_Networking_Speedtest.h"
+#include "AP_Networking_SpeedTest.h"
 
 #if AP_NETWORKING_SPEEDTEST_ENABLED
 #include <AP_Math/AP_Math.h> // for MIN()
@@ -14,36 +14,36 @@
 #endif
 
 
-const AP_Param::GroupInfo AP_Networking_Speedtest::var_info[] = {
+const AP_Param::GroupInfo AP_Networking_SpeedTest::var_info[] = {
 
     // @Param: PORT
     // @DisplayName: PORT
     // @Description: PORT
     // @Range: 1 65535
     // @User: Standard
-    AP_GROUPINFO("PORT", 1, AP_Networking_Speedtest, _params.port, AP_NETWORKING_SPEEDTEST_DEFAULT_PORT),
+    AP_GROUPINFO("PORT", 1, AP_Networking_SpeedTest, _params.port, AP_NETWORKING_SPEEDTEST_DEFAULT_PORT),
 
-    AP_GROUPINFO("DST_ADDR0", 2,  AP_Networking_Speedtest,    _params.ip[0],   255),
-    AP_GROUPINFO("DST_ADDR1", 3,  AP_Networking_Speedtest,    _params.ip[1],   255),
-    AP_GROUPINFO("DST_ADDR2", 4,  AP_Networking_Speedtest,    _params.ip[2],   255),
-    AP_GROUPINFO("DST_ADDR3", 5,  AP_Networking_Speedtest,    _params.ip[3],   255),
+    AP_GROUPINFO("DST_ADDR0", 2,  AP_Networking_SpeedTest,    _params.ip[0],   255),
+    AP_GROUPINFO("DST_ADDR1", 3,  AP_Networking_SpeedTest,    _params.ip[1],   255),
+    AP_GROUPINFO("DST_ADDR2", 4,  AP_Networking_SpeedTest,    _params.ip[2],   255),
+    AP_GROUPINFO("DST_ADDR3", 5,  AP_Networking_SpeedTest,    _params.ip[3],   255),
 
 
     // @Param: SIZE
-    // @DisplayName: Speedtest payload size
-    // @Description: Speedtest payload size per packet. The largest UDP payload packet is 1472. Going above this will cause packet fragmentation.
+    // @DisplayName: SpeedTest payload size
+    // @Description: SpeedTest payload size per packet. The largest UDP payload packet is 1472. Going above this will cause packet fragmentation.
     // @Range: 0 65535
     // @User: Advanced
-    AP_GROUPINFO("SIZE", 7, AP_Networking_Speedtest, _params.payload_size, AP_NETWORKING_ETHERNET_UDP_PAYLOAD_MAX_SIZE),
+    AP_GROUPINFO("SIZE", 7, AP_Networking_SpeedTest, _params.payload_size, AP_NETWORKING_ETHERNET_UDP_PAYLOAD_MAX_SIZE),
 
-    AP_GROUPINFO("CONTENT", 8, AP_Networking_Speedtest, _params.content, -1),
+    AP_GROUPINFO("CONTENT", 8, AP_Networking_SpeedTest, _params.content, -1),
 
     // @Param: DURATION
-    // @DisplayName: Speedtest duration
-    // @Description: Speedtest duration in seconds. Setting the value > 0 will start the speedtest. To protect the network, this value resets to zero on boot and after the Speedtest duration has elapsed.
+    // @DisplayName: SpeedTest duration
+    // @Description: SpeedTest duration in seconds. Setting the value > 0 will start the speedtest. To protect the network, this value resets to zero on boot and after the Speedtest duration has elapsed.
     // @Units: s
     // @User: Standard
-    AP_GROUPINFO("DURATION", 9, AP_Networking_Speedtest, _params.duration_seconds, 0),
+    AP_GROUPINFO("DURATION", 9, AP_Networking_SpeedTest, _params.duration_seconds, 0),
     
     AP_GROUPEND
 };
@@ -51,30 +51,30 @@ const AP_Param::GroupInfo AP_Networking_Speedtest::var_info[] = {
 extern const AP_HAL::HAL& hal;
 
 /// Constructor
-AP_Networking_Speedtest::AP_Networking_Speedtest(AP_Networking &front, AP_Networking::AP_Networking_State &state,  AP_Networking_Params &params) :
+AP_Networking_SpeedTest::AP_Networking_SpeedTest(AP_Networking &front, AP_Networking::AP_Networking_State &state,  AP_Networking_Params &params) :
     AP_Networking_Backend(front, state, params)
 {
     AP_Param::setup_object_defaults(this, var_info);
     _state.var_info = var_info;
 }
 
-void AP_Networking_Speedtest::init()
+void AP_Networking_SpeedTest::init()
 {
     // always set this to 0 so we don't spam on boot
     _params.duration_seconds.set_and_save(0);
 
-    if (_pcb == nullptr) {
-        _pcb = udp_new_ip_type(IPADDR_TYPE_ANY);
-        if (_pcb != nullptr) {
+    if (_eth.pcb == nullptr) {
+        _eth.pcb = udp_new_ip_type(IPADDR_TYPE_ANY);
+        if (_eth.pcb != nullptr) {
             // allow to sending broadcast packets
-            ip_set_option(_pcb, SOF_BROADCAST);
+            ip_set_option(_eth.pcb, SOF_BROADCAST);
         }
     }
 }
 
-void AP_Networking_Speedtest::update()
+void AP_Networking_SpeedTest::update()
 {
-    if (_pcb == nullptr || _params.duration_seconds.get() <= 0) {
+    if (_eth.pcb == nullptr || _params.duration_seconds.get() <= 0) {
         // init failure or disabled
         _stats.start_ms = 0;
         return;
@@ -83,7 +83,7 @@ void AP_Networking_Speedtest::update()
     if (_stats.start_ms == 0) {
         memset(&_stats, 0, sizeof(_stats));
         _stats.start_ms = AP_HAL::millis();
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"NET: Speedtest START, Duration %.2fs", (double)_params.duration_seconds.get());
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"NET: SpeedTest START, Duration %.2fs", (double)_params.duration_seconds.get());
     }
 
     send_data();
@@ -93,7 +93,7 @@ void AP_Networking_Speedtest::update()
     }
 }
 
-void AP_Networking_Speedtest::send_data()
+void AP_Networking_SpeedTest::send_data()
 {
     const uint32_t payload_size = constrain_int32(_params.payload_size.get(), 0, 0xFFFF);
     uint8_t payload[payload_size];
@@ -102,7 +102,7 @@ void AP_Networking_Speedtest::send_data()
         // fill the payload
         if (_params.content.get() == -1) {
             uint16_t offset = 0;
-            const char* str = "ArduPilot Networking Speedtest";
+            const char* str = "ArduPilot Networking SpeedTest";
             const uint16_t str_len = strlen(str);
             while (offset < payload_size-1) {
                 const uint16_t offset_len = MIN(str_len, payload_size-offset-1);
@@ -123,7 +123,7 @@ void AP_Networking_Speedtest::send_data()
     for (int32_t i=0; i<AP_NETWORKING_SPEEDTEST_SEND_ATTEMPT_COUNT_PER_UPDATE_TICK; i++) {
         // if we were able to queue a packet to send, try to queue one more to keep the queue full
         // the result is negative on error, else how many payload bytes were sent
-        const int32_t payload_bytes_sent = AP_Networking::send_udp(_pcb, _ip4_addr, _params.port, payload, payload_size);
+        const int32_t payload_bytes_sent = AP_Networking::send_udp(_eth.pcb, _ip4_addr, _params.port, payload, payload_size);
 
         if (payload_bytes_sent < 0) {
             // Wasn't able to send, don't bother trying to send any more
@@ -143,7 +143,7 @@ void AP_Networking_Speedtest::send_data()
     }
 }
 
-bool AP_Networking_Speedtest::report_stats()
+bool AP_Networking_SpeedTest::report_stats()
 {
     const uint32_t now_ms = AP_HAL::millis();
     const float elapsed_seconds = (now_ms - _stats.start_ms) * 0.001f;

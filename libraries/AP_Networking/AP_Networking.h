@@ -6,10 +6,6 @@
 #if AP_NETWORKING_ENABLED
 #include <AP_HAL/AP_HAL.h>
 #include "AP_Networking_Params.h"
-
-
-//#include <AP_Param/AP_Param.h>
-//#include <AP_HAL/utility/sparse-endian.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_HAL/utility/RingBuffer.h>
 
@@ -39,14 +35,14 @@
 // declare backend class
 class AP_Networking_Backend;
 class AP_Networking_Serial2UDP;
-class AP_Networking_Speedtest;
+class AP_Networking_SpeedTest;
 class AP_Networking_Ping;
 
 class AP_Networking
 {
     friend class AP_Networking_Backend;
     friend class AP_Networking_Serial2UDP;
-    friend class AP_Networking_Speedtest;
+    friend class AP_Networking_SpeedTest;
     friend class AP_Networking_Ping;
 
 public:
@@ -146,11 +142,10 @@ private:
 
     uint8_t     _num_instances;         // number of feature instances
 
-#if AP_NETWORKING_HAS_THREAD
-    void thread();
-#endif
-    
+#if defined(BOARD_PHY_ID) && defined(MII_KSZ9896C_ID) && BOARD_PHY_ID == MII_KSZ9896C_ID
     void apply_errata_for_mac_KSZ9896C();
+#endif
+
     void announce_address_changes();
 
     struct {
