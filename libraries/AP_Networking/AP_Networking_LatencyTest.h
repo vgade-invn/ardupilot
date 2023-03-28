@@ -23,7 +23,6 @@ private:
 
     struct {
         struct udp_pcb *pcb;
-        ip4_addr_t ip4_addr;
         AP_Int16 ip[4];
         AP_Int32 port;
     } _eth;

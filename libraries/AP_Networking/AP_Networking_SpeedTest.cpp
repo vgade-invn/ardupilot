@@ -118,12 +118,12 @@ void AP_Networking_SpeedTest::send_data()
         }
     }
 
-    ip4_addr_t _ip4_addr;
-    IP4_ADDR(&_ip4_addr, _params.ip[0], _params.ip[1], _params.ip[2], _params.ip[3]);
+    ip4_addr_t dest_ip;
+    IP4_ADDR_FROM_ARRAY(&dest_ip, _params.ip);
     for (int32_t i=0; i<AP_NETWORKING_SPEEDTEST_SEND_ATTEMPT_COUNT_PER_UPDATE_TICK; i++) {
         // if we were able to queue a packet to send, try to queue one more to keep the queue full
         // the result is negative on error, else how many payload bytes were sent
-        const int32_t payload_bytes_sent = AP_Networking::send_udp(_eth.pcb, _ip4_addr, _params.port, payload, payload_size);
+        const int32_t payload_bytes_sent = AP_Networking::send_udp(_eth.pcb, dest_ip, _params.port, payload, payload_size);
 
         if (payload_bytes_sent < 0) {
             // Wasn't able to send, don't bother trying to send any more

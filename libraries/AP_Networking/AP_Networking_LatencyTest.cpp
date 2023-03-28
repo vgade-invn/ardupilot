@@ -69,9 +69,15 @@ void AP_Networking_LatencyTest::update()
         // We've never received a packet.
         // Wait 5 seconds before starting and then send a start packet
         // every second if we have a valid dest IP address
+        
+        ip4_addr_t dest_ip;
+        IP4_ADDR_FROM_ARRAY(&dest_ip, _eth.ip);
+        
+        const uint16_t port = _eth.port.get();
+
         if (now_ms > 5*1000 &&
-            _eth.ip4_addr.addr != 0 &&
-            _eth.ip4_addr.addr != 0xFFFFFFFF &&
+            dest_ip.addr != 0 &&
+            dest_ip.addr != 0xFFFFFFFF &&
             now_ms - _stats.start_ms >= 1000) {
             _stats.start_ms = now_ms;
 
@@ -82,8 +88,7 @@ void AP_Networking_LatencyTest::update()
             pkt.magic = MAGIC_VALUE;
             pkt.data = 1;
 
-            IP4_ADDR(&_eth.ip4_addr, _eth.ip[0], _eth.ip[1], _eth.ip[2], _eth.ip[3]);
-            AP_Networking::send_udp(_eth.pcb, _eth.ip4_addr, _eth.port.get(), (uint8_t*)&pkt, sizeof(pkt));
+            AP_Networking::send_udp(_eth.pcb, dest_ip, port, (uint8_t*)&pkt, sizeof(pkt));
         }
         
     } else if (now_ms - _stats.gcs_send_ms >= 1000) {
