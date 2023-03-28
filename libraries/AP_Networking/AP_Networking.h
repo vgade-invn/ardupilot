@@ -35,7 +35,6 @@
 
 // declare backend class
 class AP_Networking_Backend;
-class AP_Networking_Serial2UDP;
 class AP_Networking_SpeedTest;
 class AP_Networking_LatencyTest;
 class AP_Networking_Ping;
@@ -43,7 +42,6 @@ class AP_Networking_Ping;
 class AP_Networking
 {
     friend class AP_Networking_Backend;
-    friend class AP_Networking_Serial2UDP;
     friend class AP_Networking_SpeedTest;
     friend class AP_Networking_LatencyTest;
     friend class AP_Networking_Ping;

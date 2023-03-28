@@ -22,7 +22,7 @@ const AP_Param::GroupInfo AP_Networking_Params::var_info[] = {
     // @Param: TYPE
     // @DisplayName: Network Feature
     // @Description: Network Feature
-    // @Values: 0:Disabled, 1:Serial2UDP, 2:Speed Test
+    // @Values: 0:Disabled, 1:Speed Test, 2:Ping Out, 3:LatencyTest
     // @User: Standard
     // @RebootRequired: True
     AP_GROUPINFO_FLAGS("TYPE", 1, AP_Networking_Params, type, (int8_t)AP_Networking_Params::Type::None, AP_PARAM_FLAG_ENABLE),

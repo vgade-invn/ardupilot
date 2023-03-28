@@ -29,10 +29,9 @@ public:
     // Feature types
     enum class Type : uint8_t {
         None                        = 0,
-        Serial2UDP                  = 1,
-        SpeedTest                   = 2,
-        Ping                        = 3,
-        LatencyTest                 = 4,
+        SpeedTest                   = 1,
+        Ping                        = 2,
+        LatencyTest                 = 3,
     };
 
     AP_Enum<Type> type;                   // AP_Networking_Params::Type, 0=disabled, others see frontend enum TYPE

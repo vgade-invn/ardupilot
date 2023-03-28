@@ -48,7 +48,6 @@
 #endif
 
 #include <GCS_MAVLink/GCS.h>
-#include "AP_Networking_Serial2UDP.h"
 #include "AP_Networking_SpeedTest.h"
 #include "AP_Networking_LatencyTest.h"
 #include "AP_Networking_Ping.h"
@@ -363,12 +362,6 @@ void AP_Networking::init()
     // create each instance
     for (uint8_t instance = 0; instance < AP_NETWORKING_MAX_INSTANCES; instance++) {
         switch (get_type(instance)) {
-#if AP_NETWORKING_SERIAL2UDP_ENABLED
-            case AP_Networking_Params::Type::Serial2UDP:
-                _drivers[instance] = new AP_Networking_Serial2UDP(*this, _state[instance], _params[instance]);
-                break;
-#endif
-
 #if AP_NETWORKING_SPEEDTEST_ENABLED
             case AP_Networking_Params::Type::SpeedTest:
                 _drivers[instance] = new AP_Networking_SpeedTest(*this, _state[instance], _params[instance]);
