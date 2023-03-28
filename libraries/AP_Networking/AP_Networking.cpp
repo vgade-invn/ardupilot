@@ -35,6 +35,7 @@
 #include <GCS_MAVLink/GCS.h>
 #include "AP_Networking_Serial2UDP.h"
 #include "AP_Networking_SpeedTest.h"
+#include "AP_Networking_LatencyTest.h"
 #include "AP_Networking_Ping.h"
 
 extern const AP_HAL::HAL& hal;
@@ -356,6 +357,12 @@ void AP_Networking::init()
 #if AP_NETWORKING_SPEEDTEST_ENABLED
             case AP_Networking_Params::Type::SpeedTest:
                 _drivers[instance] = new AP_Networking_SpeedTest(*this, _state[instance], _params[instance]);
+                break;
+#endif
+
+#if AP_NETWORKING_LATENCYTEST_ENABLED
+            case AP_Networking_Params::Type::LatencyTest:
+                _drivers[instance] = new AP_Networking_LatencyTest(*this, _state[instance], _params[instance]);
                 break;
 #endif
 

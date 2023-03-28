@@ -32,6 +32,7 @@ public:
         Serial2UDP                  = 1,
         SpeedTest                   = 2,
         Ping                        = 3,
+        LatencyTest                 = 4,
     };
 
     AP_Enum<Type> type;                   // AP_Networking_Params::Type, 0=disabled, others see frontend enum TYPE
