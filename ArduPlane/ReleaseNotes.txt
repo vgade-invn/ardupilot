@@ -1,3 +1,11 @@
+Release Ottano Carbopilot V4.3.9 27th March 2023
+----------------------------------
+
+This release includes: 
+ - feature/OV3-640-esc-log-structure-fix
+
+Happy flying!
+
 Release Ottano Carbopilot V4.3.8 21th Feb 2023
 ----------------------------------
 
