@@ -10,9 +10,24 @@
     #if AP_NETWORKING_SNTP_ENABLED
     #include <AP_RTC/AP_RTC.h>
     #include <lwip/apps/sntp.h>
+    #include "AP_Math/definitions.h"
 
+    /* Configure behaviour depending on native, microsecond or second precision.
+    * Treat NTP timestamps as signed two's-complement integers. This way,
+    * timestamps that have the MSB set simply become negative offsets from
+    * the epoch (Feb 7, 2036 06:28:16 UTC). Representable dates range from
+    * 1968 to 2104.
+    */
     void sntp_set_system_time_us(uint32_t sec, uint32_t us) {
         AP::rtc().set_utc_usec((uint64_t)sec*1E6 + (uint64_t)us, AP_RTC::SOURCE_NTP);
+    }
+
+    void sntp_get_system_time_us(uint32_t* sec_, uint32_t* usec_) {
+        uint64_t time_usec;
+        if (AP::rtc().get_utc_usec(time_usec)) {
+            *sec_ = time_usec / AP_USEC_PER_SEC;
+            *usec_ = time_usec % AP_USEC_PER_SEC;
+        }
     }
     #endif
 

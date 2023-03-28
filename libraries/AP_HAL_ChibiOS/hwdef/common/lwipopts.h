@@ -42,6 +42,12 @@
 #include "stm32_util.h"
 
 #define SNTP_SET_SYSTEM_TIME_US(sec, us) sntp_set_system_time_us(sec, us)
+#define SNTP_GET_SYSTEM_TIME(sec_, usec_) sntp_get_system_time_us(&sec_, &usec_)
+
+#define SNTP_COMP_ROUNDTRIP 1
+#define SNTP_CHECK_RESPONSE 2
+#define SNTP_GET_SERVERS_FROM_DHCP 1
+
 #define SNTP_SERVER_ADDRESS "pool.ntp.org"
 #define SNTP_SERVER_DNS 1
 
