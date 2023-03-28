@@ -330,3 +330,7 @@
 #if HAL_MINIMIZE_FEATURES && BOARD_FLASH_SIZE > 1024
 #error "2MB board with minimize features?!"
 #endif
+
+#ifndef AP_SERIAL_EXTENSION_ENABLED
+#define AP_SERIAL_EXTENSION_ENABLED AP_NETWORKING_ENABLED
+#endif
