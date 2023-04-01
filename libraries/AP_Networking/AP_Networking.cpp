@@ -33,7 +33,12 @@
 
     #if AP_NETWORKING_NETBIOS_ENABLED
     #include <lwip/apps/netbiosns.h>
+    #include <AP_BoardConfig/AP_BoardConfig.h>
+
+    #ifndef NETBIOS_NAME_LEN
+        #define NETBIOS_NAME_LEN 16
     #endif
+    #endif // AP_NETWORKING_NETBIOS_ENABLED
 
     #if AP_NETWORKING_TFTP_ENABLED
     #include <lwip/apps/tftp_server.h>
@@ -314,17 +319,18 @@ AP_Networking::AP_Networking(void)
 
 void AP_Networking::init()
 {
+    if (!_param.enabled) {
+        return;
+    }
+
     // set default MAC Address lower 3 bytes to UUID if possible
     uint8_t uuid[12];
     uint8_t uuid_len = sizeof(uuid);
-    if (hal.util->get_system_id_unformatted(uuid, uuid_len) && (uuid_len >= 3)) {
+    const bool udid_is_ok = hal.util->get_system_id_unformatted(uuid, uuid_len);
+    if (udid_is_ok && uuid_len >= 3) {
         _param.macaddr[3].set_default(uuid[uuid_len-2]);
         _param.macaddr[4].set_default(uuid[uuid_len-1]);
         _param.macaddr[5].set_default(uuid[uuid_len-0]);
-    }
-
-    if (!_param.enabled) {
-        return;
     }
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
@@ -418,8 +424,25 @@ void AP_Networking::init()
 #if AP_NETWORKING_NETBIOS_ENABLED
     if (option_is_set(Options::NETBIOS)) {
         netbiosns_init();
-        netbiosns_set_name(AP_NETWORKING_NETBIOS_NAME);
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"NET: NETBIOS Ready: %s", AP_NETWORKING_NETBIOS_NAME);
+
+        // get param BRD_SERIAL_NUM value
+        uint32_t serial_number = (AP::boardConfig() != nullptr) ? AP::boardConfig()->get_serial_number() : 0;
+        char name[NETBIOS_NAME_LEN+1] = {};
+
+        if (serial_number == 0 && udid_is_ok && uuid_len >= 2) {
+            // if 0, and UDID is available, use it
+            serial_number = UINT16_VALUE(uuid[uuid_len-2], uuid[uuid_len-1]);
+        }
+        if (serial_number <= 0) {
+            // use default name as-is
+            hal.util->snprintf(name, ARRAY_SIZE(name), "%s", AP_NETWORKING_NETBIOS_NAME);
+        } else {
+            // copy serial number after name
+            hal.util->snprintf(name, ARRAY_SIZE(name), "%s%u", AP_NETWORKING_NETBIOS_NAME, (unsigned)serial_number);
+        }
+
+        netbiosns_set_name(name);
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"NET: NETBIOS Ready: %s", name);
     }
 #endif
 
@@ -564,12 +587,10 @@ void AP_Networking::apply_errata_for_mac_KSZ9896C()
 
 void AP_Networking::update()
 {
-    if (!_param.enabled) {
+    if (!_param.enabled || !_init.done) {
         return;
     }
-    if (!_init.done) {
-        return;
-    }
+
     announce_address_changes();
 
     for (uint8_t i=0; i<_num_instances; i++) {

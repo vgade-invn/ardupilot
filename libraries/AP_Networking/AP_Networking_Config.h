@@ -8,10 +8,6 @@
 #define AP_NETWORKING_MAX_INSTANCES 4
 #endif
 
-#ifndef AP_NETWORKING_HAS_THREAD
-#define AP_NETWORKING_HAS_THREAD 0
-#endif
-
 #ifndef AP_NETWORKING_ETHERNET_TCP_PAYLOAD_MAX_SIZE
 #define AP_NETWORKING_ETHERNET_TCP_PAYLOAD_MAX_SIZE 1460 // 1500 (Eth MTU) - 20 (IP header) - 20 (TCP header)
 #endif
@@ -40,15 +36,16 @@
 #ifndef AP_NETWORKING_NETBIOS_ENABLED
 #define AP_NETWORKING_NETBIOS_ENABLED AP_NETWORKING_ENABLED
 #endif
+#ifndef AP_NETWORKING_NETBIOS_NAME
+    // This string must be 15 (NETBIOS_NAME_LEN) or less characters
+    #define AP_NETWORKING_NETBIOS_NAME "ARDUPILOT"
+    #define LWIP_NETBIOS_RESPOND_NAME_QUERY 1
+#endif
 
 #ifndef AP_NETWORKING_TFTP_ENABLED
 #define AP_NETWORKING_TFTP_ENABLED AP_NETWORKING_ENABLED
 #endif
 
-#ifndef AP_NETWORKING_NETBIOS_NAME
-    // This string must be less than 15 characters
-    #define AP_NETWORKING_NETBIOS_NAME "ARDUPILOT"
-#endif
 
 // ---------------------------
 // Below are default params
