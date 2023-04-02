@@ -8,9 +8,6 @@
 #define AP_NETWORKING_LATENCYTEST_DEFAULT_PORT   5555
 #endif
 
-uint16_t AP_Networking_LatencyTest::latencyTest_port = 0;
-uint32_t AP_Networking_LatencyTest::latencyTest_last_rx_data = 0;
-
 const AP_Param::GroupInfo AP_Networking_LatencyTest::var_info[] = {
 
     // @Param: PORT
@@ -44,7 +41,7 @@ void AP_Networking_LatencyTest::init()
         _eth.pcb = udp_new_ip_type(IPADDR_TYPE_ANY);
         if (_eth.pcb != nullptr) {
             // set up RX callback
-            udp_recv(_eth.pcb, AP_Networking_LatencyTest::latencytest_recv_callback, nullptr);
+            udp_recv(_eth.pcb, AP_Networking_LatencyTest::latencytest_recv_callback, this);
         }
     }
 }
@@ -59,8 +56,8 @@ void AP_Networking_LatencyTest::update()
     uint32_t last_rx_data = 0;
     {
         // TODO: do we need to wrap this WITH_SEMAPHORE?
-        // WITH_SEMAPHORE(_rx_sem);
-        last_rx_data = latencyTest_last_rx_data;
+        WITH_SEMAPHORE(_stats.sem);
+        last_rx_data = _stats.last_rx_data;
     }
 
     const uint32_t now_ms = AP_HAL::millis();
@@ -93,13 +90,13 @@ void AP_Networking_LatencyTest::update()
         
     } else {
         // TODO: handle (last_rx_data < _stats.last_rx_data)
-        const uint32_t cnt_per_sec = last_rx_data - _stats.last_rx_data;
+        const uint32_t cnt_per_sec = last_rx_data - _stats.last_rx_data_1Hz;
         GCS_SEND_TEXT(MAV_SEVERITY_INFO,"NET: cnt:%u cnt/s:%u lag:%.2fms",
             (unsigned)last_rx_data,
             (unsigned)cnt_per_sec,
             (double)(1000.0f / (float)cnt_per_sec));
 
-        _stats.last_rx_data = last_rx_data;
+        _stats.last_rx_data_1Hz = last_rx_data;
     }
 }
 
@@ -109,22 +106,22 @@ void AP_Networking_LatencyTest::latencytest_recv_callback(void *arg, struct udp_
         return;
     }
 
-    // struct netif *netif = ip_current_input_netif();
-    // (void)netif;
-
-    // Reject packets that are not for our port
-    // if (port != latencyTest_port) {
-    //     return;
-    // }
-
     struct LatencyTestPacket_t *p_payload = (struct LatencyTestPacket_t *)p->payload;
     
-    if (p_payload->magic == AP_Networking_LatencyTest::MAGIC_VALUE && p->len == sizeof(LatencyTestPacket_t)) {
-  //if (p_payload->magic == AP_Networking_LatencyTest::MAGIC_VALUE) {
-        {
-            // TODO: do we need to wrap this WITH_SEMAPHORE?
-            // WITH_SEMAPHORE(_rx_sem);
-            latencyTest_last_rx_data = p_payload->data;
+    if (p_payload->magic == AP_Networking_LatencyTest::MAGIC_VALUE && p->len == sizeof(LatencyTestPacket_t))
+  //if (p_payload->magic == AP_Networking_LatencyTest::MAGIC_VALUE)
+    {
+        AP_Networking_LatencyTest* driver = (AP_Networking_LatencyTest*)arg;
+        if (driver != nullptr) {
+
+            if (port != driver->_eth.port.get()) {
+                // reject packets that are not for our port
+                pbuf_free(p);
+                return;
+            }
+
+            WITH_SEMAPHORE(driver->_stats.sem);
+            driver->_stats.last_rx_data = p_payload->data;
         }
         p_payload->data = p_payload->data + 1;
         udp_sendto(pcb, p, &pcb->remote_ip, port);

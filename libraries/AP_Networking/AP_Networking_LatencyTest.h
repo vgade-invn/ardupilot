@@ -36,13 +36,10 @@ private:
     struct {
         uint32_t update_last_ms;
         uint32_t last_rx_data;
+        uint32_t last_rx_data_1Hz;
+        HAL_Semaphore sem;
     } _stats;
 
-    // TODO: do we need a semaphore here?
-    // HAL_Semaphore _rx_sem;
-
-    static uint16_t latencyTest_port;
-    static uint32_t latencyTest_last_rx_data;
 };
 
 #endif // AP_NETWORKING_LATENCYTEST_ENABLED
