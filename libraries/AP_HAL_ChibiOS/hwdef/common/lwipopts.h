@@ -51,6 +51,8 @@
 #define SNTP_SERVER_ADDRESS "pool.ntp.org"
 #define SNTP_SERVER_DNS 1
 
+#define LWIP_NETBIOS_RESPOND_NAME_QUERY 1
+
 #define LWIP_ERRNO_STDINCLUDE
 
 /*
@@ -66,9 +68,13 @@
 #define X16_F  "x"
 #define LWIP_STATS_DISPLAY 1
 #define ETHARP_STATS 1
-#define LWIP_IPV6 1
 #define LWIP_IGMP 1
 #define DHCP_DEBUG LWIP_DBG_ON
+
+#ifndef LWIP_IPV6
+  // This uses an additional 18KB Flash
+  #define LWIP_IPV6 0
+#endif
 
 /**
  * SYS_LIGHTWEIGHT_PROT==1: if you want inter-task protection for certain
@@ -698,6 +704,7 @@
  * LWIP_DHCP==1: Enable DHCP module.
  */
 #ifndef LWIP_DHCP
+// Flash use: 7960 Bytes (9100 on IPv6)
 #define LWIP_DHCP                       1
 #endif
 
