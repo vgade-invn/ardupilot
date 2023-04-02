@@ -12,7 +12,7 @@
 #define AP_NETWORKING_UDP_RX_BUF_SIZE AP_NETWORKING_ETHERNET_UDP_PAYLOAD_MAX_SIZE
 #endif
 #ifndef AP_NETWORKING_UDP_TX_BUF_SIZE
-#define AP_NETWORKING_UDP_TX_BUF_SIZE (AP_NETWORKING_ETHERNET_UDP_PAYLOAD_MAX_SIZE*10)
+#define AP_NETWORKING_UDP_TX_BUF_SIZE (AP_NETWORKING_ETHERNET_UDP_PAYLOAD_MAX_SIZE*5)
 #endif
 
 class AP_Networking_Serial : public AP_HAL::UARTDriver {
@@ -65,7 +65,7 @@ private:
     bool _initialized = false;
 
     ip_addr_t dst_addr;
-    uint16_t dst_port = 0;
+    uint16_t dst_port;
 
     ByteBuffer _readbuf{0};
     ByteBuffer _writebuf{0};
@@ -74,14 +74,14 @@ private:
     HAL_Semaphore _tx_sem;
 
     struct udp_pcb *pcb;
-    bool blocking_writes = false;
+    bool blocking_writes;
 
     thread_t* volatile thread_ctx;
     char thread_name[10];
 
-    uint8_t ins = 0;
+    uint8_t ins;
 
     static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
-    void update();
+    void thread();
 };
 #endif

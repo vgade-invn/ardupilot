@@ -118,8 +118,8 @@ void AP_Networking_SpeedTest::send_data()
         }
     }
 
-    ip4_addr_t dest_ip;
-    IP4_ADDR_FROM_ARRAY(&dest_ip, _params.ip);
+    ip_addr_t dest_ip;
+    IP_ADDR_FROM_ARRAY(&dest_ip, _params.ip);
     for (int32_t i=0; i<AP_NETWORKING_SPEEDTEST_SEND_ATTEMPT_COUNT_PER_UPDATE_TICK; i++) {
         // if we were able to queue a packet to send, try to queue one more to keep the queue full
         // the result is negative on error, else how many payload bytes were sent

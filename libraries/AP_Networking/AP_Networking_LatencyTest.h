@@ -35,11 +35,13 @@ private:
 
     struct {
         uint32_t update_last_ms;
-        uint32_t start_ms;
-        uint32_t gcs_send_ms;
         uint32_t last_rx_data;
     } _stats;
 
+    // TODO: do we need a semaphore here?
+    // HAL_Semaphore _rx_sem;
+
+    static uint16_t latencyTest_port;
     static uint32_t latencyTest_last_rx_data;
 };
 

@@ -13,6 +13,7 @@
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
     #include "lwipthread.h"
     #include "lwip/udp.h"
+    #include <lwip/ip_addr.h>
 #else
     #if BYTE_ORDER == LITTLE_ENDIAN
     #define IP4_ADDR_VALUE(a,b,c,d)        \
@@ -31,21 +32,23 @@
 
 #define IP4_ADDR_VALUE_FROM_ARRAY(array) IP4_ADDR_VALUE(array[0],array[1],array[2],array[3])
 #define IP4_ADDR_FROM_ARRAY(dest_ip, array) IP4_ADDR(dest_ip, array[0],array[1],array[2],array[3])
-#define IP_ADDR_FROM_ARRAY(dest_ip, array) IP4_ADDR_FROM_ARRAY(dest_ip.u_addr.ip4, array)
 
+#if LWIP_IPV6
+#define IP_ADDR_FROM_ARRAY(dest_ip, array) IP4_ADDR_FROM_ARRAY(dest_ip.u_addr.ip4, array)
+#else
+#define IP_ADDR_FROM_ARRAY(dest_ip, array) IP4_ADDR_FROM_ARRAY(dest_ip, array)
+#endif
 
 // declare backend class
 class AP_Networking_Backend;
 class AP_Networking_SpeedTest;
 class AP_Networking_LatencyTest;
-class AP_Networking_Ping;
 
 class AP_Networking
 {
     friend class AP_Networking_Backend;
     friend class AP_Networking_SpeedTest;
     friend class AP_Networking_LatencyTest;
-    friend class AP_Networking_Ping;
 
 public:
     AP_Networking();
@@ -130,8 +133,13 @@ public:
 
 
     static int32_t send_udp(struct udp_pcb *pcb, const ip4_addr_t &ip4_addr, const uint16_t port, const uint8_t* data, uint16_t data_len);
+#if LWIP_IPV6
+    static int32_t send_udp(struct udp_pcb *pcb, const ip_addr_t &ip_addr, const uint16_t port, const uint8_t* data, uint16_t data_len) {
+        return send_udp(pcb, ip_addr.u_addr.ip4, port, data, data_len);
+    }
+#endif
 
-    static const struct AP_Param::GroupInfo        var_info[];
+    static const struct AP_Param::GroupInfo var_info[];
 
     // tftp wrappers for AP::Filesystem
     static void* tftp_open(const char* fname, const char* mode, u8_t write);
@@ -159,7 +167,6 @@ private:
 
     struct {
         bool done;
-        bool boot_gcs_announce;
     } _init;
 
     struct {
@@ -178,7 +185,7 @@ private:
         uint32_t nm;
         uint32_t gw;
         uint32_t announce_ms;
-        bool once;
+        bool announce_at_boot_done;
     } _activeSettings;
 
     HAL_Semaphore _sem;

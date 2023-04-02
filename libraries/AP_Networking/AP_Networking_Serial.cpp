@@ -33,7 +33,7 @@ void AP_Networking_Serial::begin(uint32_t b, uint16_t rxS, uint16_t txS)
     if (thread_ctx == nullptr) {
         // create thread name
         snprintf(thread_name, sizeof(thread_name), "UDP-%u", dst_port);
-        if(!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_Networking_Serial::update, void), thread_name, 512, AP_HAL::Scheduler::PRIORITY_IO, 0)) {
+        if(!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_Networking_Serial::thread, void), thread_name, 512, AP_HAL::Scheduler::PRIORITY_IO, 0)) {
             AP_HAL::panic("Failed to create AP_Networking_Serial thread");
         }
     }
@@ -114,7 +114,7 @@ size_t AP_Networking_Serial::write(const uint8_t *buffer, size_t size)
     return size;
 }
 
-void AP_Networking_Serial::update()
+void AP_Networking_Serial::thread()
 {
     while(true) {
         if (_writebuf.available()) {

@@ -1,7 +1,10 @@
 
 #include "AP_Networking.h"
-#include <AP_Filesystem/AP_Filesystem.h>
+
 #if AP_NETWORKING_ENABLED
+#include <AP_Filesystem/AP_Filesystem.h>
+#include "AP_Math/definitions.h"
+#include <GCS_MAVLink/GCS.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
     #include <hal_mii.h>
@@ -10,7 +13,6 @@
     #if AP_NETWORKING_SNTP_ENABLED
     #include <AP_RTC/AP_RTC.h>
     #include <lwip/apps/sntp.h>
-    #include "AP_Math/definitions.h"
 
     /* Configure behaviour depending on native, microsecond or second precision.
     * Treat NTP timestamps as signed two's-complement integers. This way,
@@ -29,7 +31,7 @@
             *usec_ = time_usec % AP_USEC_PER_SEC;
         }
     }
-    #endif
+    #endif // AP_NETWORKING_SNTP_ENABLED
 
     #if AP_NETWORKING_NETBIOS_ENABLED
     #include <lwip/apps/netbiosns.h>
@@ -56,13 +58,10 @@
     // #include <sys/time.h>
 #endif
 
-#include <GCS_MAVLink/GCS.h>
 #include "AP_Networking_SpeedTest.h"
 #include "AP_Networking_LatencyTest.h"
-#include "AP_Networking_Ping.h"
 
 extern const AP_HAL::HAL& hal;
-int AP_Networking::tftp_fd = -1;
 
 const AP_Param::GroupInfo AP_Networking::var_info[] = {
 
@@ -192,112 +191,59 @@ const AP_Param::GroupInfo AP_Networking::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("_OPTIONS", 17,  AP_Networking,    _param.options,   AP_NETWORKING_DEFAULT_OPTIONS),
 
-
+#if AP_NETWORKING_MAX_INSTANCES >= 1
     // @Group: 1_
     // @Path: AP_TemperatureSensor_Params.cpp
-    AP_SUBGROUPINFO(_params[0], "1_", 30, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[0], "1_", 31, AP_Networking, backend_var_info[0]),
-
+    AP_SUBGROUPINFO(_params[0], "1_", 40, AP_Networking, AP_Networking_Params),
+    AP_SUBGROUPVARPTR(_drivers[0], "1_", 41, AP_Networking, backend_var_info[0]),
+#endif
 #if AP_NETWORKING_MAX_INSTANCES >= 2
     // @Group: 2_
     // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[1], "2_", 32, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[1], "2_", 33, AP_Networking, backend_var_info[1]),
+    AP_SUBGROUPINFO(_params[1], "2_", 42, AP_Networking, AP_Networking_Params),
+    AP_SUBGROUPVARPTR(_drivers[1], "2_", 43, AP_Networking, backend_var_info[1]),
 #endif
-
 #if AP_NETWORKING_MAX_INSTANCES >= 3
     // @Group: 3_
     // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[2], "3_", 34, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[2], "3_", 35, AP_Networking, backend_var_info[2]),
+    AP_SUBGROUPINFO(_params[2], "3_", 44, AP_Networking, AP_Networking_Params),
+    AP_SUBGROUPVARPTR(_drivers[2], "3_", 45, AP_Networking, backend_var_info[2]),
 #endif
-
 #if AP_NETWORKING_MAX_INSTANCES >= 4
     // @Group: 4_
     // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[3], "4_", 36, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[3], "4_", 37, AP_Networking, backend_var_info[3]),
+    AP_SUBGROUPINFO(_params[3], "4_", 46, AP_Networking, AP_Networking_Params),
+    AP_SUBGROUPVARPTR(_drivers[3], "4_", 47, AP_Networking, backend_var_info[3]),
 #endif
-
 #if AP_NETWORKING_MAX_INSTANCES >= 5
     // @Group: 5_
     // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[4], "5_", 38, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[4], "5_", 39, AP_Networking, backend_var_info[4]),
+    AP_SUBGROUPINFO(_params[4], "5_", 48, AP_Networking, AP_Networking_Params),
+    AP_SUBGROUPVARPTR(_drivers[4], "5_", 49, AP_Networking, backend_var_info[4]),
 #endif
-
 #if AP_NETWORKING_MAX_INSTANCES >= 6
     // @Group: 6_
     // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[5], "6_", 40, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[5], "6_", 41, AP_Networking, backend_var_info[5]),
+    AP_SUBGROUPINFO(_params[5], "6_", 50, AP_Networking, AP_Networking_Params),
+    AP_SUBGROUPVARPTR(_drivers[5], "6_", 51, AP_Networking, backend_var_info[5]),
 #endif
-
 #if AP_NETWORKING_MAX_INSTANCES >= 7
     // @Group: 7_
     // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[6], "7_", 42, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[6], "7_", 43, AP_Networking, backend_var_info[6]),
+    AP_SUBGROUPINFO(_params[6], "7_", 52, AP_Networking, AP_Networking_Params),
+    AP_SUBGROUPVARPTR(_drivers[6], "7_", 63, AP_Networking, backend_var_info[6]),
 #endif
-
 #if AP_NETWORKING_MAX_INSTANCES >= 8
     // @Group: 8_
     // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[7], "8_", 44, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[7], "8_", 45, AP_Networking, backend_var_info[7]),
+    AP_SUBGROUPINFO(_params[7], "8_", 54, AP_Networking, AP_Networking_Params),
+    AP_SUBGROUPVARPTR(_drivers[7], "8_", 55, AP_Networking, backend_var_info[7]),
 #endif
-
 #if AP_NETWORKING_MAX_INSTANCES >= 9
     // @Group: 9_
     // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[8], "9_", 46, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[8], "9_", 47, AP_Networking, backend_var_info[8]),
-#endif
-
-#if AP_NETWORKING_MAX_INSTANCES >= 10
-    // @Group: A_
-    // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[9], "A_", 48, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[9], "A_", 49, AP_Networking, backend_var_info[9]),
-#endif
-
-#if AP_NETWORKING_MAX_INSTANCES >= 11
-    // @Group: B_
-    // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[10], "B_", 50, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[10], "B_", 51, AP_Networking, backend_var_info[10]),
-#endif
-
-#if AP_NETWORKING_MAX_INSTANCES >= 12
-    // @Group: C_
-    // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[11], "C", 52, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[11], "C_", 53, AP_Networking, backend_var_info[11]),
-#endif
-
-#if AP_NETWORKING_MAX_INSTANCES >= 13
-    // @Group: D_
-    // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[12], "D_", 54, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[12], "D_", 55, AP_Networking, backend_var_info[12]),
-#endif
-
-#if AP_NETWORKING_MAX_INSTANCES >= 14
-    // @Group: E_
-    // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[13], "E_", 56, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[13], "E_", 57, AP_Networking, backend_var_info[13]),
-#endif
-
-#if AP_NETWORKING_MAX_INSTANCES >= 15
-    // @Group: F_
-    // @Path: AP_Networking_Params.cpp
-    AP_SUBGROUPINFO(_params[14], "F_", 58, AP_Networking, AP_Networking_Params),
-    AP_SUBGROUPVARPTR(_drivers[14], "F_", 59, AP_Networking, backend_var_info[14]),
-#endif
-
-#if AP_NETWORKING_MAX_INSTANCES >= 16
-    #error "AP_NETWORKING_MAX_INSTANCES value is too large. Value must be <= 15."
+    AP_SUBGROUPINFO(_params[8], "9_", 56, AP_Networking, AP_Networking_Params),
+    AP_SUBGROUPVARPTR(_drivers[8], "9_", 57, AP_Networking, backend_var_info[8]),
 #endif
 
     AP_GROUPEND
@@ -326,8 +272,8 @@ void AP_Networking::init()
     // set default MAC Address lower 3 bytes to UUID if possible
     uint8_t uuid[12];
     uint8_t uuid_len = sizeof(uuid);
-    const bool udid_is_ok = hal.util->get_system_id_unformatted(uuid, uuid_len);
-    if (udid_is_ok && uuid_len >= 3) {
+    const bool udid_is_ok = hal.util->get_system_id_unformatted(uuid, uuid_len) && uuid_len >= 3;
+    if (udid_is_ok) {
         _param.macaddr[3].set_default(uuid[uuid_len-2]);
         _param.macaddr[4].set_default(uuid[uuid_len-1]);
         _param.macaddr[5].set_default(uuid[uuid_len-0]);
@@ -385,12 +331,6 @@ void AP_Networking::init()
                 break;
 #endif
 
-#if AP_NETWORKING_PING_ENABLED
-            case AP_Networking_Params::Type::Ping:
-                _drivers[instance] = new AP_Networking_Ping(*this, _state[instance], _params[instance]);
-                break;
-#endif
-
             case AP_Networking_Params::Type::None:
             default:
                 break;
@@ -425,20 +365,28 @@ void AP_Networking::init()
     if (option_is_set(Options::NETBIOS)) {
         netbiosns_init();
 
-        // get param BRD_SERIAL_NUM value
-        uint32_t serial_number = (AP::boardConfig() != nullptr) ? AP::boardConfig()->get_serial_number() : 0;
-        char name[NETBIOS_NAME_LEN+1] = {};
+        // Set the name of the device with example MAC:12-34-56-78-9A-BC
+        //
+        // BRD_SERIAL_NUM = 0
+        // name: "ARDUPILOT789ABC"
+        //
+        // BRD_SERIAL_NUM = 123
+        // name: "ARDUPILOT123"
 
-        if (serial_number == 0 && udid_is_ok && uuid_len >= 2) {
-            // if 0, and UDID is available, use it
-            serial_number = UINT16_VALUE(uuid[uuid_len-2], uuid[uuid_len-1]);
-        }
-        if (serial_number <= 0) {
-            // use default name as-is
-            hal.util->snprintf(name, ARRAY_SIZE(name), "%s", AP_NETWORKING_NETBIOS_NAME);
+        char name[NETBIOS_NAME_LEN] = {};
+        const int32_t serial_number = (AP::boardConfig() != nullptr) ? AP::boardConfig()->get_serial_number() : 0;
+
+        if (serial_number != 0) {
+            hal.util->snprintf(name, ARRAY_SIZE(name), "%s%d",
+                AP_NETWORKING_NETBIOS_NAME,
+                (int)serial_number);
+
         } else {
-            // copy serial number after name
-            hal.util->snprintf(name, ARRAY_SIZE(name), "%s%u", AP_NETWORKING_NETBIOS_NAME, (unsigned)serial_number);
+            hal.util->snprintf(name, ARRAY_SIZE(name), "%s%02X%02X%02X",
+                AP_NETWORKING_NETBIOS_NAME,
+                (unsigned)localMACAddress[3],
+                (unsigned)localMACAddress[4],
+                (unsigned)localMACAddress[5]);
         }
 
         netbiosns_set_name(name);
@@ -457,23 +405,25 @@ void AP_Networking::init()
         if (err == ERR_OK) {
             GCS_SEND_TEXT(MAV_SEVERITY_INFO,"NET: TFTP Ready");
         } else {
-            GCS_SEND_TEXT(MAV_SEVERITY_ERROR,"NET: TFTP init failed: %d", (int)err);
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR,"NET: TFTP Init error: %d", (int)err);
         }
     }
 #endif
 
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Initialized.%s", get_dhcp_enabled() ? " DHCP Enabled" : "");
+#if AP_NETWORKING_DEFAULT_DHCP_ENABLE
+    if (get_dhcp_enabled()) {
+        // give DHCP a chance to get an address before we show the boot-up address
+        _activeSettings.announce_ms = AP_HAL::millis();
+    }
+#endif
+
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"NET: Initialized");
     _init.done = true;
 }
 
 void AP_Networking::announce_address_changes()
 {
     const uint32_t now_ms = AP_HAL::millis();
-    if (_activeSettings.announce_ms == 0) {
-        // do nothing on the first run so we print on update() running once already
-        _activeSettings.announce_ms = now_ms;
-        return;
-    }
     if (now_ms - _activeSettings.announce_ms < 1000) {
         // Never announce changes any faster than 1 sec
         return;
@@ -488,7 +438,8 @@ void AP_Networking::announce_address_changes()
     // const uint32_t nm = thisif.netmask.u_addr.ip4.addr;
     // const uint32_t gw = thisif.gw.u_addr.ip4.addr;
 
-    if (_init.boot_gcs_announce &&
+
+    if (_activeSettings.announce_at_boot_done &&
         ip == _activeSettings.ip &&
         nm == _activeSettings.nm &&
         gw == _activeSettings.gw)
@@ -497,15 +448,20 @@ void AP_Networking::announce_address_changes()
         return;
     }
 
-    _init.boot_gcs_announce = true;
     _activeSettings.ip = ip;
     _activeSettings.nm = nm;
     _activeSettings.gw = gw;
-    _activeSettings.announce_ms = now_ms;
 
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: IP      %s", get_ip_active_str());
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: Mask    %s", get_netmask_active_str());
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "NET: Gateway %s", get_gateway_active_str());
+
+    if (!_activeSettings.announce_at_boot_done && ip == 0 && nm == 0 && gw == 0 && get_dhcp_enabled()) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"NET: DHCP enabled, waiting for IP");
+    }
+
+    _activeSettings.announce_ms = now_ms;
+    _activeSettings.announce_at_boot_done = true;
 }
 
 
@@ -664,7 +620,6 @@ char* AP_Networking::convert_ip_to_str(const uint32_t ip)
     return convert_ip_to_str(ip_array);
 }
 
-// send a UDP packet and return with bytes sent or an error code
 int32_t AP_Networking::send_udp(struct udp_pcb *pcb, const ip4_addr_t &ip4_addr, const uint16_t port, const uint8_t* data, uint16_t data_len)
 {
     if (data == nullptr || pcb == nullptr) {
@@ -688,6 +643,9 @@ int32_t AP_Networking::send_udp(struct udp_pcb *pcb, const ip4_addr_t &ip4_addr,
 
     return err == ERR_OK ? data_len : err;
 }
+
+#if AP_NETWORKING_TFTP_ENABLED
+int AP_Networking::tftp_fd = -1;
 
 // tftp wrappers for AP::Filesystem
 void* AP_Networking::tftp_open(const char* fname, const char* mode, u8_t write)
@@ -738,6 +696,7 @@ int AP_Networking::tftp_write(void* handle, struct pbuf* p)
     }
     return AP::FS().write(tftp_fd, p->payload, p->len);
 }
+#endif // AP_NETWORKING_TFTP_ENABLED
 
 AP_Networking *AP_Networking::_singleton;
 namespace AP { 
