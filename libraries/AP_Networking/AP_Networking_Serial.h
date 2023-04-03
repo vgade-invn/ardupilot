@@ -61,6 +61,13 @@ public:
     size_t write(uint8_t c) override;
     size_t write(const uint8_t *buffer, size_t size) override;
 
+    uint32_t bw_in_bytes_per_second() const override {
+        // assume 10MBit
+        return 10*1000*1000/8;
+    }
+
+    enum flow_control get_flow_control(void) override { return FLOW_CONTROL_ENABLE; }
+    
 private:
     bool _initialized = false;
 

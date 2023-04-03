@@ -3,6 +3,8 @@
 #if AP_SERIAL_EXTENSION_ENABLED
 extern const AP_HAL::HAL& hal;
 
+#include <AP_Math/AP_Math.h>
+
 void AP_Networking_Serial::begin(uint32_t b, uint16_t rxS, uint16_t txS)
 {
     if (_initialized) {
@@ -14,6 +16,16 @@ void AP_Networking_Serial::begin(uint32_t b, uint16_t rxS, uint16_t txS)
     if (txS == 0) {
         txS = AP_NETWORKING_UDP_TX_BUF_SIZE;
     }
+    uint16_t min_tx_buffer = 16384;
+    uint16_t min_rx_buffer = 1024;
+
+    if (txS < min_tx_buffer) {
+        txS = min_tx_buffer;
+    }
+    if (rxS < min_rx_buffer) {
+        rxS = min_rx_buffer;
+    }
+    
     // initialise bytebuffers
     _readbuf.set_size(rxS);
     _writebuf.set_size(txS);
@@ -117,27 +129,34 @@ size_t AP_Networking_Serial::write(const uint8_t *buffer, size_t size)
 void AP_Networking_Serial::thread()
 {
     while(true) {
+        bool send_ok = false;
         if (_writebuf.available()) {
             ByteBuffer::IoVec vec[2];
             const auto n_vec = _writebuf.peekiovec(vec, _writebuf.available());
-            for (uint8_t i=0; i<n_vec; i++) {
-                struct pbuf *p = pbuf_alloc_reference((void*)vec[i].data, vec[i].len, PBUF_REF);
-                if (p == nullptr) {
-                    break;
-                }
-                const err_t err = udp_sendto(pcb, p, &dst_addr, dst_port);
-                pbuf_free(p);
-                if (err != ERR_OK) {
-                    break;
-                }
+            if (n_vec < 1) {
+                break;
+            }
+            auto len = MIN(AP_NETWORKING_ETHERNET_UDP_PAYLOAD_MAX_SIZE, vec[0].len);
+            struct pbuf *p = pbuf_alloc_reference((void*)vec[0].data, len, PBUF_REF);
+            if (p == nullptr) {
+                break;
+            }
 
-                {
-                    WITH_SEMAPHORE(_tx_sem);
-                    _writebuf.advance(vec[i].len);
-                }
+            const err_t err = udp_sendto(pcb, p, &dst_addr, dst_port);
+            pbuf_free(p);
+            if (err != ERR_OK) {
+                break;
+            }
+
+            {
+                WITH_SEMAPHORE(_tx_sem);
+                _writebuf.advance(len);
+                send_ok = true;
             }
         }
-        hal.scheduler->delay(5);
+        if (!send_ok) {
+            hal.scheduler->delay_microseconds(200);
+        }
     }
 }
 
