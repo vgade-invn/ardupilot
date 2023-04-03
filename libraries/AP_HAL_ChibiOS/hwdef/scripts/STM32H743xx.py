@@ -52,7 +52,7 @@ mcu = {
         (0x38000000,  64, 1), # SRAM4.
     ],
     
-    'ETHERNET_RAM' : (0x30040000, 256, 0), # SRAM3
+    'ETHERNET_RAM' : (0x30040000, 32, 0), # SRAM3
     'EXPECTED_CLOCK' : 400000000,
 
 	'EXPECTED_CLOCKS' : [
