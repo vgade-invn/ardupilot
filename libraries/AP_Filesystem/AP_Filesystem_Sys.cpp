@@ -52,6 +52,7 @@ static const SysFileList sysfs_file_list[] = {
 #endif
     {"crash_dump.bin"},
     {"storage.bin"},
+    {"flash.bin"},
 };
 
 int8_t AP_Filesystem_Sys::file_in_sysfs(const char *fname) {
@@ -151,6 +152,9 @@ int AP_Filesystem_Sys::open(const char *fname, int flags, bool allow_absolute_pa
         if (hal.storage->get_storage_ptr(ptr, size)) {
             r.str->set_buffer((char*)ptr, size, size);
         }
+    }
+    if (strcmp(fname, "flash.bin") == 0) {
+        r.str->set_buffer((char*)0x08000000, 1024*1024, 1024*1024);
     }
     
     if (r.str->get_length() == 0) {
