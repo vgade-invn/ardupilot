@@ -99,8 +99,10 @@ PC5 ETH_RMII_RXD1        ETH1
 PG12 ETH_RMII_TXD1       ETH1
 PG13 ETH_RMII_TXD0       ETH1
 #PG15 ETH_POWER_EN   ETH1
+PG15 Ethernet_PWR_EN OUTPUT HIGH # disable power on ethernet
+define STM32_MAC_ETH1_CHANGE_PHY_STATE 0
 
-define BOARD_PHY_ID  MII_LAN8720_ID
+define BOARD_PHY_ID  MII_LAN8742A_ID
 define BOARD_PHY_RMII
 
 
@@ -233,7 +235,6 @@ PI11 VDD_3V3_SENSORS1_EN OUTPUT HIGH
 PF4  VDD_3V3_SENSORS2_EN OUTPUT HIGH
 PE7  VDD_3V3_SENSORS3_EN OUTPUT HIGH
 PG8  VDD_3V3_SENSORS4_EN OUTPUT HIGH
-PG15 Ethernet_PWR_EN OUTPUT HIGH # disable power on ethernet
 
 # start peripheral power off, then enable after init
 # this prevents a problem with radios that use RTS for
