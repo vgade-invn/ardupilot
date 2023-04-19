@@ -1,7 +1,10 @@
-ARSPD_FBW_MAX          60
+ARSPD_FBW_MAX          55
 ARSPD_FBW_MIN          48
-TRIM_ARSPD_CM        5400
-TECS_LAND_ARSPD        52
+TRIM_ARSPD_CM        5000
+TECS_LAND_ARSPD        48
+
+# yaw 180
+AHRS_ORIENTATION        4
 
 ADSB_ENABLE             0
 AHRS_GPS_USE            2
@@ -157,8 +160,8 @@ LAND_PF_ARSPD           0
 LAND_PF_PITCH_CD     -300
 LAND_PF_SEC            10
 LAND_PITCH_CD         800
-LIM_PITCH_MAX        3000
-LIM_PITCH_MIN       -2000
+LIM_PITCH_MAX        2000
+LIM_PITCH_MIN       -4000
 LIM_ROLL_AUTO          40
 LOG_DISARMED            1
 LOG_FILE_BUFSIZE      200
@@ -169,14 +172,14 @@ NAVL1_PERIOD           20
 NTF_LED_OVERRIDE        1
 NTF_LED_TYPES         231
 PTCH2SRV_D              0.3
-PTCH2SRV_FF             0.4140
-PTCH2SRV_I              0.4000
+PTCH2SRV_FF             0.0
+PTCH2SRV_I              0.2
 PTCH2SRV_IMAX        4500
 PTCH2SRV_P              0
 PTCH2SRV_RLL            0.5000
 PTCH2SRV_RMAX_DN       40
 PTCH2SRV_RMAX_UP       40
-PTCH2SRV_SRMAX         68
+PTCH2SRV_SRMAX         135
 PTCH2SRV_TCONST         1.0
 RC1_MAX              1992
 RC1_MIN               977
@@ -205,12 +208,12 @@ RC9_MAX              2000
 RC9_MIN              1000
 RC9_TRIM                0
 RLL2SRV_D               0.5000
-RLL2SRV_FF              0.3200
+RLL2SRV_FF              0.16
 RLL2SRV_I               0.1800
 RLL2SRV_IMAX         4000
 RLL2SRV_P               0
 RLL2SRV_RMAX           40
-RLL2SRV_SRMAX          68
+RLL2SRV_SRMAX         135
 RLL2SRV_TCONST          1.2
 RNGFND1_ADDR            0
 RNGFND1_FUNCTION        0
@@ -238,7 +241,7 @@ RSSI_PIN_LOW            0
 RSSI_TYPE               2
 RTL_AUTOLAND            2
 SCALING_SPEED          49
-SCHED_LOOP_RATE       300
+SCHED_LOOP_RATE       100
 SCR_DEBUG_LVL           0
 SCR_ENABLE              1
 SCR_HEAP_SIZE      100000
@@ -279,8 +282,8 @@ TECS_LAND_SPDWGT        1
 TECS_LAND_SRC           0.2000
 TECS_LAND_TCONST        5
 TECS_OPTIONS            1
-TECS_PITCH_MAX         -6
-TECS_PITCH_MIN        -12
+TECS_PITCH_MAX        -15
+TECS_PITCH_MIN        -30
 TECS_SINK_MAX          15
 TECS_SINK_MIN          10
 TECS_SPDWEIGHT         2.0
