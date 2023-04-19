@@ -64,9 +64,14 @@ bool AP_Airspeed_Synthetic::get_differential_pressure(float &pressure)
     aspeed3d += wind;
 
     // rotate to body frame
+#if 0
     const Matrix3f &rot = ahrs.get_rotation_body_to_ned();
     aspeed3d = rot.mul_transpose(aspeed3d);
-    float airspeed = MAX(aspeed3d.x, 0);
+    const float airspeed = MAX(aspeed3d.x, 0);
+#else
+    const float airspeed = aspeed3d.length();
+#endif
+
     const float ratio = get_airspeed_ratio();
     pressure = sq(airspeed) / ratio;
     return true;
