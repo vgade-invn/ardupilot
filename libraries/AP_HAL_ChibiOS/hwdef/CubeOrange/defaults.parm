@@ -17,6 +17,16 @@ ARSPD_TYPE              1
 ARSPD_USE               1
 ARSPD_WIND_DIR          0
 ARSPD_WIND_SPD          0
+
+# enable synthetic
+ARSPD2_TYPE            13
+ARSPD2_SKIP_CAL         1
+ARSPD2_RATIO            2
+ARSPD2_WIND_DIR         0
+ARSPD2_WIND_SPD         0
+
+ARSPD_PRIMARY           1
+
 BATT_AMP_OFFSET         0
 BATT_AMP_PERVLT        39.8770
 BATT_ARM_MAH            0

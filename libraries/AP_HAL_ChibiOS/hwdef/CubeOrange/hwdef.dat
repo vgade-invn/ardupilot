@@ -322,3 +322,7 @@ ROMFS io_firmware.bin Tools/IO_Firmware/iofirmware_highpolh.bin
 
 DMA_NOSHARE SPI1* SPI4* USART6*
 
+# need more space for default parameters
+define AP_PARAM_MAX_EMBEDDED_PARAM 12288
+
+
