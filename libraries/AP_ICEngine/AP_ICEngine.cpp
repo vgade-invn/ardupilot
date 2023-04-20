@@ -24,6 +24,7 @@
 #include <AP_Notify/AP_Notify.h>
 #include <RC_Channel/RC_Channel.h>
 #include <AP_RPM/AP_RPM.h>
+#include <AP_Relay/AP_Relay.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -154,9 +155,22 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @Units: RPM
     AP_GROUPINFO("REDLINE_RPM", 17, AP_ICEngine, redline_rpm, 0),
 
+    // @Param: IGNITION_RLY
+    // @DisplayName: Ignition relay channel
+    // @Description: This is a a relay channel to use for ignition control
+    // @User: Standard
+    // @Values: 0:None, 1:Relay1,2:Relay2,3:Relay3,4:Relay4
+    AP_GROUPINFO("IGNITION_RLY", 18, AP_ICEngine, ignition_relay, 0),
+
     AP_GROUPEND
 };
 
+#define TCA9554_I2C_BUS      1
+#define TCA9554_I2C_ADDR     0x20
+#define TCA9554_OUTPUT       0x01  // Output Port register address. Outgoing logic levels
+#define TCA9554_OUT_DEFAULT  0x30  // 0011 0000
+#define TCA9554_CONF         0x03  // Configuration Port register address [0 = Output]
+#define TCA9554_PINS         0xC2  // Set all used ports to outputs = 1100 0010
 
 // constructor
 AP_ICEngine::AP_ICEngine(const AP_RPM &_rpm) :
@@ -180,6 +194,13 @@ void AP_ICEngine::update(void)
 {
     if (!enable) {
         return;
+    }
+
+    if (i2c_state == I2C_UNINITIALIZED) {
+        i2c_state = I2C_FAILED;
+        if (TCA9554_init()) {
+            i2c_state = I2C_SUCCESS;
+        }
     }
 
     uint16_t cvalue = 1500;
@@ -336,6 +357,8 @@ void AP_ICEngine::update(void)
     case ICE_OFF:
         SRV_Channels::set_output_pwm(SRV_Channel::k_ignition, pwm_ignition_off);
         SRV_Channels::set_output_pwm(SRV_Channel::k_starter,  pwm_starter_off);
+        control_ign_str(IGN_OFF_STR_OFF);
+        ignition_relay_set(false);
         starter_start_time_ms = 0;
         break;
 
@@ -343,11 +366,21 @@ void AP_ICEngine::update(void)
     case ICE_START_DELAY:
         SRV_Channels::set_output_pwm(SRV_Channel::k_ignition, pwm_ignition_on);
         SRV_Channels::set_output_pwm(SRV_Channel::k_starter,  pwm_starter_off);
+        control_ign_str(IGN_ON_STR_OFF);
+        ignition_relay_set(false);
         break;
 
     case ICE_STARTING:
         SRV_Channels::set_output_pwm(SRV_Channel::k_ignition, pwm_ignition_on);
         SRV_Channels::set_output_pwm(SRV_Channel::k_starter,  pwm_starter_on);
+        if (!(hal.util->get_soft_armed() || allow_throttle_disarmed())) {
+            control_ign_str(IGN_ON_STR_OFF);
+            ignition_relay_set(false);
+        } else {
+            control_ign_str(IGN_ON_STR_ON_DIR_ON);
+            ignition_relay_set(true);
+        }
+        
         if (starter_start_time_ms == 0) {
             starter_start_time_ms = now;
         }
@@ -357,6 +390,8 @@ void AP_ICEngine::update(void)
     case ICE_RUNNING:
         SRV_Channels::set_output_pwm(SRV_Channel::k_ignition, pwm_ignition_on);
         SRV_Channels::set_output_pwm(SRV_Channel::k_starter,  pwm_starter_off);
+        control_ign_str(IGN_ON_STR_OFF);
+        ignition_relay_set(true);
         starter_start_time_ms = 0;
         break;
     }
@@ -537,6 +572,79 @@ void AP_ICEngine::update_idle_governor(int8_t &min_throttle)
     min_throttle = roundf(idle_governor_integrator);
 }
 
+bool AP_ICEngine::TCA9554_init()
+{
+    dev_TCA9554 = std::move(hal.i2c_mgr->get_device(TCA9554_I2C_BUS, TCA9554_I2C_ADDR));
+    if (!dev_TCA9554) {
+        return false;
+    }
+    WITH_SEMAPHORE(dev_TCA9554->get_semaphore());
+
+    dev_TCA9554->set_retries(10);
+
+    // set outputs
+    bool ret = dev_TCA9554->write_register(TCA9554_OUTPUT, TCA9554_OUT_DEFAULT);
+    if (!ret) {
+        return false;
+    }
+    ret = dev_TCA9554->write_register(TCA9554_CONF, TCA9554_PINS);
+    if (!ret) {
+        return false;
+    }
+    TCA9554_set(IGN_OFF_STR_OFF);
+    dev_TCA9554->set_retries(1);
+    return true;
+}
+
+void AP_ICEngine::TCA9554_set(TCA9554_state_t value)
+{
+    if (value != TCA9554_state) {
+        TCA9554_state = value;
+        WITH_SEMAPHORE(dev_TCA9554->get_semaphore());
+        // set outputs and status leds
+        //dev_TCA9554->write_register(TCA9554_OUTPUT, (~(value<<2) & 0x0C) | value);
+        dev_TCA9554->write_register(TCA9554_OUTPUT, (~(value<<2) & 0x0C) | value);
+        //0011 0010
+        //1100 1000 & 0000 1100
+        //0000 1000 OR 0011 0010
+        //0011 1010
+    }
+}
+
+void AP_ICEngine::control_ign_str(TCA9554_state_t value)
+{
+    if (i2c_state == I2C_SUCCESS)
+    {
+        TCA9554_set(value);
+    }
+    else
+    {
+    	//Leave for now
+    }
+}
+
+/*
+  control relay for ICE ignition
+ */
+void AP_ICEngine::ignition_relay_set(bool on)
+{
+    if (ignition_relay > 0) {
+        auto *relay = AP::relay();
+        if (relay != nullptr) {
+            if (on) {
+                relay->on(ignition_relay-1);
+            } else {
+                relay->off(ignition_relay-1);
+            }
+        }
+    }
+}
+
+bool AP_ICEngine::allow_throttle_disarmed() const
+{
+    return option_set(Options::THROTTLE_WHILE_DISARMED) &&
+        hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED;
+}
 
 // singleton instance. Should only ever be set in the constructor.
 AP_ICEngine *AP_ICEngine::_singleton;
