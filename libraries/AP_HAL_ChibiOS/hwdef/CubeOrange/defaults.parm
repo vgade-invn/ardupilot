@@ -24,6 +24,7 @@ ARSPD2_SKIP_CAL         1
 ARSPD2_RATIO            2
 ARSPD2_WIND_DIR         0
 ARSPD2_WIND_SPD         0
+ARSPD2_USE              1
 
 ARSPD_PRIMARY           1
 
@@ -170,7 +171,7 @@ LAND_PF_ARSPD           0
 LAND_PF_PITCH_CD     -300
 LAND_PF_SEC            10
 LAND_PITCH_CD         800
-LIM_PITCH_MAX        2000
+LIM_PITCH_MAX        1000
 LIM_PITCH_MIN       -4000
 LIM_ROLL_AUTO          40
 LOG_DISARMED            1
@@ -193,11 +194,11 @@ PTCH2SRV_SRMAX         135
 PTCH2SRV_TCONST         1.0
 RC1_MAX              1992
 RC1_MIN               977
-RC1_TRIM             1484
+RC1_TRIM             1501
 RC2_MAX              1990
 RC2_MIN               977
 RC2_REVERSED            1
-RC2_TRIM             1488
+RC2_TRIM             1508
 RC3_MAX              2004
 RC3_MIN               999
 RC3_TRIM              999
@@ -266,21 +267,21 @@ SERIAL2_BAUD          115
 SERIAL4_BAUD          115
 SERIAL4_PROTOCOL        9
 SERIAL5_PROTOCOL       -1
-SERVO1_FUNCTION        17
+SERVO1_FUNCTION        19
 SERVO1_MAX           1600
 SERVO1_MIN           1200
 SERVO1_REVERSED         1
 SERVO1_TRIM          1400
-SERVO2_FUNCTION        86
+SERVO2_FUNCTION         4
 SERVO2_MAX           2020
 SERVO2_MIN           1615
-SERVO2_REVERSED         1
+SERVO2_REVERSED         0
 SERVO2_TRIM          1800
-SERVO3_FUNCTION        16
+SERVO3_FUNCTION        19
 SERVO3_MAX           2000
 SERVO3_MIN           1620
 SERVO3_TRIM          1810
-SERVO4_FUNCTION        87
+SERVO4_FUNCTION         4
 SERVO4_MAX           1640
 SERVO4_MIN           1280
 SERVO4_TRIM          1460
@@ -292,8 +293,8 @@ TECS_LAND_SPDWGT        1
 TECS_LAND_SRC           0.2000
 TECS_LAND_TCONST        5
 TECS_OPTIONS            1
-TECS_PITCH_MAX        -15
-TECS_PITCH_MIN        -30
+TECS_PITCH_MAX        -20
+TECS_PITCH_MIN        -35
 TECS_SINK_MAX          15
 TECS_SINK_MIN          10
 TECS_SPDWEIGHT         2.0
