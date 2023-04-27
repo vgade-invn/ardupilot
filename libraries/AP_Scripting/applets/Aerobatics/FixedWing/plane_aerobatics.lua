@@ -189,7 +189,7 @@ if TRIK_ENABLE:get() > 0 then
                            bind_add_param2(prefix .. "_ARG3", k+3, 0),
                            bind_add_param2(prefix .. "_ARG4", k+4, 0))
    end
-   gcs:send_text(0, string.format("Enabled %u aerobatic tricks", TRIK_COUNT:get()))
+   gcs:send_text(MAV_SEVERITY.ALERT, string.format("Enabled %u aerobatic tricks", TRIK_COUNT:get()))
 end
 
 local NAV_TAKEOFF = 22
@@ -1000,10 +1000,10 @@ function _path_composer:get_subpath_t(t)
          if option_set(OPTIONS.MSG_ADD_AT) then
             msg = "@" .. msg
          end
-         gcs:send_text(0, msg)
+         gcs:send_text(MAV_SEVERITY.ALERT, msg)
       end
       if AEROM_DEBUG:get() > 0 then
-         gcs:send_text(0, string.format("starting %s[%d] %s", self.name, i, sp.name))
+         gcs:send_text(MAV_SEVERITY.ALERT, string.format("starting %s[%d] %s", self.name, i, sp.name))
       end
    end
    return subpath_t, i
@@ -1074,11 +1074,11 @@ function _path_composer:calculate_timestamps()
             local length_sum = self:subpath(i-1):get_length()
             for j = i, self.num_sub_paths do
                if self.timestamp_start[j] then
-                  --gcs:send_text(0, string.format("found %u %u %.3f ts=%.3f", i, j, length_sum, tstart))
+                  --gcs:send_text(MAV_SEVERITY.ALERT, string.format("found %u %u %.3f ts=%.3f", i, j, length_sum, tstart))
                   for k = i, j-1 do
                      local len = self:subpath(k):get_length()
                      self.timestamp_start[k] = tstart +  len / length_sum
-                     --gcs:send_text(0, string.format("ts[%u] %.3f %.2f/%.2f", k, self.timestamp_start[k], len, length_sum))
+                     --gcs:send_text(MAV_SEVERITY.ALERT, string.format("ts[%u] %.3f %.2f/%.2f", k, self.timestamp_start[k], len, length_sum))
                   end
                   break
                end
@@ -1100,7 +1100,7 @@ function _path_composer:calculate_timestamps()
    end
 
    if self.have_timestamps then
-      gcs:send_text(0,"Calculated timestamps")
+      gcs:send_text(MAV_SEVERITY.INFO,"Calculated timestamps")
    end
 end
 
@@ -1132,12 +1132,6 @@ function _path_composer:timestamp_to_patht(tstamp)
       end
    end
    return 1.0
-end
-
-function _path_composer:test_timestamp(patht)
-   local tstamp = self:patht_to_timestamp(patht)
-   local patht2 = self:timestamp_to_patht(tstamp)
-   gcs:send_text(0, string.format("tostamp %.3f -> %.3f -> %.3f", patht, tstamp, patht2))
 end
 
 --[[
@@ -1662,7 +1656,7 @@ function takeoff_controller(_distance, _thr_slew)
    local all_done = false
    local initial_yaw_deg = math.deg(ahrs:get_yaw())
    local yaw_correction_tconst = 1.0
-   gcs:send_text(0,string.format("Takeoff init"))
+   gcs:send_text(MAV_SEVERITY.INFO,string.format("Takeoff init"))
 
    --[[
       the update() method is called during the rudder over, it
@@ -1675,7 +1669,7 @@ function takeoff_controller(_distance, _thr_slew)
       local now = millis():tofloat() * 0.001
       local ahrs_pos = ahrs:get_relative_position_NED_origin()
       if start_time == 0 then
-         gcs:send_text(0,string.format("Takeoff start"))
+         gcs:send_text(MAV_SEVERITY.INFO,string.format("Takeoff start"))
          start_time = now
          start_pos = ahrs_pos
       end
@@ -1689,7 +1683,7 @@ function takeoff_controller(_distance, _thr_slew)
       vehicle:set_rudder_offset(0, true)
       local dist_moved = (ahrs_pos - start_pos):length()
       if dist_moved > distance then
-         gcs:send_text(0,string.format("Takeoff complete dist=%.1f", dist_moved))
+         gcs:send_text(MAV_SEVERITY.INFO,string.format("Takeoff complete dist=%.1f", dist_moved))
 
          path_var.path_t = path:get_next_segment_start(t)
          path_var.last_time = now
@@ -2221,7 +2215,7 @@ function do_path()
 
    local tv_unit = tangent2_ef:copy()
    if tv_unit:length() < 0.00001 then
-      gcs:send_text(0, string.format("path not advancing %f", tv_unit:length()))
+      gcs:send_text(MAV_SEVERITY.EMERGENCY, string.format("path not advancing %f", tv_unit:length()))
    end
    tv_unit:normalize()
 
@@ -2232,7 +2226,7 @@ function do_path()
    local v = ahrs_velned:copy()
    local path_dist = v:dot(tv_unit)*actual_dt
    if path_dist < 0 and path_var.last_rate_override > 0 and now - path_var.last_rate_override > 1 then
-      gcs:send_text(0, string.format("aborting %.2f at %d tv=(%.2f,%.2f,%.2f) vx=%.2f adt=%.2f",
+      gcs:send_text(MAV_SEVERITY.EMERGENCY, string.format("aborting %.2f at %d tv=(%.2f,%.2f,%.2f) vx=%.2f adt=%.2f",
                                      path_dist, path_var.count,
                                      tangent2_ef:x(),
                                      tangent2_ef:y(),
@@ -2344,7 +2338,7 @@ function do_path()
    --]]
    local path_rate_ef_rads = tangents_to_rate(tangent1_ef, tangent2_ef, actual_dt)
    if Vec3IsNaN(path_rate_ef_rads) then
-      gcs:send_text(0,string.format("path_rate_ef_rads: NaN"))
+      gcs:send_text(MAV_SEVERITY.EMERGENCY,string.format("path_rate_ef_rads: NaN"))
       path_rate_ef_rads = makeVector3f(0,0,0)
    end
    local path_rate_ef_dps = path_rate_ef_rads:scale(math.deg(1))
@@ -2495,7 +2489,7 @@ function do_path()
    throttle = constrain(throttle, thr_min, 100.0)
 
    if isNaN(throttle) or Vec3IsNaN(tot_ang_vel_bf_dps) then
-      gcs:send_text(0,string.format("Path NaN - aborting"))
+      gcs:send_text(MAV_SEVERITY.EMERGENCY,string.format("Path NaN - aborting"))
       return false
    end
 
@@ -2509,7 +2503,7 @@ function do_path()
 
    local alt_error = (current_measured_pos_ef - path_var.initial_ef_pos):z()
    if alt_error > AEROM_ALT_ABORT:get() then
-     gcs:send_text(0,"Too low altitude, aborting")
+     gcs:send_text(MAV_SEVERITY.EMERGENCY,"Too low altitude, aborting")
      return false
    end
 
@@ -2621,14 +2615,14 @@ end
 function parse_function(line, file)
    _, _, funcname = string.find(line, "^function%s*([%w_]+).*$")
    if not funcname then
-      gcs:send_text(0, string.format("Parse error: %s", line))
+      gcs:send_text(MAV_SEVERITY.ERROR, string.format("Parse error: %s", line))
       return
    end
    local funcstr = line .. "\n"
    while true do
       local line = file:read()
       if not line then
-         gcs:send_text(0, string.format("Error: end of file in %s", funcname))
+         gcs:send_text(MAV_SEVERITY.ERROR, string.format("Error: end of file in %s", funcname))
          break
       end
       funcstr = funcstr .. line .. "\n"
@@ -2638,13 +2632,13 @@ function parse_function(line, file)
    end
    local f, errloc, err = load(funcstr, funcname, "t", _ENV)
    if not f then
-      gcs:send_text(0,string.format("Error %s: %s", errloc, err))
+      gcs:send_text(MAV_SEVERITY.ERROR,string.format("Error %s: %s", errloc, err))
       return
    end
    -- fun the function code, which creates the function
    local success, err = pcall(f)
    if not success then
-      gcs:send_text(0,string.format("Error %s: %s", funcname, err))
+      gcs:send_text(MAV_SEVERITY.ERROR,string.format("Error %s: %s", funcname, err))
    end
    load_table[funcname] = _ENV[funcname]
 end
@@ -2670,7 +2664,7 @@ function load_trick(id)
       end
    end
    if file == nil then
-      gcs:send_text(0,string.format("Failed to open %s", fname))
+      gcs:send_text(MAV_SEVERITY.ERROR,string.format("Failed to open %s", fname))
       return
    end
    local name = string.format("Trick%u", id)
@@ -2693,7 +2687,7 @@ function load_trick(id)
          if a ~= nil then
             attrib[a] = interpret_attrib(s)
          else
-            gcs:send_text(0, string.format("Bad line: '%s'", line))
+            gcs:send_text(MAV_SEVERITY.ERROR, string.format("Bad line: '%s'", line))
          end
       elseif cmd == "function" then
          parse_function(line, file)
@@ -2704,7 +2698,7 @@ function load_trick(id)
          arg4 = tonumber(arg4) or 0
          local f = load_table[cmd]
          if f == nil then
-            gcs:send_text(0,string.format("Unknown command '%s' in %s", cmd, fname))
+            gcs:send_text(MAV_SEVERITY.ERROR,string.format("Unknown command '%s' in %s", cmd, fname))
          else
             paths[#paths+1] = { f, { arg1, arg2, arg3, arg4 }}
             for k, v in pairs(attrib) do
@@ -2715,7 +2709,7 @@ function load_trick(id)
       end
    end
    local pc = path_composer(name, paths)
-   gcs:send_text(0, string.format("Loaded trick%u '%s'", id, name))
+   gcs:send_text(MAV_SEVERITY.INFO, string.format("Loaded trick%u '%s'", id, name))
    command_table[id] = PathFunction(pc, name)
    logger:log_file_content(filename)
 
@@ -2776,10 +2770,10 @@ function check_auto_mission()
       local initial_yaw_deg = get_ground_course_deg()
       load_trick(cmd)
       if command_table[cmd] == nil then
-         gcs:send_text(0, string.format("Trick %u not found", cmd))
+         gcs:send_text(MAV_SEVERITY.ERROR, string.format("Trick %u not found", cmd))
          return
       end
-      gcs:send_text(0, string.format("Starting %s!", command_table[cmd].name ))
+      gcs:send_text(MAV_SEVERITY.INFO, string.format("Starting %s!", command_table[cmd].name ))
 
       -- work out yaw between previous WP and next WP
       local cnum = mission:get_current_nav_index()
@@ -2805,7 +2799,7 @@ function check_auto_mission()
          end
          local wp_yaw_deg = math.deg(loc_prev:get_bearing(loc_next))
          if math.abs(wrap_180(initial_yaw_deg - wp_yaw_deg)) > 90 and cnum > 1 then
-            gcs:send_text(0, string.format("Doing turnaround! iyaw=%.1f wyaw=%.1f", initial_yaw_deg, wp_yaw_deg))
+            gcs:send_text(MAV_SEVERITY.INFO, string.format("Doing turnaround! iyaw=%.1f wyaw=%.1f", initial_yaw_deg, wp_yaw_deg))
             wp_yaw_deg = wrap_180(wp_yaw_deg + 180)
          end
          initial_yaw_deg = wp_yaw_deg
@@ -2846,7 +2840,7 @@ function check_trick()
    local selection = get_trick_selection()
    local action = rc:get_aux_cached(TRIK_ACT_FN:get())
    if action == 0 and current_task ~= nil then
-      gcs:send_text(0,string.format("Trick aborted"))
+      gcs:send_text(MAV_SEVERITY.ALERT,string.format("Trick aborted"))
       current_task = nil
       last_trick_selection = nil
       -- use invalid mode to disable script control
@@ -2859,14 +2853,14 @@ function check_trick()
    if action == 1 and selection ~= last_trick_selection then
       local id = TRICKS[selection].id:get()
          if id == -1 then
-            gcs:send_text(0,string.format("Trick %u not setup",selection))
+            gcs:send_text(MAV_SEVERITY.ERROR,string.format("Trick %u not setup",selection))
             last_trick_selection = selection
             return
          end
       load_trick(id)
       if command_table[id] ~= nil then
          local cmd = command_table[id]
-         gcs:send_text(0, string.format("Trick %u selected (%s)", selection, cmd.name))
+         gcs:send_text(MAV_SEVERITY.INFO, string.format("Trick %u selected (%s)", selection, cmd.name))
          last_trick_selection = selection
          return
       end
@@ -2879,32 +2873,32 @@ function check_trick()
       last_trick_selection = selection
       last_trick_action_state = action
       if selection == 0 then
-         gcs:send_text(0, string.format("No trick selected"))
+         gcs:send_text(MAV_SEVERITY.ALERT, string.format("No trick selected"))
          return
       end
       local id = TRICKS[selection].id:get()
       if id == -1 then
-         gcs:send_text(0,string.format("Trick %u not setup",selection))
+         gcs:send_text(MAV_SEVERITY.ALERT,string.format("Trick %u not setup",selection))
          last_trick_selection = selection
          return
       end
       load_trick(id)
       if command_table[id] == nil then
-         gcs:send_text(0, string.format("Invalid trick ID %u", id))
+         gcs:send_text(MAV_SEVERITY.ALERT, string.format("Invalid trick ID %u", id))
          return
       end
       local cmd = command_table[id]
       if action == 1 then
-         gcs:send_text(0, string.format("Trick %u selected (%s)", selection, cmd.name))
+         gcs:send_text(MAV_SEVERITY.INFO, string.format("Trick %u selected (%s)", selection, cmd.name))
       end
       if action == 2 then
          last_trick_selection = nil
          local current_mode = vehicle:get_mode()
          if not vehicle:nav_scripting_enable(current_mode) then
-            gcs:send_text(0, string.format("Tricks not available in mode"))
+            gcs:send_text(MAV_SEVERITY.ALERT, string.format("Tricks not available in mode"))
             return
          end
-         gcs:send_text(0, string.format("Trick %u started (%s)", selection, cmd.name))
+         gcs:send_text(MAV_SEVERITY.INFO, string.format("Trick %u started (%s)", selection, cmd.name))
          local initial_yaw_deg = get_ground_course_deg()
          current_task = PathTask(cmd.fn,
                                  cmd.name,
@@ -2935,7 +2929,7 @@ function update()
 
    if current_task ~= nil then
       if not do_path() then
-         gcs:send_text(0, string.format("Finishing %s!", current_task.name))
+         gcs:send_text(MAV_SEVERITY.INFO, string.format("Finishing %s!", current_task.name))
          if current_task.id ~= nil then
             vehicle:nav_script_time_done(current_task.id)
          else
@@ -2949,5 +2943,5 @@ function update()
    return update, 1000.0/LOOP_RATE
 end
 
-gcs:send_text(0, string.format("Loaded plane_aerobatics.lua"))
+gcs:send_text(MAV_SEVERITY.INFO, string.format("Loaded plane_aerobatics.lua"))
 return update()
