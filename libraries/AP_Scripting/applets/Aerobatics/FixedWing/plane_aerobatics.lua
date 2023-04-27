@@ -1056,36 +1056,40 @@ end
 function _path_composer:calculate_timestamps()
    self.timestamp_start = {}
    self.timestamp_start[1] = 0.0
+   self.have_timestamps = false
    for i = 1, self.num_sub_paths do
       local sp = self:subpath(i)
       local timestamp = sp.timestamp
       if timestamp then
          self.timestamp_start[i] = timestamp
+         self.have_timestamps = true
       end
    end
-   local tstart = 0.0
-   for i = 2, self.num_sub_paths do
-      local sp = self:subpath(i)
-      if not self.timestamp_start[i] then
-         -- find the next element with a timestamp, getting total length
-         local length_sum = self:subpath(i-1):get_length()
-         for j = i, self.num_sub_paths do
-            if self.timestamp_start[j] then
-               --gcs:send_text(0, string.format("found %u %u %.3f ts=%.3f", i, j, length_sum, tstart))
-               for k = i, j-1 do
-                  local len = self:subpath(k):get_length()
-                  self.timestamp_start[k] = tstart +  len / length_sum
-                  --gcs:send_text(0, string.format("ts[%u] %.3f %.2f/%.2f", k, self.timestamp_start[k], len, length_sum))
+   if self.have_timestamps then
+      local tstart = 0.0
+      for i = 2, self.num_sub_paths do
+         local sp = self:subpath(i)
+         if not self.timestamp_start[i] then
+            -- find the next element with a timestamp, getting total length
+            local length_sum = self:subpath(i-1):get_length()
+            for j = i, self.num_sub_paths do
+               if self.timestamp_start[j] then
+                  --gcs:send_text(0, string.format("found %u %u %.3f ts=%.3f", i, j, length_sum, tstart))
+                  for k = i, j-1 do
+                     local len = self:subpath(k):get_length()
+                     self.timestamp_start[k] = tstart +  len / length_sum
+                     --gcs:send_text(0, string.format("ts[%u] %.3f %.2f/%.2f", k, self.timestamp_start[k], len, length_sum))
+                  end
+                  break
                end
-               break
+               length_sum = length_sum + self:subpath(j):get_length()
             end
-            length_sum = length_sum + self:subpath(j):get_length()
+         else
+            tstart = self.timestamp_start[i]
          end
-      else
-         tstart = self.timestamp_start[i]
       end
+      self.timestamp_start[self.num_sub_paths+1] = self.timestamp_start[self.num_sub_paths]+1.0
    end
-   self.timestamp_start[self.num_sub_paths+1] = self.timestamp_start[self.num_sub_paths]+1.0
 
    self.patht_start = {}
    self.patht_start[1] = 0.0
@@ -1095,20 +1099,16 @@ function _path_composer:calculate_timestamps()
       self.patht_start[i] = self.patht_start[i-1] + self:subpath(i-1):get_length() / total_length
    end
 
-   --[[
-   for i = 1, self.num_sub_paths+1 do
-      if self.timestamp_start[i] then
-         gcs:send_text(0, string.format("tstart[%u]=%.3f pt=%.4f", i, self.timestamp_start[i], self.patht_start[i]))
-      else
-         gcs:send_text(0, string.format("tstart[%u]=nil", i))
-      end
+   if self.have_timestamps then
+      gcs:send_text(0,"Calculated timestamps")
    end
-   --]]
-   gcs:send_text(0,"Calculated timestamps")
 end
 
 function _path_composer:patht_to_timestamp(path_t)
    path_t = constrain(path_t, 0.0, 1.0)
+   if not self.have_timestamps then
+      return path_t
+   end
    for i = 1, self.num_sub_paths do
       if self.patht_start[i+1] >= path_t then
          local dt = path_t - self.patht_start[i]
@@ -1120,6 +1120,9 @@ function _path_composer:patht_to_timestamp(path_t)
 end
 
 function _path_composer:timestamp_to_patht(tstamp)
+   if not self.have_timestamps then
+      return tstamp
+   end
    tstamp = constrain(tstamp, 0.0, self.timestamp_start[self.num_sub_paths+1])
    for i = 1, self.num_sub_paths do
       if self.timestamp_start[i+1] >= tstamp then
@@ -2780,7 +2783,6 @@ function check_auto_mission()
 
       -- work out yaw between previous WP and next WP
       local cnum = mission:get_current_nav_index()
-      gcs:send_text(0, string.format("CNUM=%u", cnum))
 
       if AEROM_MIS_ANGLE:get() == 0 then
          -- find previous nav waypoint
