@@ -19,20 +19,105 @@ function bind_add_param(name, idx, default_value)
     return Parameter(PARAM_TABLE_PREFIX .. name)
 end
 
+
+--[[
+  // @Param: AEROM_ANG_ACCEL
+  // @DisplayName: Angular acceleration limit
+  // @Description: Maximum angular acceleration in maneuvers
+  // @Units: deg/s/s
+--]]
 AEROM_ANG_ACCEL = bind_add_param('ANG_ACCEL', 1, 6000)
+
+
+--[[
+  // @Param: AEROM_ANG_TC
+  // @DisplayName: Roll control filtertime constant
+  // @Description: This is the time over which we filter the desired roll to smooth it
+  // @Units: s
+--]]
 AEROM_ANG_TC = bind_add_param('ANG_TC', 2, 0.1)
+
 -- 3 was AEROM_KE_ANG
+
+--[[
+  // @Param: AEROM_THR_PIT_FF
+  // @DisplayName: Throttle feed forward from pitch
+  // @Description: This controls how much extra throttle to add based on pitch ange. The value is for 90 degrees and is applied in proportion to pitch
+  // @Units: %
+--]]
 THR_PIT_FF = bind_add_param('THR_PIT_FF', 4, 80)
+
+--[[
+  // @Param: AEROM_SPD_P
+  // @DisplayName: P gain for speed controller
+  // @Description: This controls how rapidly the throttle is raised to compensate for a speed error
+  // @Units: %
+--]]
 SPD_P = bind_add_param('SPD_P', 5, 5)
+
+--[[
+  // @Param: AEROM_SPD_I
+  // @DisplayName: I gain for speed controller
+  // @Description: This controls how rapidly the throttle is raised to compensate for a speed error
+  // @Units: %
+--]]
 SPD_I = bind_add_param('SPD_I', 6, 25)
+
+--[[
+  // @Param: AEROM_ROL_COR_TC
+  // @DisplayName: Roll control time constant
+  // @Description: This is the time constant for correcting roll errors. A smaller value leads to faster roll corrections
+  // @Units: s
+--]]
 ROLL_CORR_TC = bind_add_param('ROL_COR_TC', 8, 0.25)
+
 -- removed 9 and 10
+
+--[[
+  // @Param: AEROM_TIME_COR_P
+  // @DisplayName: Time constant for correction of our distance along the path
+  // @Description: This is the time constant for correcting path position errors
+  // @Units: s
+--]]
 TIME_CORR_P = bind_add_param('TIME_COR_P', 11, 1.0)
+
+--[[
+  // @Param: AEROM_ERR_COR_P
+  // @DisplayName: P gain for path error corrections
+  // @Description: This controls how rapidly we correct back onto the desired path
+--]]
 ERR_CORR_P = bind_add_param('ERR_COR_P', 12, 2.0)
+
+--[[
+  // @Param: AEROM_ERR_COR_D
+  // @DisplayName: D gain for path error corrections
+  // @Description: This controls how rapidly we correct back onto the desired path
+--]]
 ERR_CORR_D = bind_add_param('ERR_COR_D', 13, 2.8)
+
+--[[
+  // @Param: AEROM_ENTRY_RATE
+  // @DisplayName: The roll rate to use when entering a roll maneuver
+  // @Description: This controls how rapidly we roll into a new orientation
+  // @Units: deg/s
+--]]
 AEROM_ENTRY_RATE = bind_add_param('ENTRY_RATE', 14, 60)
+
+--[[
+  // @Param: AEROM_THR_LKAHD
+  // @DisplayName: The lookahead for throttle control
+  // @Description: This controls how far ahead we look in time along the path for the target throttle
+  // @Units: s
+--]]
 AEROM_THR_LKAHD = bind_add_param('THR_LKAHD', 15, 1)
+
+--[[
+  // @Param: AEROM_DEBUG
+  // @DisplayName: Debug control
+  // @Description: This controls the printing of extra debug information on paths
+--]]
 AEROM_DEBUG = bind_add_param('DEBUG', 16, 0)
+
 --[[
   // @Param: AEROM_THR_MIN
   // @DisplayName: Minimum Throttle
@@ -40,9 +125,31 @@ AEROM_DEBUG = bind_add_param('DEBUG', 16, 0)
   // @Units: %
 --]]
 AEROM_THR_MIN = bind_add_param('THR_MIN', 17, 0)
+
+--[[
+  // @Param: AEROM_THR_BOOST
+  // @DisplayName: Throttle boost
+  // @Description: This is the extra throttle added in schedule elements marked as needing a throttle boost
+  // @Units: %
+--]]
 AEROM_THR_BOOST = bind_add_param('THR_BOOST', 18, 50)
+
+--[[
+  // @Param: AEROM_YAW_ACCEL
+  // @DisplayName: Yaw acceleration
+  // @Description: This is maximum yaw acceleration to use
+  // @Units: deg/s/s
+--]]
 AEROM_YAW_ACCEL = bind_add_param('YAW_ACCEL', 19, 1500)
+
+--[[
+  // @Param: AEROM_LKAHD
+  // @DisplayName: Lookahead
+  // @Description: This is how much time to look ahead in the path for calculating path rates
+  // @Units: s
+--]]
 AEROM_LKAHD = bind_add_param('LKAHD', 20, 0.5)
+
 --[[
     // @Param: AEROM_PATH_SCALE
     // @DisplayName: Path Scale
@@ -50,6 +157,7 @@ AEROM_LKAHD = bind_add_param('LKAHD', 20, 0.5)
     // @Range: 0.1 100
 --]]
 AEROM_PATH_SCALE = bind_add_param('PATH_SCALE', 21, 1.0)
+
 --[[
     // @Param: AEROM_BOX_WIDTH
     // @DisplayName: Box Width
@@ -57,8 +165,23 @@ AEROM_PATH_SCALE = bind_add_param('PATH_SCALE', 21, 1.0)
     // @Units: m
 --]]
 AEROM_BOX_WIDTH = bind_add_param('BOX_WIDTH', 22, 400)
+
+--[[
+    // @Param: AEROM_STALL_THR
+    // @DisplayName: Stall turn throttle
+    // @Description: Amount of throttle to reduce to for a stall turn
+    // @Units: %
+--]]
 AEROM_STALL_THR = bind_add_param('STALL_THR', 23, 40)
+
+--[[
+    // @Param: AEROM_STALL_PIT
+    // @DisplayName: Stall turn pitch threshold
+    // @Description: Pitch threashold for moving to final stage of stall turn
+    // @Units: deg
+--]]
 AEROM_STALL_PIT = bind_add_param('STALL_PIT', 24, -20)
+
 -- 25 was AEROM_KE_TC
 
 --[[
@@ -68,7 +191,15 @@ AEROM_STALL_PIT = bind_add_param('STALL_PIT', 24, -20)
     // @Units: %
 --]]
 AEROM_KE_RUDD = bind_add_param('KE_RUDD', 26, 25)
+
+--[[
+    // @Param: AEROM_KE_RUDD_LK
+    // @DisplayName: KnifeEdge Rudder lookahead
+    // @Description: Time to look ahead in the path to calculate rudder correction for bank angle
+    // @Units: s
+--]]
 AEROM_KE_RUDD_LK = bind_add_param('KE_RUDD_LK', 27, 0.25)
+
 --[[
     // @Param: AEROM_ALT_ABORT
     // @DisplayName: Altitude Abort
@@ -76,11 +207,52 @@ AEROM_KE_RUDD_LK = bind_add_param('KE_RUDD_LK', 27, 0.25)
     // @Units: m
 --]]
 AEROM_ALT_ABORT = bind_add_param('ALT_ABORT',28,15)
+
+--[[
+    // @Param: AEROM_TS_P
+    // @DisplayName: Timesync P gain
+    // @Description: This controls how rapidly two aircraft are brought back into time sync
+--]]
 AEROM_TS_P = bind_add_param('TS_P', 29, 0.33)
+
+--[[
+    // @Param: AEROM_TS_I
+    // @DisplayName: Timesync I gain
+    // @Description: This controls how rapidly two aircraft are brought back into time sync
+--]]
 AEROM_TS_I = bind_add_param('TS_I', 30, 0.33)
+
+--[[
+    // @Param: AEROM_TS_SPDMAX
+    // @DisplayName: Timesync speed max
+    // @Description: This sets the maximum speed adjustment for time sync between aircraft
+    // @Units: m/s
+--]]
 AEROM_TS_SPDMAX = bind_add_param('TS_SPDMAX', 31, 0.0)
+
+--[[
+    // @Param: AEROM_TS_RATE
+    // @DisplayName: Timesync rate of send of NAMED_VALUE_FLOAT data
+    // @Description: This sets the rate we send data for time sync between aircraft
+    // @Units: Hz
+--]]
 AEROM_TS_RATE = bind_add_param('TS_RATE', 32, 4.0)
+
+--[[
+    // @Param: AEROM_MIS_ANGLE
+    // @DisplayName: Mission angle
+    // @Description: When set to a non-zero value, this is the assumed direction of the mission. Otherwise the waypoint angle is used
+    // @Units: deg
+--]]
 AEROM_MIS_ANGLE = bind_add_param('MIS_ANGLE', 33, 0.0)
+
+--[[
+    // @Param: AEROM_OPTIONS
+    // @DisplayName: Aerobatic options
+    // @Description: Options to control aerobatic behavior
+    // @Bitmask: 0:UseRTLOnAbort, 1:AddAtToMessages
+    // @Units: deg
+--]]
 AEROM_OPTIONS = bind_add_param('OPTIONS', 34, 0.0)
 
 local OPTIONS = { ABORT_RTL=(1<<0), MSG_ADD_AT=(1<<1) }
