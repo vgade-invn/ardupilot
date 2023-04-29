@@ -1,5 +1,5 @@
 ARSPD_FBW_MAX          55
-ARSPD_FBW_MIN          48
+ARSPD_FBW_MIN          40
 TRIM_ARSPD_CM        5000
 TECS_LAND_ARSPD        48
 
@@ -218,9 +218,9 @@ RC8_TRIM              999
 RC9_MAX              2000
 RC9_MIN              1000
 RC9_TRIM                0
-RLL2SRV_D               0.5000
-RLL2SRV_FF              0.16
-RLL2SRV_I               0.1800
+RLL2SRV_D               0.4
+RLL2SRV_FF              0.1
+RLL2SRV_I               0.1
 RLL2SRV_IMAX         4000
 RLL2SRV_P               0
 RLL2SRV_RMAX           40
