@@ -231,11 +231,11 @@ bool Plane::verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
 
         } else {
             // use rangefinder to correct if possible
-            float height = height_above_target() - rangefinder_correction();
+            float height = height_above_target(); // - rangefinder_correction();
             // for flare calculations we don't want to use the terrain
             // correction as otherwise we will flare early on rising
             // ground
-            height -= auto_state.terrain_correction;
+            //height -= auto_state.terrain_correction;
 
             // to cope with lidar failure we also check GPS height
             if (!is_equal(auto_state.land_alt_amsl,-1.0f) &&
