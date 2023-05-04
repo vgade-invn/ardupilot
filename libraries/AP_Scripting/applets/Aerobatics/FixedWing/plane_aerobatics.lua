@@ -255,6 +255,8 @@ AEROM_MIS_ANGLE = bind_add_param('MIS_ANGLE', 33, 0.0)
 --]]
 AEROM_OPTIONS = bind_add_param('OPTIONS', 34, 0.0)
 
+AEROM_JUDGE_DIST = bind_add_param('JUDGE_DIST', 35, 0.0)
+
 local OPTIONS = { ABORT_RTL=(1<<0), MSG_ADD_AT=(1<<1) }
 
 -- cope with old param values
@@ -2047,6 +2049,15 @@ function rotate_path(path_f, t, orientation, offset)
 
    local scale = AEROM_PATH_SCALE:get()
    point = point:scale(math.abs(scale))
+
+   local judge_dist = AEROM_JUDGE_DIST:get()
+   if judge_dist > 0 then
+      local hangle = math.atan(math.abs(point:x())/judge_dist)
+      point:x(point:x()/math.sqrt(math.cos(hangle)))
+      local vangle = math.atan(math.abs(path_var.initial_ef_pos:z() + point:z())/judge_dist)
+      point:z(point:z()/math.sqrt(math.cos(vangle)))
+   end
+
    if scale < 0 then
       -- we need to mirror the path
       point:y(-point:y())
