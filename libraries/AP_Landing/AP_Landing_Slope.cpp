@@ -55,6 +55,8 @@ bool AP_Landing::type_slope_verify_land(const Location &prev_WP_loc, Location &n
     // so we don't verify command completion. Instead we use this to
     // adjust final landing parameters
 
+    type_slope_height = height;
+
     // determine stage
     if (type_slope_stage == SLOPE_STAGE_NORMAL) {
         const bool heading_lined_up = abs(nav_controller->bearing_error_cd()) < 1000 && !nav_controller->data_is_stale();
@@ -411,14 +413,15 @@ void AP_Landing::type_slope_log(void) const
 // @Field: slope: Slope to landing point
 // @Field: slopeInit: Initial slope to landing point
 // @Field: altO: Rangefinder correction
-    AP::logger().Write("LAND", "TimeUS,stage,f1,f2,slope,slopeInit,altO", "QBBBfff",
+    AP::logger().Write("LAND", "TimeUS,stage,f1,f2,slope,slopeInit,altO,H", "QBBBffff",
                                             AP_HAL::micros64(),
                                             type_slope_stage,
                                             flags,
                                             type_slope_flags,
                                             (double)slope,
                                             (double)initial_slope,
-                                            (double)alt_offset);
+                                            (double)alt_offset,
+                                            type_slope_height);
 }
 
 bool AP_Landing::type_slope_is_throttle_suppressed(void) const

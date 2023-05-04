@@ -176,6 +176,7 @@ private:
         SLOPE_STAGE_PREFLARE,
         SLOPE_STAGE_FINAL
     } type_slope_stage;
+    float type_slope_height;
 
     struct {
         // once landed, post some landing statistics to the GCS
