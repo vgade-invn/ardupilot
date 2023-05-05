@@ -149,8 +149,8 @@ void Plane::stabilize_pitch(float speed_scaler)
     /*
       special fixed rate flare code for SA-PGB
      */
+    static bool started_flare;
     if (landing.is_flaring()) {
-        static bool started_flare;
         static uint32_t flare_start_ms;
         static uint32_t flare_start_I;
         const uint32_t now_ms = AP_HAL::millis();
@@ -163,6 +163,8 @@ void Plane::stabilize_pitch(float speed_scaler)
         const float flare_rate = 15.0; // elevator degrees/s for 45 degree elevator
         const int32_t elev_flare = constrain_int32((flare_start_I + t*flare_rate) * 100, -4500, 4500);
         elev_scaled = MAX(elev_flare, elev_scaled);
+    } else {
+        started_flare = false;
     }
 
     SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, elev_scaled);
