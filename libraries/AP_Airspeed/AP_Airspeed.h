@@ -197,7 +197,7 @@ private:
         AP_Int8  tube_order;
         AP_Int8  skip_cal;
         AP_Float wind_direction_from;
-        AP_Float wind_speed_mps;
+        AP_Float wind_speed_knots;
     } param[AIRSPEED_MAX_SENSORS];
 
     struct airspeed_state {

@@ -72,7 +72,7 @@ protected:
 
     void get_wind(float &direction_from_deg, float &speed_mps) const {
         direction_from_deg = frontend.param[instance].wind_direction_from;
-        speed_mps = frontend.param[instance].wind_speed_mps;
+        speed_mps = frontend.param[instance].wind_speed_knots * KNOTS_TO_METERS_PER_SECOND;
     }
     
 private:
