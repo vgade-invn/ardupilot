@@ -152,7 +152,7 @@ void Plane::stabilize_pitch(float speed_scaler)
     static bool started_flare;
     if (landing.is_flaring()) {
         static uint32_t flare_start_ms;
-        static uint32_t flare_start_I;
+        static float flare_start_I;
         const uint32_t now_ms = AP_HAL::millis();
         if (!started_flare) {
             started_flare = true;
