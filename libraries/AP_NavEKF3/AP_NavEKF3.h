@@ -523,6 +523,7 @@ private:
     float coreRelativeErrors[MAX_EKF_CORES];        // relative errors of cores with respect to primary
     float coreErrorScores[MAX_EKF_CORES];           // the instance error values used to update relative core error
     uint64_t coreLastTimePrimary_us[MAX_EKF_CORES]; // last time we were using this core as primary
+    uint8_t coreBetterCount[MAX_EKF_CORES];         // number of loops that this core is better than the current core
 
     // origin set by one of the cores
     Location common_EKF_origin;

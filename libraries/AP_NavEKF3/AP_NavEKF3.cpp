@@ -957,9 +957,22 @@ void NavEKF3::UpdateFilter(void)
                     imuSampleTime_us - coreLastTimePrimary_us[coreIndex] > 1E7;
 
                 if (altCoreAvailable) {
-                    // if this core has a significantly lower relative error to the active primary, we consider it as a 
-                    // better core and would like to switch to it even if the current primary is healthy
-                    betterCore = altCoreError <= -BETTER_THRESH; // a better core if its relative error is below a substantial level than the primary's
+                    // if this core has a significantly lower relative
+                    // error to the active primary, we consider it as
+                    // a better core and would like to switch to it
+                    // even if the current primary is healthy
+                    if (altCoreError <= -BETTER_THRESH) {
+                        coreBetterCount[coreIndex]++;
+                        // when the core is better for 5 loops in a row then we can be confident it isn't
+                        // just a scheduling glitch
+                        if (coreBetterCount[coreIndex] > 5) {
+                            betterCore = true;
+                        }
+                    } else {
+                        coreBetterCount[coreIndex] = 0;
+                    }
+
+
                     // handle the case where the secondary core is faster to complete yaw alignment which can happen
                     // in flight when oeprating without a magnetomer
                     const NavEKF3_core &newCore = core[coreIndex];
@@ -1093,6 +1106,7 @@ void NavEKF3::resetCoreErrors(void)
 {
     for (uint8_t i = 0; i < num_cores; i++) {
         coreRelativeErrors[i] = 0;
+        coreBetterCount[i] = 0;
     }
 }
 
