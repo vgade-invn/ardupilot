@@ -1,3 +1,8 @@
+Release Ottano Carbopilot V4.3.12 9th Jun 2023
+----------------------------------
+
+This release includes: 
+ - OV3-461-advance-failsafe-check-engine-telemetry_lua
 
 Release Ottano Carbopilot V4.3.11 9th Jun 2023
 ----------------------------------
