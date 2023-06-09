@@ -1,3 +1,11 @@
+
+Release Ottano Carbopilot V4.3.11 9th Jun 2023
+----------------------------------
+
+This release includes: 
+ - feature/OV3-775-modify-gitignore-to-include-scripts-folder-in-carbopilot-project
+
+
 Release Ottano Carbopilot V4.3.10 5th May 2023
 ----------------------------------
 
