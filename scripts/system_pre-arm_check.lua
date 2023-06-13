@@ -257,8 +257,8 @@ end
 
 --Main Loop
 function Update() -- this is the loop which periodically runs
-    Check_lua()
-    -- Check_efi_status()
+    -- Check_lua()
+    Check_efi_status()
     Check_esc_status()
 
     return Update, UPDATE_RATE
