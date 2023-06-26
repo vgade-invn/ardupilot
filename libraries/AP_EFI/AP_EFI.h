@@ -61,6 +61,14 @@ public:
     // Returns the RPM
     uint32_t get_rpm() const { return state.engine_speed_rpm; }
 
+    // for debugging pupose, this value is updated using lua script (which in turn can obtain it from a serial connector)
+    bool set_fuel_consumed(float fuel_consumed) {
+        bool status = true; // send true by default. no health check logic implemented
+        lua_fuel_consumed = fuel_consumed;
+        // state.estimated_consumed_fuel_volume_cm3 = fuel_consumed;
+        return status;
+    }
+
     // returns enabled state of EFI
     bool enabled() const { return type != Type::NONE; }
 
@@ -76,7 +84,10 @@ public:
         NWPMU     = 2,
         Lutan     = 3,
         // LOWEHEISER = 4,
+        Hirth = 6,
     };
+
+    float lua_fuel_consumed;
 
     static AP_EFI *get_singleton(void) {
         return singleton;
@@ -85,11 +96,69 @@ public:
     // send EFI_STATUS
     void send_mavlink_status(mavlink_channel_t chan);
 
+    //get engine sensor status hirth values for lua
+    bool get_sensor_status(uint8_t &engine_temperature_sensor_status, uint8_t &air_temperature_sensor_status,uint8_t &air_pressure_sensor_status,uint8_t &throttle_sensor_status,uint8_t &CHT_1_error_excess_temperature_status,uint8_t &CHT_2_error_excess_temperature_status,uint8_t &EGT_1_error_excess_temperature_status,uint8_t &EGT_2_error_excess_temperature_status) const {
+        engine_temperature_sensor_status = state.engine_temperature_sensor_status;
+        air_temperature_sensor_status = state.air_temperature_sensor_status;
+        air_pressure_sensor_status = state.air_pressure_sensor_status;
+        throttle_sensor_status = state.throttle_sensor_status;
+        CHT_1_error_excess_temperature_status = state.CHT_1_error_excess_temperature_status;
+        CHT_2_error_excess_temperature_status = state.CHT_2_error_excess_temperature_status;
+        EGT_1_error_excess_temperature_status = state.EGT_1_error_excess_temperature_status;
+        EGT_2_error_excess_temperature_status = state.EGT_2_error_excess_temperature_status;
+        return true;
+    }
+
+    //get engine temperature value hirth values for lua
+    bool get_temp(float &cht1_temp, float &cht2_temp, float &egt1_temp, float &egt2_temp, float &air_temp, float &eng_temp) const {
+        cht1_temp = state.cht1_temp;
+        cht2_temp = state.cht2_temp;
+        egt1_temp = state.egt1_temp;
+        egt2_temp = state.egt2_temp;
+        air_temp = state.air_temp;
+        eng_temp = state.eng_temp;
+        return true;
+    }
+    //get engine load perct values for lua
+    uint8_t get_eng_load_prct() const {
+        return uint8_t(state.engine_load_percent);
+    }
+    //get engine state specific to Hirth
+    uint8_t get_state() const {
+        return uint8_t(state.engine_state);
+    }
+    //get crc fail packet number
+    uint32_t get_crc_fail_ct() const {
+        return uint8_t(state.crc_fail_cnt);
+    }
+
+    // get pressure from hirth
+    bool get_pressure(float &atmospheric_pressure_kpa, float &intake_manifold_pressure_kpa) const {
+        atmospheric_pressure_kpa = state.atmospheric_pressure_kpa;
+        intake_manifold_pressure_kpa = state.intake_manifold_pressure_kpa;
+        return true;
+    }
+
+    //get Thr
+    bool get_thr_pos(float &k_throttle, float &thr_pos) const {
+        k_throttle = state.k_throttle;
+        thr_pos = state.thr_pos;        
+        return true;
+    }
+    
+    
+
 protected:
 
     // Back end Parameters
     AP_Float coef1;
     AP_Float coef2;
+    AP_Float throttle_idle;
+    AP_Float throttle_max;
+    AP_Float ecu_fcr_slope;
+    AP_Float ecu_fcr_offset;
+    AP_Int16 ecu_fcr_average_count;
+    AP_Int16 fuel_volume_in_ml;
 
     EFI_State state;
 
