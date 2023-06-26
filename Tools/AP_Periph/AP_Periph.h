@@ -19,6 +19,9 @@
 #include <AP_CANManager/AP_CANManager.h>
 #include <AP_Scripting/AP_Scripting.h>
 #include <AP_HAL/CANIface.h>
+#include <AP_Stats/AP_Stats.h>
+#include "version.h"
+#include "AP_ESC_APDHVPro.h"
 
 #if HAL_GCS_ENABLED
 #include "GCS_MAVLink.h"
@@ -98,6 +101,10 @@ public:
 #endif
 
     AP_SerialManager serial_manager;
+
+#if AP_STATS_ENABLED
+    AP_Stats node_stats;
+#endif
 
 #ifdef HAL_PERIPH_ENABLE_GPS
     AP_GPS gps;
@@ -185,6 +192,11 @@ public:
     void hwesc_telem_update();
 #endif
 
+#ifdef HAL_PERIPH_ENABLE_ESC_APDHVPRO200
+    AP_ESC_APDHVPro APD_ESC_Telem;
+    void APD_ESC_Telem_update();
+#endif
+
 #ifdef HAL_PERIPH_ENABLE_RC_OUT
 #if HAL_WITH_ESC_TELEM
     AP_ESC_Telem esc_telem;
@@ -194,6 +206,9 @@ public:
 
     SRV_Channels servo_channels;
     bool rcout_has_new_data_to_update;
+
+    uint32_t last_esc_raw_command_ms;
+    uint8_t  last_esc_num_channels;
 
     void rcout_init();
     void rcout_init_1Hz();
@@ -234,6 +249,9 @@ public:
 
 #if HAL_GCS_ENABLED
     GCS_Periph _gcs;
+#endif
+#if HAL_PERIPH_ARM_MONITORING_ENABLE
+    bool arm_update_status;
 #endif
     // setup the var_info table
     AP_Param param_loader{var_info};

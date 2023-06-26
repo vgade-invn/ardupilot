@@ -58,7 +58,7 @@ extern AP_Periph_FW periph;
 #if defined(STM32H7)
 #define HAL_PERIPH_LOOP_DELAY_US 64
 #else
-#define HAL_PERIPH_LOOP_DELAY_US 512
+#define HAL_PERIPH_LOOP_DELAY_US 1024
 #endif
 #endif
 
@@ -582,6 +582,9 @@ static void handle_arming_status(CanardInstance* ins, CanardRxTransfer* transfer
         return;
     }
     hal.util->set_soft_armed(req.status == UAVCAN_EQUIPMENT_SAFETY_ARMINGSTATUS_STATUS_FULLY_ARMED);
+#if HAL_PERIPH_ARM_MONITORING_ENABLE
+    periph.arm_update_status = true;
+#endif
 }
 
 #ifdef HAL_PERIPH_ENABLE_GPS
@@ -737,6 +740,10 @@ static void handle_esc_rawcommand(CanardInstance* ins, CanardRxTransfer* transfe
         return;
     }
     periph.rcout_esc(cmd.cmd.data, cmd.cmd.len);
+
+    // Update internal copy for disabling output to ESC when CAN packets are lost
+    periph.last_esc_num_channels = cmd.cmd.len;
+    periph.last_esc_raw_command_ms = AP_HAL::millis();
 }
 
 static void handle_act_command(CanardInstance* ins, CanardRxTransfer* transfer)
@@ -1531,6 +1538,31 @@ void AP_Periph_FW::hwesc_telem_update()
 }
 #endif // HAL_PERIPH_ENABLE_HWESC
 
+#ifdef HAL_PERIPH_ENABLE_ESC_APDHVPRO200
+void AP_Periph_FW::APD_ESC_Telem_update() {
+    if (!APD_ESC_Telem.update()) {
+        return;
+    }
+    
+    uavcan_equipment_esc_Status pkt {};
+    pkt.esc_index = g.esc_number;
+    pkt.voltage = APD_ESC_Telem.decoded.voltage;
+    pkt.current = APD_ESC_Telem.decoded.bus_current;
+    pkt.temperature = APD_ESC_Telem.decoded.temperature;
+    pkt.rpm = APD_ESC_Telem.decoded.rpm;
+    pkt.error_count = APD_ESC_Telem.decoded.status;
+    // pkt.power_rating_pct = APD_ESC_Telem.decoded.
+
+    uint8_t buffer[UAVCAN_EQUIPMENT_ESC_STATUS_MAX_SIZE] {};
+    uint16_t total_size = uavcan_equipment_esc_Status_encode(&pkt, buffer);
+    canard_broadcast(UAVCAN_EQUIPMENT_ESC_STATUS_SIGNATURE,
+                    UAVCAN_EQUIPMENT_ESC_STATUS_ID,
+                    CANARD_TRANSFER_PRIORITY_LOW,
+                    &buffer[0],
+                    total_size);
+}
+#endif // HAL_PERIPH_ENABLE_ESC_APDHVPRO200
+
 #ifdef HAL_PERIPH_ENABLE_RC_OUT
 #if HAL_WITH_ESC_TELEM
 /*
@@ -1642,6 +1674,11 @@ void AP_Periph_FW::can_update()
 #ifdef HAL_PERIPH_ENABLE_HWESC
     hwesc_telem_update();
 #endif
+
+#ifdef HAL_PERIPH_ENABLE_ESC_APDHVPRO200
+    APD_ESC_Telem_update();
+#endif
+
 #ifdef HAL_PERIPH_ENABLE_MSP
     msp_sensor_update();
 #endif

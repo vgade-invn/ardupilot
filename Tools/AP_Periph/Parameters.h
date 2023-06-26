@@ -51,6 +51,9 @@ public:
         k_param_gps_mb_only_can_port,
         k_param_scripting,
         k_param_esc_telem_port,
+        k_param_node_stats,
+        k_param_disarm_delay,
+        k_param_esc_command_timeout_ms,
     };
 
     AP_Int16 format_version;
@@ -89,7 +92,7 @@ public:
     AP_Int8 hardpoint_rate;
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_HWESC
+#if defined(HAL_PERIPH_ENABLE_HWESC) || defined(HAL_PERIPH_ENABLE_ESC_APDHVPRO200)
     AP_Int8 esc_number;
 #endif
 
@@ -106,6 +109,7 @@ public:
 
 #ifdef HAL_PERIPH_ENABLE_RC_OUT
     AP_Int8 esc_pwm_type;
+    AP_Int16 esc_command_timeout_ms;
 #if HAL_WITH_ESC_TELEM && !HAL_GCS_ENABLED
     AP_Int8 esc_telem_port;
 #endif
@@ -121,6 +125,10 @@ public:
 
 #if HAL_GCS_ENABLED
     AP_Int16 sysid_this_mav;
+#endif
+
+#if HAL_PERIPH_ARM_MONITORING_ENABLE
+    AP_Int32 disarm_delay;
 #endif
 
     Parameters() {}

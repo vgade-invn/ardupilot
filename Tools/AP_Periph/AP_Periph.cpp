@@ -24,6 +24,7 @@
 #include <AP_HAL/AP_HAL_Boards.h>
 #include "AP_Periph.h"
 #include <stdio.h>
+#include <dronecan_msgs.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
 #include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
@@ -128,6 +129,10 @@ void AP_Periph_FW::init()
         printf("Reboot after watchdog reset\n");
     }
 
+#if AP_STATS_ENABLED
+    node_stats.init();
+#endif
+
 #ifdef HAL_PERIPH_ENABLE_GPS
     if (gps.get_type(0) != AP_GPS::GPS_Type::GPS_TYPE_NONE && g.gps_port >= 0) {
         serial_manager.set_protocol_and_baud(g.gps_port, AP_SerialManager::SerialProtocol_GPS, AP_SERIALMANAGER_GPS_BAUD);
@@ -207,6 +212,10 @@ void AP_Periph_FW::init()
     hwesc_telem.init(hal.serial(3));
 #endif
 
+#ifdef HAL_PERIPH_ENABLE_ESC_APDHVPRO200
+    APD_ESC_Telem.init(hal.serial(1));
+#endif
+
 #ifdef HAL_PERIPH_ENABLE_MSP
     if (g.msp_port >= 0) {
         msp_init(hal.serial(g.msp_port));
@@ -220,6 +229,11 @@ void AP_Periph_FW::init()
 #if AP_SCRIPTING_ENABLED
     scripting.init();
 #endif
+    // custom code carbonix
+    char *ap_periph_version;
+    asprintf(&ap_periph_version, "CPN Start (%s)", THISFIRMWARE);
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s", ap_periph_version);
+    ap_periph_version = nullptr;
     start_ms = AP_HAL::native_millis();
 }
 
@@ -317,6 +331,10 @@ void AP_Periph_FW::show_stack_free()
 
 void AP_Periph_FW::update()
 {
+#if AP_STATS_ENABLED
+    node_stats.update();
+#endif
+
     static uint32_t last_led_ms;
     uint32_t now = AP_HAL::native_millis();
     if (now - last_led_ms > 1000) {
@@ -367,7 +385,19 @@ void AP_Periph_FW::update()
         last_error_ms = now;
         can_printf("IERR 0x%x %u", unsigned(ierr.errors()), unsigned(ierr.last_error_line()));
     }
-
+//this will only monitor Arming signal
+#if HAL_PERIPH_ARM_MONITORING_ENABLE
+    static uint32_t last_arm_check_ms;
+    if (now - last_arm_check_ms > g.disarm_delay){
+        last_arm_check_ms = now;
+        if(periph.arm_update_status){    
+            periph.arm_update_status = false;
+        }
+        else{
+            hal.util->set_soft_armed(UAVCAN_EQUIPMENT_SAFETY_ARMINGSTATUS_STATUS_DISARMED);
+        }
+    }
+#endif
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS && CH_DBG_ENABLE_STACK_CHECK == TRUE
     static uint32_t last_debug_ms;
     if (g.debug==1 && now - last_debug_ms > 5000) {
