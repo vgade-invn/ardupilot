@@ -319,7 +319,7 @@ void AP_EFI_Serial_Hirth::decode_data() {
 
         total_fuel_consumed = total_fuel_consumed + internal_state.fuel_consumption_rate_cm3pm;
         internal_state.total_fuel_consumed = total_fuel_consumed;
-        internal_state.throttle_position_percent = (raw_data[62] | raw_data[63] << 0x08) / THROTTLE_POSITION_RESOLUTION;
+        internal_state.throttle_position_percent = (raw_data[62] | raw_data[63] << 0x08) / 10;
         break;
 
     case CODE_REQUEST_STATUS_3: // TBD - internal state addition
