@@ -1,144 +1,125 @@
-Release 4.2.3 21st August 2022
-------------------------------
-
-This is a minor stable release with a few new features and bug
-fixes. The changes from 4.2.0 are:
-
-- OpenDroneID improvements
-- added --enable-opendroneid configure option
-- added --enable-check-firmware configure option
-- enable OSD menus on KakuteH7
-- added prearm checks for rangefinder pin conflicts
-- added diagnostics for scurve internal error
-- allow absolute paths for linux boards in param defaults
-- fixed AIRBRAKE rc option warning
-- fixed notch filtering ordering issue on loss of RPM source
-- fixed Lutan EFI update serial flood
-- fixed --upload to work on WSL2
-- allow INA2xx battery to init after startup
-- fixed healthy check on battery monitors to check all enabled monitors
-- added Pixhawk6C and Pixhawk6X support
-- fixed alighment of QRTL start in fixed wing circle landing approach
-- added Foxeer Reaper F745 support
-- added MFE PixSurveyA1 support
-- fixed combination of waypoint passby with acceptance distance
-- cut throttle on ICE stop when armed
-- added ICE option for starting when disarmed
-- zero VFWD integrator on ICE override in quadplanes
-- don't failsafe when in fixed wing landing sequence with RTL_AUTOLAND
-- improved handling of overshoot in VTOL landing
-- improved choice of target airspeed in VTOL landing approach
-- improved ICM42xxx filter settings
-- allow for faster sample rates on ICM42xxx
-
-Release 4.2.3beta3 19th August 2022
------------------------------------
-
-This is a minor stable release with a few new features and bug
-fixes. The changes from beta1 are:
-
-- OpenDroneID improvements
-- added --enable-opendroneid configure option
-- added --enable-check-firmware configure option
-- reverted notch filter changes from beta3 due to issue on some aircraft
-- enable OSD menus on KakuteH7
-- added prearm checks for rangefinder pin conflicts
-- added diagnostics for scurve internal error
-- allow absolute paths for linux boards in param defaults
-- fixed AIRBRAKE rc option warning
-
-
-Release 4.2.3beta2 10th August 2022
------------------------------------
-
-This is a minor stable release with a few new features and bug
-fixes. The changes from beta1 are:
-
-- OpenDroneID support
-- fixed notch filtering ordering issue on loss of RPM source
-- fixed Lutan EFI update serial flood
-- fixed --upload to work on WSL2
-
-Release 4.2.3beta1 2nd August 2022
+Release Ottano Carbopilot V4.3.10 5th May 2023
 ----------------------------------
 
-This is a minor stable release with a few new features and bug
-fixes. The changes are:
+This release includes: 
+ - feature/OV3-691-Ottano- 12 Mhz crystal and Range finder
 
-- allow INA2xx battery to init after startup
-- fixed healthy check on battery monitors to check all enabled monitors
-- added Pixhawk6C and Pixhawk6X support
-- fixed alighment of QRTL start in fixed wing circle landing approach
-- added Foxeer Reaper F745 support
-- added MFE PixSurveyA1 support
-- fixed combination of waypoint passby with acceptance distance
-- cut throttle on ICE stop when armed
-- added ICE option for starting when disarmed
-- zero VFWD integrator on ICE override in quadplanes
-- don't failsafe when in fixed wing landing sequence with RTL_AUTOLAND
-- improved handling of overshoot in VTOL landing
-- improved choice of target airspeed in VTOL landing approach
-- improved ICM42xxx filter settings
-- allow for faster sample rates on ICM42xxx
+Release Ottano Carbopilot V4.3.9 27th March 2023
+----------------------------------
 
-
-
-Release 4.2.2 24th June 2022
-----------------------------
-
-This is a minor stable release with a few new features and bug
-fixes. Just one change since beta1. The changes are:
-
- - support two full harmonic notches using the INS_HNTC2_ parameters
- - adjust neopixel bitwidths for better reliability
- - fixed EKF3 replay bugs that caused poor replay fidelity
- - added BLHeli_S ESC type in SERVO_DSHOT_ESC
- - reduced min lean angle for alt-hold in quadplanes to 5 degrees
- - fixed param ftp run length encoding bug
- - reduced default quadplane rate accelerations and XY position gains
- - improved parameter checks of Q_M_PWM parameters for bad conversions
- - added Q_NAVALT_MIN parameter for min alt to start attitude control in takeoff
- - added CAN_Dn_UC_POOL parameter to control DroneCAN pool size, to allow memory saving on F4 boards
- - saved hardfault crash dumps to microSD if detected
- - fixed PWM rangefinder bug and support SCALING parameter
- - updated OSD flight modes menu for newer modes
- - preserve new rangefinder addresses on VL53L1X
- - protect against hardfault on bad CRSF frames
- - handle reset of CRSF receiver in flight
- - added MambaH743v4 and MambaF405 MK4
- - fixed fault on FFT init with ARMING_REQUIRE=0
- - synced quicktune lua script with latest version
- - learn MAVLink routes on private channels
- - fixed throttle compensation with FWD_BAT_VOLT_MAX at low voltages
+This release includes: 
+ - feature/OV3-640-esc-log-structure-fix
 
 Happy flying!
 
-Release 4.2.2beta1 16th June 2022
----------------------------------
+Release Ottano Carbopilot V4.3.8 21th Feb 2023
+----------------------------------
 
-This is a minor stable release with a few new features and bug
-fixes. The changes are:
+This release includes: 
+ - feature/OV3-460-advance-failsafe-check-esc-telemetry
 
- - support two full harmonic notches using the INS_HNTC2_ parameters
- - adjust neopixel bitwidths for better reliability
- - fixed EKF3 replay bugs that caused poor replay fidelity
- - added BLHeli_S ESC type in SERVO_DSHOT_ESC
- - reduced min lean angle for alt-hold in quadplanes to 5 degrees
- - fixed param ftp run length encoding bug
- - reduced default quadplane rate accelerations and XY position gains
- - improved parameter checks of Q_M_PWM parameters for bad conversions
- - added Q_NAVALT_MIN parameter for min alt to start attitude control in takeoff
- - added CAN_Dn_UC_POOL parameter to control DroneCAN pool size, to allow memory saving on F4 boards
- - saved hardfault crash dumps to microSD if detected
- - fixed PWM rangefinder bug and support SCALING parameter
- - updated OSD flight modes menu for newer modes
- - preserve new rangefinder addresses on VL53L1X
- - protect against hardfault on bad CRSF frames
- - handle reset of CRSF receiver in flight
- - added MambaH743v4 and MambaF405 MK4
- - fixed fault on FFT init with ARMING_REQUIRE=0
- - synced quicktune lua script with latest version
- - learn MAVLink routes on private channels
+Happy flying!
+
+Release Ottano Carbopilot V4.3.7 20th Feb 2023
+----------------------------------
+
+This release includes: 
+ - feature/OV3-461-advance-failsafe-check-engine-telemetry
+
+Happy flying!
+
+Release Ottano Carbopilot V4.3.6 15th Feb 2023
+----------------------------------
+
+This release includes: 
+ - feature/OV3-522-apd-hv-pro-current-coefficient-temporary-change-REVERT
+
+Happy flying!
+
+Release Ottano Carbopilot V4.3.5 14th Feb 2023
+----------------------------------
+
+This release includes:
+ - feature/OV3-493-engine-parameters-configurable-rather-than-hard-coded-1
+
+Happy flying!
+
+Release Ottano Carbopilot V4.3.4 7th Feb 2023
+----------------------------------
+
+This release includes:
+ - feature/OV3-463-hv-pro-esc-status-reporting-sw
+
+Happy flying!
+
+Release Ottano Carbopilot V4.3.3 7th Feb 2023
+----------------------------------
+
+This release includes:
+ - feature/OV3-522-apd-hv-pro-current-coefficient-temporary-change
+
+Happy flying!
+
+Release Ottano Carbopilot V4.3.2 2nd Feb 2023
+----------------------------------
+
+This release includes:
+ - feature/OV3-405-hirth-log-floating-point-calculation
+
+Happy flying!
+
+Release Ottano Carbopilot V4.3.1 2nd Feb 2023
+----------------------------------
+
+This release includes:
+ - OV3-443-hirth-code-memory-leak-cleanup
+
+Happy flying!
+
+Release Ottano Carbopilot V4.3.0 1st Feb 2023
+----------------------------------
+
+This Release includes
+  - OV3-404 AP_Periph: version number in header
+  - OV3-416 AP_Periph: Enable IST8310 compass on CPN
+  - OV3-399 AP_CANManager: disable SLCAN when armed
+  - OV3-398 AP_Periph ESC packet loss handlng
+  - OV3-400 AP_UAVCAN: CAN Node status Log
+  - OV3-415 add CAN Bus Statistics Logging 
+  - Rebase of Ottano Code
+  - AP_EFI_Hirth : Hirth Driver addition
+  - AP_ICEngine : add GPIO test code for kill switch
+  - AP_Vehicle: update EFI scheduler to 40 Hz
+  - AP_Periph: Addition of ESC APD HVPro 
+  - hwdef: CarbonixF405 & CarbonixL496 addition of AP ESC HVPro
+  - AP_GPS: disable GPS lag checking in AP_Periph
+  - AP_GPS: fixed injection of RTCM on 2 different CAN buses
+
+Happy flying!
+
+Release Ottano Carbopilot V4.2.0 5th December 2022
+----------------------------------
+
+This is a Relsease
+ - New Structure of Release
+
+Happy flying!
+
+Release ArduPlane V4.2.1_Carbopilot V4.1.1 11th August 2022
+----------------------------------
+
+This is a Relsease
+ - AP_Periph update to 4.1
+ - gpsfix frequency check script added for test purposes.
+
+Happy flying!
+
+Release ArduPlane V4.2.1_Carbopilot V4.1.0 17th June 2022
+----------------------------------
+
+This is the Test release of Carbopilot 4.1.0
+ - Code Rebased to ardupilot 4.2.1
+ - Drop commit of CANH Logging.
 
 Happy flying!
 
@@ -301,6 +282,26 @@ This is the 4th beta of the 4.2.0 major release.
  - added terrain reference adjustment and TERRAIN_OFS_MAX parameter
  - fixed param conversion bug (impacts airspeed enable)
  - changed MatekH743 to use a 32 bit timer
+
+Release ArduPlane V4.2.0beta3_Carbopilot V4.0.2 6th June 2022
+----------------------------------
+
+This is the Test release of Carbopilot 4.0.2
+ - AP_UAVCAN : Remove CAN node status print 
+
+Happy flying!
+
+Release ArduPlane V4.2.0beta3_Carbopilot V4.0.1 1st June 2022
+----------------------------------
+
+This is the first release of Carbopilot 4.0.1
+ - Rebase to Ardupilot 4.2
+ - Add AP_Periph:Hwdef CarbonixF405 
+ - Updated Batt Monitor Backend
+ - Add Batt Monitor AD7091R5
+ - Add Can Device Health Logging & Print
+ - Updated AP_Periph:Hwdef CarbonixL496
+ - Add QMC5883P Compass
 
 Happy flying!
 
