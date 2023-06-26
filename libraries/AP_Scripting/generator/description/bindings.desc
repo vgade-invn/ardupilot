@@ -510,7 +510,6 @@ singleton AC_AttitudeControl method get_rpy_srate void float'Ref float'Ref float
 
 include AP_EFI/AP_EFI.h
 singleton AP_EFI alias efi
-singleton AP_EFI method set_fuel_consumed boolean float 0 FLT_MAX
 singleton AP_EFI method get_rpm uint32_t
 singleton AP_EFI method get_eng_load_prct uint8_t
 singleton AP_EFI method get_state uint8_t
