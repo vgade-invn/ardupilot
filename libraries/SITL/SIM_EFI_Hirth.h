@@ -86,7 +86,11 @@ private:
 
     class PACKED Record1 {
     public:
-        uint8_t unknown1[84];
+        uint8_t unknown1[10];
+        uint16_t rpm;
+        uint8_t unknown2[66];
+        uint16_t air_temperature;
+        uint8_t unknown3[4];
 
         void update();
     };

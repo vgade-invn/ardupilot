@@ -3195,6 +3195,7 @@ class AutoTest(ABC):
             if verbose:
                 self.progress("%s.%s has expected value %s" %
                               (m.get_type(), fieldname, value))
+        return m
 
     def assert_received_message_field_values(self, message, fieldvalues, verbose=True, very_verbose=False):
         m = self.assert_receive_message(message, verbose=verbose, very_verbose=very_verbose)

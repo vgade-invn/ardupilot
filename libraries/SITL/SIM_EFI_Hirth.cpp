@@ -133,6 +133,14 @@ void EFI_Hirth::update()
 
 void SITL::EFI_Hirth::send_record1()
 {
+    const auto *sitl = AP::sitl();
+
+    auto &r = packed_record1.record;
+
+    r.rpm = sitl->state.rpm[0];
+    gcs().send_text(MAV_SEVERITY_INFO, "rpm in: %u", r.rpm);
+    r.air_temperature = AP::baro().get_temperature();
+
     packed_record1.update_checksum();
 
     static_assert(sizeof(record1) == 84, "correct number of bytes in record1");

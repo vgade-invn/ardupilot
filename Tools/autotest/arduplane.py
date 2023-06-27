@@ -10,7 +10,6 @@ from __future__ import print_function
 import math
 import os
 import signal
-import sys
 import time
 
 from pymavlink import quaternion
@@ -3431,17 +3430,37 @@ function'''
             'SIM_EFI_TYPE': efi_type,
             'EFI_TYPE': efi_type,
             'SERIAL5_PROTOCOL': 24,
+            'ICE_ENABLE': 1,
         })
-        self.customise_SITL_commandline(["--uartF=sim:%s" % sim_name])
-        self.delay_sim_time(5)
-        m = self.assert_receive_message('EFI_STATUS')
-        mavutil.dump_message_verbose(sys.stdout, m)
-        if m.throttle_out != 0:
-            raise NotAchievedException("Expected zero throttle")
-        if m.health != 1:
-            raise NotAchievedException("Not healthy")
-        if m.intake_manifold_temperature < 20:
-            raise NotAchievedException("Bad intake manifold temperature")
+        self.customise_SITL_commandline(
+            ["--uartF=sim:%s" % sim_name,
+             ], model="plane-ice",
+        )
+        self.wait_ready_to_arm()
+
+        baro_m = self.assert_receive_message("SCALED_PRESSURE")
+        self.progress(self.dump_message_verbose(baro_m))
+        baro_temperature = baro_m.temperature / 100.0  # cDeg->deg
+        m = self.assert_received_message_field_values("EFI_STATUS", {
+            "throttle_out": 0,
+            "health": 1,
+        }, very_verbose=1)
+
+        if abs(baro_temperature - m.intake_manifold_temperature) > 1:
+            raise NotAchievedException(
+                "Bad intake manifold temperature (want=%f got=%f)" %
+                (baro_temperature, m.intake_manifold_temperature))
+
+        self.arm_vehicle()
+
+        self.delay_sim_time(5)  # should be wait_message_field_values when rebased on master
+
+        self.progress("Looking at RPM")
+        m = self.assert_receive_message("EFI_STATUS")
+        want_rpm = 1000
+        if m.rpm < want_rpm:
+            raise NotAchievedException("Expected some RPM (want=%f got=%f)" %
+                                       (want_rpm, m.rpm))
 
     def MegaSquirt(self):
         '''test MegaSquirt driver'''
