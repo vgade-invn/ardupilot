@@ -272,6 +272,8 @@ bool AP_EFI_Serial_Hirth::send_request_status() {
  * 
  */
 void AP_EFI_Serial_Hirth::decode_data() {
+    const uint32_t now_temp = AP_HAL::millis();
+
     int engine_status = 0;
 
     int excess_temp_error = 0;
@@ -312,6 +314,8 @@ void AP_EFI_Serial_Hirth::decode_data() {
         fuel_consumption_rate_raw = (raw_data[52] | raw_data[53] << 0x08) / FUEL_CONSUMPTION_RESOLUTION;
         internal_state.fuel_consumption_rate_raw = get_avg_fuel_consumption_rate(fuel_consumption_rate_raw);
         internal_state.fuel_consumption_rate_cm3pm = (fuel_consumption_rate_raw * get_ecu_fcr_slope()) + get_ecu_fcr_offset();
+        
+        internal_state.estimated_consumed_fuel_volume_cm3 += internal_state.fuel_consumption_rate_cm3pm * (now_temp - internal_state.last_updated_ms)/60000.0f;
 
         total_fuel_consumed = total_fuel_consumed + internal_state.fuel_consumption_rate_cm3pm;
         internal_state.total_fuel_consumed = total_fuel_consumed;
