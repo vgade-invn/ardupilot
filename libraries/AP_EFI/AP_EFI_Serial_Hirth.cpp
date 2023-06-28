@@ -307,6 +307,8 @@ void AP_EFI_Serial_Hirth::decode_data() {
         internal_state.cylinder_status->exhaust_gas_temperature = (raw_data[74] | raw_data[75] << 0x08) + KELVIN_CONVERSION_CONSTANT;
         internal_state.crankshaft_sensor_status = ((raw_data[82] & CRANK_SHAFT_SENSOR_OK) == CRANK_SHAFT_SENSOR_OK) ? Crankshaft_Sensor_Status::OK : Crankshaft_Sensor_Status::ERROR;     
 
+        internal_state.intake_manifold_temperature = internal_state.air_temp;
+
         break;
 
     case CODE_REQUEST_STATUS_2:
@@ -319,7 +321,7 @@ void AP_EFI_Serial_Hirth::decode_data() {
 
         total_fuel_consumed = total_fuel_consumed + internal_state.fuel_consumption_rate_cm3pm;
         internal_state.total_fuel_consumed = total_fuel_consumed;
-        internal_state.throttle_position_percent = (raw_data[62] | raw_data[63] << 0x08) / THROTTLE_POSITION_RESOLUTION;
+        internal_state.throttle_position_percent = (raw_data[62] | raw_data[63] << 0x08) / 10;
         break;
 
     case CODE_REQUEST_STATUS_3: // TBD - internal state addition
