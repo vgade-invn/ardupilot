@@ -20,7 +20,8 @@
 
 #if HAL_EFI_ENABLED
 #include <AP_SerialManager/AP_SerialManager.h>
-#include "SRV_Channel/SRV_Channel.h"
+#include <SRV_Channel/SRV_Channel.h>
+#include <AP_ICEngine/AP_ICEngine.h>
 
 
 extern const AP_HAL::HAL& hal;
@@ -115,7 +116,14 @@ void AP_EFI_Serial_Hirth::update() {
             if ((new_throttle != old_throttle) || (now - last_req_send_throttle > 500)) {
                 // if new throttle value, send throttle request
                 // also send new throttle value, only when ARMED
-                if (hal.util->persistent_data.armed) {
+                bool allow_throttle = hal.util->get_soft_armed();
+                if (!allow_throttle) {
+                    const auto *ice = AP::ice();
+                    if (ice != nullptr) {
+                        allow_throttle = ice->allow_throttle_disarmed();
+                    }
+                }
+                if (allow_throttle) {
                     status = send_target_values((new_throttle * throttle_scaling_factor) + get_throttle_idle());
                 }
                 else{

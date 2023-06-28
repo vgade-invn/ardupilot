@@ -55,6 +55,10 @@ public:
 
     static AP_ICEngine *get_singleton() { return _singleton; }
 
+    bool allow_throttle_disarmed() const {
+        return option_set(Options::THROTTLE_WHILE_DISARMED);
+    }
+
 private:
     static AP_ICEngine *_singleton;
 
