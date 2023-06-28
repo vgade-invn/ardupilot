@@ -1,3 +1,11 @@
+Release Ottano Carbopilot V4.3.18 29th Jun 2023
+----------------------------------
+
+This release includes: 
+ - AP_ICEngine: allow for relay control of ignition
+ - AP_ICEngine: don't allow engine run with safety on 
+ - AP_ICEngine: fixed ignition while disarmed
+
 Release Ottano Carbopilot V4.3.17 28th Jun 2023
 ----------------------------------
 
