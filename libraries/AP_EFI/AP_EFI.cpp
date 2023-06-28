@@ -141,8 +141,6 @@ void AP_EFI::init(void)
         gcs().send_text(MAV_SEVERITY_INFO, "Unknown EFI type");
         break;
     }
-
-    lua_fuel_consumed = 0;
 }
 
 // Ask all backends to update the frontend
@@ -150,7 +148,6 @@ void AP_EFI::update()
 {
     if (backend) {
         backend->update();
-        state.estimated_consumed_fuel_volume_cm3 = lua_fuel_consumed;
         log_status();
     }
 }
@@ -165,43 +162,6 @@ bool AP_EFI::is_healthy(void) const
  */
 void AP_EFI::log_status(void)
 {
-// @LoggerMessage: EFI
-// @Description: Electronic Fuel Injection system data
-// @Field: TimeUS: Time since system startup
-// @Field: LP: Reported engine load
-// @Field: Rpm: Reported engine RPM
-// @Field: SDT: Spark Dwell Time
-// @Field: ATM: Atmospheric pressure
-// @Field: IMP: Intake manifold pressure
-// @Field: IMT: Intake manifold temperature
-// @Field: ECT: Engine Coolant Temperature
-// @Field: OilP: Oil Pressure
-// @Field: OilT: Oil temperature
-// @Field: FP: Fuel Pressure
-// @Field: FCR: Fuel Consumption Rate
-// @Field: CFV: Consumed fueld volume
-// @Field: TPS: Throttle Position
-// @Field: IDX: Index of the publishing ECU
-    // AP::logger().WriteStreaming("EFI",
-    //                    "TimeUS,LP,Rpm,SDT,ATM,IMP,IMT,ECT,OilP,OilT,FP,FCR,CFV,TPS,IDX",
-    //                    "s%qsPPOOPOP--%-",
-    //                    "F00C--00-0-0000",
-    //                    "QBIffffffffffBB",
-    //                    AP_HAL::micros64(),
-    //                    uint8_t(state.engine_load_percent),
-    //                    uint32_t(state.engine_speed_rpm),
-    //                    float(state.spark_dwell_time_ms),
-    //                    float(state.atmospheric_pressure_kpa),
-    //                    float(state.intake_manifold_pressure_kpa),
-    //                    float(state.intake_manifold_temperature),
-    //                    float(state.coolant_temperature),
-    //                    float(state.oil_pressure),
-    //                    float(state.oil_temperature),
-    //                    float(state.fuel_pressure),
-    //                    float(state.fuel_consumption_rate_cm3pm),
-    //                    float(state.estimated_consumed_fuel_volume_cm3),
-    //                    uint8_t(state.throttle_position_percent),
-    //                    uint8_t(state.ecu_index));
     AP::logger().WriteStreaming("EFI",
                        "TimeUS,LP,Rpm,SDT,ATM,IMP,IMT,ECT,OilP,OilT,FP,FCR,CFV,TPS,IDX",
                        "s%qsPPOOPOP--%-",
@@ -218,48 +178,13 @@ void AP_EFI::log_status(void)
                        float(state.oil_pressure),
                        float(state.oil_temperature),
                        float(state.fuel_pressure),
-                       float(state.fuel_consumption_rate_raw),
-                       //float(state.fuel_consumption_rate_cm3pm),
+                       float(state.fuel_consumption_rate_cm3pm),
                        float(state.estimated_consumed_fuel_volume_cm3),
                        uint8_t(state.throttle_position_percent),
                        uint8_t(state.ecu_index));
 
-// @LoggerMessage: EFI2
-// @Description: Electronic Fuel Injection system data - redux
-// @Field: TimeUS: Time since system startup
-// @Field: Healthy: True if EFI is healthy
-// @Field: ES: Engine state
-// @Field: GE: General error
-// @Field: CSE: Crankshaft sensor status
-// @Field: TS: Temperature status
-// @Field: FPS: Fuel pressure status
-// @Field: OPS: Oil pressure status
-// @Field: DS: Detonation status
-// @Field: MS: Misfire status
-// @Field: DebS: Debris status
-// @Field: SPU: Spark plug usage
-// @Field: IDX: Index of the publishing ECU
-    // AP::logger().WriteStreaming("EFI2",
-    //                    "TimeUS,Healthy,ES,GE,CSE,TS,FPS,OPS,DS,MS,DebS,SPU,IDX",
-    //                    "s------------",
-    //                    "F------------",
-    //                    "QBBBBBBBBBBBB",
-    //                    AP_HAL::micros64(),
-    //                    uint8_t(is_healthy()),
-    //                    uint8_t(state.engine_state),
-    //                    uint8_t(state.general_error),
-    //                    uint8_t(state.crankshaft_sensor_status),
-    //                    uint8_t(state.temperature_status),
-    //                    uint8_t(state.fuel_pressure_status),
-    //                    uint8_t(state.oil_pressure_status),
-    //                    uint8_t(state.detonation_status),
-    //                    uint8_t(state.misfire_status),
-    //                    uint8_t(state.debris_status),
-    //                    uint8_t(state.spark_plug_usage),
-    //                    uint8_t(state.ecu_index));
-
     AP::logger().WriteStreaming("EFI2",
-                    "TimeUS,Healthy,ES,SF,ETS,ATS,APS,TS,LogCt,CHT1_E,CHT2_E,FRAW,FTOT,FAVG,IDX",
+                    "TimeUS,H,ES,SF,ETS,ATS,APS,TS,LCt,CT1_E,CT2_E,FR,FT,FA,IDX",
                     "s--------------",
                     "F--------------",
                     "QBBBBBBBBBBfffB",
@@ -280,8 +205,8 @@ void AP_EFI::log_status(void)
                     uint8_t(state.ecu_index));
 
     AP::logger().WriteStreaming("EFI3",
-                    "TimeUS,E1_E,E2_E,C1_T,C2_T,E1_T,E2_T,k_th,thr_f,air_t,eng_t,IDX",
-                    "s--00000000-",
+                    "TimeUS,E1_E,E2_E,C1_T,C2_T,E1_T,E2_T,k_th,thr_f,a_t,e_t,IDX",
+                    "s--OOOOOOOO-",
                     "F--00000000-",
                     "QBBffffffffB",
                     AP_HAL::micros64(),
