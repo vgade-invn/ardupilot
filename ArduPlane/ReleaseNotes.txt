@@ -1,3 +1,9 @@
+Release Ottano Carbopilot V4.3.13 28th Jun 2023
+----------------------------------
+
+This release includes: 
+ - AP_UAVCAN: allow BRD_SAFETY_MASK to work on CAN ESCs and servos
+ 
 Release Ottano Carbopilot V4.3.12 9th Jun 2023
 ----------------------------------
 
