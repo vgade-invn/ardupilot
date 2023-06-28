@@ -55,9 +55,7 @@ public:
 
     static AP_ICEngine *get_singleton() { return _singleton; }
 
-    bool allow_throttle_disarmed() const {
-        return option_set(Options::THROTTLE_WHILE_DISARMED);
-    }
+    bool allow_throttle_disarmed() const;
 
 private:
     static AP_ICEngine *_singleton;
@@ -91,6 +89,7 @@ private:
     void TCA9554_set(TCA9554_state_t value);
 
     void control_ign_str(TCA9554_state_t value);
+    void ignition_relay_set(bool on);
 
     AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev_TCA9554;
 
@@ -145,6 +144,9 @@ private:
 
     // Idle Controller Slew Rate
     AP_Float idle_slew;
+
+    // relay number for ignition
+    AP_Int8 ignition_relay;
     
     // height when we enter ICE_START_HEIGHT_DELAY
     float initial_height;
