@@ -1,3 +1,12 @@
+Release Ottano Carbopilot V4.3.17 28th Jun 2023
+----------------------------------
+
+This release includes: 
+ - SITL: HIRTH simulator integrator
+ - AP_EFI: set intake manifold pressure from record1 air temperature
+ - AP_EFI: correct scaling of throttle position precent returned from Hirth
+ - AP_Math: add sum_of_bytes_in_buffer_mod_256
+
 Release Ottano Carbopilot V4.3.16 28th Jun 2023
 ----------------------------------
 
