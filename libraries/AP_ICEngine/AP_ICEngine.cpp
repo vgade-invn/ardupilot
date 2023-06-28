@@ -317,8 +317,7 @@ void AP_ICEngine::update(void)
         break;
 
     case ICE_STARTING:
-        if (!hal.util->get_soft_armed() &&
-            !option_set(Options::THROTTLE_WHILE_DISARMED)) {
+        if (!(hal.util->get_soft_armed() || allow_throttle_disarmed())) {
             control_ign_str(IGN_ON_STR_OFF);
         } else {
             control_ign_str(IGN_ON_STR_ON_DIR_ON);
@@ -530,6 +529,12 @@ void AP_ICEngine::control_ign_str(TCA9554_state_t value)
     {
     	//Leave for now
     }
+}
+
+bool AP_ICEngine::allow_throttle_disarmed() const
+{
+    return option_set(Options::THROTTLE_WHILE_DISARMED) &&
+        hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED;
 }
 
 // singleton instance. Should only ever be set in the constructor.
