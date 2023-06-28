@@ -317,7 +317,8 @@ void AP_ICEngine::update(void)
         break;
 
     case ICE_STARTING:
-        if (!hal.util->get_soft_armed()) {
+        if (!hal.util->get_soft_armed() &&
+            !option_set(Options::THROTTLE_WHILE_DISARMED)) {
             control_ign_str(IGN_ON_STR_OFF);
         } else {
             control_ign_str(IGN_ON_STR_ON_DIR_ON);
