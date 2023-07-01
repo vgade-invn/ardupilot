@@ -6331,6 +6331,39 @@ bool GCS_MAVLINK::accept_packet(const mavlink_status_t &status,
     return false;
 }
 
+static int passthru_logfd = -1;
+static uint32_t last_pass_sync_ms;
+
+static void xxprintf(const char *fmt, ...)
+{
+    if (passthru_logfd == -1) {
+        return;
+    }
+    va_list va;
+    char* buf = NULL;
+    int16_t len;
+    va_start(va, fmt);
+    len = vasprintf(&buf, fmt, va);
+    va_end(va);
+    if (len > 0) {
+        AP::FS().write(passthru_logfd, buf, len);
+        const uint32_t now_ms = AP_HAL::millis();
+        if (now_ms - last_pass_sync_ms >= 20000) {
+            last_pass_sync_ms = now_ms;
+            AP::FS().fsync(passthru_logfd);
+        }
+        free(buf);
+    }
+}
+
+static void xxwrite(const uint8_t *buf, uint8_t len)
+{
+    if (passthru_logfd == -1) {
+        return;
+    }
+    AP::FS().write(passthru_logfd, buf, len);
+}
+
 /*
   update UART pass-thru, if enabled
  */
@@ -6354,6 +6387,10 @@ void GCS::update_passthru(void)
         _passthru.baud1 = baud1;
         _passthru.baud2 = baud2;
         gcs().send_text(MAV_SEVERITY_INFO, "Passthru enabled");
+        if (passthru_logfd == -1) {
+            passthru_logfd = AP::FS().open("pass.dat", O_WRONLY|O_CREAT|O_TRUNC);
+        }
+        xxprintf("[Open %u]\n", baud2);
         if (!_passthru.timer_installed) {
             _passthru.timer_installed = true;
             hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&GCS::passthru_timer, void));
@@ -6372,6 +6409,7 @@ void GCS::update_passthru(void)
             _passthru.port2->begin(baud2);
         }
         gcs().send_text(MAV_SEVERITY_INFO, "Passthru disabled");
+        xxprintf("[CLOSE]\n");
     } else if (enabled &&
                _passthru.timeout_s &&
                now - _passthru.last_port1_data_ms > uint32_t(_passthru.timeout_s)*1000U) {
@@ -6390,6 +6428,7 @@ void GCS::update_passthru(void)
             _passthru.port2->begin(baud2);
         }
         gcs().send_text(MAV_SEVERITY_INFO, "Passthru timed out");
+        xxprintf("[TIMEOUT]\n");
     }
 }
 
@@ -6411,6 +6450,7 @@ void GCS::passthru_timer(void)
             return;
         }
         _passthru.start_ms = 0;
+        xxprintf("[BAUD %u %u]\n", unsigned(_passthru.baud1), unsigned(_passthru.baud2));
         _passthru.port1->begin(_passthru.baud1);
         _passthru.port2->begin(_passthru.baud2);
     }
@@ -6426,6 +6466,7 @@ void GCS::passthru_timer(void)
     if (_passthru.baud2 != baud && baud != 0) {
         _passthru.baud2 = baud;
         _passthru.port2->end();
+        xxprintf("[BAUD2 %u]\n", unsigned(_passthru.baud2));
         _passthru.port2->begin_locked(baud, lock_key);
     }
 
@@ -6433,6 +6474,7 @@ void GCS::passthru_timer(void)
     if (_passthru.baud1 != baud && baud != 0) {
         _passthru.baud1 = baud;
         _passthru.port1->end();
+        xxprintf("[BAUD1 %u]\n", unsigned(_passthru.baud1));
         _passthru.port1->begin_locked(baud, lock_key);
     }
 
@@ -6446,6 +6488,9 @@ void GCS::passthru_timer(void)
     }
     if (nbytes > 0) {
         _passthru.last_port1_data_ms = AP_HAL::millis();
+        xxprintf("[WRITE2(%u) ", unsigned(nbytes));
+        xxwrite(buf, nbytes);
+        xxprintf("]\n");
         _passthru.port2->write_locked(buf, nbytes, lock_key);
     }
 
@@ -6455,6 +6500,9 @@ void GCS::passthru_timer(void)
         buf[nbytes++] = b;
     }
     if (nbytes > 0) {
+        xxprintf("[WRITE1(%u) ", unsigned(nbytes));
+        xxwrite(buf, nbytes);
+        xxprintf("]\n");
         _passthru.port1->write_locked(buf, nbytes, lock_key);
     }
 }
