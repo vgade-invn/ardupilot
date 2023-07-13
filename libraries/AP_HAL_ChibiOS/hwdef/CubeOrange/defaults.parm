@@ -243,7 +243,7 @@ SCR_USER1               1.5
 SCR_USER2               5.0
 SCR_USER3               0
 SCR_USER4               0
-SCR_VM_I_COUNT      80000
+SCR_VM_I_COUNT     120000
 SERIAL1_BAUD          115
 SERIAL1_PROTOCOL        1
 SERIAL2_BAUD          115
