@@ -302,7 +302,7 @@ TECS_TIME_CONST        6.0
 TERRAIN_ENABLE          1
 THROTTLE_NUDGE          0
 THR_FAILSAFE            2
-THR_FS_VALUE          995
+THR_FS_VALUE          500
 THR_MAX                 1
 WP_LOITER_RAD         300
 WP_RADIUS             750
