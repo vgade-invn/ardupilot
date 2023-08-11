@@ -491,6 +491,10 @@ void AP_BoardConfig::board_setup()
  */
 void AP_BoardConfig::detect_fmuv6_variant()
 {
+#if defined(HAL_WITH_SPI_IIM46234)
+    state.board_type.set_and_notify(FMUV6_BOARD_HOLYBRO_6X);
+    DEV_PRINTF("Detected Holybro 6X - IIM26234\n");
+#else
     if (((spi_check_register_inv2("icm20649", INV2REG_WHOAMI, INV2_WHOAMI_ICM20649) ||
           spi_check_register("bmi088_g", BMI088REG_CHIPID, CHIPID_BMI088_G)) && // alternative config
          spi_check_register("icm42688", INV3REG_WHOAMI, INV3_WHOAMI_ICM42688) &&
@@ -504,6 +508,6 @@ void AP_BoardConfig::detect_fmuv6_variant()
         DEV_PRINTF("Detected CUAV 6X\n");
         AP_Param::load_defaults_file("@ROMFS/param/CUAV_V6X_defaults.parm", false);
     }
-
+#endif
 }
 #endif
