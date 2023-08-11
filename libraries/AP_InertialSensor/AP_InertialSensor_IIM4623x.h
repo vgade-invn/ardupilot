@@ -43,43 +43,36 @@ private:
      */
     bool init();
     void transfer_packet(uint8_t out_packet[20], int rec_pkt_len);
-    // void read_sensor16(void);
-    // void read_sensor32(void);
-    // void read_sensor32_delta(void);
     void read_sensor(void);
     void loop(void);
-    bool check_product_id(uint32_t &id);
-    uint16_t calc_checksum(uint8_t *buff, uint32_t length);
 
-    // read a 16 bit register
-    uint16_t read_reg16(uint8_t regnum) const;
+    bool wait_dready(uint32_t timeout_us);
+    bool read_register(uint8_t address, uint8_t *data, uint8_t length);
+    bool write_registers(uint8_t address, const uint8_t *data, uint8_t length);
+    bool write_register8(uint8_t address, uint8_t value) {
+        return write_registers(address, &value, sizeof(value));
+    }
+    bool write_register16(uint8_t address, uint16_t value) {
+        return write_registers(address, (uint8_t*)&value, sizeof(value));
+    }
+    bool read_streaming(uint8_t *data, uint8_t length, uint8_t &status, uint8_t &counter, uint64_t &timestamp_us);
+    void start_streaming(void);
 
-    // write a 16 bit register
-    bool write_reg16(uint8_t regnum, uint16_t value, bool confirm=false) const;
+    uint16_t calc_checksum(uint8_t *buff, uint32_t length) const;
 
-    bool write_word(const uint8_t reg, const uint32_t data) const;
-    bool read_word(const uint8_t reg, uint32_t& data) const;
-    
     AP_HAL::OwnPtr<AP_HAL::Device> dev;
-
-    enum class OpMode : uint8_t {
-        Basic      =1,
-        Delta    =2
-    } opmode;
 
     uint8_t accel_instance;
     uint8_t gyro_instance;
     enum Rotation rotation;
     uint8_t drdy_pin;
 
-    uint16_t last_counter;
-    bool done_first_read;
+    uint8_t product_id;
+
     float temp_sum;
     uint8_t temp_count;
     float expected_sample_rate_hz;
 
-    float accel_scale;
-    float gyro_scale;
-    double dangle_scale;
-    double dvel_scale;
+    uint64_t first_imu_timestamp_us;
+    uint64_t first_timestamp_us;
 };
