@@ -936,7 +936,7 @@ void NavEKF3::UpdateFilter(void)
     // core selection is only available after the vehicle is armed, else forced to lane 0 if its healthy
     if (runCoreSelection && armed) {
         // update this instance's error scores for all active cores and get the primary core's error score
-        float primaryErrorScore = updateCoreErrorScores();
+        //float primaryErrorScore = updateCoreErrorScores();
 
         // update the accumulated relative error scores for all active cores
         updateCoreRelativeErrors();
@@ -972,6 +972,7 @@ void NavEKF3::UpdateFilter(void)
         }
         altCoreAvailable = newPrimaryIndex != primary;
 
+#if 0
         // Switch cores if another core is available and the active primary core meets one of the following conditions - 
         // 1. has a bad error score
         // 2. is unhealthy
@@ -986,7 +987,8 @@ void NavEKF3::UpdateFilter(void)
             primary = newPrimaryIndex;
             lastLaneSwitch_ms = AP::dal().millis();
             GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 lane switch %u", primary);
-        }       
+        }
+#endif
     }
 
     const uint8_t user_primary = uint8_t(_primary_core) < num_cores? _primary_core : 0;
@@ -1022,6 +1024,7 @@ void NavEKF3::checkLaneSwitch(void)
         return;
     }
 
+#if 0
     float primaryErrorScore = core[primary].errorScore();
     float lowestErrorScore = primaryErrorScore;
     uint8_t newPrimaryIndex = primary;
@@ -1047,6 +1050,7 @@ void NavEKF3::checkLaneSwitch(void)
         lastLaneSwitch_ms = now;
         GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF3 lane switch %u", primary);
     }
+#endif
 }
 
 void NavEKF3::requestYawReset(void)

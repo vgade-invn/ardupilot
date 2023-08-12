@@ -220,7 +220,7 @@ void AP_InertialSensor_Backend::apply_gyro_filters(const uint8_t instance, const
 }
 
 void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
-                                                            const Vector3f &gyro,
+                                                            const Vector3f &_gyro,
                                                             uint64_t sample_us)
 {
     if ((1U<<instance) & _imu.imu_kill_mask) {
@@ -232,6 +232,17 @@ void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
                         _imu._gyro_raw_sample_rates[instance]);
 
     uint64_t last_sample_us = _imu._gyro_last_sample_us[instance];
+
+    Vector3f gyro = _gyro;
+
+    gyro_timestamp_us += 1e6 / _imu._gyro_raw_sample_rates[instance];
+
+    const float amp = 4.0;
+    const float freq = 90.0;
+    const float phase_rad = freq * gyro_timestamp_us*1.0e-6 * M_PI * 2;
+    gyro.x += amp*sinF(phase_rad);
+    gyro.y += amp*sinF(phase_rad+0.1);
+    gyro.z += amp*sinF(phase_rad+0.2);
 
     /*
       we have two classes of sensors. FIFO based sensors produce data

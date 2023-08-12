@@ -318,4 +318,5 @@ private:
     void Write_ACC(const uint8_t instance, const uint64_t sample_us, const Vector3f &accel) const __RAMFUNC__; // Write ACC data packet: raw accel data
     void Write_GYR(const uint8_t instance, const uint64_t sample_us, const Vector3f &gyro) const __RAMFUNC__;  // Write GYR data packet: raw gyro data
 
+    uint32_t gyro_timestamp_us;
 };
