@@ -194,34 +194,4 @@ uint64_t millis64()
 }
 
 
-uint32_t native_micros()
-{
-    return micros();
-}
-
-uint32_t native_millis()
-{
-    return millis();
-}
-
-/*
-  we define a millis16() here to avoid an issue with sitl builds in cygwin
- */
-uint16_t native_millis16()
-{
-    return millis16();
-}
-    
-
-uint64_t native_micros64()
-{
-    return micros64();
-}
-
-uint64_t native_millis64()
-{
-    return millis64();
-}
-
-
 } // namespace AP_HAL
