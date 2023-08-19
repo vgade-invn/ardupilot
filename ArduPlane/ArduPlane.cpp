@@ -394,7 +394,7 @@ void Plane::update_GPS_10Hz(void)
                     // silently ignore failure...
                 }
 
-                next_WP_loc = prev_WP_loc = home;
+                prev_WP_loc = home;
 
                 ground_start_count = 0;
             }

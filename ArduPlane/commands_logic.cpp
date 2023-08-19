@@ -653,6 +653,11 @@ bool Plane::verify_nav_wp(const AP_Mission::Mission_Command& cmd)
 
     }
 
+    if (is_zero(auto_state.wp_distance)) {
+        // not initialised yet
+        return false;
+    }
+
     if (auto_state.wp_distance <= acceptance_distance_m) {
         gcs().send_text(MAV_SEVERITY_INFO, "Reached waypoint #%i dist %um",
                           (unsigned)mission.get_current_nav_cmd().index,
