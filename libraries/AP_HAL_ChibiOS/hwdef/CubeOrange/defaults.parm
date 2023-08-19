@@ -3,6 +3,8 @@ ARSPD_FBW_MIN          40
 TRIM_ARSPD_CM        5000
 TECS_LAND_ARSPD        48
 
+STICK_MIXING 2
+
 # yaw 180
 AHRS_ORIENTATION        4
 
@@ -299,7 +301,7 @@ TECS_LAND_SPDWGT        1
 TECS_LAND_SRC           0.2000
 TECS_LAND_TCONST        5
 TECS_OPTIONS            1
-TECS_PITCH_MAX        -20
+TECS_PITCH_MAX        -5
 TECS_PITCH_MIN        -35
 TECS_SINK_MAX          15
 TECS_SINK_MIN          10
