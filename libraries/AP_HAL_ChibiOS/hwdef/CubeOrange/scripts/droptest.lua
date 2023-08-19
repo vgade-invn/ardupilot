@@ -151,12 +151,16 @@ end
 function is_change_candidate(cnum)
    logit(string.format('is_change_candidate(%d)', cnum))
 
+   local loc = ahrs:get_position()
+   local m1 = mission:get_item(cnum)
+   if m1:param2() == 255 then
+      logit(string.format('mandatory %u', cnum))
+      return false
+   end
    if is_candidate(cnum) then
       logit(string.format(' YES -> is_candidate'))
       return true
    end
-   local loc = ahrs:get_position()
-   local m1 = mission:get_item(cnum)
    if m1:command() ~= NAV_WAYPOINT then
       -- only change when navigating to a WP
       logit(string.format(' NO -> not WP'))
