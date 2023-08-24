@@ -163,10 +163,11 @@ public:
 
     Plane(void);
 
-private:
-
     // key aircraft parameters passed to multiple libraries
     AP_Vehicle::FixedWing aparm;
+    
+private:
+
 
     // Global parameters are all contained within the 'g' and 'g2' classes.
     Parameters g;
