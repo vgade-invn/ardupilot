@@ -25,6 +25,7 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_Baro/AP_Baro.h>
+#include <AP_Vehicle/AP_Vehicle.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -1051,10 +1052,19 @@ bool AP_AHRS_DCM::get_position(struct Location &loc) const
     return _have_position;
 }
 
+extern AP_Vehicle::FixedWing *aparm_ptr;
+
 // return an airspeed estimate if available
 bool AP_AHRS_DCM::airspeed_estimate(float &airspeed_ret) const
 {
-    return airspeed_estimate(_airspeed?_airspeed->get_primary():0, airspeed_ret);
+    bool ret = airspeed_estimate(_airspeed?_airspeed->get_primary():0, airspeed_ret);
+    const AP_GPS &_gps = AP::gps();
+    if (aparm_ptr != nullptr && _gps.status() >= AP_GPS::GPS_OK_FIX_3D) {
+        if (_gps.ground_speed() > aparm_ptr->airspeed_min*0.5) {
+            airspeed_ret = constrain_float(airspeed_ret, aparm_ptr->airspeed_min, aparm_ptr->airspeed_max);
+        }
+    }
+    return ret;
 }
 
 // return an airspeed estimate from a specific airspeed sensor instance if available

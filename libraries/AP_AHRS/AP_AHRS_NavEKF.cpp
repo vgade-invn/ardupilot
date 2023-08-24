@@ -568,7 +568,7 @@ Vector3f AP_AHRS_NavEKF::wind_estimate(void) const
 // if we have an estimate
 bool AP_AHRS_NavEKF::airspeed_estimate(float &airspeed_ret) const
 {
-    return AP_AHRS_DCM::airspeed_estimate(get_active_airspeed_index(), airspeed_ret);
+    return AP_AHRS_DCM::airspeed_estimate(airspeed_ret);
 }
 
 // true if compass is being used
