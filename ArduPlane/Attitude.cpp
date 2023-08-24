@@ -18,8 +18,8 @@ float Plane::get_speed_scaler(void)
             speed_scaler = 2.0;
         }
         // ensure we have scaling over the full configured airspeed
-        float scale_min = MIN(0.5, (0.5 * aparm.airspeed_min) / g.scaling_speed);
-        float scale_max = MAX(2.0, (1.5 * aparm.airspeed_max) / g.scaling_speed);
+        float scale_min = 0.8;
+        float scale_max = 1.2;
         speed_scaler = constrain_float(speed_scaler, scale_min, scale_max);
 
         if (quadplane.in_vtol_mode() && hal.util->get_soft_armed()) {
