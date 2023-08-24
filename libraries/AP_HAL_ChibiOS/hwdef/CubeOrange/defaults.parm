@@ -1,6 +1,6 @@
 ARSPD_FBW_MAX          55
 ARSPD_FBW_MIN          40
-TRIM_ARSPD_CM        5000
+TRIM_ARSPD_CM        5140
 TECS_LAND_ARSPD        48
 
 STICK_MIXING 2
@@ -21,12 +21,12 @@ ARSPD_WIND_DIR          0
 ARSPD_WIND_SPD          0
 
 # enable synthetic
-ARSPD2_TYPE            13
-ARSPD2_SKIP_CAL         1
-ARSPD2_RATIO            2
-ARSPD2_WIND_DIR         0
-ARSPD2_WIND_SPD         0
-ARSPD2_USE              1
+ARSPD2_TYPE             0
+#ARSPD2_SKIP_CAL         1
+#ARSPD2_RATIO            2
+#ARSPD2_WIND_DIR         0
+#ARSPD2_WIND_SPD         0
+#ARSPD2_USE              1
 
 ARSPD_PRIMARY           0
 
@@ -301,7 +301,7 @@ TECS_LAND_SPDWGT        1
 TECS_LAND_SRC           0.2000
 TECS_LAND_TCONST        5
 TECS_OPTIONS            1
-TECS_PITCH_MAX        -5
+TECS_PITCH_MAX        -10
 TECS_PITCH_MIN        -35
 TECS_SINK_MAX          15
 TECS_SINK_MIN          10
