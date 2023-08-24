@@ -24,6 +24,7 @@
 #include "AP_ExternalAHRS_backend.h"
 #include "AP_ExternalAHRS_VectorNav.h"
 #include "AP_ExternalAHRS_MicroStrain.h"
+#include "AP_ExternalAHRS_CINS.h"
 
 #include <GCS_MAVLink/GCS.h>
 
@@ -102,8 +103,13 @@ void AP_ExternalAHRS::init(void)
     case DevType::MicroStrain:
         backend = new AP_ExternalAHRS_MicroStrain(this, state);
         break;
-    default:
 #endif
+#if AP_EXTERNAL_AHRS_CINS_ENABLED
+    case DevType::CINS:
+        backend = new AP_ExternalAHRS_CINS(this, state);
+        break;
+#endif
+    default:
         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Unsupported ExternalAHRS type %u", unsigned(devtype));
         break;
     }
