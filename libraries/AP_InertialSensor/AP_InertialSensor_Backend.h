@@ -123,6 +123,7 @@ public:
         DEVTYPE_BMI270       = 0x38,
         DEVTYPE_INS_BMI085   = 0x39,
         DEVTYPE_INS_ICM42670 = 0x3A,
+        DEVTYPE_INS_ICM45686 = 0x3B,
     };
 
 protected:
@@ -286,7 +287,7 @@ protected:
     }
 
     // if fast sampling is enabled, the rate to use in kHz
-    uint8_t get_fast_sampling_rate() {
+    uint8_t get_fast_sampling_rate() const {
         return (1 << uint8_t(_imu._fast_sampling_rate));
     }
 
