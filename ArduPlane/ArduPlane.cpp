@@ -468,6 +468,11 @@ void Plane::update_control_mode(void)
         steer_state.hold_course_cd = -1;
     }
 
+    // start with zero target roll/pitch. All modes should populate
+    // this, having the zero here prevents accumulating between loops
+    nav_roll_cd = 0;
+    nav_pitch_cd = 0;
+
     update_fly_forward();
 
     control_mode->update();

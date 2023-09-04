@@ -2946,10 +2946,6 @@ void QuadPlane::setup_target_position(void)
  */
 void QuadPlane::takeoff_controller(void)
 {
-    // reset fixed wing controller to neutral as base output
-    plane.nav_roll_cd = 0;
-    plane.nav_pitch_cd = 0;
-
     if (!plane.arming.is_armed_and_safety_off()) {
         return;
     }
