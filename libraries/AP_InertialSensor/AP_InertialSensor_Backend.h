@@ -127,6 +127,7 @@ public:
         DEVTYPE_INS_SCHA63T  = 0x3C,
         DEVTYPE_INS_IIM46230 = 0x3D,
         DEVTYPE_INS_IIM46234 = 0x3E,
+        DEVTYPE_INS_IAM20685 = 0X3F,
     };
 
 protected:
