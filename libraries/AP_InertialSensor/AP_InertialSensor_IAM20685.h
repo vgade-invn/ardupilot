@@ -25,12 +25,12 @@ typedef struct inv_iam20685 {
 } inv_iam20685_t;
 
 
-class AP_InertialSensor_IAM20685: public AP_InertialSensor_Backend {
+class AP_InertialSensor_IIM4623x: public AP_InertialSensor_Backend {
 public:
     static AP_InertialSensor_Backend *probe(AP_InertialSensor &imu,
                                             AP_HAL::OwnPtr<AP_HAL::Device> dev,
-                                            enum Rotation rotation,
-                                            int8_t drdy_pin);
+                                            enum Rotation rotation);
+                                            // int8_t drdy_pin);
 
     /**
      * Configure the sensors and start reading routine.
@@ -39,10 +39,10 @@ public:
     bool update() override;
 
 private:
-    AP_InertialSensor_IAM20685(AP_InertialSensor &imu,
+    AP_InertialSensor_IIM4623x(AP_InertialSensor &imu,
                                 AP_HAL::OwnPtr<AP_HAL::Device> dev,
-                                enum Rotation rotation,
-                                int8_t drdy_gpio);
+                                enum Rotation rotation);
+                                //,int8_t drdy_gpio);
 
     /*
       initialise driver
@@ -53,7 +53,6 @@ private:
     void inv_iam20685_read_reg(struct inv_iam20685 *s, uint8_t offset, uint16_t *data);
     void inv_iam20685_write_reg(struct inv_iam20685 *s, uint8_t offset, const uint16_t *data);
     void send_cmd(struct inv_iam20685 *s, uint32_t *cmd, uint32_t *rsp, int len);
-    void read_sensor(void);
     void loop(void);
     void setup_iam(void);
     void GetSensorData(void);
@@ -62,8 +61,17 @@ private:
     void inv_iam20685_get_fixed_value(struct inv_iam20685 *s, uint16_t *fixed_value);
     void inv_iam20685_unlock_chip(struct inv_iam20685 *s);
     void inv_iam20685_select_bank(struct inv_iam20685 *s, uint16_t bank);
+    void inv_iam20685_routeODRclock_to_pin12(struct inv_iam20685 *s);
+    void inv_iam20685_set_accel_fs_sel(struct inv_iam20685 *s, uint8_t accel_fs_sel);
+    void inv_iam20685_get_accel_fs_sel(struct inv_iam20685 *s, uint8_t *accel_fs_sel);
+    void inv_iam20685_set_gyro_fs_sel(struct inv_iam20685 *s, uint8_t gyro_fs_sel);
+    void inv_iam20685_set_flt_y(struct inv_iam20685 *s, uint8_t *flt_y);
+    void inv_iam20685_set_flt_z(struct inv_iam20685 *s, uint8_t *flt_z);
+    void inv_iam20685_set_flt_x(struct inv_iam20685 *s, uint8_t *flt_x);
+    void inv_iam20685_get_gyro_fs_sel(struct inv_iam20685 *s, uint8_t *gyro_fs_sel);
     void inv_iam20685_get_whoami(struct inv_iam20685 *s, uint16_t *whoami);
     void inv_iam20685_set_capture_mode(struct inv_iam20685 *s);
+    
     bool wait_dready(uint32_t timeout_us);
     void send_command(uint8_t command_type, uint8_t *data, uint8_t length);
     bool read_reply(uint8_t *data, uint8_t length);

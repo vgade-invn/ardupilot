@@ -3,7 +3,7 @@
 #include <AP_Math/AP_Math.h>
 #include <AP_HAL/utility/sparse-endian.h>
 #include <GCS_MAVLink/GCS.h>
-
+#include <cmath>
 #include "AP_InertialSensor_IAM20685.h"
 #include "IAM20685Defs.h"
 /*
@@ -90,26 +90,26 @@ void setup_iam(void);
 static inv_iam20685_t icm_device;
 
 uint32_t dummy_cmd = 0xAD00007C;
-AP_InertialSensor_IAM20685::AP_InertialSensor_IAM20685(AP_InertialSensor &imu,
+AP_InertialSensor_IIM4623x::AP_InertialSensor_IIM4623x(AP_InertialSensor &imu,
                                                          AP_HAL::OwnPtr<AP_HAL::Device> _dev,
-                                                         enum Rotation _rotation,
-                                                         int8_t _drdy_pin)
+                                                         enum Rotation _rotation)
+                                                        //  int8_t _drdy_pin)
     : AP_InertialSensor_Backend(imu)
     , dev(std::move(_dev))
     , rotation(_rotation)
-    , drdy_pin(_drdy_pin)
+    // , drdy_pin(_drdy_pin)
 {
 }
 
-AP_InertialSensor_Backend *AP_InertialSensor_IAM20685::probe(AP_InertialSensor &imu,
+AP_InertialSensor_Backend *AP_InertialSensor_IIM4623x::probe(AP_InertialSensor &imu,
                                                              AP_HAL::OwnPtr<AP_HAL::Device> dev,
-                                                             enum Rotation rotation,
-                                                             int8_t drdy_pin)
+                                                             enum Rotation rotation)
+                                                            //  int8_t drdy_pin)
 {
     if (!dev) {
         return nullptr;
     }
-    auto sensor = new AP_InertialSensor_IAM20685(imu, std::move(dev), rotation,60);
+    AP_InertialSensor_IIM4623x *sensor = new AP_InertialSensor_IIM4623x(imu, std::move(dev), rotation);
 
     if (!sensor) {
         return nullptr;
@@ -123,10 +123,10 @@ AP_InertialSensor_Backend *AP_InertialSensor_IAM20685::probe(AP_InertialSensor &
     return sensor;
 }
 
-void AP_InertialSensor_IAM20685::start()
+void AP_InertialSensor_IIM4623x::start()
 {
-    if (!_imu.register_accel(accel_instance, expected_sample_rate_hz, dev->get_bus_id_devtype(DEVTYPE_INS_IAM20685)) ||
-        !_imu.register_gyro(gyro_instance, expected_sample_rate_hz,   dev->get_bus_id_devtype(DEVTYPE_INS_IAM20685))) {
+    if (!_imu.register_accel(accel_instance, expected_sample_rate_hz, dev->get_bus_id_devtype(DEVTYPE_INS_IIM46234)) ||
+        !_imu.register_gyro(gyro_instance, expected_sample_rate_hz,   dev->get_bus_id_devtype(DEVTYPE_INS_IIM46234))) {
         return;
     }
 
@@ -139,7 +139,7 @@ void AP_InertialSensor_IAM20685::start()
       hoops to ensure we don't lose any samples. This creates a thread
       to do the capture, running at very high priority
      */
-    if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_InertialSensor_IAM20685::loop, void),
+    if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_InertialSensor_IIM4623x::loop, void),
                                       "IAM20685",
                                       1024, AP_HAL::Scheduler::PRIORITY_BOOST, 1)) {
         AP_HAL::panic("Failed to create IAM20685 thread");
@@ -180,7 +180,7 @@ static uint8_t generate_crc(uint32_t in)
 	crc = crc ^ (uint8_t)0xff;
 	return crc;
 }
-uint32_t AP_InertialSensor_IAM20685::build_cmd(uint8_t offset, uint16_t data, enum inv_reg_rw rw)
+uint32_t AP_InertialSensor_IIM4623x::build_cmd(uint8_t offset, uint16_t data, enum inv_reg_rw rw)
 {
 	uint32_t cmd;
 	uint8_t  rw_bit;
@@ -207,10 +207,10 @@ uint32_t AP_InertialSensor_IAM20685::build_cmd(uint8_t offset, uint16_t data, en
 }
 
 
-void AP_InertialSensor_IAM20685::transfer_packet(uint8_t out_packet[4], uint8_t rec_packet[4]){
+void AP_InertialSensor_IIM4623x::transfer_packet(uint8_t out_packet[4], uint8_t rec_packet[4]){
     WITH_SEMAPHORE(dev->get_semaphore());
     
-    
+    // dev->transfer(out_packet,4,(uint8_t *)&rec_packet, 4);    
     dev->transfer(out_packet,4,nullptr, 0);
     // count =0;
     // while (!hal.gpio->read(drdy_pin)){
@@ -221,11 +221,12 @@ void AP_InertialSensor_IAM20685::transfer_packet(uint8_t out_packet[4], uint8_t 
         
     // }
     // count =0;
-    dev->transfer(nullptr, 0,(uint8_t *)&rec_packet, 4);
-    hal.scheduler->delay(1);
+    //hal.scheduler->delay(1);
+    dev->transfer(nullptr, 0, rec_packet, 4);
+    //hal.scheduler->delay(1);
 }
 
-void AP_InertialSensor_IAM20685::send_cmd(struct inv_iam20685 *s, uint32_t *cmd, uint32_t *rsp, int len)
+void AP_InertialSensor_IIM4623x::send_cmd(struct inv_iam20685 *s, uint32_t *cmd, uint32_t *rsp, int len)
 {
 	
 	
@@ -274,14 +275,14 @@ void AP_InertialSensor_IAM20685::send_cmd(struct inv_iam20685 *s, uint32_t *cmd,
 }
 inv_dev_config_t *device_config;
 inv_dev_config_t dev_config;
-bool AP_InertialSensor_IAM20685::init()
+bool AP_InertialSensor_IIM4623x::init()
 {
    
-    // _clip_limit = 7.5f * GRAVITY_MSS;
+    _clip_limit = 7.5f * GRAVITY_MSS;
     // gyro_scale = radians(0.1);
-    // expected_sample_rate_hz = 1000;
+    expected_sample_rate_hz = 8000;
     WITH_SEMAPHORE(dev->get_semaphore());
-    dev->set_device_type(DEVTYPE_INS_IAM20685);
+    dev->set_device_type(DEVTYPE_INS_IIM46234);
 
     
 
@@ -297,7 +298,7 @@ bool AP_InertialSensor_IAM20685::init()
     return true;
 }
 
-void AP_InertialSensor_IAM20685::inv_iam20685_read_reg(struct inv_iam20685 *s, uint8_t offset, uint16_t *data)
+void AP_InertialSensor_IIM4623x::inv_iam20685_read_reg(struct inv_iam20685 *s, uint8_t offset, uint16_t *data)
 {
 	//assert(s);
 
@@ -312,24 +313,11 @@ void AP_InertialSensor_IAM20685::inv_iam20685_read_reg(struct inv_iam20685 *s, u
 	// Send command
 	cmd = build_cmd(offset, 0, INV_REG_R);
 	send_cmd(s, &cmd, &rsp, 1);
-	// if (ret != INV_ERROR_SUCCESS)
-	// 	return ret;
 
-	// Check CRC
-	
-	// if (ret != INV_ERROR_SUCCESS)
-	// 	return ret;
-	uint32_t dummy = 0xAD00007C;
-	// Send dummy command to read back response.
-	send_cmd(s, &dummy, &rsp, 1);
-	// if (ret != INV_ERROR_SUCCESS)
-	// 	return ret;
-
-	// Check CRC and RS
-	
-	// if (ret != INV_ERROR_SUCCESS)
-	// 	return ret;
-	                                                                    
+	// uint32_t dummy = 0xAD00007C;
+	// // Send dummy command to read back response.
+	// send_cmd(s, &dummy, &rsp, 1);
+                                                
 	// Get data
 	*data = (rsp >> 8) & 0xFFFF;
 	/*
@@ -342,7 +330,7 @@ void AP_InertialSensor_IAM20685::inv_iam20685_read_reg(struct inv_iam20685 *s, u
 }
 
 
-void AP_InertialSensor_IAM20685::inv_iam20685_write_reg(struct inv_iam20685 *s, uint8_t offset, const uint16_t *data)
+void AP_InertialSensor_IIM4623x::inv_iam20685_write_reg(struct inv_iam20685 *s, uint8_t offset, const uint16_t *data)
 {
 	//assert(s);
 
@@ -359,9 +347,9 @@ void AP_InertialSensor_IAM20685::inv_iam20685_write_reg(struct inv_iam20685 *s, 
 	// Check CRC
 	// check_crc(rsp);
 
-	uint32_t dummy = 0xAD00007C;
-	// Send dummy command to read back response.
-	send_cmd(s, &dummy, &rsp, 1);
+	// uint32_t dummy = 0xAD00007C;
+	// // Send dummy command to read back response.
+	// send_cmd(s, &dummy, &rsp, 1);
 
 
 	// Check CRC and RS
@@ -372,7 +360,7 @@ void AP_InertialSensor_IAM20685::inv_iam20685_write_reg(struct inv_iam20685 *s, 
 	// 	return ret;
 
 }
-void AP_InertialSensor_IAM20685::inv_iam20685_select_bank(struct inv_iam20685 *s, uint16_t bank)
+void AP_InertialSensor_IIM4623x::inv_iam20685_select_bank(struct inv_iam20685 *s, uint16_t bank)
 {
 	
 
@@ -381,7 +369,111 @@ void AP_InertialSensor_IAM20685::inv_iam20685_select_bank(struct inv_iam20685 *s
 	
 }
 
-void AP_InertialSensor_IAM20685::inv_iam20685_get_whoami(struct inv_iam20685 *s, uint16_t *whoami)
+
+void AP_InertialSensor_IIM4623x::inv_iam20685_set_accel_fs_sel(struct inv_iam20685 *s, uint8_t accel_fs_sel)
+{
+	uint16_t data;
+	 
+
+	inv_iam20685_select_bank(s, IAM20685_REG_ACCEL_FS_SEL_BANK);
+
+	inv_iam20685_read_reg(s, IAM20685_REG_ACCEL_FS_SEL_OFFSET, &data);
+	data &= ~IAM20685_REG_ACCEL_FS_SEL_MASK;
+	data |= accel_fs_sel << IAM20685_REG_ACCEL_FS_SEL_POS;
+	inv_iam20685_write_reg(s, IAM20685_REG_ACCEL_FS_SEL_OFFSET, &data);
+
+	inv_iam20685_select_bank(s, 0);
+
+	 
+}
+
+void AP_InertialSensor_IIM4623x::inv_iam20685_get_accel_fs_sel(struct inv_iam20685 *s, uint8_t *accel_fs_sel)
+{
+	uint16_t data;
+	 
+
+	inv_iam20685_select_bank(s, IAM20685_REG_ACCEL_FS_SEL_BANK);
+
+	inv_iam20685_read_reg(s, IAM20685_REG_ACCEL_FS_SEL_OFFSET, &data);
+	*accel_fs_sel = (data & IAM20685_REG_ACCEL_FS_SEL_MASK) >> IAM20685_REG_ACCEL_FS_SEL_POS;
+
+	inv_iam20685_select_bank(s, 0);
+
+	 
+}
+
+void AP_InertialSensor_IIM4623x::inv_iam20685_set_gyro_fs_sel(struct inv_iam20685 *s, uint8_t gyro_fs_sel)
+{
+	uint16_t data;
+	 
+
+	inv_iam20685_select_bank(s, IAM20685_REG_GYRO_FS_SEL_BANK);
+
+	inv_iam20685_read_reg(s, IAM20685_REG_GYRO_FS_SEL_OFFSET, &data);
+	data &= ~IAM20685_REG_GYRO_FS_SEL_MASK;
+	data |= gyro_fs_sel << IAM20685_REG_GYRO_FS_SEL_POS;
+	inv_iam20685_write_reg(s, IAM20685_REG_GYRO_FS_SEL_OFFSET, &data);
+
+	inv_iam20685_select_bank(s, 0);
+
+	 
+}
+
+void AP_InertialSensor_IIM4623x::inv_iam20685_get_gyro_fs_sel(struct inv_iam20685 *s, uint8_t *gyro_fs_sel)
+{
+	uint16_t data;
+	 
+
+	inv_iam20685_select_bank(s, IAM20685_REG_GYRO_FS_SEL_BANK);
+
+	inv_iam20685_read_reg(s, IAM20685_REG_GYRO_FS_SEL_OFFSET, &data);
+	*gyro_fs_sel = (data & IAM20685_REG_GYRO_FS_SEL_MASK) >> IAM20685_REG_GYRO_FS_SEL_POS;
+
+	inv_iam20685_select_bank(s, 0);
+
+	 
+}
+
+void AP_InertialSensor_IIM4623x::inv_iam20685_set_flt_y(struct inv_iam20685 *s, uint8_t *flt_y)
+{
+	uint16_t data;
+	 
+
+	inv_iam20685_read_reg(s, IAM20685_REG_FLT_Y_OFFSET, &data);
+	data &= ~IAM20685_REG_FLT_Y_MASK;
+	data |= *flt_y << IAM20685_REG_FLT_Y_POS;
+	inv_iam20685_write_reg(s, IAM20685_REG_FLT_Y_OFFSET, &data);
+
+	 
+}
+
+void AP_InertialSensor_IIM4623x::inv_iam20685_set_flt_z(struct inv_iam20685 *s, uint8_t *flt_z)
+{
+	uint16_t data;
+	 
+
+	inv_iam20685_read_reg(s, IAM20685_REG_FLT_Z_OFFSET, &data);
+	data &= ~IAM20685_REG_FLT_Z_MASK;
+	data |= *flt_z << IAM20685_REG_FLT_Z_POS;
+	inv_iam20685_write_reg(s, IAM20685_REG_FLT_Z_OFFSET, &data);
+
+	 
+}
+
+void AP_InertialSensor_IIM4623x::inv_iam20685_set_flt_x(struct inv_iam20685 *s, uint8_t *flt_x)
+{
+	uint16_t data;
+	 
+
+	inv_iam20685_read_reg(s, IAM20685_REG_FLT_X_OFFSET, &data);
+	data &= ~IAM20685_REG_FLT_X_MASK;
+	data |= *flt_x << IAM20685_REG_FLT_X_POS;
+	inv_iam20685_write_reg(s, IAM20685_REG_FLT_X_OFFSET, &data);
+
+	 
+}
+
+void AP_InertialSensor_IIM4623x::inv_iam20685_get_whoami(struct inv_iam20685 *s, uint16_t *whoami)
 {
 	
 
@@ -391,21 +483,65 @@ void AP_InertialSensor_IAM20685::inv_iam20685_get_whoami(struct inv_iam20685 *s,
 
 }
 
+void AP_InertialSensor_IIM4623x:: inv_iam20685_routeODRclock_to_pin12(struct inv_iam20685 *s)
+{
+	uint16_t data;
 
+	inv_iam20685_select_bank(s, IAM20685_REG_ODR_CONFIG_1_BANK);
 
-void AP_InertialSensor_IAM20685::inv_iam20685_set_hard_reset(struct inv_iam20685 *s)
+	// Set BANK3, register address 0x14, bit 9 to 1b
+	inv_iam20685_read_reg(s, IAM20685_REG_ODR_CONFIG_4_OFFSET, &data);
+	data &= ~IAM20685_REG_ODR_CONFIG_4_MASK;
+	data |= 1 << IAM20685_REG_ODR_CONFIG_4_POS;
+	inv_iam20685_write_reg(s, IAM20685_REG_ODR_CONFIG_4_OFFSET, &data);
+
+	// Set BANK3, register address 0x17, bit 12 to 1b
+	inv_iam20685_read_reg(s, IAM20685_REG_ODR_CONFIG_6_OFFSET, &data);
+	data &= ~IAM20685_REG_ODR_CONFIG_6_MASK;
+	data |= 1 << IAM20685_REG_ODR_CONFIG_6_POS;
+	inv_iam20685_write_reg(s, IAM20685_REG_ODR_CONFIG_6_OFFSET, &data);
+
+	// Set BANK3, register address 0x11, bits 13:8 to 0x21
+	inv_iam20685_read_reg(s, IAM20685_REG_ODR_CONFIG_1_OFFSET, &data);
+	data &= ~IAM20685_REG_ODR_CONFIG_1_MASK;
+	data |= 0x21 << IAM20685_REG_ODR_CONFIG_1_POS;
+	inv_iam20685_write_reg(s, IAM20685_REG_ODR_CONFIG_1_OFFSET, &data);
+
+	// Set BANK3, register address 0x13, bits 7:4 to 0x08
+	inv_iam20685_read_reg(s, IAM20685_REG_ODR_CONFIG_2_OFFSET, &data);
+	data &= ~IAM20685_REG_ODR_CONFIG_2_MASK;
+	data |= 0x08 << IAM20685_REG_ODR_CONFIG_2_POS;
+	inv_iam20685_write_reg(s, IAM20685_REG_ODR_CONFIG_2_OFFSET, &data);
+
+	// Set BANK3, register address 0x14, bit 5 to 1b
+	inv_iam20685_read_reg(s, IAM20685_REG_ODR_CONFIG_3_OFFSET, &data);
+	data &= ~IAM20685_REG_ODR_CONFIG_3_MASK;
+	data |= 1 << IAM20685_REG_ODR_CONFIG_3_POS;
+	inv_iam20685_write_reg(s, IAM20685_REG_ODR_CONFIG_3_OFFSET, &data);
+
+	// Set BANK3, register address 0x16, bit 0 to 1b
+	inv_iam20685_read_reg(s, IAM20685_REG_ODR_CONFIG_5_OFFSET, &data);
+	data &= ~IAM20685_REG_ODR_CONFIG_5_MASK;
+	data |= 1 << IAM20685_REG_ODR_CONFIG_5_POS;
+	inv_iam20685_write_reg(s, IAM20685_REG_ODR_CONFIG_5_OFFSET, &data);
+
+	// inv_iam20685_select_bank(s, 0);
+
+}
+
+void AP_InertialSensor_IIM4623x::inv_iam20685_set_hard_reset(struct inv_iam20685 *s)
 {
 	uint32_t cmd, rsp;
 
 	cmd = build_cmd(IAM20685_REG_HARD_RESET_OFFSET, IAM20685_REG_HARD_RESET_MASK, INV_REG_W);
 	send_cmd(s, &cmd, &rsp, 1);
 }
-void AP_InertialSensor_IAM20685::inv_iam20685_get_fixed_value(struct inv_iam20685 *s, uint16_t *fixed_value)
+void AP_InertialSensor_IIM4623x::inv_iam20685_get_fixed_value(struct inv_iam20685 *s, uint16_t *fixed_value)
 {
 	return inv_iam20685_read_reg(s, IAM20685_REG_FIXED_VALUE_OFFSET, fixed_value);
 }
 
-void AP_InertialSensor_IAM20685::inv_iam20685_unlock_chip(struct inv_iam20685 *s)
+void AP_InertialSensor_IIM4623x::inv_iam20685_unlock_chip(struct inv_iam20685 *s)
 {
 	
 	uint32_t cmd[8];
@@ -431,7 +567,7 @@ void AP_InertialSensor_IAM20685::inv_iam20685_unlock_chip(struct inv_iam20685 *s
 	
 
 }
-void AP_InertialSensor_IAM20685::inv_iam20685_release_capture_mode(struct inv_iam20685 *s)
+void AP_InertialSensor_IIM4623x::inv_iam20685_release_capture_mode(struct inv_iam20685 *s)
 {
 	uint16_t data;
 
@@ -442,7 +578,7 @@ void AP_InertialSensor_IAM20685::inv_iam20685_release_capture_mode(struct inv_ia
 
 }
 
-void AP_InertialSensor_IAM20685::inv_iam20685_set_capture_mode(struct inv_iam20685 *s)
+void AP_InertialSensor_IIM4623x::inv_iam20685_set_capture_mode(struct inv_iam20685 *s)
 {
 	uint16_t data;
 
@@ -453,11 +589,15 @@ void AP_InertialSensor_IAM20685::inv_iam20685_set_capture_mode(struct inv_iam206
 
 }
 
-void AP_InertialSensor_IAM20685::GetSensorData(void)
+void AP_InertialSensor_IIM4623x::GetSensorData(void)
 {
-	float  accel_x, accel_y, accel_z;
-	float  gyro_x, gyro_y, gyro_z;
-	float  temp1;
+    WITH_SEMAPHORE(dev->get_semaphore());
+	int16_t  accel_x, accel_y, accel_z;
+	int16_t  gyro_x, gyro_y, gyro_z;
+	float  faccel_x, faccel_y, faccel_z;
+	float  fgyro_x, fgyro_y, fgyro_z;
+	int16_t  temp1;
+	float ftemp1;
 	// uint32_t timestamp = 0;
 
 	uint32_t cmd[8];
@@ -483,19 +623,28 @@ void AP_InertialSensor_IAM20685::GetSensorData(void)
 	send_cmd(&icm_device, cmd, rsp, 8);
 
 
-	gyro_x  = (rsp[1] >> 8) & (uint32_t)0xffff;
-	gyro_y  = (rsp[2] >> 8) & (uint32_t)0xffff;
-	gyro_z  = (rsp[3] >> 8) & (uint32_t)0xffff;
-	accel_x = (rsp[4] >> 8) & (uint32_t)0xffff;
-	accel_y = (rsp[5] >> 8) & (uint32_t)0xffff;
-	accel_z = (rsp[6] >> 8) & (uint32_t)0xffff;
-	temp1   = (rsp[7] >> 8) & (uint32_t)0xffff;
+	gyro_x  = (rsp[0] >> 8) & (uint32_t)0xffff;
+	gyro_y  = (rsp[1] >> 8) & (uint32_t)0xffff;
+	gyro_z  = (rsp[2] >> 8) & (uint32_t)0xffff;
+	accel_x = (rsp[3] >> 8) & (uint32_t)0xffff;
+	accel_y = (rsp[4] >> 8) & (uint32_t)0xffff;
+	accel_z = (rsp[5] >> 8) & (uint32_t)0xffff;
+	temp1   = (rsp[6] >> 8) & (uint32_t)0xffff;
+	ftemp1 = 25.0 + temp1/20;
+	
 
-	// INV_MSG(INV_MSG_LEVEL_INFO, "3, %02d.%03d, %d, %d, %d, %d, %d, %d, %d, %d", seconds, milliseconds, timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z,
-	//          temp1);
-	WITH_SEMAPHORE(dev->get_semaphore());
-   // uint8_t status;
-    //uint8_t counter;
+	float accel_scale = 9.8/(pow(2,15)/32);
+
+	float gyro_scale = DEG_TO_RAD/(pow(2,15)/1966);
+
+	fgyro_x = ((float)gyro_x) * gyro_scale;
+	fgyro_y = ((float)gyro_y) * gyro_scale;
+	fgyro_z = ((float)gyro_z) * gyro_scale;	
+
+	faccel_x = ((float)accel_x) * accel_scale;
+	faccel_y = ((float)accel_y) * accel_scale;
+	faccel_z = ((float)accel_z) * accel_scale;
+	// GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "IAM20685: gyro_xyz %f, %f, %f, accel_xyz %f, %f, %f temp %f \n",fgyro_x, fgyro_y, fgyro_z, faccel_x, faccel_y, faccel_z, ftemp1 );
     uint64_t timestamp=0;
 
     if (first_timestamp_us == 0) {
@@ -503,9 +652,9 @@ void AP_InertialSensor_IAM20685::GetSensorData(void)
         first_imu_timestamp_us = timestamp;
     }
 	
-	Vector3f accel{accel_x, accel_y, accel_z};
-    Vector3f gyro{gyro_x,gyro_y,gyro_z};
-
+	Vector3f accel{faccel_x, faccel_y, faccel_z};
+    Vector3f gyro{fgyro_x, fgyro_y, fgyro_z};
+	
     const uint64_t sample_us = (timestamp - first_imu_timestamp_us) + first_timestamp_us;
     _rotate_and_correct_accel(accel_instance, accel);
     _notify_new_accel_raw_sample(accel_instance, accel, sample_us);
@@ -516,7 +665,7 @@ void AP_InertialSensor_IAM20685::GetSensorData(void)
     /*
       publish average temperature at 20Hz
      */
-    temp_sum += temp1;
+    temp_sum += ftemp1;
     temp_count++;
 
     if (temp_count == 100) {
@@ -528,186 +677,60 @@ void AP_InertialSensor_IAM20685::GetSensorData(void)
 	inv_iam20685_release_capture_mode(&icm_device);
 
 }
-void AP_InertialSensor_IAM20685::setup_iam(void){
-	// WITH_SEMAPHORE(dev->get_semaphore());
+void AP_InertialSensor_IIM4623x::setup_iam(void){
+	WITH_SEMAPHORE(dev->get_semaphore());
     
-    dummy_cmd = build_cmd(IAM20685_REG_BANK_SELECT_OFFSET, 0, INV_REG_R);
+    // dummy_cmd = build_cmd(IAM20685_REG_BANK_SELECT_OFFSET, 0, INV_REG_R);
 
     inv_iam20685_set_hard_reset(&icm_device);
+    hal.scheduler->delay(300);
 	// inv_iam20685_sleep_ms(300);
 
 	/* Unlock the chip */
 	inv_iam20685_unlock_chip(&icm_device);
 
+
+    /* enable DRDY */
+    //inv_iam20685_routeODRclock_to_pin12(&icm_device);
 	
 
 	/* Check Fixed Value */
 	uint16_t fixed_value;
 	inv_iam20685_get_fixed_value(&icm_device, &fixed_value);
 	// INV_MSG(INV_MSG_LEVEL_INFO, "fixed_value = 0x%x", fixed_value);
-
+    
 	/* Check WHOAMI value */
 	uint16_t who_am_i;
 	inv_iam20685_get_whoami(&icm_device, &who_am_i);
 	// INV_MSG(INV_MSG_LEVEL_INFO, "whoami = 0x%x", who_am_i);
-	if (who_am_i != EXPECTED_WHOAMI) {
-		// INV_MSG(INV_MSG_LEVEL_ERROR, "Bad WHOAMI value. Got 0x%02x. Expected 0x%02x.", who_am_i, EXPECTED_WHOAMI);
-	}
+	GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "IAM20685: WHOAMI %d \n", who_am_i);
 
 
-    	/* Configure accel and gyro FSR and filter settings */
-	// inv_iam20685_set_accel_fs_sel(&icm_device, (device_config->accel_fs_sel));
-	// inv_iam20685_set_gyro_fs_sel(&icm_device, (device_config->gyro_fs_sel));
+    // 	/* Configure accel and gyro FSR and filter settings */
+	inv_iam20685_set_accel_fs_sel(&icm_device, (device_config->accel_fs_sel));
+	inv_iam20685_set_gyro_fs_sel(&icm_device, (device_config->gyro_fs_sel));
 
-	// inv_iam20685_set_flt_x(&icm_device, &(device_config->x_axis_filter));
-	// inv_iam20685_set_flt_y(&icm_device, &(device_config->y_axis_filter));
-	// inv_iam20685_set_flt_z(&icm_device, &(device_config->z_axis_filter));
+	inv_iam20685_set_flt_x(&icm_device, &(device_config->x_axis_filter));
+	inv_iam20685_set_flt_y(&icm_device, &(device_config->y_axis_filter));
+	inv_iam20685_set_flt_z(&icm_device, &(device_config->z_axis_filter));
 }
 
-void AP_InertialSensor_IAM20685::read_sensor(void)
-{
-    struct IAM20685_data {
-        uint16_t hdr;
-        uint8_t length;
-        uint8_t type;
-        uint8_t status;
-        uint8_t sample_ctr;
-        uint8_t timestamp[8];
-        uint32_t  ax;
-        uint32_t  ay;
-        uint32_t  az;
-        uint32_t  gx;
-        uint32_t  gy;
-        uint32_t  gz;
-        uint32_t  temp;
-        // uint32_t  dvx;
-        // uint32_t  dvy;
-        // uint32_t  dvz;
-        // uint32_t  dax;
-        // uint32_t  day;
-        // uint32_t  daz;
-        uint16_t  checksum;
-        uint16_t  footer;
-    } data {};
-    uint8_t zeros [46]= {0};
-
-    // do {
-    //     WITH_SEMAPHORE(dev->get_semaphore());
-    //     // DEBUG_SET_PIN(2, 1);
-    //     if (!dev->transfer((const uint8_t *)&data, sizeof(data), (uint8_t *)&data, sizeof(data))) {
-    //         break;
-    //     }
-    //     // DEBUG_SET_PIN(2, 0);
-    // } while (data.sample_ctr == last_counter);
-
-    //read once --pending verification
-    WITH_SEMAPHORE(dev->get_semaphore());
-    dev->transfer((const uint8_t *)&zeros, sizeof(zeros), (uint8_t *)&data, sizeof(data));
-
-    /*
-      check the 8 bit checksum of the packet
-     */
-    // uint8_t sum = 0;
-    // const uint8_t *b = (const uint8_t *)&data.diag_stat;
-    // for (uint8_t i=0; i<offsetof(adis_data, pad) - offsetof(adis_data, diag_stat); i++) {
-    //     sum += b[i];
-    // }
-    // if (sum != data.checksum) {
-    //     // DEBUG_TOGGLE_PIN(3);
-    //     // DEBUG_TOGGLE_PIN(3);
-    //     // DEBUG_TOGGLE_PIN(3);
-    //     // DEBUG_TOGGLE_PIN(3);
-    //     // corrupt data
-    //     return;
-    // }
-    // calc_checksum(&data[3],sizeof(data)-7);
-
-    /*
-      check if we have lost a sample
-     */
-    // uint16_t counter = be16toh(data.counter);
-    // if (done_first_read && uint16_t(last_counter+1) != counter) {
-    //     DEBUG_TOGGLE_PIN(3);
-    // }
-    // done_first_read = true;
-    // last_counter = counter;
-    Vector3f accel{float((8*be32toh(data.ax)*GRAVITY_MSS)/pow(2,31)),
-                  -float((8*be32toh(data.ay)*GRAVITY_MSS)/pow(2,31)),
-                  -float((8*be32toh(data.az)*GRAVITY_MSS)/pow(2,31))};
-    Vector3f gyro{float(500*be32toh(data.gx)/pow(2,31)),
-                    -float(500*be32toh(data.gy)/pow(2,31)),
-                    -float(500*be32toh(data.gz)/pow(2,31))};
-
-    _rotate_and_correct_accel(accel_instance, accel);
-    _notify_new_accel_raw_sample(accel_instance, accel);
-
-    _rotate_and_correct_gyro(gyro_instance, gyro);
-    _notify_new_gyro_raw_sample(gyro_instance, gyro);
-
-
-    // Vector3f dvel{float(dvel_scale*int32_t(be16toh(data.dvx_low) | (be16toh(data.dvx_high)<<16))),
-    //               -float(dvel_scale*int32_t(be16toh(data.dvy_low) | (be16toh(data.dvy_high)<<16))),
-    //               -float(dvel_scale*int32_t(be16toh(data.dvz_low) | (be16toh(data.dvz_high)<<16)))};
-    // Vector3f dangle{float(dangle_scale*int32_t(be16toh(data.dax_low) | (be16toh(data.dax_high)<<16))),
-    //                 -float(dangle_scale*int32_t(be16toh(data.day_low) | (be16toh(data.day_high)<<16))),
-    //                 -float(dangle_scale*int32_t(be16toh(data.daz_low) | (be16toh(data.daz_high)<<16)))};
-
-    // // compensate for clock errors, see "DELTA ANGLES" in datasheet
-    // dangle *= expected_sample_rate_hz / _gyro_raw_sample_rate(gyro_instance);
-    // dvel *= expected_sample_rate_hz / _accel_raw_sample_rate(gyro_instance);
-
-    // _notify_new_delta_velocity(accel_instance, dvel);
-    // _notify_new_delta_angle(gyro_instance, dangle);
-
-    /*
-      publish average temperature at 20Hz
-     */
-    temp_sum += float(be32toh(data.temp)/126.8 +25);
-    temp_count++;
-
-    if (temp_count == 100) {
-        _publish_temperature(accel_instance, temp_sum/temp_count);
-        temp_sum = 0;
-        temp_count = 0;
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "IIM_4623x: Received %d \n", data.sample_ctr);
-    }
-}
 
 /*
   sensor read loop
  */
-void AP_InertialSensor_IAM20685::loop(void)
+void AP_InertialSensor_IIM4623x::loop(void)
 {
+    while(true){
+        GetSensorData();
+    }
+    
 	
 
-    while (true) {
-        // GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "IIM_4623x: whoami ");
-        uint32_t tstart = AP_HAL::micros();
-        // we deliberately set the period a bit fast to ensure we
-        // don't lose a sample
-        const uint32_t period_us = (1000000UL / expected_sample_rate_hz) - 20U;
-        bool wait_ok = false;
 
-        WITH_SEMAPHORE(dev->get_semaphore());
-    
-
-        // wait_ok = hal.gpio->wait_pin(drdy_pin, AP_HAL::GPIO::INTERRUPT_RISING, 2100);
-        // streaming data
-        GetSensorData();
-        
-
-        
-        uint32_t dt = AP_HAL::micros() - tstart;
-        if (dt < period_us) {
-            uint32_t wait_us = period_us - dt;
-            if (!wait_ok || wait_us > period_us/2) {
-                hal.scheduler->delay_microseconds(wait_us);
-            }
-        }
-    }
 }
 
-bool AP_InertialSensor_IAM20685::update()
+bool AP_InertialSensor_IIM4623x::update()
 {
     update_accel(accel_instance);
     update_gyro(gyro_instance);
